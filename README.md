@@ -3,15 +3,15 @@
 Seguimiento diario del **tipo de cambio oficial**, el **dólar paralelo** y la **brecha cambiaria**,
 pensado para lectura analítica: cada cifra indica su unidad, cómo fue medida y de qué fuente sale.
 
-El tablero no calcula indicadores. Lee los modelos de lectura que publica el núcleo del
-observatorio (`read_models`), de modo que la mediana entre plazas, la variación diaria y la brecha
-son las mismas que ve cualquier otro consumidor de esos datos. Dos lectores no pueden discrepar
-sobre cuál fue el paralelo de un día.
+Las series diarias, la mediana entre plazas, la variación diaria y la brecha las publica el núcleo
+del observatorio (`read_models`); el tablero las lee, no las recalcula, de modo que dos lectores no
+pueden discrepar sobre cuál fue el paralelo de un día. Lo poco que sí deriva —el punto medio de los
+dos lados publicados y la variación del periodo— queda dicho donde aparece.
 
 ## Qué muestra
 
-- **Cifras del día**: oficial (TCO), paralelo compra y venta, brecha cambiaria y UFV, con la
-  variación respecto al día anterior.
+- **Cifras del día**: tipo de cambio oficial, punto medio del paralelo, brecha cambiaria y su
+  máximo del periodo, y UFV.
 - **Evolución del tipo de cambio** desde el inicio de la serie. El eje no arranca en cero: en una
   cotización, la escala completa aplanaría movimientos que son grandes en términos económicos.
 - **Brecha cambiaria** en porcentaje sobre el oficial, con la paridad como referencia.
@@ -108,6 +108,6 @@ Tipo de cambio oficial, dólar paralelo y UFV. Bonos soberanos, agregados macroe
 empresariales están contemplados en el núcleo pero aún no producen mediciones estructuradas, así
 que no aparecen aquí.
 
-La serie histórica cargada es la del paralelo. Mientras el tipo de cambio oficial no tenga histórico,
-la brecha solo puede calcularse en los días con ambas cotizaciones y el tablero lo dice en lugar de
+Ambas series tienen histórico desde el 1 de enero de 2026, así que la brecha se grafica sobre el año
+completo. Si en algún momento un día no tuviera ambas cotizaciones, el tablero lo dice en lugar de
 trazar una línea sobre un único punto.
