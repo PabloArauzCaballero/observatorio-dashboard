@@ -125,8 +125,8 @@ export function RateChart({ data }: { data: RatePoint[] }) {
     if (!active || !payload?.length || typeof label !== 'string') return null;
     const point = payload[0]?.payload as RatePoint | undefined;
     const rows = [
-      { name: 'Paralelo compra', value: point?.parallelBuy },
-      { name: 'Paralelo venta', value: point?.parallelSell },
+      { name: 'Paralelo buy', value: point?.parallelBuy },
+      { name: 'Paralelo sell', value: point?.parallelSell },
       { name: 'Oficial', value: point?.official },
     ]
       .filter((row): row is { name: string; value: number } => typeof row.value === 'number')
@@ -136,7 +136,7 @@ export function RateChart({ data }: { data: RatePoint[] }) {
       <TooltipShell
         label={label}
         rows={rows}
-        {...(point?.archived ? { note: 'Promedio diario de archivo' } : {})}
+        {...(point?.archived ? { note: 'Incluye alguna serie de promedio diario' } : {})}
       />
     );
   };
@@ -151,7 +151,7 @@ export function RateChart({ data }: { data: RatePoint[] }) {
         <Line
           type="monotone"
           dataKey="parallelBuy"
-          name="Paralelo compra"
+          name="Paralelo buy"
           stroke="var(--parallel)"
           strokeWidth={1.9}
           dot={false}
@@ -160,7 +160,7 @@ export function RateChart({ data }: { data: RatePoint[] }) {
         <Line
           type="monotone"
           dataKey="parallelSell"
-          name="Paralelo venta"
+          name="Paralelo sell"
           stroke="var(--parallel)"
           strokeWidth={1.1}
           strokeDasharray="4 3"

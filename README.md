@@ -23,6 +23,17 @@ sobre cuál fue el paralelo de un día.
 
 ## Cuestiones metodológicas que el tablero hace explícitas
 
+**Los dos lados del paralelo no son una horquilla compra/venta.** La fuente publica dos valores
+diarios bajo las etiquetas `buy` y `sell`, y **su orden se invierte a mitad de la serie**: `buy` es
+mayor durante los primeros 119 días y menor durante los 116 siguientes. Una horquilla de compra y
+venta no puede intercambiarse, de modo que esas etiquetas no corresponden a la convención boliviana.
+El informe no las traduce, encabeza con el **punto medio** —que no depende de esa distinción— y mide
+la brecha contra él. La fecha exacta de la inversión se calcula del propio dato y se muestra en las
+notas, no se codifica a mano.
+
+En el tipo de cambio oficial, en cambio, el lado `sell` es mayor o igual al `buy` en toda la serie,
+como corresponde a una cotización administrada.
+
 **Mediana discreta, no promedio.** Cuando varias plazas cotizan el mismo día, el valor publicado es
 la mediana discreta: resiste que una plaza se desvíe y devuelve un precio efectivamente cotizado,
 no un valor intermedio que nadie ofreció.
@@ -33,8 +44,20 @@ el precio en el momento de la consulta. Son estadísticos distintos y el tablero
 entre sí**: cuando un día tiene ambos prevalece el observado, la tabla lo indica y el CSV lo trae en
 su propia columna.
 
-**Trazabilidad.** Ninguna cifra se publica sin evidencia. Cada lectura cita textualmente su fuente,
-y esa cita debe aparecer literalmente en el documento descargado, cuyo hash se conserva.
+**Trazabilidad, y dónde tiene un límite.** Ninguna cifra se publica sin evidencia: cada lectura cita
+su fuente y conserva el hash del documento del que se obtuvo. En la serie histórica del oficial la
+cita es el fragmento literal del que se leyó cada valor. En la del paralelo, cargada antes de esa
+mejora, la cita es una reformulación de los valores y no un extracto literal: sigue siendo trazable
+hasta el documento y su hash, pero no al nivel de la cita. El informe lo dice en lugar de
+reescribirlo, porque la evidencia es inmutable.
+
+**La variación del periodo se mide sobre un solo estadístico.** Comparar un día promediado con un
+precio leído en un instante sería justo el empalme que el resto del informe evita, así que la
+variación se calcula únicamente sobre el tramo de archivo y declara sus fechas.
+
+**Los errores no se muestran.** Si la base no responde, la página dice que no pudo leerla y no
+muestra ninguna cifra. El detalle queda en el registro del servidor: un mensaje de conexión puede
+contener el host, el usuario y el puerto.
 
 ## Puesta en marcha local
 

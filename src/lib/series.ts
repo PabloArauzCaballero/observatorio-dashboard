@@ -192,3 +192,30 @@ export async function readSources(): Promise<SourceNote[]> {
     lastDay: row.last_day,
   }));
 }
+
+/**
+ * The official rate as a single series.
+ *
+ * The archived series carries both sides as its publisher does, while the
+ * collector records the single administered rate the central bank states. The
+ * precedence here is deliberately the same one the gap view applies in the
+ * database — published rate first, then the selling side — so the line a reader
+ * sees and the gap they read underneath it cannot disagree about what the
+ * official rate was on a given day.
+ */
+export function officialSeries(observatory: Observatory): DailyPoint[] {
+  const order: Array<DailyPoint['side']> = ['OFFICIAL', 'SELL', 'BUY'];
+  const byDate = new Map<string, { point: DailyPoint; rank: number }>();
+
+  for (const [rank, side] of order.entries()) {
+    const key = side === null ? 'FX_OFFICIAL_USD_BOB' : `FX_OFFICIAL_USD_BOB:${side}`;
+    for (const point of observatory.series.get(key) ?? []) {
+      const current = byDate.get(point.date);
+      if (!current || rank < current.rank) byDate.set(point.date, { point, rank });
+    }
+  }
+
+  return [...byDate.values()]
+    .map((entry) => entry.point)
+    .sort((left, right) => left.date.localeCompare(right.date));
+}

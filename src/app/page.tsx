@@ -1,16 +1,17 @@
 import { GapChart, RateChart, SpreadChart } from '@/components/charts';
 import type { GapChartPoint, RatePoint, SpreadPoint } from '@/components/charts';
-import { readGap, readObservatory, readSources } from '@/lib/series';
-import type { DailyPoint, GapPoint, SourceNote } from '@/lib/series';
+import { officialSeries, readGap, readObservatory, readSources } from '@/lib/series';
+import type { DailyPoint, GapPoint, Observatory, SourceNote } from '@/lib/series';
 
 /**
  * The briefing.
  *
- * Written for readers who will check the figures: every number states its unit,
- * every series states how it was measured, and the sources are listed with the
- * URL each one came from. Where the data cannot support a claim — a gap that
- * has only one day behind it — the page says so instead of drawing a line
- * through a single point.
+ * Written for readers who will check the figures. Two rules shape it. Nothing
+ * is stated more precisely than the source supports: where the publisher's own
+ * labels do not carry a stable meaning, the page reports them as the publisher
+ * writes them instead of translating them into a convention they do not follow.
+ * And where a comparison would put two different statistics on the same footing,
+ * the page either avoids it or names the basis it used.
  */
 
 // The exchange rate in force is not a cacheable fact.
@@ -19,17 +20,37 @@ export const revalidate = 0;
 
 const PARALLEL_BUY = 'FX_PARALLEL_USD_BOB:BUY';
 const PARALLEL_SELL = 'FX_PARALLEL_USD_BOB:SELL';
-const OFFICIAL = 'FX_OFFICIAL_USD_BOB:OFFICIAL';
 const UFV = 'UFV_BOB';
 
+/** Every timestamp is stated in the country the figures describe. */
+const TIME_ZONE = 'America/La_Paz';
+
 const rate = (value: number, decimals = 4): string =>
-  value.toLocaleString('es-BO', { minimumFractionDigits: decimals, maximumFractionDigits: decimals });
+  value.toLocaleString('es-BO', {
+    minimumFractionDigits: decimals,
+    maximumFractionDigits: decimals,
+  });
 const percent = (value: number): string =>
   `${value > 0 ? '+' : ''}${value.toLocaleString('es-BO', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} %`;
 const longDate = (value: string): string =>
-  new Intl.DateTimeFormat('es-BO', { day: '2-digit', month: 'long', year: 'numeric' }).format(
-    new Date(`${value}T12:00:00Z`),
-  );
+  new Intl.DateTimeFormat('es-BO', {
+    day: '2-digit',
+    month: 'long',
+    year: 'numeric',
+    timeZone: 'UTC',
+  }).format(new Date(`${value}T12:00:00Z`));
+const instant = (value: string): string =>
+  new Intl.DateTimeFormat('es-BO', {
+    dateStyle: 'short',
+    timeStyle: 'short',
+    timeZone: TIME_ZONE,
+  }).format(new Date(value));
+
+const SIDE_LABEL: Record<string, string> = {
+  OFFICIAL: 'tipo de cambio oficial',
+  BUY: 'lado «buy»',
+  SELL: 'lado «sell»',
+};
 
 function Figure({
   label,
@@ -61,25 +82,102 @@ function Figure({
   );
 }
 
-/** Aligns the series on a single date axis without inventing missing days. */
+interface RateRow extends RatePoint {
+  parallelAggregation?: 'POINT_IN_TIME' | 'DAILY_AVERAGE';
+  officialAggregation?: 'POINT_IN_TIME' | 'DAILY_AVERAGE';
+  officialSide?: string | null;
+}
+
+/**
+ * Aligns the series on a single date axis without inventing missing days.
+ *
+ * Each series keeps its own aggregation on the row. A day where the parallel
+ * rate was observed and the official one came from the archive is not "an
+ * averaged day", and labelling the whole row from whichever series happened to
+ * be archived would say exactly that.
+ */
 function buildRateSeries(
   buy: DailyPoint[],
   sell: DailyPoint[],
   official: DailyPoint[],
-): RatePoint[] {
-  const byDate = new Map<string, RatePoint>();
-  const put = (points: DailyPoint[], apply: (target: RatePoint, point: DailyPoint) => void) => {
-    for (const point of points) {
-      const target = byDate.get(point.date) ?? { date: point.date };
-      apply(target, point);
-      if (point.aggregation === 'DAILY_AVERAGE') target.archived = true;
-      byDate.set(point.date, target);
-    }
-  };
-  put(buy, (target, point) => (target.parallelBuy = point.value));
-  put(sell, (target, point) => (target.parallelSell = point.value));
-  put(official, (target, point) => (target.official = point.value));
-  return [...byDate.values()].sort((left, right) => left.date.localeCompare(right.date));
+): RateRow[] {
+  const byDate = new Map<string, RateRow>();
+  const at = (date: string): RateRow => byDate.get(date) ?? { date };
+
+  for (const point of buy) {
+    const row = at(point.date);
+    row.parallelBuy = point.value;
+    row.parallelAggregation = point.aggregation;
+    byDate.set(point.date, row);
+  }
+  for (const point of sell) {
+    const row = at(point.date);
+    row.parallelSell = point.value;
+    row.parallelAggregation = point.aggregation;
+    byDate.set(point.date, row);
+  }
+  for (const point of official) {
+    const row = at(point.date);
+    row.official = point.value;
+    row.officialAggregation = point.aggregation;
+    row.officialSide = point.side;
+    byDate.set(point.date, row);
+  }
+
+  const rows = [...byDate.values()].sort((left, right) => left.date.localeCompare(right.date));
+  for (const row of rows) {
+    // The chart only needs to know whether anything on the row is archived, to
+    // say so in its tooltip; the table reports each series separately.
+    row.archived =
+      row.parallelAggregation === 'DAILY_AVERAGE' || row.officialAggregation === 'DAILY_AVERAGE';
+  }
+  return rows;
+}
+
+/** Mid-point of the two published sides, which their labelling cannot distort. */
+function midpoint(row: RateRow): number | null {
+  return typeof row.parallelBuy === 'number' && typeof row.parallelSell === 'number'
+    ? (row.parallelBuy + row.parallelSell) / 2
+    : null;
+}
+
+/**
+ * The date on which the ordering of the two published sides reverses.
+ *
+ * A bid and an ask cannot swap places. That this happens in the series is the
+ * evidence that the two fields do not carry the meaning a Spanish
+ * «compra/venta» pair would, and the reader is told rather than left to
+ * discover it.
+ */
+function sideOrderReversal(rows: RateRow[]): string | null {
+  let previous: boolean | null = null;
+  for (const row of rows) {
+    if (typeof row.parallelBuy !== 'number' || typeof row.parallelSell !== 'number') continue;
+    const buyAbove = row.parallelBuy > row.parallelSell;
+    if (previous !== null && buyAbove !== previous) return row.date;
+    previous = buyAbove;
+  }
+  return null;
+}
+
+/**
+ * Change over the archived stretch of the series.
+ *
+ * Measured on the mid-point and only between two points of the same
+ * aggregation: comparing a day averaged after the fact with a price read at a
+ * moment would be the very splice the rest of the page refuses to make.
+ */
+function archivedSpan(rows: RateRow[]): { from: RateRow; to: RateRow; change: number } | null {
+  const archived = rows.filter(
+    (row) => row.parallelAggregation === 'DAILY_AVERAGE' && midpoint(row) !== null,
+  );
+  const from = archived[0];
+  const to = archived.at(-1);
+  if (!from || !to || from === to) return null;
+  const start = midpoint(from);
+  const end = midpoint(to);
+  if (start === null || end === null || start === 0) return null;
+  return { from, to, change: ((end - start) / start) * 100 };
 }
 
 function SourceTable({ sources }: { sources: SourceNote[] }) {
@@ -119,74 +217,103 @@ function SourceTable({ sources }: { sources: SourceNote[] }) {
   );
 }
 
-function RecentTable({ rows }: { rows: RatePoint[] }) {
+const measurement = (value: RateRow['parallelAggregation']): string =>
+  value === 'DAILY_AVERAGE' ? 'promedio' : value === 'POINT_IN_TIME' ? 'puntual' : '—';
+
+function RecentTable({ rows }: { rows: RateRow[] }) {
   return (
     <div className="table-wrap">
       <table>
         <thead>
           <tr>
             <th>Fecha</th>
-            <th className="num">Paralelo compra</th>
-            <th className="num">Paralelo venta</th>
+            <th className="num">Paralelo buy</th>
+            <th className="num">Paralelo sell</th>
+            <th className="num">Punto medio</th>
+            <th>Medición paralelo</th>
             <th className="num">Oficial</th>
-            <th>Medición</th>
+            <th>Medición oficial</th>
           </tr>
         </thead>
         <tbody>
-          {rows.map((row) => (
-            <tr key={row.date}>
-              <td>{row.date}</td>
-              <td className="num">{typeof row.parallelBuy === 'number' ? rate(row.parallelBuy) : '—'}</td>
-              <td className="num">{typeof row.parallelSell === 'number' ? rate(row.parallelSell) : '—'}</td>
-              <td className="num">{typeof row.official === 'number' ? rate(row.official, 2) : '—'}</td>
-              <td>{row.archived ? 'Promedio diario' : 'Puntual'}</td>
-            </tr>
-          ))}
+          {rows.map((row) => {
+            const mid = midpoint(row);
+            return (
+              <tr key={row.date}>
+                <td>{row.date}</td>
+                <td className="num">
+                  {typeof row.parallelBuy === 'number' ? rate(row.parallelBuy) : '—'}
+                </td>
+                <td className="num">
+                  {typeof row.parallelSell === 'number' ? rate(row.parallelSell) : '—'}
+                </td>
+                <td className="num">{mid === null ? '—' : rate(mid)}</td>
+                <td>{measurement(row.parallelAggregation)}</td>
+                <td className="num">
+                  {typeof row.official === 'number' ? rate(row.official, 2) : '—'}
+                </td>
+                <td>{measurement(row.officialAggregation)}</td>
+              </tr>
+            );
+          })}
         </tbody>
       </table>
     </div>
   );
 }
 
+function Unreadable() {
+  return (
+    <main>
+      <div className="masthead">
+        <h1>Observatorio económico de Bolivia</h1>
+      </div>
+      <div className="error">
+        <strong>No fue posible leer la base de datos.</strong>
+        <p>
+          Esta página no muestra cifras que no pudo verificar, así que no muestra ninguna. El
+          detalle del fallo queda en el registro del servidor.
+        </p>
+      </div>
+    </main>
+  );
+}
+
 export default async function Page() {
-  let observatory;
-  let gap: GapPoint[] = [];
-  let sources: SourceNote[] = [];
+  let observatory: Observatory;
+  let gap: GapPoint[];
+  let sources: SourceNote[];
   try {
     [observatory, gap, sources] = await Promise.all([readObservatory(), readGap(), readSources()]);
   } catch (error) {
-    return (
-      <main>
-        <div className="masthead">
-          <h1>Observatorio económico de Bolivia</h1>
-        </div>
-        <div className="error">
-          <strong>No fue posible leer la base de datos.</strong>
-          <p>
-            La página no muestra cifras que no pudo verificar. Detalle:{' '}
-            <code>{error instanceof Error ? error.message : 'error desconocido'}</code>
-          </p>
-        </div>
-      </main>
-    );
+    // The message can carry the host, the user and the port. It belongs in the
+    // log, not in a page served to the public.
+    console.error('[observatorio] lectura fallida', error);
+    return <Unreadable />;
   }
 
   const buy = observatory.series.get(PARALLEL_BUY) ?? [];
   const sell = observatory.series.get(PARALLEL_SELL) ?? [];
-  const official = observatory.series.get(OFFICIAL) ?? [];
+  const official = officialSeries(observatory);
   const ufv = observatory.series.get(UFV) ?? [];
 
-  // A single point cannot be drawn as a line: an official series that short is
-  // reported as a figure and excluded from the chart.
+  // A single point cannot be drawn as a line.
   const officialIsCharteable = official.length >= 2;
-  const rateSeries = buildRateSeries(buy, sell, officialIsCharteable ? official : []);
-  const recent = [...rateSeries].reverse().slice(0, 14);
+  const rows = buildRateSeries(buy, sell, officialIsCharteable ? official : []);
+  const recent = [...rows].reverse().slice(0, 14);
+  const latest = rows.at(-1);
+  const latestMid = latest ? midpoint(latest) : null;
 
-  const lastBuy = buy.at(-1);
-  const lastSell = sell.at(-1);
   const lastOfficial = official.at(-1);
   const lastUfv = ufv.at(-1);
   const lastGap = gap.at(-1);
+  const peakGap = gap.reduce<GapPoint | null>(
+    (best, point) => (!best || point.gapPercent > best.gapPercent ? point : best),
+    null,
+  );
+
+  const reversal = sideOrderReversal(rows);
+  const span = archivedSpan(rows);
 
   const gapSeries: GapChartPoint[] = gap.map((point) => ({
     date: point.date,
@@ -197,24 +324,22 @@ export default async function Page() {
     .filter((point) => typeof point.spread === 'number' && (point.venues ?? 0) > 1)
     .map((point) => ({ date: point.date, spread: point.spread ?? 0, venues: point.venues }));
 
-  const firstParallel = buy[0];
-  const yearMove =
-    firstParallel && lastBuy ? ((lastBuy.value - firstParallel.value) / firstParallel.value) * 100 : null;
-
   return (
     <main>
       <header className="masthead">
         <div className="dateline">
           {observatory.latestDate ? `Datos al ${longDate(observatory.latestDate)}` : 'Sin datos'}
           {observatory.lastReceivedAt
-            ? ` · última carga ${new Date(observatory.lastReceivedAt).toLocaleString('es-BO')}`
+            ? ` · última carga ${instant(observatory.lastReceivedAt)} (hora de Bolivia)`
             : ''}
         </div>
         <h1>Tipo de cambio y brecha cambiaria en Bolivia</h1>
         <p>
           Seguimiento diario del dólar paralelo y del tipo de cambio oficial. Cada cifra procede de
-          una fuente registrada, con la evidencia conservada y verificable; las series y sus
-          agregaciones son las que publica el núcleo del observatorio, no cálculos de esta página.
+          una fuente registrada, con la evidencia conservada y verificable. Las series diarias, la
+          mediana entre plazas y la brecha las publica el núcleo del observatorio; lo que esta
+          página calcula por su cuenta —el punto medio y la variación del periodo— queda dicho donde
+          aparece.
         </p>
       </header>
 
@@ -222,33 +347,32 @@ export default async function Page() {
         <div className="figures">
           {lastOfficial ? (
             <Figure
-              label="Oficial (TCO)"
+              label="Oficial"
               value={rate(lastOfficial.value, 2)}
               unit="Bs/USD"
-              meta={`Banco Central · ${lastOfficial.date}`}
+              meta={`${SIDE_LABEL[lastOfficial.side ?? ''] ?? 'lado publicado'} · ${lastOfficial.date}`}
             />
           ) : null}
-          {lastBuy ? (
+          {latestMid !== null && latest ? (
             <Figure
-              label="Paralelo compra"
-              value={rate(lastBuy.value)}
+              label="Paralelo (punto medio)"
+              value={rate(latestMid)}
               unit="Bs/USD"
-              delta={lastBuy.changePercent}
-            />
-          ) : null}
-          {lastSell ? (
-            <Figure
-              label="Paralelo venta"
-              value={rate(lastSell.value)}
-              unit="Bs/USD"
-              delta={lastSell.changePercent}
+              meta={`entre ${rate(latest.parallelBuy ?? 0)} y ${rate(latest.parallelSell ?? 0)} · ${latest.date}`}
             />
           ) : null}
           {lastGap ? (
             <Figure
               label="Brecha cambiaria"
               value={percent(lastGap.gapPercent)}
-              meta={`Punto medio ${rate(lastGap.parallelMid, 2)} frente a oficial ${rate(lastGap.official, 2)}`}
+              meta={`al ${lastGap.date} · punto medio ${rate(lastGap.parallelMid, 2)} frente a oficial ${rate(lastGap.official, 2)}`}
+            />
+          ) : null}
+          {peakGap && lastGap && peakGap.date !== lastGap.date ? (
+            <Figure
+              label="Máximo de la brecha"
+              value={percent(peakGap.gapPercent)}
+              meta={`el ${peakGap.date}`}
             />
           ) : null}
           {lastUfv ? (
@@ -262,16 +386,16 @@ export default async function Page() {
         <p className="lede">
           Bolivianos por dólar. El eje no arranca en cero: en una cotización, la escala completa
           aplanaría movimientos que son grandes en términos económicos.
-          {yearMove !== null
-            ? ` En lo que va del año el paralelo acumula ${percent(yearMove)} desde el 1 de enero.`
+          {span
+            ? ` Sobre el promedio diario del archivo, el paralelo varió ${percent(span.change)} entre el ${span.from.date} y el ${span.to.date}.`
             : ''}
         </p>
         <div className="panel">
-          <RateChart data={rateSeries} />
+          <RateChart data={rows} />
           <div className="axis-note">
-            Línea continua: paralelo compra. Línea punteada: paralelo venta.
+            Naranja: los dos lados que publica la fuente para el paralelo (continua y punteada).
             {officialIsCharteable
-              ? ' Línea azul: tipo de cambio oficial.'
+              ? ' Azul: tipo de cambio oficial.'
               : ' El tipo de cambio oficial aún no tiene serie histórica cargada, por lo que no se grafica.'}
           </div>
         </div>
@@ -281,21 +405,21 @@ export default async function Page() {
         <h2>Brecha cambiaria</h2>
         <p className="lede">
           Distancia entre el precio de mercado del dólar y el precio administrado, en porcentaje
-          sobre el oficial. Es la variable que mejor resume la presión externa.
+          sobre el oficial. Se mide contra el punto medio del paralelo, que no depende de cómo estén
+          etiquetados sus dos lados.
         </p>
         {gapSeries.length >= 2 ? (
           <div className="panel">
             <GapChart data={gapSeries} />
             <div className="axis-note">
-              La referencia en cero es la paridad con el tipo de cambio oficial.
+              La referencia en cero es la paridad con el tipo de cambio oficial. Un valor negativo
+              significa que el oficial quedó por encima del mercado.
             </div>
           </div>
         ) : (
           <div className="callout">
-            La brecha solo puede calcularse en los días con ambas cotizaciones. Hoy hay{' '}
-            <strong>{gapSeries.length === 1 ? 'un solo día' : 'ningún día'}</strong> con las dos, porque
-            la serie histórica cargada es únicamente la del paralelo. En cuanto se incorpore el
-            histórico del tipo de cambio oficial, este gráfico se completa solo.
+            La brecha solo puede calcularse en los días con ambas cotizaciones, y hoy hay{' '}
+            <strong>{gapSeries.length === 1 ? 'un solo día' : 'ningún día'}</strong> con las dos.
           </div>
         )}
       </section>
@@ -318,8 +442,7 @@ export default async function Page() {
       <section>
         <h2>Últimos días</h2>
         <p className="lede">
-          Serie diaria en crudo.{' '}
-          <a href="/api/series.csv">Descargar la serie completa en CSV</a>.
+          Serie diaria en crudo. <a href="/api/series.csv">Descargar la serie completa en CSV</a>.
         </p>
         <RecentTable rows={recent} />
       </section>
@@ -335,6 +458,33 @@ export default async function Page() {
       <section className="notes">
         <h2>Notas metodológicas</h2>
         <dl>
+          <dt>Los dos lados del paralelo no son una horquilla compra/venta</dt>
+          <dd>
+            La fuente publica dos valores por día bajo las etiquetas <code>buy</code> y{' '}
+            <code>sell</code>.
+            {reversal ? (
+              <>
+                {' '}
+                Su orden <strong>se invierte el {reversal}</strong>: antes de esa fecha uno es
+                sistemáticamente mayor y después el otro. Una horquilla de compra y venta no puede
+                intercambiarse, así que estas etiquetas no corresponden a la convención boliviana de
+                «compra» y «venta».
+              </>
+            ) : (
+              ' Se reportan tal como las publica la fuente.'
+            )}{' '}
+            Por eso el informe no las traduce, encabeza con el <strong>punto medio</strong> —que no
+            depende de esa distinción— y mide la brecha contra él.
+          </dd>
+
+          <dt>El oficial sí es consistente</dt>
+          <dd>
+            En el tipo de cambio oficial el lado «sell» es mayor o igual al «buy» en toda la serie,
+            como corresponde a una cotización administrada. Cuando existe el valor único que publica
+            el Banco Central, el informe usa ese; si no, el lado «sell», que es lo que paga quien
+            adquiere dólares. La columna del cuadro indica cuál se usó.
+          </dd>
+
           <dt>Valor del día</dt>
           <dd>
             Cuando varias plazas cotizan el mismo día, el valor publicado es la{' '}
@@ -349,8 +499,9 @@ export default async function Page() {
             <strong>promedio diario</strong> de las cotizaciones intradía publicado por su editor;
             desde que el recolector opera, cada lectura es el precio{' '}
             <strong>en el momento</strong> de la consulta. Son estadísticos distintos y no se
-            promedian entre sí: cuando un día tiene ambos, prevalece el observado, y la tabla lo
-            indica en la columna «Medición».
+            promedian entre sí: cuando un día tiene ambos prevalece el observado, y cada serie
+            declara el suyo por separado en el cuadro. La variación del periodo se mide únicamente
+            sobre el tramo de archivo, por la misma razón.
           </dd>
 
           <dt>Unidad del paralelo</dt>
@@ -360,11 +511,14 @@ export default async function Page() {
             conserva en la base para quien necesite distinguirlo.
           </dd>
 
-          <dt>Trazabilidad</dt>
+          <dt>Trazabilidad y sus límites</dt>
           <dd>
-            Ninguna cifra se publica sin evidencia: cada lectura cita textualmente su fuente, y esa
-            cita debe aparecer literalmente en el documento descargado, cuyo hash se conserva. Una
-            afirmación cuya cifra no aparece en su evidencia se descarta entera.
+            Cada lectura cita su fuente y conserva el hash del documento del que se obtuvo. En la
+            serie histórica del <strong>oficial</strong>, la cita es el fragmento literal del que se
+            leyó cada valor. En la del <strong>paralelo</strong>, cargada antes de esa mejora, la
+            cita es una reformulación de los valores leídos y no un extracto literal: sigue siendo
+            trazable hasta el documento y su hash, pero no al nivel de la cita. Se documenta en
+            lugar de reescribirse, porque la evidencia es inmutable.
           </dd>
 
           <dt>Cobertura</dt>
