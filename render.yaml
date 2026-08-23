@@ -1,0 +1,17 @@
+# Blueprint de despliegue. No contiene credenciales: la cadena de conexion se
+# define en el panel de Render y nunca se versiona.
+services:
+  - type: web
+    name: observatorio-dashboard
+    runtime: node
+    plan: free
+    region: oregon
+    branch: main
+    buildCommand: npm ci && npm run build
+    startCommand: npm run start
+    healthCheckPath: /
+    envVars:
+      - key: NODE_VERSION
+        value: 22.16.0
+      - key: DASHBOARD_DATABASE_URL
+        sync: false
