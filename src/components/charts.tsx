@@ -61,7 +61,10 @@ const longDate = new Intl.DateTimeFormat('es-BO', {
 const asDate = (value: string): Date => new Date(`${value}T12:00:00Z`);
 const shortLabel = (value: string): string => dayMonth.format(asDate(value));
 const number = (value: number, decimals = 2): string =>
-  value.toLocaleString('es-BO', { minimumFractionDigits: decimals, maximumFractionDigits: decimals });
+  value.toLocaleString('es-BO', {
+    minimumFractionDigits: decimals,
+    maximumFractionDigits: decimals,
+  });
 
 /** Padding that keeps the line off the frame without inventing headroom. */
 function fittedDomain(values: number[]): [number, number] {

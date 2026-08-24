@@ -66,7 +66,10 @@ function preferObserved(points: DailyPoint[]): DailyPoint[] {
   const byDate = new Map<string, DailyPoint>();
   for (const point of points) {
     const current = byDate.get(point.date);
-    if (!current || (current.aggregation !== 'POINT_IN_TIME' && point.aggregation === 'POINT_IN_TIME')) {
+    if (
+      !current ||
+      (current.aggregation !== 'POINT_IN_TIME' && point.aggregation === 'POINT_IN_TIME')
+    ) {
       byDate.set(point.date, point);
     }
   }
@@ -218,4 +221,55 @@ export function officialSeries(observatory: Observatory): DailyPoint[] {
   return [...byDate.values()]
     .map((entry) => entry.point)
     .sort((left, right) => left.date.localeCompare(right.date));
+}
+
+export interface MacroPoint {
+  indicatorCode: string;
+  name: string | null;
+  period: string;
+  unit: string;
+  value: number;
+  previousValue: number | null;
+  changePercent: number | null;
+  publisher: string | null;
+  sourceUrl: string | null;
+}
+
+/**
+ * The annual series that give the daily rates their context.
+ *
+ * Read from their own model rather than filtered out of the daily one: a yearly
+ * figure and a quoted price are different frequencies, and the database keeps
+ * them apart so no consumer has to remember to.
+ */
+export async function readMacroAnnual(): Promise<MacroPoint[]> {
+  const { rows } = await pool().query<{
+    indicator_code: string;
+    indicator_name: string | null;
+    period: string;
+    unit: string;
+    value: string;
+    previous_value: string | null;
+    change_percent: string | null;
+    publisher: string | null;
+    source_url: string | null;
+  }>(
+    `SELECT indicator_code, indicator_name, period, unit,
+            value::text AS value, previous_value::text AS previous_value,
+            change_percent::text AS change_percent, publisher, source_url
+     FROM read_models.macro_indicator_annual
+     ORDER BY indicator_code, period`,
+  );
+
+  return rows.map((row) => ({
+    indicatorCode: row.indicator_code,
+    name: row.indicator_name,
+    period: row.period,
+    unit: row.unit,
+    value: Number(row.value),
+    previousValue: row.previous_value === null ? null : Number(row.previous_value),
+    changePercent: row.change_percent === null ? null : Number(row.change_percent),
+    publisher: row.publisher,
+    sourceUrl: row.source_url,
+  }));
 }

@@ -1,7 +1,13 @@
 import { GapChart, RateChart, SpreadChart } from '@/components/charts';
 import type { GapChartPoint, RatePoint, SpreadPoint } from '@/components/charts';
-import { officialSeries, readGap, readObservatory, readSources } from '@/lib/series';
-import type { DailyPoint, GapPoint, Observatory, SourceNote } from '@/lib/series';
+import {
+  officialSeries,
+  readGap,
+  readMacroAnnual,
+  readObservatory,
+  readSources,
+} from '@/lib/series';
+import type { DailyPoint, GapPoint, MacroPoint, Observatory, SourceNote } from '@/lib/series';
 
 /**
  * The briefing.
@@ -96,11 +102,7 @@ interface RateRow extends RatePoint {
  * averaged day", and labelling the whole row from whichever series happened to
  * be archived would say exactly that.
  */
-function buildRateSeries(
-  buy: DailyPoint[],
-  sell: DailyPoint[],
-  official: DailyPoint[],
-): RateRow[] {
+function buildRateSeries(buy: DailyPoint[], sell: DailyPoint[], official: DailyPoint[]): RateRow[] {
   const byDate = new Map<string, RateRow>();
   const at = (date: string): RateRow => byDate.get(date) ?? { date };
 
@@ -262,6 +264,87 @@ function RecentTable({ rows }: { rows: RateRow[] }) {
   );
 }
 
+const UNIT_LABEL: Record<string, string> = {
+  PERCENT: '%',
+  PERCENT_OF_GDP: '% del PIB',
+  USD: 'USD',
+};
+
+/**
+ * Formats a macroeconomic figure at the scale a reader thinks in.
+ *
+ * Reserves of 579,906,699.89 dollars are read as 580 million; printing every
+ * digit implies a precision the annual estimate does not carry.
+ */
+function macroValue(point: MacroPoint): string {
+  if (point.unit !== 'USD') {
+    return point.value.toLocaleString('es-BO', {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    });
+  }
+  const billions = point.value / 1_000_000_000;
+  if (Math.abs(billions) >= 1) {
+    return `${billions.toLocaleString('es-BO', { maximumFractionDigits: 2 })} mil M`;
+  }
+  return `${(point.value / 1_000_000).toLocaleString('es-BO', { maximumFractionDigits: 0 })} M`;
+}
+
+/** Latest published year of each indicator, which is not the same year for all. */
+function latestByIndicator(points: MacroPoint[]): MacroPoint[] {
+  const latest = new Map<string, MacroPoint>();
+  for (const point of points) {
+    const current = latest.get(point.indicatorCode);
+    if (!current || point.period > current.period) latest.set(point.indicatorCode, point);
+  }
+  return [...latest.values()].sort((left, right) =>
+    (left.name ?? left.indicatorCode).localeCompare(right.name ?? right.indicatorCode),
+  );
+}
+
+function MacroTable({ points }: { points: MacroPoint[] }) {
+  return (
+    <div className="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Indicador</th>
+            <th>Periodo</th>
+            <th className="num">Valor</th>
+            <th>Unidad</th>
+            <th className="num">Variación anual</th>
+            <th>Fuente</th>
+          </tr>
+        </thead>
+        <tbody>
+          {points.map((point) => (
+            <tr key={point.indicatorCode}>
+              <td>{point.name ?? point.indicatorCode}</td>
+              <td>{point.period}</td>
+              <td className="num">{macroValue(point)}</td>
+              <td>{UNIT_LABEL[point.unit] ?? point.unit}</td>
+              <td
+                className={`num ${point.changePercent === null ? '' : point.changePercent >= 0 ? 'delta-up' : 'delta-down'}`}
+              >
+                {point.changePercent === null ? '—' : percent(point.changePercent)}
+              </td>
+              <td>
+                {point.sourceUrl ? (
+                  <a href={point.sourceUrl} target="_blank" rel="noreferrer noopener">
+                    abrir
+                  </a>
+                ) : (
+                  '—'
+                )}
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
 function Unreadable() {
   return (
     <main>
@@ -283,8 +366,14 @@ export default async function Page() {
   let observatory: Observatory;
   let gap: GapPoint[];
   let sources: SourceNote[];
+  let macro: MacroPoint[];
   try {
-    [observatory, gap, sources] = await Promise.all([readObservatory(), readGap(), readSources()]);
+    [observatory, gap, sources, macro] = await Promise.all([
+      readObservatory(),
+      readGap(),
+      readSources(),
+      readMacroAnnual(),
+    ]);
   } catch (error) {
     // The message can carry the host, the user and the port. It belongs in the
     // log, not in a page served to the public.
@@ -322,7 +411,11 @@ export default async function Page() {
 
   const spreadSeries: SpreadPoint[] = sell
     .filter((point) => typeof point.spread === 'number' && (point.venues ?? 0) > 1)
-    .map((point) => ({ date: point.date, spread: point.spread ?? 0, venues: point.venues }));
+    .map((point) => ({
+      date: point.date,
+      spread: point.spread ?? 0,
+      venues: point.venues,
+    }));
 
   return (
     <main>
@@ -447,6 +540,23 @@ export default async function Page() {
         <RecentTable rows={recent} />
       </section>
 
+      {macro.length ? (
+        <section>
+          <h2>Contexto macroeconómico</h2>
+          <p className="lede">
+            Series anuales que sitúan el movimiento cambiario. Una brecha que se abre puede ser un
+            mercado moviéndose o una economía bajo tensión, y son estas cifras las que permiten
+            distinguirlo. Se publican una vez al año, así que su último dato disponible no coincide
+            necesariamente entre indicadores ni con la fecha de las series diarias.
+          </p>
+          <MacroTable points={latestByIndicator(macro)} />
+          <p className="lede" style={{ marginTop: '0.9rem' }}>
+            Serie completa desde {macro[0]?.period ?? ''} en el CSV. La variación anual compara con
+            el año inmediatamente anterior publicado.
+          </p>
+        </section>
+      ) : null}
+
       <section>
         <h2>Fuentes</h2>
         <p className="lede">
@@ -497,11 +607,11 @@ export default async function Page() {
           <dd>
             La serie anterior al inicio de la recolección diaria es un{' '}
             <strong>promedio diario</strong> de las cotizaciones intradía publicado por su editor;
-            desde que el recolector opera, cada lectura es el precio{' '}
-            <strong>en el momento</strong> de la consulta. Son estadísticos distintos y no se
-            promedian entre sí: cuando un día tiene ambos prevalece el observado, y cada serie
-            declara el suyo por separado en el cuadro. La variación del periodo se mide únicamente
-            sobre el tramo de archivo, por la misma razón.
+            desde que el recolector opera, cada lectura es el precio <strong>en el momento</strong>{' '}
+            de la consulta. Son estadísticos distintos y no se promedian entre sí: cuando un día
+            tiene ambos prevalece el observado, y cada serie declara el suyo por separado en el
+            cuadro. La variación del periodo se mide únicamente sobre el tramo de archivo, por la
+            misma razón.
           </dd>
 
           <dt>Unidad del paralelo</dt>

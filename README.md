@@ -19,6 +19,9 @@ dos lados publicados y la variación del periodo— queda dicho donde aparece.
   Un diferencial que se abre señala un mercado menos líquido o más fragmentado.
 - **Serie en crudo** de los últimos días y descarga completa en CSV (`/api/series.csv`).
 - **Fuentes** de cada indicador, con la URL de la que se obtuvo cada lectura.
+- **Contexto macroeconómico**: series anuales (inflación, PIB, reservas, cuenta corriente, deuda
+  externa, desempleo, tasa activa) que permiten distinguir si una brecha que se abre es un mercado
+  moviéndose o una economía bajo tensión.
 - **Notas metodológicas**.
 
 ## Cuestiones metodológicas que el tablero hace explícitas
@@ -104,9 +107,12 @@ componente de cliente falla en compilación en lugar de enviar una cadena de con
 
 ## Cobertura actual
 
-Tipo de cambio oficial, dólar paralelo y UFV. Bonos soberanos, agregados macroeconómicos y noticias
-empresariales están contemplados en el núcleo pero aún no producen mediciones estructuradas, así
-que no aparecen aquí.
+Diario: tipo de cambio oficial, dólar paralelo y UFV. Anual: once series macroeconómicas
+(2000-2025). Bonos soberanos y noticias empresariales están contemplados en el núcleo pero aún no
+producen mediciones estructuradas.
+
+Las frecuencias no se mezclan: una cifra anual y un precio cotizado a diario viven en modelos de
+lectura distintos, de modo que ningún gráfico puede ponerlas en el mismo eje ni promediarlas.
 
 Ambas series tienen histórico desde el 1 de enero de 2026, así que la brecha se grafica sobre el año
 completo. Si en algún momento un día no tuviera ambas cotizaciones, el tablero lo dice en lugar de
