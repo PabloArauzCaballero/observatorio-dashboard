@@ -1,22 +1,28 @@
 /*
- * A reading surface, not a control room.
+ * One surface, one rhythm.
  *
- * The audience is economists: the page has to read like a briefing note, so
- * the type carries the hierarchy and colour is spent only where it means
- * something — a direction, a series, a warning about provenance.
+ * The audience is economists, so the page reads like a briefing rather than a
+ * control room: type carries the hierarchy and colour is spent only where it
+ * means something — one hue for the administered rate, one for the market, one
+ * for the distance between them.
+ *
+ * Everything shares four things: a spacing scale, a panel, a motion curve and a
+ * chart height. A section that invents its own is a section that looks like it
+ * came from somewhere else.
  */
 
 :root {
   --ink: #14181f;
   --ink-soft: #4a5464;
   --ink-faint: #78839a;
-  --rule: #dfe3ea;
+  --rule: #e2e6ed;
   --rule-soft: #eef1f5;
-  --paper: #ffffff;
-  --paper-tint: #f7f8fa;
+  --paper: #fbfbfc;
+  --panel: #ffffff;
+  --panel-tint: #f6f8fa;
 
   --official: #1b4f9c;
-  --parallel: #b4451f;
+  --parallel: #c2551f;
   --gap: #7a5197;
   --up: #a32b1f;
   --down: #1c6b4a;
@@ -24,6 +30,18 @@
   --serif: ui-serif, Georgia, 'Times New Roman', serif;
   --sans: ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
   --mono: ui-monospace, 'SF Mono', 'Cascadia Mono', Menlo, Consolas, monospace;
+
+  --s1: 0.5rem;
+  --s2: 0.85rem;
+  --s3: 1.35rem;
+  --s4: 2rem;
+  --s5: 3rem;
+
+  --radius: 10px;
+  --shadow: 0 1px 2px rgb(16 24 40 / 0.04), 0 8px 24px -12px rgb(16 24 40 / 0.14);
+  --ease: cubic-bezier(0.22, 0.61, 0.36, 1);
+  --fast: 160ms;
+  --slow: 420ms;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -32,15 +50,18 @@
     --ink-soft: #b3bccb;
     --ink-faint: #7f8a9c;
     --rule: #2a313d;
-    --rule-soft: #1e242e;
-    --paper: #12161c;
-    --paper-tint: #171c24;
+    --rule-soft: #212833;
+    --paper: #0e1116;
+    --panel: #151a21;
+    --panel-tint: #1a202a;
 
     --official: #6fa8e8;
-    --parallel: #e8895e;
+    --parallel: #ee9161;
     --gap: #b696d6;
     --up: #e8776a;
     --down: #58c39a;
+
+    --shadow: 0 1px 2px rgb(0 0 0 / 0.3), 0 10px 28px -14px rgb(0 0 0 / 0.7);
   }
 }
 
@@ -64,105 +85,210 @@ a {
   color: inherit;
   text-decoration-color: var(--ink-faint);
   text-underline-offset: 2px;
+  transition: text-decoration-color var(--fast) var(--ease);
+}
+
+a:hover {
+  text-decoration-color: currentColor;
 }
 
 .shell {
-  max-width: 1080px;
+  max-width: 1140px;
   margin: 0 auto;
-  padding: 2.5rem 1.25rem 5rem;
+  padding: var(--s4) 1.25rem var(--s5);
 }
 
+/* Motion ---------------------------------------------------------------- */
+
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.panel-enter > * > * {
+  animation: rise var(--slow) var(--ease) both;
+}
+
+/* A stagger so a section assembles instead of appearing all at once. */
+.panel-enter > * > *:nth-child(1) {
+  animation-delay: 0ms;
+}
+.panel-enter > * > *:nth-child(2) {
+  animation-delay: 70ms;
+}
+.panel-enter > * > *:nth-child(3) {
+  animation-delay: 140ms;
+}
+.panel-enter > * > *:nth-child(4) {
+  animation-delay: 210ms;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  .panel-enter > * > * {
+    animation: none !important;
+    transition-duration: 1ms !important;
+  }
+}
+
+/* Masthead and tabs ------------------------------------------------------ */
+
 .masthead {
-  border-bottom: 2px solid var(--ink);
-  padding-bottom: 1rem;
-  margin-bottom: 2rem;
+  padding-bottom: var(--s2);
 }
 
 .masthead h1 {
   font-family: var(--serif);
-  font-size: clamp(1.6rem, 3.2vw, 2.1rem);
+  font-size: clamp(1.55rem, 3vw, 2rem);
   font-weight: 600;
   letter-spacing: -0.015em;
-  margin: 0 0 0.35rem;
-}
-
-.masthead p {
   margin: 0;
-  color: var(--ink-soft);
-  font-size: 0.94rem;
-  max-width: 62ch;
 }
 
 .dateline {
   font-family: var(--mono);
-  font-size: 0.76rem;
-  letter-spacing: 0.06em;
+  font-size: 0.74rem;
+  letter-spacing: 0.07em;
   text-transform: uppercase;
   color: var(--ink-faint);
-  margin-bottom: 0.6rem;
+  margin-bottom: var(--s1);
 }
 
-section {
-  margin: 2.75rem 0 0;
+.tabs {
+  display: flex;
+  flex-wrap: wrap;
+  border-bottom: 1px solid var(--rule);
+  margin: 0 0 var(--s4);
+}
+
+.tab {
+  appearance: none;
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+  padding: 0.65rem 1rem;
+  font: inherit;
+  font-size: 0.92rem;
+  color: var(--ink-faint);
+  cursor: pointer;
+  transition:
+    color var(--fast) var(--ease),
+    border-color var(--fast) var(--ease);
+}
+
+.tab:hover {
+  color: var(--ink-soft);
+}
+
+.tab-active {
+  color: var(--ink);
+  font-weight: 600;
+  border-bottom-color: var(--ink);
+}
+
+.tab:focus-visible {
+  outline: 2px solid var(--official);
+  outline-offset: -2px;
+  border-radius: 4px 4px 0 0;
+}
+
+/* Layout ---------------------------------------------------------------- */
+
+.stack {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s4);
+  margin: 0;
 }
 
 h2 {
   font-family: var(--serif);
-  font-size: 1.22rem;
+  font-size: 1.18rem;
   font-weight: 600;
-  margin: 0 0 0.3rem;
+  margin: 0;
   letter-spacing: -0.01em;
 }
 
-.lede {
-  color: var(--ink-soft);
-  font-size: 0.93rem;
-  margin: 0 0 1.1rem;
-  max-width: 70ch;
+.panel-head {
+  margin-bottom: var(--s2);
 }
 
-/* Headline figures ------------------------------------------------------ */
+.panel-sub {
+  color: var(--ink-soft);
+  font-size: 0.87rem;
+  margin: 0.25rem 0 0;
+  max-width: 74ch;
+}
+
+.section-gap {
+  margin-top: var(--s4);
+}
+
+/* Figures ---------------------------------------------------------------- */
 
 .figures {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
-  gap: 1px;
-  background: var(--rule);
-  border: 1px solid var(--rule);
+  grid-template-columns: repeat(auto-fit, minmax(196px, 1fr));
+  gap: var(--s2);
 }
 
 .figure {
-  background: var(--paper);
-  padding: 1rem 1.1rem 1.15rem;
+  background: var(--panel);
+  border: 1px solid var(--rule);
+  border-radius: var(--radius);
+  padding: var(--s2) var(--s3) var(--s2);
+  box-shadow: var(--shadow);
+  transition:
+    transform var(--fast) var(--ease),
+    box-shadow var(--fast) var(--ease);
+}
+
+.figure:hover {
+  transform: translateY(-2px);
+  box-shadow:
+    0 2px 4px rgb(16 24 40 / 0.05),
+    0 14px 32px -14px rgb(16 24 40 / 0.22);
 }
 
 .figure .label {
-  font-size: 0.78rem;
-  letter-spacing: 0.03em;
+  font-size: 0.73rem;
+  letter-spacing: 0.05em;
   text-transform: uppercase;
   color: var(--ink-faint);
-  margin-bottom: 0.45rem;
+  margin-bottom: 0.35rem;
 }
 
 .figure .value {
   font-family: var(--mono);
-  font-size: 1.85rem;
+  font-size: 1.7rem;
   font-variant-numeric: tabular-nums;
-  letter-spacing: -0.02em;
-  line-height: 1.1;
+  letter-spacing: -0.025em;
+  line-height: 1.15;
 }
 
 .figure .unit {
-  font-size: 0.82rem;
+  font-size: 0.78rem;
   color: var(--ink-faint);
   margin-left: 0.3rem;
 }
 
 .figure .meta {
-  margin-top: 0.4rem;
-  font-size: 0.8rem;
+  margin-top: 0.25rem;
+  font-size: 0.78rem;
   color: var(--ink-soft);
   font-variant-numeric: tabular-nums;
+}
+
+.sparkline {
+  height: 34px;
+  margin: 0.5rem -0.35rem -0.35rem;
 }
 
 .delta-up {
@@ -172,38 +298,41 @@ h2 {
   color: var(--down);
 }
 
-/* Charts ---------------------------------------------------------------- */
+/* Panels and charts ------------------------------------------------------ */
 
 .panel {
+  background: var(--panel);
   border: 1px solid var(--rule);
-  padding: 1.1rem 1rem 0.6rem;
-  background: var(--paper);
+  border-radius: var(--radius);
+  padding: var(--s3);
+  box-shadow: var(--shadow);
 }
 
 .chart-frame {
   width: 100%;
-  height: 320px;
+  height: 300px;
 }
 
-.axis-note {
-  font-size: 0.78rem;
-  color: var(--ink-faint);
-  padding: 0.5rem 0.1rem 0.6rem;
-  border-top: 1px solid var(--rule-soft);
-  margin-top: 0.4rem;
+.chart-frame-tall {
+  height: 380px;
+}
+
+.chart-frame-small {
+  height: 132px;
 }
 
 .tooltip {
-  background: var(--paper);
+  background: var(--panel);
   border: 1px solid var(--rule);
+  border-radius: 8px;
   padding: 0.55rem 0.7rem;
   font-size: 0.83rem;
-  box-shadow: 0 6px 20px rgb(0 0 0 / 0.09);
+  box-shadow: var(--shadow);
 }
 
 .tooltip .t-date {
   font-family: var(--mono);
-  font-size: 0.76rem;
+  font-size: 0.73rem;
   color: var(--ink-faint);
   margin-bottom: 0.3rem;
 }
@@ -211,68 +340,242 @@ h2 {
 .tooltip .t-row {
   display: flex;
   justify-content: space-between;
-  gap: 1.2rem;
+  gap: 1.4rem;
   font-variant-numeric: tabular-nums;
 }
 
 .tooltip .t-note {
   margin-top: 0.35rem;
-  font-size: 0.74rem;
+  font-size: 0.73rem;
   color: var(--ink-faint);
 }
 
-/* Tables ---------------------------------------------------------------- */
+/* Macro cards ------------------------------------------------------------ */
 
-.table-wrap {
-  overflow-x: auto;
+.card-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(310px, 1fr));
+  gap: var(--s2);
+}
+
+.card {
+  background: var(--panel);
   border: 1px solid var(--rule);
+  border-radius: var(--radius);
+  padding: var(--s2) var(--s3) var(--s1);
+  box-shadow: var(--shadow);
+  transition:
+    transform var(--fast) var(--ease),
+    box-shadow var(--fast) var(--ease);
 }
 
-table {
-  border-collapse: collapse;
-  width: 100%;
-  font-size: 0.88rem;
+.card:hover {
+  transform: translateY(-2px);
+  box-shadow:
+    0 2px 4px rgb(16 24 40 / 0.05),
+    0 14px 32px -14px rgb(16 24 40 / 0.22);
 }
 
-th,
-td {
-  padding: 0.5rem 0.7rem;
-  text-align: left;
-  border-bottom: 1px solid var(--rule-soft);
-  white-space: nowrap;
-}
-
-th {
-  background: var(--paper-tint);
+.card-head h3 {
+  font-family: var(--sans);
+  font-size: 0.8rem;
   font-weight: 600;
-  font-size: 0.79rem;
   letter-spacing: 0.02em;
-  text-transform: uppercase;
+  color: var(--ink-soft);
+  margin: 0 0 0.35rem;
+}
+
+.card-figure {
+  display: flex;
+  align-items: baseline;
+  gap: 0.35rem;
+}
+
+.card-value {
+  font-family: var(--mono);
+  font-size: 1.4rem;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.02em;
+}
+
+.card-unit {
+  font-size: 0.75rem;
+  color: var(--ink-faint);
+}
+
+.card-meta {
+  display: flex;
+  gap: 0.7rem;
+  font-size: 0.76rem;
+  color: var(--ink-faint);
+  font-variant-numeric: tabular-nums;
+  margin-top: 0.15rem;
+}
+
+/* Timeline --------------------------------------------------------------- */
+
+.timeline {
+  list-style: none;
+  margin: 0;
+  padding: 0 0 0 1.5rem;
+  border-left: 2px solid var(--rule);
+}
+
+.timeline li {
+  position: relative;
+  padding: 0 0 var(--s3) var(--s2);
+  animation: rise var(--slow) var(--ease) both;
+}
+
+.timeline li::before {
+  content: '';
+  position: absolute;
+  left: calc(-1.5rem - 5px);
+  top: 0.45rem;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--parallel);
+  box-shadow: 0 0 0 3px var(--paper);
+}
+
+.tl-stamp {
+  font-family: var(--mono);
+  font-size: 0.73rem;
+  letter-spacing: 0.04em;
+  color: var(--ink-faint);
+}
+
+.tl-body h4 {
+  font-family: var(--serif);
+  font-size: 1.02rem;
+  font-weight: 600;
+  margin: 0.1rem 0 0.15rem;
+}
+
+.tl-filer {
+  margin: 0;
+  font-size: 0.8rem;
   color: var(--ink-soft);
 }
 
-td.num {
-  font-family: var(--mono);
+.tl-excerpt {
+  margin: 0.45rem 0 0;
+  font-size: 0.86rem;
+  color: var(--ink-soft);
+  max-width: 82ch;
+}
+
+.tl-foot {
+  margin: 0.4rem 0 0;
+  font-size: 0.75rem;
+  color: var(--ink-faint);
+}
+
+/* Sources ---------------------------------------------------------------- */
+
+.sources {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  background: var(--rule);
+  border: 1px solid var(--rule);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+
+.sources li {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.75rem;
+  background: var(--panel);
+  padding: 0.6rem var(--s3);
+  font-size: 0.85rem;
+}
+
+.src-span {
+  color: var(--ink-faint);
   font-variant-numeric: tabular-nums;
-  text-align: right;
+  margin-left: auto;
 }
 
-tbody tr:last-child td {
-  border-bottom: none;
+/* Downloads -------------------------------------------------------------- */
+
+.download {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  font-size: 0.85rem;
+  color: var(--ink-soft);
 }
 
-/* Notes ----------------------------------------------------------------- */
+.download-label {
+  margin-right: auto;
+}
+
+.download-btn {
+  font-family: var(--mono);
+  font-size: 0.75rem;
+  letter-spacing: 0.06em;
+  text-decoration: none;
+  padding: 0.35rem 0.8rem;
+  border: 1px solid var(--rule);
+  border-radius: 999px;
+  background: var(--panel);
+  color: var(--ink-soft);
+  transition:
+    border-color var(--fast) var(--ease),
+    color var(--fast) var(--ease),
+    transform var(--fast) var(--ease);
+}
+
+.download-btn:hover {
+  border-color: var(--ink-soft);
+  color: var(--ink);
+  transform: translateY(-1px);
+}
+
+/* Daily reading ---------------------------------------------------------- */
+
+.analysis {
+  background: var(--panel-tint);
+  border: 1px solid var(--rule);
+  border-radius: var(--radius);
+  padding: var(--s3);
+}
+
+.analysis h2 {
+  margin-bottom: 0.15rem;
+}
+
+.analysis-note {
+  font-size: 0.76rem;
+  color: var(--ink-faint);
+  margin: 0 0 var(--s2);
+}
+
+.analysis p:not(.analysis-note) {
+  font-family: var(--serif);
+  font-size: 1rem;
+  line-height: 1.66;
+  color: var(--ink);
+  margin: 0 0 0.7rem;
+  max-width: 78ch;
+}
+
+.analysis p:last-child {
+  margin-bottom: 0;
+}
+
+/* Notes ------------------------------------------------------------------ */
 
 .notes {
-  border-top: 1px solid var(--rule);
-  margin-top: 3rem;
-  padding-top: 1.25rem;
-  font-size: 0.88rem;
+  font-size: 0.87rem;
   color: var(--ink-soft);
-}
-
-.notes h2 {
-  font-size: 1.05rem;
 }
 
 .notes dl {
@@ -282,33 +585,35 @@ tbody tr:last-child td {
 .notes dt {
   font-weight: 600;
   color: var(--ink);
-  margin-top: 0.9rem;
+  margin-top: var(--s2);
 }
 
 .notes dd {
   margin: 0.15rem 0 0;
-  max-width: 78ch;
+  max-width: 80ch;
 }
 
 .callout {
   border-left: 3px solid var(--gap);
-  background: var(--paper-tint);
-  padding: 0.7rem 0.9rem;
-  font-size: 0.88rem;
+  background: var(--panel-tint);
+  border-radius: 0 8px 8px 0;
+  padding: 0.75rem 1rem;
+  font-size: 0.87rem;
   color: var(--ink-soft);
-  margin: 1rem 0 0;
 }
 
 code {
   font-family: var(--mono);
-  font-size: 0.86em;
-  background: var(--paper-tint);
-  padding: 0.08em 0.32em;
+  font-size: 0.85em;
+  background: var(--panel-tint);
+  padding: 0.1em 0.36em;
   border: 1px solid var(--rule-soft);
+  border-radius: 4px;
 }
 
 .error {
   border: 1px solid var(--up);
+  border-radius: var(--radius);
   padding: 1rem 1.1rem;
   font-size: 0.92rem;
 }

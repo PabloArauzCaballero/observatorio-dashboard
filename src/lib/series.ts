@@ -273,3 +273,58 @@ export async function readMacroAnnual(): Promise<MacroPoint[]> {
     sourceUrl: row.source_url,
   }));
 }
+
+export interface CompanyFiling {
+  factClaimId: string;
+  eventDate: string;
+  publishedAt: string | null;
+  filer: string;
+  subject: string;
+  statedInstant: string | null;
+  instantStatedInDocument: boolean | null;
+  sourceUrl: string | null;
+  evidenceSha256: string | null;
+  excerpt: string | null;
+}
+
+/**
+ * Material events filed with the exchange.
+ *
+ * Read from their own model: a filing has no value, no unit and no series, so
+ * it never belonged with the indicators even though it shares their provenance.
+ */
+export async function readCompanyFilings(limit = 60): Promise<CompanyFiling[]> {
+  const { rows } = await pool().query<{
+    fact_claim_id: string;
+    event_date: string;
+    published_at: Date | null;
+    filer: string;
+    subject: string;
+    stated_instant: string | null;
+    instant_stated_in_document: boolean | null;
+    source_url: string | null;
+    evidence_sha256: string | null;
+    excerpt: string | null;
+  }>(
+    `SELECT fact_claim_id, event_date::text AS event_date, published_at, filer, subject,
+            stated_instant, instant_stated_in_document, source_url, evidence_sha256, excerpt
+     FROM read_models.company_filing
+     WHERE status = 'PUBLISHED' AND NOT superseded
+     ORDER BY published_at DESC NULLS LAST, event_date DESC
+     LIMIT $1`,
+    [limit],
+  );
+
+  return rows.map((row) => ({
+    factClaimId: row.fact_claim_id,
+    eventDate: row.event_date,
+    publishedAt: row.published_at?.toISOString() ?? null,
+    filer: row.filer,
+    subject: row.subject,
+    statedInstant: row.stated_instant,
+    instantStatedInDocument: row.instant_stated_in_document,
+    sourceUrl: row.source_url,
+    evidenceSha256: row.evidence_sha256,
+    excerpt: row.excerpt,
+  }));
+}

@@ -15,22 +15,33 @@ import type { TooltipContentProps } from 'recharts';
 import type { NameType, ValueType } from 'recharts/types/component/DefaultTooltipContent';
 
 /**
- * The shape Recharts hands a custom tooltip.
+ * One chart language for the whole report.
  *
- * Parameterised with the library's own generics rather than narrowed to
- * `number`: the component accepts any value type, and pinning it tighter than
- * the library does makes the renderer unassignable to the `content` prop.
+ * Every series shares an axis treatment, a tooltip, a stroke weight and a draw
+ * animation, so moving between sections never feels like moving between
+ * products. Colour is spent only where it carries meaning: one hue for the
+ * administered rate, one for the market, one for the distance between them.
+ *
+ * Rate axes are fitted rather than zeroed — a move from 9.6 to 11.6 is large in
+ * economic terms and a zero baseline would flatten it into a straight line. The
+ * gap axis keeps its zero, because there parity is a real reference.
+ */
+
+/**
+ * The shape Recharts hands a custom tooltip, parameterised with the library's
+ * own generics: pinning it tighter makes the renderer unassignable to `content`.
  */
 type TooltipRender = TooltipContentProps<ValueType, NameType>;
 
-/**
- * Charts for an analytical reader.
- *
- * Axes never start at zero for an exchange rate: a rate that moves from 9.6 to
- * 11.6 is a large move, and a zero baseline would flatten it into a straight
- * line. The rate scale is therefore fitted to the data and labelled as such.
- * The gap chart does keep its zero, because there parity is a real reference.
- */
+/** Shared so a redesign happens in one place, not in six. */
+const MOTION = { duration: 900, easing: 'ease-out' } as const;
+const AXIS = {
+  stroke: 'var(--ink-faint)',
+  fontSize: 11,
+  tickLine: false,
+  axisLine: false,
+} as const;
+const GRID = { stroke: 'var(--rule-soft)', vertical: false } as const;
 
 export interface RatePoint {
   date: string;
@@ -51,11 +62,17 @@ export interface SpreadPoint {
   venues: number | null;
 }
 
+export interface MacroSeriesPoint {
+  period: string;
+  value: number;
+}
+
 const dayMonth = new Intl.DateTimeFormat('es-BO', { day: '2-digit', month: 'short' });
 const longDate = new Intl.DateTimeFormat('es-BO', {
   day: '2-digit',
   month: 'long',
   year: 'numeric',
+  timeZone: 'UTC',
 });
 
 const asDate = (value: string): Date => new Date(`${value}T12:00:00Z`);
@@ -66,25 +83,19 @@ const number = (value: number, decimals = 2): string =>
     maximumFractionDigits: decimals,
   });
 
-/** Padding that keeps the line off the frame without inventing headroom. */
+/** Padding that keeps a line off the frame without inventing headroom. */
 function fittedDomain(values: number[]): [number, number] {
   const clean = values.filter((value) => Number.isFinite(value));
   if (!clean.length) return [0, 1];
   const min = Math.min(...clean);
   const max = Math.max(...clean);
-  const pad = Math.max((max - min) * 0.12, 0.02);
-  return [Number((min - pad).toFixed(2)), Number((max + pad).toFixed(2))];
+  const pad = Math.max((max - min) * 0.12, Math.abs(max) * 0.01, 0.02);
+  return [Number((min - pad).toFixed(4)), Number((max + pad).toFixed(4))];
 }
 
-const axis = {
-  stroke: 'var(--ink-faint)',
-  fontSize: 11,
-  tickLine: false,
-} as const;
-
-function Frame({ children }: { children: React.ReactElement }) {
+function Frame({ children, tall }: { children: React.ReactElement; tall?: boolean }) {
   return (
-    <div className="chart-frame">
+    <div className={tall ? 'chart-frame chart-frame-tall' : 'chart-frame'}>
       <ResponsiveContainer width="100%" height="100%">
         {children}
       </ResponsiveContainer>
@@ -103,7 +114,7 @@ function TooltipShell({
 }) {
   return (
     <div className="tooltip">
-      <div className="t-date">{longDate.format(asDate(label))}</div>
+      <div className="t-date">{label}</div>
       {rows.map((row) => (
         <div className="t-row" key={row.name}>
           <span>{row.name}</span>
@@ -115,7 +126,11 @@ function TooltipShell({
   );
 }
 
-export function RateChart({ data }: { data: RatePoint[] }) {
+/**
+ * A rate against time, with the market's two published sides and, where it
+ * exists, the administered rate.
+ */
+export function RateChart({ data, tall }: { data: RatePoint[]; tall?: boolean }) {
   const domain = fittedDomain(
     data.flatMap((point) =>
       [point.parallelBuy, point.parallelSell, point.official].filter(
@@ -137,28 +152,48 @@ export function RateChart({ data }: { data: RatePoint[] }) {
 
     return (
       <TooltipShell
-        label={label}
+        label={longDate.format(asDate(label))}
         rows={rows}
-        {...(point?.archived ? { note: 'Incluye alguna serie de promedio diario' } : {})}
+        {...(point?.archived ? { note: 'Incluye serie de promedio diario' } : {})}
       />
     );
   };
 
   return (
-    <Frame>
-      <ComposedChart data={data} margin={{ top: 8, right: 12, bottom: 4, left: 4 }}>
-        <CartesianGrid stroke="var(--rule-soft)" vertical={false} />
-        <XAxis dataKey="date" tickFormatter={shortLabel} minTickGap={44} {...axis} />
-        <YAxis domain={domain} width={52} tickFormatter={(value) => number(value, 2)} {...axis} />
-        <Tooltip content={renderTooltip} />
+    <Frame {...(tall ? { tall: true } : {})}>
+      <ComposedChart data={data} margin={{ top: 10, right: 14, bottom: 4, left: 4 }}>
+        <defs>
+          <linearGradient id="fillOfficial" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor="var(--official)" stopOpacity={0.18} />
+            <stop offset="100%" stopColor="var(--official)" stopOpacity={0} />
+          </linearGradient>
+        </defs>
+        <CartesianGrid {...GRID} />
+        <XAxis dataKey="date" tickFormatter={shortLabel} minTickGap={52} {...AXIS} />
+        <YAxis domain={domain} width={54} tickFormatter={(value) => number(value, 2)} {...AXIS} />
+        <Tooltip content={renderTooltip} cursor={{ stroke: 'var(--rule)', strokeWidth: 1 }} />
+        <Area
+          type="monotone"
+          dataKey="official"
+          name="Oficial"
+          stroke="var(--official)"
+          strokeWidth={2}
+          fill="url(#fillOfficial)"
+          dot={false}
+          connectNulls
+          animationDuration={MOTION.duration}
+          animationEasing={MOTION.easing}
+        />
         <Line
           type="monotone"
           dataKey="parallelBuy"
           name="Paralelo buy"
           stroke="var(--parallel)"
-          strokeWidth={1.9}
+          strokeWidth={2}
           dot={false}
           connectNulls
+          animationDuration={MOTION.duration}
+          animationEasing={MOTION.easing}
         />
         <Line
           type="monotone"
@@ -169,41 +204,40 @@ export function RateChart({ data }: { data: RatePoint[] }) {
           strokeDasharray="4 3"
           dot={false}
           connectNulls
-        />
-        <Line
-          type="monotone"
-          dataKey="official"
-          name="Oficial"
-          stroke="var(--official)"
-          strokeWidth={1.9}
-          dot={false}
-          connectNulls
+          animationDuration={MOTION.duration}
+          animationEasing={MOTION.easing}
         />
       </ComposedChart>
     </Frame>
   );
 }
 
-export function GapChart({ data }: { data: GapChartPoint[] }) {
+export function GapChart({ data, tall }: { data: GapChartPoint[]; tall?: boolean }) {
   const renderTooltip = ({ active, payload, label }: TooltipRender) => {
     if (!active || !payload?.length || typeof label !== 'string') return null;
     const point = payload[0]?.payload as GapChartPoint | undefined;
     if (!point) return null;
     return (
       <TooltipShell
-        label={label}
-        rows={[{ name: 'Brecha', value: `${number(point.gapPercent, 2)} %` }]}
+        label={longDate.format(asDate(label))}
+        rows={[{ name: 'Brecha', value: `${number(point.gapPercent)} %` }]}
       />
     );
   };
 
   return (
-    <Frame>
-      <ComposedChart data={data} margin={{ top: 8, right: 12, bottom: 4, left: 4 }}>
-        <CartesianGrid stroke="var(--rule-soft)" vertical={false} />
-        <XAxis dataKey="date" tickFormatter={shortLabel} minTickGap={44} {...axis} />
-        <YAxis width={52} tickFormatter={(value) => `${number(value, 1)}%`} {...axis} />
-        <Tooltip content={renderTooltip} />
+    <Frame {...(tall ? { tall: true } : {})}>
+      <ComposedChart data={data} margin={{ top: 10, right: 14, bottom: 4, left: 4 }}>
+        <defs>
+          <linearGradient id="fillGap" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor="var(--gap)" stopOpacity={0.28} />
+            <stop offset="100%" stopColor="var(--gap)" stopOpacity={0.02} />
+          </linearGradient>
+        </defs>
+        <CartesianGrid {...GRID} />
+        <XAxis dataKey="date" tickFormatter={shortLabel} minTickGap={52} {...AXIS} />
+        <YAxis width={54} tickFormatter={(value) => `${number(value, 0)}%`} {...AXIS} />
+        <Tooltip content={renderTooltip} cursor={{ stroke: 'var(--rule)', strokeWidth: 1 }} />
         {/* Parity is a real reference here, unlike on a rate axis. */}
         <ReferenceLine y={0} stroke="var(--ink-faint)" strokeDasharray="3 3" />
         <Area
@@ -211,9 +245,11 @@ export function GapChart({ data }: { data: GapChartPoint[] }) {
           dataKey="gapPercent"
           name="Brecha"
           stroke="var(--gap)"
-          fill="var(--gap)"
-          fillOpacity={0.14}
-          strokeWidth={1.9}
+          fill="url(#fillGap)"
+          strokeWidth={2}
+          dot={false}
+          animationDuration={MOTION.duration}
+          animationEasing={MOTION.easing}
         />
       </ComposedChart>
     </Frame>
@@ -227,7 +263,7 @@ export function SpreadChart({ data }: { data: SpreadPoint[] }) {
     if (!point) return null;
     return (
       <TooltipShell
-        label={label}
+        label={longDate.format(asDate(label))}
         rows={[{ name: 'Dispersión', value: `${number(point.spread, 4)} Bs` }]}
         {...(point.venues ? { note: `${point.venues} plazas cotizando` } : {})}
       />
@@ -236,21 +272,113 @@ export function SpreadChart({ data }: { data: SpreadPoint[] }) {
 
   return (
     <Frame>
-      <ComposedChart data={data} margin={{ top: 8, right: 12, bottom: 4, left: 4 }}>
-        <CartesianGrid stroke="var(--rule-soft)" vertical={false} />
-        <XAxis dataKey="date" tickFormatter={shortLabel} minTickGap={44} {...axis} />
-        <YAxis width={52} tickFormatter={(value) => number(value, 2)} {...axis} />
-        <Tooltip content={renderTooltip} />
+      <ComposedChart data={data} margin={{ top: 10, right: 14, bottom: 4, left: 4 }}>
+        <defs>
+          <linearGradient id="fillSpread" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor="var(--parallel)" stopOpacity={0.24} />
+            <stop offset="100%" stopColor="var(--parallel)" stopOpacity={0.02} />
+          </linearGradient>
+        </defs>
+        <CartesianGrid {...GRID} />
+        <XAxis dataKey="date" tickFormatter={shortLabel} minTickGap={52} {...AXIS} />
+        <YAxis width={54} tickFormatter={(value) => number(value, 2)} {...AXIS} />
+        <Tooltip content={renderTooltip} cursor={{ stroke: 'var(--rule)', strokeWidth: 1 }} />
         <Area
           type="monotone"
           dataKey="spread"
           name="Dispersión"
           stroke="var(--parallel)"
-          fill="var(--parallel)"
-          fillOpacity={0.12}
-          strokeWidth={1.6}
+          fill="url(#fillSpread)"
+          strokeWidth={1.8}
+          dot={false}
+          animationDuration={MOTION.duration}
+          animationEasing={MOTION.easing}
         />
       </ComposedChart>
     </Frame>
+  );
+}
+
+/**
+ * An annual series on its own axis.
+ *
+ * Small enough to sit in a grid of its peers, because a macroeconomic reading
+ * is understood against its own history, not against another indicator's scale.
+ */
+export function MacroChart({
+  data,
+  unit,
+  tone,
+}: {
+  data: MacroSeriesPoint[];
+  unit: string;
+  tone: string;
+}) {
+  const domain = fittedDomain(data.map((point) => point.value));
+  const compact = (value: number): string =>
+    unit === 'USD'
+      ? Math.abs(value) >= 1_000_000_000
+        ? `${number(value / 1_000_000_000, 1)} MM`
+        : `${number(value / 1_000_000, 0)} M`
+      : number(value, 1);
+
+  const renderTooltip = ({ active, payload, label }: TooltipRender) => {
+    if (!active || !payload?.length || typeof label !== 'string') return null;
+    const point = payload[0]?.payload as MacroSeriesPoint | undefined;
+    if (!point) return null;
+    return <TooltipShell label={label} rows={[{ name: 'Valor', value: compact(point.value) }]} />;
+  };
+
+  return (
+    <div className="chart-frame chart-frame-small">
+      <ResponsiveContainer width="100%" height="100%">
+        <ComposedChart data={data} margin={{ top: 8, right: 6, bottom: 0, left: 0 }}>
+          <CartesianGrid {...GRID} />
+          <XAxis dataKey="period" minTickGap={34} {...AXIS} />
+          <YAxis domain={domain} width={46} tickFormatter={compact} {...AXIS} />
+          <Tooltip content={renderTooltip} cursor={{ stroke: 'var(--rule)', strokeWidth: 1 }} />
+          {domain[0] < 0 ? (
+            <ReferenceLine y={0} stroke="var(--ink-faint)" strokeDasharray="3 3" />
+          ) : null}
+          <Line
+            type="monotone"
+            dataKey="value"
+            stroke={tone}
+            strokeWidth={1.9}
+            dot={false}
+            animationDuration={MOTION.duration}
+            animationEasing={MOTION.easing}
+          />
+        </ComposedChart>
+      </ResponsiveContainer>
+    </div>
+  );
+}
+
+/**
+ * The shape of a series behind its headline figure.
+ *
+ * No axes and no labels: it answers "which way has this been going", which is
+ * the only question a number on a card leaves open.
+ */
+export function Sparkline({ data, tone }: { data: number[]; tone: string }) {
+  const points = data.map((value, index) => ({ index, value }));
+  return (
+    <div className="sparkline">
+      <ResponsiveContainer width="100%" height="100%">
+        <ComposedChart data={points} margin={{ top: 2, right: 0, bottom: 0, left: 0 }}>
+          <YAxis domain={fittedDomain(data)} hide />
+          <Line
+            type="monotone"
+            dataKey="value"
+            stroke={tone}
+            strokeWidth={1.6}
+            dot={false}
+            animationDuration={MOTION.duration}
+            animationEasing={MOTION.easing}
+          />
+        </ComposedChart>
+      </ResponsiveContainer>
+    </div>
   );
 }
