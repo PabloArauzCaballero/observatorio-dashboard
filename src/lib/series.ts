@@ -225,6 +225,7 @@ export function officialSeries(observatory: Observatory): DailyPoint[] {
 
 export interface MacroPoint {
   indicatorCode: string;
+  sector: string;
   name: string | null;
   period: string;
   unit: string;
@@ -246,6 +247,7 @@ export async function readMacroAnnual(): Promise<MacroPoint[]> {
   const { rows } = await pool().query<{
     indicator_code: string;
     indicator_name: string | null;
+    sector: string;
     period: string;
     unit: string;
     value: string;
@@ -254,7 +256,7 @@ export async function readMacroAnnual(): Promise<MacroPoint[]> {
     publisher: string | null;
     source_url: string | null;
   }>(
-    `SELECT indicator_code, indicator_name, period, unit,
+    `SELECT indicator_code, indicator_name, sector, period, unit,
             value::text AS value, previous_value::text AS previous_value,
             change_percent::text AS change_percent, publisher, source_url
      FROM read_models.macro_indicator_annual
@@ -264,6 +266,7 @@ export async function readMacroAnnual(): Promise<MacroPoint[]> {
   return rows.map((row) => ({
     indicatorCode: row.indicator_code,
     name: row.indicator_name,
+    sector: row.sector,
     period: row.period,
     unit: row.unit,
     value: Number(row.value),

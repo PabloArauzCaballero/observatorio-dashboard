@@ -22,19 +22,43 @@ const UNITS: Record<string, string> = {
   UFV_BOB: 'BOB/UFV',
 };
 
-async function collect(dataset: Dataset): Promise<Row[]> {
+/**
+ * The filters a reader had applied when they asked for the file.
+ *
+ * Offering a filtered view and then a file of everything is the quickest way to
+ * make a reader distrust both, so the export takes the same selection the panel
+ * was showing.
+ */
+interface Selection {
+  sector?: string | undefined;
+  from?: number | undefined;
+  search?: string | undefined;
+}
+
+async function collect(dataset: Dataset, selection: Selection): Promise<Row[]> {
   if (dataset === 'macro') {
-    return (await readMacroAnnual()).map((point) => ({
-      indicador: point.indicatorCode,
-      nombre: point.name,
-      periodo: point.period,
-      valor: point.value,
-      unidad: point.unit,
-      valor_anterior: point.previousValue,
-      variacion_pct: point.changePercent,
-      editor: point.publisher,
-      fuente: point.sourceUrl,
-    }));
+    const term = selection.search?.trim().toLocaleLowerCase('es');
+    return (await readMacroAnnual())
+      .filter(
+        (point) =>
+          (!selection.sector || point.sector === selection.sector) &&
+          (selection.from === undefined || Number(point.period) >= selection.from) &&
+          (!term ||
+            (point.name ?? '').toLocaleLowerCase('es').includes(term) ||
+            point.indicatorCode.toLocaleLowerCase('es').includes(term)),
+      )
+      .map((point) => ({
+        rubro: point.sector,
+        indicador: point.indicatorCode,
+        nombre: point.name,
+        periodo: point.period,
+        valor: point.value,
+        unidad: point.unit,
+        valor_anterior: point.previousValue,
+        variacion_pct: point.changePercent,
+        editor: point.publisher,
+        fuente: point.sourceUrl,
+      }));
   }
 
   if (dataset === 'filings') {
@@ -100,7 +124,12 @@ export async function GET(request: Request): Promise<Response> {
   }
 
   try {
-    const rows = await collect(dataset);
+    const from = Number(url.searchParams.get('desde'));
+    const rows = await collect(dataset, {
+      sector: url.searchParams.get('sector') ?? undefined,
+      from: Number.isFinite(from) && from > 0 ? from : undefined,
+      search: url.searchParams.get('buscar') ?? undefined,
+    });
     const body =
       format === 'json'
         ? `${JSON.stringify({ dataset, generado: new Date().toISOString(), filas: rows.length, datos: rows }, null, 2)}\n`

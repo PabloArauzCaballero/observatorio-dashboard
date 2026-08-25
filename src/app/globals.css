@@ -617,3 +617,188 @@ code {
   padding: 1rem 1.1rem;
   font-size: 0.92rem;
 }
+
+/* Slicers ---------------------------------------------------------------- */
+
+.slicers {
+  background: var(--panel);
+  border: 1px solid var(--rule);
+  border-radius: var(--radius);
+  padding: var(--s3);
+  box-shadow: var(--shadow);
+  display: flex;
+  flex-direction: column;
+  gap: var(--s2);
+}
+
+.slicer {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.slicer-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s3);
+  align-items: flex-end;
+}
+
+.slicer-grow {
+  flex: 1 1 240px;
+}
+
+.slicer-label {
+  font-size: 0.7rem;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+}
+
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  appearance: none;
+  font: inherit;
+  font-size: 0.83rem;
+  padding: 0.32rem 0.75rem;
+  border: 1px solid var(--rule);
+  border-radius: 999px;
+  background: var(--panel);
+  color: var(--ink-soft);
+  cursor: pointer;
+  transition:
+    background var(--fast) var(--ease),
+    border-color var(--fast) var(--ease),
+    color var(--fast) var(--ease),
+    transform var(--fast) var(--ease);
+}
+
+.chip em {
+  font-style: normal;
+  font-family: var(--mono);
+  font-size: 0.7rem;
+  color: var(--ink-faint);
+}
+
+.chip:hover {
+  border-color: var(--ink-faint);
+  transform: translateY(-1px);
+}
+
+.chip-on {
+  background: var(--ink);
+  border-color: var(--ink);
+  color: var(--paper);
+}
+
+.chip-on em {
+  color: var(--paper);
+  opacity: 0.7;
+}
+
+.slicer input[type='search'] {
+  font: inherit;
+  font-size: 0.9rem;
+  padding: 0.42rem 0.7rem;
+  border: 1px solid var(--rule);
+  border-radius: 8px;
+  background: var(--panel);
+  color: var(--ink);
+  width: 100%;
+  transition: border-color var(--fast) var(--ease);
+}
+
+.slicer input[type='search']:focus {
+  outline: none;
+  border-color: var(--official);
+}
+
+.slicer input[type='range'] {
+  accent-color: var(--official);
+  width: 200px;
+}
+
+.slicer output {
+  font-family: var(--mono);
+  font-size: 0.82rem;
+  color: var(--ink-soft);
+}
+
+.slicer-foot {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--s2);
+  border-top: 1px solid var(--rule-soft);
+  padding-top: var(--s2);
+  font-size: 0.83rem;
+  color: var(--ink-faint);
+  font-variant-numeric: tabular-nums;
+}
+
+.slicer-foot > span {
+  margin-right: auto;
+}
+
+.card-sector {
+  display: inline-block;
+  font-size: 0.65rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+  margin-bottom: 0.2rem;
+}
+
+/* Econometric statistics ------------------------------------------------- */
+
+.stat-strip {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(158px, 1fr));
+  gap: 1px;
+  background: var(--rule);
+  border: 1px solid var(--rule);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+
+.stat {
+  background: var(--panel);
+  padding: var(--s2) var(--s3);
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.stat-label {
+  font-size: 0.68rem;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+}
+
+.stat-value {
+  font-family: var(--mono);
+  font-size: 1.16rem;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.02em;
+}
+
+.stat-hint {
+  font-size: 0.72rem;
+  color: var(--ink-faint);
+  line-height: 1.35;
+}
+
+.grid-two {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(360px, 1fr));
+  gap: var(--s2);
+}

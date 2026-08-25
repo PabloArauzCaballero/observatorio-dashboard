@@ -2,7 +2,9 @@
 
 import {
   Area,
+  Bar,
   CartesianGrid,
+  Cell,
   ComposedChart,
   Line,
   ReferenceLine,
@@ -377,6 +379,188 @@ export function Sparkline({ data, tone }: { data: number[]; tone: string }) {
             animationDuration={MOTION.duration}
             animationEasing={MOTION.easing}
           />
+        </ComposedChart>
+      </ResponsiveContainer>
+    </div>
+  );
+}
+
+/* Econometric views ------------------------------------------------------ */
+
+export interface SeriesPoint {
+  date: string;
+  value: number;
+}
+
+/**
+ * One series against time, in whichever mark suits what it measures.
+ *
+ * A single component rather than four, so a rolling correlation and a rolling
+ * volatility cannot drift apart in axis treatment, tooltip or timing. The mark
+ * changes; the language does not.
+ */
+export function SeriesChart({
+  data,
+  kind,
+  tone,
+  unit,
+  decimals = 2,
+  zeroLine,
+  boundary,
+  domain,
+  height,
+}: {
+  data: SeriesPoint[];
+  kind: 'line' | 'area' | 'bar';
+  tone: string;
+  unit: string;
+  decimals?: number;
+  /** Draw the zero reference, where crossing it means something. */
+  zeroLine?: boolean;
+  /** Day the measurement method changes, marked so it is not read as a signal. */
+  boundary?: string | null;
+  domain?: [number, number];
+  height?: 'small' | 'normal' | 'tall';
+}) {
+  const gradientId = `grad-${tone.replace(/[^a-z]/gu, '')}-${kind}`;
+  const values = data.map((point) => point.value);
+  const axisDomain = domain ?? fittedDomain(values);
+
+  const renderTooltip = ({ active, payload, label }: TooltipRender) => {
+    if (!active || !payload?.length || typeof label !== 'string') return null;
+    const point = payload[0]?.payload as SeriesPoint | undefined;
+    if (!point) return null;
+    return (
+      <TooltipShell
+        label={longDate.format(asDate(label))}
+        rows={[{ name: 'Valor', value: `${number(point.value, decimals)} ${unit}` }]}
+      />
+    );
+  };
+
+  const frameClass =
+    height === 'tall'
+      ? 'chart-frame chart-frame-tall'
+      : height === 'small'
+        ? 'chart-frame chart-frame-small'
+        : 'chart-frame';
+
+  return (
+    <div className={frameClass}>
+      <ResponsiveContainer width="100%" height="100%">
+        <ComposedChart data={data} margin={{ top: 10, right: 14, bottom: 4, left: 4 }}>
+          <defs>
+            <linearGradient id={gradientId} x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stopColor={tone} stopOpacity={0.3} />
+              <stop offset="100%" stopColor={tone} stopOpacity={0.02} />
+            </linearGradient>
+          </defs>
+          <CartesianGrid {...GRID} />
+          <XAxis dataKey="date" tickFormatter={shortLabel} minTickGap={52} {...AXIS} />
+          <YAxis
+            domain={axisDomain}
+            width={54}
+            tickFormatter={(value) => number(value, decimals === 0 ? 0 : 1)}
+            {...AXIS}
+          />
+          <Tooltip content={renderTooltip} cursor={{ stroke: 'var(--rule)', strokeWidth: 1 }} />
+          {zeroLine ? (
+            <ReferenceLine y={0} stroke="var(--ink-faint)" strokeDasharray="3 3" />
+          ) : null}
+          {boundary ? (
+            <ReferenceLine
+              x={boundary}
+              stroke="var(--ink-faint)"
+              strokeDasharray="2 4"
+              label={{
+                value: 'cambio de método',
+                position: 'insideTopLeft',
+                fontSize: 10,
+                fill: 'var(--ink-faint)',
+              }}
+            />
+          ) : null}
+          {kind === 'bar' ? (
+            <Bar
+              dataKey="value"
+              fill={tone}
+              fillOpacity={0.75}
+              isAnimationActive
+              animationDuration={MOTION.duration}
+              animationEasing={MOTION.easing}
+            />
+          ) : kind === 'area' ? (
+            <Area
+              type="monotone"
+              dataKey="value"
+              stroke={tone}
+              strokeWidth={1.9}
+              fill={`url(#${gradientId})`}
+              dot={false}
+              animationDuration={MOTION.duration}
+              animationEasing={MOTION.easing}
+            />
+          ) : (
+            <Line
+              type="monotone"
+              dataKey="value"
+              stroke={tone}
+              strokeWidth={1.9}
+              dot={false}
+              animationDuration={MOTION.duration}
+              animationEasing={MOTION.easing}
+            />
+          )}
+        </ComposedChart>
+      </ResponsiveContainer>
+    </div>
+  );
+}
+
+export interface HistogramBucket {
+  bin: string;
+  count: number;
+  tail: boolean;
+}
+
+/**
+ * The distribution of daily returns.
+ *
+ * The buckets below the fifth percentile are drawn apart, because the tail is
+ * the part of this shape an analyst is looking for and reading it off a uniform
+ * bar chart means counting.
+ */
+export function Histogram({ data }: { data: HistogramBucket[] }) {
+  const renderTooltip = ({ active, payload }: TooltipRender) => {
+    if (!active || !payload?.length) return null;
+    const point = payload[0]?.payload as HistogramBucket | undefined;
+    if (!point) return null;
+    return (
+      <TooltipShell
+        label={`${point.bin} %`}
+        rows={[{ name: 'Días', value: String(point.count) }]}
+        {...(point.tail ? { note: 'Cola inferior (5 %)' } : {})}
+      />
+    );
+  };
+
+  return (
+    <div className="chart-frame">
+      <ResponsiveContainer width="100%" height="100%">
+        <ComposedChart data={data} margin={{ top: 10, right: 14, bottom: 4, left: 4 }}>
+          <CartesianGrid {...GRID} />
+          <XAxis dataKey="bin" minTickGap={26} {...AXIS} />
+          <YAxis width={44} allowDecimals={false} {...AXIS} />
+          <Tooltip content={renderTooltip} cursor={{ fill: 'var(--rule-soft)' }} />
+          <Bar dataKey="count" animationDuration={MOTION.duration} animationEasing={MOTION.easing}>
+            {data.map((bucket) => (
+              <Cell
+                key={bucket.bin}
+                fill={bucket.tail ? 'var(--up)' : 'var(--official)'}
+                fillOpacity={bucket.tail ? 0.85 : 0.6}
+              />
+            ))}
+          </Bar>
         </ComposedChart>
       </ResponsiveContainer>
     </div>

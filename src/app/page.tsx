@@ -1,8 +1,26 @@
-import { GapChart, MacroChart, RateChart, Sparkline, SpreadChart } from '@/components/charts';
-import type { GapChartPoint, RatePoint, SpreadPoint } from '@/components/charts';
+import {
+  GapChart,
+  Histogram,
+  MacroChart,
+  RateChart,
+  SeriesChart,
+  Sparkline,
+} from '@/components/charts';
+import type { GapChartPoint, RatePoint } from '@/components/charts';
 import { Download } from '@/components/download';
+import { MacroExplorer } from '@/components/macro-explorer';
 import { Tabs } from '@/components/tabs';
 import { dailyAnalysis } from '@/lib/daily-analysis';
+import {
+  aggregationBoundary,
+  drawdown,
+  histogram,
+  logReturns,
+  moments,
+  rollingCorrelation,
+  rollingVolatility,
+} from '@/lib/econometrics';
+import type { Observation } from '@/lib/econometrics';
 import {
   officialSeries,
   readCompanyFilings,
@@ -89,6 +107,17 @@ interface RateRow extends RatePoint {
   parallelAggregation?: 'POINT_IN_TIME' | 'DAILY_AVERAGE';
   officialAggregation?: 'POINT_IN_TIME' | 'DAILY_AVERAGE';
   officialSide?: string | null;
+}
+
+/** One statistic, stated with the unit it is measured in. */
+function Stat({ label, value, hint }: { label: string; value: string; hint?: string }) {
+  return (
+    <div className="stat">
+      <span className="stat-label">{label}</span>
+      <span className="stat-value">{value}</span>
+      {hint ? <span className="stat-hint">{hint}</span> : null}
+    </div>
+  );
 }
 
 /** A headline number with the shape of its own history under it. */
@@ -354,9 +383,35 @@ export default async function Page() {
     date: point.date,
     gapPercent: point.gapPercent,
   }));
-  const spreadSeries: SpreadPoint[] = sell
-    .filter((point) => typeof point.spread === 'number' && (point.venues ?? 0) > 1)
-    .map((point) => ({ date: point.date, spread: point.spread ?? 0, venues: point.venues }));
+
+  /**
+   * The market series the statistics are computed on.
+   *
+   * The mid-point rather than either published side, because the two labels do
+   * not carry a stable meaning and the mid is invariant to that.
+   */
+  const midSeries: Observation[] = rows
+    .map((row) => ({
+      date: row.date,
+      value: midpoint(row),
+      aggregation: row.parallelAggregation ?? 'POINT_IN_TIME',
+    }))
+    .filter((point): point is Observation => point.value !== null)
+    .map((point) => ({ ...point, value: point.value }));
+  const officialObservations: Observation[] = official.map((point) => ({
+    date: point.date,
+    value: point.value,
+    aggregation: point.aggregation,
+  }));
+
+  const midReturns = logReturns(midSeries);
+  const returnSeries = midReturns.map((point) => ({ date: point.date, value: point.ret }));
+  const volatility = rollingVolatility(midReturns, 30);
+  const correlation = rollingCorrelation(midReturns, logReturns(officialObservations), 60);
+  const drawdownSeries = drawdown(midSeries);
+  const buckets = histogram(midReturns);
+  const stats = moments(midReturns);
+  const boundary = aggregationBoundary(midSeries);
 
   /** Enough of the tail to show direction without redrawing the whole year. */
   const tail = <T,>(values: T[], count = 90): T[] => values.slice(-count);
@@ -466,7 +521,7 @@ export default async function Page() {
         <section className="stack">
           <div className="panel">
             <div className="panel-head">
-              <h2>Evolución del tipo de cambio</h2>
+              <h2>Nivel</h2>
               <p className="panel-sub">
                 Bolivianos por dólar. Naranja: los dos lados que publica la fuente para el paralelo.
                 Azul: tipo de cambio oficial. El eje no arranca en cero.
@@ -475,17 +530,119 @@ export default async function Page() {
             <RateChart data={rows} tall />
           </div>
 
-          {spreadSeries.length >= 2 ? (
+          <div className="stat-strip">
+            <Stat
+              label="Volatilidad anualizada"
+              value={`${rate(stats.volatilityAnnual, 1)} %`}
+              hint="desviación típica de los retornos diarios, √365"
+            />
+            <Stat
+              label="Retorno medio diario"
+              value={`${percent(stats.meanDaily)}`}
+              hint={`${stats.observations.toLocaleString('es-BO')} observaciones`}
+            />
+            <Stat
+              label="Asimetría"
+              value={rate(stats.skewness, 2)}
+              hint={stats.skewness > 0 ? 'sesgo a depreciaciones' : 'sesgo a apreciaciones'}
+            />
+            <Stat
+              label="Curtosis en exceso"
+              value={rate(stats.excessKurtosis, 2)}
+              hint={stats.excessKurtosis > 0 ? 'colas más gruesas que la normal' : 'colas finas'}
+            />
+            <Stat
+              label="VaR 95 % diario"
+              value={`${rate(stats.valueAtRisk95, 2)} %`}
+              hint="pérdida no superada en 19 de cada 20 días"
+            />
+            {stats.worstDay ? (
+              <Stat
+                label="Peor jornada"
+                value={`${percent(stats.worstDay.ret)}`}
+                hint={stats.worstDay.date}
+              />
+            ) : null}
+          </div>
+
+          <div className="panel">
+            <div className="panel-head">
+              <h2>Retornos diarios</h2>
+              <p className="panel-sub">
+                Variación logarítmica del punto medio del paralelo. Las barras hacen visibles los
+                saltos que una línea de nivel suaviza.
+              </p>
+            </div>
+            <SeriesChart
+              data={returnSeries}
+              kind="bar"
+              tone="var(--parallel)"
+              unit="%"
+              zeroLine
+              {...(boundary ? { boundary } : {})}
+            />
+          </div>
+
+          <div className="grid-two">
             <div className="panel">
               <div className="panel-head">
-                <h2>Dispersión entre plazas</h2>
+                <h2>Volatilidad realizada</h2>
+                <p className="panel-sub">Ventana móvil de 30 días, anualizada</p>
+              </div>
+              <SeriesChart
+                data={volatility}
+                kind="area"
+                tone="var(--gap)"
+                unit="%"
+                decimals={1}
+                {...(boundary ? { boundary } : {})}
+              />
+            </div>
+
+            <div className="panel">
+              <div className="panel-head">
+                <h2>Distribución de retornos</h2>
+                <p className="panel-sub">Días por tramo; en rojo, la cola inferior del 5 %</p>
+              </div>
+              <Histogram data={buckets} />
+            </div>
+          </div>
+
+          <div className="grid-two">
+            <div className="panel">
+              <div className="panel-head">
+                <h2>Correlación oficial–paralelo</h2>
                 <p className="panel-sub">
-                  Bolivianos entre la cotización más alta y la más baja del mismo día
+                  Ventana móvil de 60 días. Cerca de cero mientras el oficial estuvo fijo; se
+                  despega cuando empieza a moverse con el mercado.
                 </p>
               </div>
-              <SpreadChart data={spreadSeries} />
+              {correlation.length >= 2 ? (
+                <SeriesChart
+                  data={correlation}
+                  kind="line"
+                  tone="var(--official)"
+                  unit=""
+                  zeroLine
+                  domain={[-1, 1]}
+                />
+              ) : (
+                <div className="callout">
+                  Se necesitan al menos 60 jornadas con ambas series para estimarla.
+                </div>
+              )}
             </div>
-          ) : null}
+
+            <div className="panel">
+              <div className="panel-head">
+                <h2>Caída desde el máximo</h2>
+                <p className="panel-sub">
+                  Distancia del paralelo respecto al mayor nivel alcanzado hasta la fecha
+                </p>
+              </div>
+              <SeriesChart data={drawdownSeries} kind="area" tone="var(--up)" unit="%" zeroLine />
+            </div>
+          </div>
 
           <Download dataset="series" label="Serie diaria completa" />
         </section>
@@ -494,16 +651,11 @@ export default async function Page() {
           <div className="panel-head">
             <h2>Contexto macroeconómico</h2>
             <p className="panel-sub">
-              Series anuales, cada una en su propia escala. Su último dato disponible no coincide
-              necesariamente entre indicadores ni con la fecha de las series diarias.
+              Cuarenta y cuatro series anuales en ocho rubros, cada una en su propia escala. Los
+              filtros se componen entre sí y la descarga sigue a la selección.
             </p>
           </div>
-          <div className="card-grid">
-            {latestByIndicator(macro).map((point) => (
-              <MacroCard key={point.indicatorCode} point={point} series={macro} />
-            ))}
-          </div>
-          <Download dataset="macro" label="Series anuales completas" />
+          <MacroExplorer points={macro} />
         </section>
 
         <section className="stack">
