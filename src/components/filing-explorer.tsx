@@ -65,6 +65,15 @@ export function FilingExplorer({ filings }: { filings: CompanyFiling[] }) {
   const [sector, setSector] = useState('TODOS');
   const [filer, setFiler] = useState('TODOS');
   const [search, setSearch] = useState('');
+  /** Which filings the reader has opened; collapsed is a clamp, never a cut. */
+  const [open, setOpen] = useState<ReadonlySet<string>>(() => new Set());
+
+  const toggle = (id: string) =>
+    setOpen((current) => {
+      const next = new Set(current);
+      if (!next.delete(id)) next.add(id);
+      return next;
+    });
 
   const sectors = useMemo(() => {
     const counts = new Map<string, number>();
@@ -299,32 +308,55 @@ export function FilingExplorer({ filings }: { filings: CompanyFiling[] }) {
 
         {selected.length ? (
           <div className="filing-grid">
-            {selected.slice(0, SHOWN).map((filing, index) => (
-              <article
-                className="filing-card"
-                key={filing.factClaimId}
-                style={{ animationDelay: `${Math.min(index, 12) * 40}ms` }}
-              >
-                <div className="filing-top">
-                  <Icon name={SECTOR_ICON[filing.sector] ?? 'cajas'} size={13} />
-                  <span>{SECTOR_LABEL[filing.sector] ?? filing.sector}</span>
-                  <span className="filing-date">{filing.eventDate}</span>
-                </div>
-                <h4>{filing.subject}</h4>
-                <p className="filing-filer">{filing.filer}</p>
-                {filing.summary ? <p className="filing-summary">{filing.summary}</p> : null}
-                <p className="filing-foot">
-                  <Icon name={filing.instantStatedInDocument ? 'diana' : 'reloj'} size={12} />
-                  {filing.instantStatedInDocument ? 'Confirmado por la ficha' : 'Según el registro'}
-                  {filing.filerCode ? ` · ${filing.filerCode}` : ''}
-                  {filing.sourceUrl ? (
-                    <a href={filing.sourceUrl} target="_blank" rel="noreferrer noopener">
-                      ficha completa
-                    </a>
+            {selected.slice(0, SHOWN).map((filing, index) => {
+              const isOpen = open.has(filing.factClaimId);
+              return (
+                <article
+                  className={
+                    isOpen ? 'filing-card filing-card-open' : 'filing-card filing-card-tight'
+                  }
+                  key={filing.factClaimId}
+                  style={{ animationDelay: `${Math.min(index, 12) * 40}ms` }}
+                >
+                  <div className="filing-top">
+                    <Icon name={SECTOR_ICON[filing.sector] ?? 'cajas'} size={13} />
+                    <span>{SECTOR_LABEL[filing.sector] ?? filing.sector}</span>
+                    <span className="filing-date">{filing.eventDate}</span>
+                  </div>
+                  <h4>{filing.subject}</h4>
+                  <p className="filing-filer">{filing.filer}</p>
+                  {filing.summary ? <p className="filing-summary">{filing.summary}</p> : null}
+                  {isOpen && !filing.summaryIsComplete ? (
+                    <p className="filing-partial">
+                      <Icon name="info" size={12} /> La bolsa publica este hecho resumido en su
+                      registro; el texto íntegro está en la ficha.
+                    </p>
                   ) : null}
-                </p>
-              </article>
-            ))}
+                  <p className="filing-foot">
+                    <button
+                      type="button"
+                      className="filing-toggle"
+                      onClick={() => toggle(filing.factClaimId)}
+                      aria-expanded={isOpen}
+                    >
+                      <Icon name={isOpen ? 'plegar' : 'desplegar'} size={13} />
+                      {isOpen ? 'Plegar' : 'Ver completo'}
+                    </button>
+                    <span style={{ color: 'var(--ink-faint)' }}>
+                      {filing.instantStatedInDocument
+                        ? 'Confirmado por la ficha'
+                        : 'Según el registro'}
+                      {filing.filerCode ? ` · ${filing.filerCode}` : ''}
+                    </span>
+                    {filing.sourceUrl ? (
+                      <a href={filing.sourceUrl} target="_blank" rel="noreferrer noopener">
+                        ficha completa
+                      </a>
+                    ) : null}
+                  </p>
+                </article>
+              );
+            })}
           </div>
         ) : (
           <div className="callout">Ningún hecho relevante coincide con esta selección.</div>

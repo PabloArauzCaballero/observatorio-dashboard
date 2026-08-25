@@ -294,6 +294,8 @@ export interface CompanyFiling {
   excerpt: string | null;
   /** The filing in prose, pulled out of whatever shape the evidence has. */
   summary: string | null;
+  /** Whether that prose is the filing's own page or the register's summary. */
+  summaryIsComplete: boolean;
 }
 
 /**
@@ -307,10 +309,14 @@ export interface CompanyFiling {
  *
  * Filings captured from their own page carry prose already and pass through.
  */
+function isDocumentProse(text: string | null): boolean {
+  return Boolean(text && !text.trim().startsWith('{'));
+}
+
 function filingSummary(excerpt: string | null): string | null {
   if (!excerpt) return null;
   const trimmed = excerpt.trim();
-  if (!trimmed.startsWith('{')) return trimmed;
+  if (!trimmed.startsWith('{')) return trimmed || null;
   try {
     const record: unknown = JSON.parse(trimmed);
     const abstract =
@@ -346,6 +352,7 @@ export async function readCompanyFilings(limit = 1_000): Promise<CompanyFiling[]
     filer: string;
     filer_code: string | null;
     sector: string;
+    document_text: string | null;
     subject: string;
     stated_instant: string | null;
     instant_stated_in_document: boolean | null;
@@ -355,7 +362,7 @@ export async function readCompanyFilings(limit = 1_000): Promise<CompanyFiling[]
   }>(
     `SELECT fact_claim_id, event_date::text AS event_date, published_at, filer, filer_code,
             sector, subject, stated_instant, instant_stated_in_document, source_url,
-            evidence_sha256, excerpt
+            evidence_sha256, excerpt, document_text
      FROM read_models.company_filing
      WHERE status = 'PUBLISHED' AND NOT superseded
      ORDER BY published_at DESC NULLS LAST, event_date DESC
@@ -376,6 +383,13 @@ export async function readCompanyFilings(limit = 1_000): Promise<CompanyFiling[]
     sourceUrl: row.source_url,
     evidenceSha256: row.evidence_sha256,
     excerpt: row.excerpt,
-    summary: filingSummary(row.excerpt),
+    // The filing's own page when it was captured; the register's summary when
+    // it was not. Never both concatenated, and never the raw evidence record.
+    //
+    // The model returns the longest evidence on the claim, which falls back to
+    // the register record when no page was captured — so the text only counts
+    // as complete when it is prose rather than that record.
+    summary: filingSummary(row.document_text) ?? filingSummary(row.excerpt),
+    summaryIsComplete: isDocumentProse(row.document_text),
   }));
 }

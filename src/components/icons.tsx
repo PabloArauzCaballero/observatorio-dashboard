@@ -18,6 +18,8 @@ const PATHS = {
   barras:
     '<path d="M3.5 20.5V3.5M3.5 20.5h17"/><path d="M7 20.5v-6M11.5 20.5v-10M16 20.5v-4M20 20.5v-8"/>',
   buscar: '<circle cx="11" cy="11" r="6.4"/><path d="m20.5 20.5-4.9-4.9"/>',
+  desplegar: '<path d="m6 9.5 6 6 6-6"/>',
+  plegar: '<path d="m6 14.5 6-6 6 6"/>',
   cajas:
     '<rect x="3.5" y="3.5" width="7.5" height="7.5" rx="1.4"/><rect x="13" y="3.5" width="7.5" height="7.5" rx="1.4"/><rect x="3.5" y="13" width="7.5" height="7.5" rx="1.4"/><rect x="13" y="13" width="7.5" height="7.5" rx="1.4"/>',
   calendario:
