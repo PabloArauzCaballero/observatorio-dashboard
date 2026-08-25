@@ -721,6 +721,24 @@ code {
   border-color: var(--official);
 }
 
+.slicer select {
+  font: inherit;
+  font-size: 0.9rem;
+  padding: 0.42rem 0.7rem;
+  border: 1px solid var(--rule);
+  border-radius: 8px;
+  background: var(--panel);
+  color: var(--ink);
+  width: 100%;
+  max-width: 100%;
+  transition: border-color var(--fast) var(--ease);
+}
+
+.slicer select:focus {
+  outline: none;
+  border-color: var(--official);
+}
+
 .slicer input[type='range'] {
   accent-color: var(--official);
   width: 200px;
@@ -755,6 +773,44 @@ code {
   text-transform: uppercase;
   color: var(--ink-faint);
   margin-bottom: 0.2rem;
+}
+
+/* Section preamble ------------------------------------------------------- */
+
+.brief {
+  border-left: 3px solid var(--official);
+  padding: var(--s2) 0 var(--s2) var(--s3);
+  animation: rise var(--slow) var(--ease) both;
+}
+
+.brief h2 {
+  font-size: 0.72rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+  margin: 0 0 var(--s2);
+}
+
+.brief p {
+  margin: 0 0 var(--s2);
+  max-width: 68ch;
+  font-size: 0.95rem;
+  line-height: 1.65;
+  color: var(--ink-soft);
+}
+
+.brief p:last-child {
+  margin-bottom: 0;
+}
+
+.brief strong {
+  color: var(--ink);
+  font-weight: 600;
+}
+
+.brief p.brief-note {
+  font-size: 0.85rem;
+  color: var(--ink-faint);
 }
 
 /* Econometric statistics ------------------------------------------------- */

@@ -1,25 +1,11 @@
-import {
-  GapChart,
-  Histogram,
-  MacroChart,
-  RateChart,
-  SeriesChart,
-  Sparkline,
-} from '@/components/charts';
+import { GapChart, MacroChart, Sparkline } from '@/components/charts';
 import type { GapChartPoint, RatePoint } from '@/components/charts';
 import { Download } from '@/components/download';
+import { FilingExplorer } from '@/components/filing-explorer';
+import { FxExplorer } from '@/components/fx-explorer';
 import { MacroExplorer } from '@/components/macro-explorer';
 import { Tabs } from '@/components/tabs';
 import { dailyAnalysis } from '@/lib/daily-analysis';
-import {
-  aggregationBoundary,
-  drawdown,
-  histogram,
-  logReturns,
-  moments,
-  rollingCorrelation,
-  rollingVolatility,
-} from '@/lib/econometrics';
 import type { Observation } from '@/lib/econometrics';
 import {
   officialSeries,
@@ -272,36 +258,6 @@ function MacroCard({ point, series }: { point: MacroPoint; series: MacroPoint[] 
  * What matters about a filing is when it landed relative to the others, which a
  * row in a table hides and a spine down the page makes obvious.
  */
-function FilingTimeline({ filings }: { filings: CompanyFiling[] }) {
-  return (
-    <ol className="timeline">
-      {filings.map((filing, index) => (
-        <li key={filing.factClaimId} style={{ animationDelay: `${Math.min(index, 12) * 45}ms` }}>
-          <div className="tl-stamp">{filing.statedInstant ?? filing.eventDate}</div>
-          <div className="tl-body">
-            <h4>{filing.subject}</h4>
-            <p className="tl-filer">{filing.filer}</p>
-            {filing.excerpt ? <p className="tl-excerpt">{filing.excerpt.slice(0, 260)}…</p> : null}
-            <p className="tl-foot">
-              {filing.instantStatedInDocument
-                ? 'Fecha confirmada por la ficha'
-                : 'Fecha sin confirmar'}
-              {filing.sourceUrl ? (
-                <>
-                  {' · '}
-                  <a href={filing.sourceUrl} target="_blank" rel="noreferrer noopener">
-                    ficha completa
-                  </a>
-                </>
-              ) : null}
-            </p>
-          </div>
-        </li>
-      ))}
-    </ol>
-  );
-}
-
 function SourceList({ sources }: { sources: SourceNote[] }) {
   return (
     <ul className="sources">
@@ -384,34 +340,12 @@ export default async function Page() {
     gapPercent: point.gapPercent,
   }));
 
-  /**
-   * The market series the statistics are computed on.
-   *
-   * The mid-point rather than either published side, because the two labels do
-   * not carry a stable meaning and the mid is invariant to that.
-   */
-  const midSeries: Observation[] = rows
-    .map((row) => ({
-      date: row.date,
-      value: midpoint(row),
-      aggregation: row.parallelAggregation ?? 'POINT_IN_TIME',
-    }))
-    .filter((point): point is Observation => point.value !== null)
-    .map((point) => ({ ...point, value: point.value }));
+  /** The official series in the shape the exchange-rate explorer measures on. */
   const officialObservations: Observation[] = official.map((point) => ({
     date: point.date,
     value: point.value,
     aggregation: point.aggregation,
   }));
-
-  const midReturns = logReturns(midSeries);
-  const returnSeries = midReturns.map((point) => ({ date: point.date, value: point.ret }));
-  const volatility = rollingVolatility(midReturns, 30);
-  const correlation = rollingCorrelation(midReturns, logReturns(officialObservations), 60);
-  const drawdownSeries = drawdown(midSeries);
-  const buckets = histogram(midReturns);
-  const stats = moments(midReturns);
-  const boundary = aggregationBoundary(midSeries);
 
   /** Enough of the tail to show direction without redrawing the whole year. */
   const tail = <T,>(values: T[], count = 90): T[] => values.slice(-count);
@@ -519,140 +453,21 @@ export default async function Page() {
         </section>
 
         <section className="stack">
-          <div className="panel">
-            <div className="panel-head">
-              <h2>Nivel</h2>
-              <p className="panel-sub">
-                Bolivianos por dólar. Naranja: los dos lados que publica la fuente para el paralelo.
-                Azul: tipo de cambio oficial. El eje no arranca en cero.
-              </p>
-            </div>
-            <RateChart data={rows} tall />
-          </div>
-
-          <div className="stat-strip">
-            <Stat
-              label="Volatilidad anualizada"
-              value={`${rate(stats.volatilityAnnual, 1)} %`}
-              hint="desviación típica de los retornos diarios, √365"
-            />
-            <Stat
-              label="Retorno medio diario"
-              value={`${percent(stats.meanDaily)}`}
-              hint={`${stats.observations.toLocaleString('es-BO')} observaciones`}
-            />
-            <Stat
-              label="Asimetría"
-              value={rate(stats.skewness, 2)}
-              hint={stats.skewness > 0 ? 'sesgo a depreciaciones' : 'sesgo a apreciaciones'}
-            />
-            <Stat
-              label="Curtosis en exceso"
-              value={rate(stats.excessKurtosis, 2)}
-              hint={stats.excessKurtosis > 0 ? 'colas más gruesas que la normal' : 'colas finas'}
-            />
-            <Stat
-              label="VaR 95 % diario"
-              value={`${rate(stats.valueAtRisk95, 2)} %`}
-              hint="pérdida no superada en 19 de cada 20 días"
-            />
-            {stats.worstDay ? (
-              <Stat
-                label="Peor jornada"
-                value={`${percent(stats.worstDay.ret)}`}
-                hint={stats.worstDay.date}
-              />
-            ) : null}
-          </div>
-
-          <div className="panel">
-            <div className="panel-head">
-              <h2>Retornos diarios</h2>
-              <p className="panel-sub">
-                Variación logarítmica del punto medio del paralelo. Las barras hacen visibles los
-                saltos que una línea de nivel suaviza.
-              </p>
-            </div>
-            <SeriesChart
-              data={returnSeries}
-              kind="bar"
-              tone="var(--parallel)"
-              unit="%"
-              zeroLine
-              {...(boundary ? { boundary } : {})}
-            />
-          </div>
-
-          <div className="grid-two">
-            <div className="panel">
-              <div className="panel-head">
-                <h2>Volatilidad realizada</h2>
-                <p className="panel-sub">Ventana móvil de 30 días, anualizada</p>
-              </div>
-              <SeriesChart
-                data={volatility}
-                kind="area"
-                tone="var(--gap)"
-                unit="%"
-                decimals={1}
-                {...(boundary ? { boundary } : {})}
-              />
-            </div>
-
-            <div className="panel">
-              <div className="panel-head">
-                <h2>Distribución de retornos</h2>
-                <p className="panel-sub">Días por tramo; en rojo, la cola inferior del 5 %</p>
-              </div>
-              <Histogram data={buckets} />
-            </div>
-          </div>
-
-          <div className="grid-two">
-            <div className="panel">
-              <div className="panel-head">
-                <h2>Correlación oficial–paralelo</h2>
-                <p className="panel-sub">
-                  Ventana móvil de 60 días. Cerca de cero mientras el oficial estuvo fijo; se
-                  despega cuando empieza a moverse con el mercado.
-                </p>
-              </div>
-              {correlation.length >= 2 ? (
-                <SeriesChart
-                  data={correlation}
-                  kind="line"
-                  tone="var(--official)"
-                  unit=""
-                  zeroLine
-                  domain={[-1, 1]}
-                />
-              ) : (
-                <div className="callout">
-                  Se necesitan al menos 60 jornadas con ambas series para estimarla.
-                </div>
-              )}
-            </div>
-
-            <div className="panel">
-              <div className="panel-head">
-                <h2>Caída desde el máximo</h2>
-                <p className="panel-sub">
-                  Distancia del paralelo respecto al mayor nivel alcanzado hasta la fecha
-                </p>
-              </div>
-              <SeriesChart data={drawdownSeries} kind="area" tone="var(--up)" unit="%" zeroLine />
-            </div>
-          </div>
-
-          <Download dataset="series" label="Serie diaria completa" />
+          <FxExplorer
+            rows={rows}
+            official={officialObservations}
+            readingCount={observatory.readingCount}
+          />
         </section>
 
         <section className="stack">
           <div className="panel-head">
             <h2>Contexto macroeconómico</h2>
             <p className="panel-sub">
-              Cuarenta y cuatro series anuales en ocho rubros, cada una en su propia escala. Los
-              filtros se componen entre sí y la descarga sigue a la selección.
+              Ochenta y seis series anuales en ocho rubros —incluida la posición de deuda externa
+              por acreedor, plazo y carga de servicio—, cada una en su propia escala y desde el
+              primer año que publica la fuente. Los filtros se componen entre sí y la descarga sigue
+              a la selección.
             </p>
           </div>
           <MacroExplorer points={macro} />
@@ -662,16 +477,16 @@ export default async function Page() {
           <div className="panel-head">
             <h2>Hechos relevantes</h2>
             <p className="panel-sub">
-              Comunicaciones de emisores registradas por la Bolsa Boliviana de Valores, con el sello
-              que les asigna
+              Comunicaciones que los emisores registran en la Bolsa Boliviana de Valores, con el
+              sello que ésta les asigna. El rubro se deriva de la razón social del emisor: la bolsa
+              no publica una clasificación sectorial propia.
             </p>
           </div>
           {filings.length ? (
-            <FilingTimeline filings={filings} />
+            <FilingExplorer filings={filings} />
           ) : (
             <div className="callout">Todavía no hay hechos relevantes cargados.</div>
           )}
-          <Download dataset="filings" label="Hechos relevantes" />
         </section>
 
         <section className="stack notes">

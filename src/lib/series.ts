@@ -282,6 +282,10 @@ export interface CompanyFiling {
   eventDate: string;
   publishedAt: string | null;
   filer: string;
+  /** Short code the exchange assigns the issuer. */
+  filerCode: string | null;
+  /** Industry derived from the issuer's registered name, not published by the exchange. */
+  sector: string;
   subject: string;
   statedInstant: string | null;
   instantStatedInDocument: boolean | null;
@@ -296,12 +300,14 @@ export interface CompanyFiling {
  * Read from their own model: a filing has no value, no unit and no series, so
  * it never belonged with the indicators even though it shares their provenance.
  */
-export async function readCompanyFilings(limit = 60): Promise<CompanyFiling[]> {
+export async function readCompanyFilings(limit = 1_000): Promise<CompanyFiling[]> {
   const { rows } = await pool().query<{
     fact_claim_id: string;
     event_date: string;
     published_at: Date | null;
     filer: string;
+    filer_code: string | null;
+    sector: string;
     subject: string;
     stated_instant: string | null;
     instant_stated_in_document: boolean | null;
@@ -309,8 +315,9 @@ export async function readCompanyFilings(limit = 60): Promise<CompanyFiling[]> {
     evidence_sha256: string | null;
     excerpt: string | null;
   }>(
-    `SELECT fact_claim_id, event_date::text AS event_date, published_at, filer, subject,
-            stated_instant, instant_stated_in_document, source_url, evidence_sha256, excerpt
+    `SELECT fact_claim_id, event_date::text AS event_date, published_at, filer, filer_code,
+            sector, subject, stated_instant, instant_stated_in_document, source_url,
+            evidence_sha256, excerpt
      FROM read_models.company_filing
      WHERE status = 'PUBLISHED' AND NOT superseded
      ORDER BY published_at DESC NULLS LAST, event_date DESC
@@ -323,6 +330,8 @@ export async function readCompanyFilings(limit = 60): Promise<CompanyFiling[]> {
     eventDate: row.event_date,
     publishedAt: row.published_at?.toISOString() ?? null,
     filer: row.filer,
+    filerCode: row.filer_code,
+    sector: row.sector,
     subject: row.subject,
     statedInstant: row.stated_instant,
     instantStatedInDocument: row.instant_stated_in_document,

@@ -18,6 +18,16 @@ declare global {
   var observatoryPool: Pool | undefined;
 }
 
+/** Whether the target is this machine, and therefore unreachable from a network. */
+function isLoopback(connectionString: string): boolean {
+  try {
+    const { hostname } = new URL(connectionString);
+    return hostname === 'localhost' || hostname === '127.0.0.1' || hostname === '::1';
+  } catch {
+    return false;
+  }
+}
+
 function createPool(): Pool {
   const connectionString = process.env.DASHBOARD_DATABASE_URL;
   if (!connectionString) {
@@ -27,9 +37,12 @@ function createPool(): Pool {
   }
   return new Pool({
     connectionString,
-    // TLS is demanded by the connection string; the certificate is verified
-    // rather than trusted blindly.
-    ssl: { rejectUnauthorized: true },
+    // TLS is demanded and the certificate verified rather than trusted blindly.
+    // The one exception is a database on loopback, where there is no network
+    // segment for anyone to sit on; every hosted target is remote and keeps
+    // verification. This is decided from the host, not from a flag a
+    // misconfigured deployment could set.
+    ...(isLoopback(connectionString) ? {} : { ssl: { rejectUnauthorized: true } }),
     max: 4,
     idleTimeoutMillis: 30_000,
     connectionTimeoutMillis: 10_000,

@@ -7,7 +7,7 @@ import type { MacroPoint } from '@/lib/series';
 /**
  * The macroeconomic panel, filtered the way an analyst actually narrows a set.
  *
- * Forty-four series is more than anyone reads at once, so the panel starts by
+ * Eighty-six series is more than anyone reads at once, so the panel starts by
  * asking what the reader is looking at rather than showing everything. Three
  * slicers compose: sector, period, and a search over names. Each one narrows
  * what the others offer, so a combination that would return nothing cannot be
@@ -25,7 +25,7 @@ const SECTOR_LABEL: Record<string, string> = {
   EXTERNO: 'Sector externo',
   PRECIOS: 'Precios',
   MONETARIO: 'Monetario y financiero',
-  FISCAL: 'Fiscal y deuda',
+  DEUDA: 'Deuda externa',
   SOCIAL: 'Social y laboral',
   OTROS: 'Otros',
 };
@@ -37,7 +37,7 @@ const SECTOR_TONE: Record<string, string> = {
   EXTERNO: 'var(--official)',
   PRECIOS: 'var(--parallel)',
   MONETARIO: 'var(--gap)',
-  FISCAL: 'var(--up)',
+  DEUDA: 'var(--up)',
   SOCIAL: 'var(--down)',
   OTROS: 'var(--ink-soft)',
 };
@@ -49,6 +49,7 @@ const UNIT_LABEL: Record<string, string> = {
   INDEX: 'índice',
   MONTHS: 'meses',
   PEOPLE: 'personas',
+  YEARS: 'años',
 };
 
 const number = (value: number, decimals = 2): string =>
