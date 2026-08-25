@@ -37,6 +37,8 @@ export interface SummaryExplorerProps {
   coverage: ReadonlyArray<{ label: string; count: string; icon: IconName }>;
   analysis: string[];
   latestDate: string | null;
+  /** The dollar-linked markets, rendered by the caller that reads them. */
+  markets?: React.ReactNode;
 }
 
 const RANGES: ReadonlyArray<{ key: string; label: string; days: number | null }> = [
@@ -58,6 +60,7 @@ export function SummaryExplorer({
   coverage,
   analysis,
   latestDate,
+  markets,
 }: SummaryExplorerProps) {
   const [range, setRange] = useState('todo');
 
@@ -160,6 +163,8 @@ export function SummaryExplorer({
             </div>
           ))}
         </div>
+
+        {markets ?? null}
 
         <div className="panel">
           <div className="tile-head">

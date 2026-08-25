@@ -457,3 +457,77 @@ export async function readPressArticles(limit = 1_000): Promise<PressArticle[]> 
     evidenceSha256: row.evidence_sha256,
   }));
 }
+
+export interface MarketPoint {
+  date: string;
+  value: number;
+}
+
+export interface MarketSeries {
+  code: string;
+  name: string;
+  unit: string;
+  latest: number;
+  latestDate: string;
+  changePercent: number | null;
+  /** Change over the whole window held, which is what a two-year series is for. */
+  windowPercent: number | null;
+  points: MarketPoint[];
+}
+
+const MARKET_NAMES: Record<string, string> = {
+  BTC_USD: 'Bitcoin',
+  USDT_USD: 'Tether (USDT)',
+  XAU_USD: 'Oro (PAX Gold)',
+};
+
+/**
+ * The markets that bear on the Bolivian dollar.
+ *
+ * Read separately from the Bolivian series because they are quoted elsewhere in
+ * another currency: putting a dollar price of gold on the same axis as
+ * bolivianos per dollar would be a category error, however tempting the shared
+ * word "price" makes it.
+ */
+export async function readMarkets(): Promise<MarketSeries[]> {
+  const { rows } = await pool().query<{
+    indicator_code: string;
+    event_date: string;
+    value_median: string;
+    unit: string;
+  }>(
+    `SELECT indicator_code, event_date::text AS event_date, value_median::text, unit
+     FROM read_models.economic_indicator_daily
+     WHERE indicator_code IN ('BTC_USD', 'USDT_USD', 'XAU_USD')
+     ORDER BY indicator_code, event_date`,
+  );
+
+  const grouped = new Map<string, { unit: string; points: MarketPoint[] }>();
+  for (const row of rows) {
+    const entry = grouped.get(row.indicator_code) ?? { unit: row.unit, points: [] };
+    entry.points.push({ date: row.event_date, value: Number(row.value_median) });
+    grouped.set(row.indicator_code, entry);
+  }
+
+  return [...grouped.entries()].map(([code, entry]) => {
+    const last = entry.points.at(-1);
+    const previous = entry.points.at(-2);
+    const first = entry.points.at(0);
+    return {
+      code,
+      name: MARKET_NAMES[code] ?? code,
+      unit: entry.unit,
+      latest: last?.value ?? 0,
+      latestDate: last?.date ?? '',
+      changePercent:
+        last && previous && previous.value !== 0
+          ? ((last.value - previous.value) / previous.value) * 100
+          : null,
+      windowPercent:
+        last && first && first.value !== 0
+          ? ((last.value - first.value) / first.value) * 100
+          : null,
+      points: entry.points,
+    };
+  });
+}

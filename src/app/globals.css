@@ -1462,3 +1462,93 @@ code {
   text-decoration-color: var(--rule);
   white-space: nowrap;
 }
+
+/* Market cards ----------------------------------------------------------- */
+
+/*
+ * Colour carries the instrument here rather than decorating the card. Each hue
+ * is the one that instrument already has on the charts, so the palette is
+ * learned once; the tint is the same hue at seven percent, which reads as a
+ * family rather than as three unrelated boxes.
+ */
+
+.market-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+  gap: var(--s2);
+}
+
+.market-card {
+  border: 1px solid var(--rule);
+  border-top-width: 3px;
+  border-radius: var(--radius);
+  padding: var(--s2) var(--s3) 0.6rem;
+  box-shadow: var(--shadow);
+  animation: rise var(--slow) var(--ease) both;
+  transition:
+    transform var(--fast) var(--ease),
+    box-shadow var(--fast) var(--ease);
+}
+
+.market-card:hover {
+  transform: translateY(-2px);
+  box-shadow:
+    0 2px 4px rgb(16 24 40 / 0.05),
+    0 14px 32px -14px rgb(16 24 40 / 0.22);
+}
+
+.market-top {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.7rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  font-weight: 600;
+  margin-bottom: 0.3rem;
+}
+
+.market-top .market-unit {
+  margin-left: auto;
+  font-family: var(--mono);
+  font-weight: 400;
+  letter-spacing: 0.04em;
+  color: var(--ink-faint);
+}
+
+.market-figure {
+  display: flex;
+  align-items: baseline;
+  gap: 0.5rem;
+}
+
+.market-value {
+  font-family: var(--mono);
+  font-size: 1.5rem;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.025em;
+  line-height: 1.15;
+}
+
+.market-figure .delta-up,
+.market-figure .delta-down {
+  font-size: 0.78rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.market-meta {
+  margin-top: 0.2rem;
+  font-size: 0.72rem;
+  line-height: 1.45;
+  color: var(--ink-faint);
+  font-variant-numeric: tabular-nums;
+}
+
+.market-meta b {
+  color: var(--ink);
+  font-family: var(--mono);
+}
+
+.market-card .sparkline {
+  margin-top: 0.4rem;
+}
