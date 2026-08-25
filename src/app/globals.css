@@ -92,10 +92,25 @@ a:hover {
   text-decoration-color: currentColor;
 }
 
+/*
+ * Full bleed, because the filter rail is docked rather than stacked.
+ *
+ * A centred 1140px column was right while filters sat above the content and
+ * everything read top to bottom. With a pane pinned to the side, that column
+ * spends a third of a wide screen on margin and squeezes the charts into what
+ * is left. The page now takes the viewport and caps only where a line of prose
+ * would otherwise run too long to read.
+ */
 .shell {
-  max-width: 1140px;
-  margin: 0 auto;
-  padding: var(--s4) 1.25rem var(--s5);
+  width: 100%;
+  margin: 0;
+  padding: var(--s3) var(--s3) var(--s5);
+}
+
+@media (min-width: 1600px) {
+  .shell {
+    padding-inline: var(--s4);
+  }
 }
 
 /* Motion ---------------------------------------------------------------- */
@@ -135,6 +150,64 @@ a:hover {
     animation: none !important;
     transition-duration: 1ms !important;
   }
+}
+
+/* Top bar and tabs ------------------------------------------------------- */
+
+.topbar {
+  display: flex;
+  align-items: center;
+  gap: var(--s2);
+  flex-wrap: wrap;
+  padding-bottom: var(--s2);
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
+  margin-right: auto;
+}
+
+.brand-mark {
+  width: 34px;
+  height: 34px;
+  border-radius: 9px;
+  background: var(--ink);
+  color: var(--paper);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+}
+
+.brand h1 {
+  font-family: var(--serif);
+  font-size: clamp(1.1rem, 2vw, 1.28rem);
+  font-weight: 600;
+  letter-spacing: -0.015em;
+  margin: 0;
+  line-height: 1.2;
+}
+
+.brand .dateline {
+  margin-bottom: 0;
+  margin-top: 1px;
+}
+
+.topbar-stamp {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+  font-family: var(--mono);
+  font-size: 0.7rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+}
+
+.tab .ic {
+  opacity: 0.85;
 }
 
 /* Masthead and tabs ------------------------------------------------------ */
@@ -857,4 +930,356 @@ code {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(360px, 1fr));
   gap: var(--s2);
+}
+
+/* Docked filter rail ----------------------------------------------------- */
+
+/*
+ * The report-pane layout: filters pinned to one side, content in tiles beside
+ * them. Stacking the slicers above the content pushed every chart below the
+ * fold and made the selection scroll away from what it was selecting; docked,
+ * the filters stay in view and the tiles get the full width.
+ */
+
+.workspace {
+  display: flex;
+  gap: var(--s3);
+  align-items: flex-start;
+}
+
+.rail {
+  width: 264px;
+  flex: none;
+  position: sticky;
+  top: var(--s3);
+  background: var(--panel);
+  border: 1px solid var(--rule);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  overflow: hidden;
+}
+
+.rail-top {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.7rem 0.875rem;
+  border-bottom: 1px solid var(--rule-soft);
+}
+
+.rail-top .rail-title {
+  font-size: 0.7rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  font-weight: 600;
+}
+
+.rail-top .rail-count {
+  margin-left: auto;
+  font-family: var(--mono);
+  font-size: 0.68rem;
+  color: var(--ink-faint);
+}
+
+.rail-sec {
+  padding: 0.7rem 0 0.8rem;
+  border-bottom: 1px solid var(--rule-soft);
+}
+
+.rail-sec:last-child {
+  border-bottom: none;
+}
+
+.rail-head {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0 0.875rem 0.45rem;
+  font-size: 0.66rem;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+}
+
+.rail-item {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  width: 100%;
+  appearance: none;
+  background: none;
+  border: none;
+  border-left: 2px solid transparent;
+  padding: 0.36rem 0.875rem 0.36rem 0.75rem;
+  font: inherit;
+  font-size: 0.83rem;
+  color: var(--ink-soft);
+  cursor: pointer;
+  text-align: left;
+  transition:
+    background var(--fast) var(--ease),
+    color var(--fast) var(--ease);
+}
+
+.rail-item:hover {
+  background: var(--panel-tint);
+  color: var(--ink);
+}
+
+.rail-item-on {
+  background: var(--panel-tint);
+  border-left-color: var(--official);
+  color: var(--ink);
+  font-weight: 600;
+}
+
+.rail-item .rail-name {
+  flex: 1 1 auto;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.rail-item .rail-n {
+  font-family: var(--mono);
+  font-size: 0.68rem;
+  color: var(--ink-faint);
+  font-variant-numeric: tabular-nums;
+}
+
+.rail-item-on .rail-n {
+  color: var(--official);
+}
+
+.rail-foot {
+  padding: 0.7rem 0.875rem;
+  background: var(--panel-tint);
+  font-size: 0.72rem;
+  color: var(--ink-faint);
+  font-variant-numeric: tabular-nums;
+  line-height: 1.5;
+}
+
+.rail-foot b {
+  color: var(--ink);
+  font-family: var(--mono);
+  font-weight: 600;
+}
+
+.rail-field {
+  padding: 0 0.875rem;
+}
+
+.rail-field input,
+.rail-field select {
+  font: inherit;
+  font-size: 0.85rem;
+  padding: 0.38rem 0.6rem;
+  border: 1px solid var(--rule);
+  border-radius: 8px;
+  background: var(--panel);
+  color: var(--ink);
+  width: 100%;
+  transition: border-color var(--fast) var(--ease);
+}
+
+.rail-field input:focus,
+.rail-field select:focus {
+  outline: none;
+  border-color: var(--official);
+}
+
+.rail-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem;
+  padding: 0 0.875rem;
+}
+
+.workspace-main {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--s2);
+}
+
+/* Tiles ------------------------------------------------------------------ */
+
+.tile-head {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: var(--s1);
+}
+
+.tile-head h2 {
+  font-size: 1.05rem;
+}
+
+.tile-head .tile-hint {
+  margin-left: auto;
+  font-family: var(--mono);
+  font-size: 0.68rem;
+  letter-spacing: 0.05em;
+  color: var(--ink-faint);
+  text-transform: uppercase;
+}
+
+.strap {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: var(--panel);
+  border: 1px solid var(--rule);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: 0.6rem var(--s3);
+}
+
+.strap h2 {
+  font-size: 1.02rem;
+}
+
+/* Brief card ------------------------------------------------------------- */
+
+/*
+ * What was three paragraphs of preamble. The reader needs to know what is being
+ * measured before the first chart, but not at essay length: one sentence and
+ * three labelled points carry it, and the section starts a third of a screen
+ * higher.
+ */
+
+.briefcard {
+  display: flex;
+  gap: var(--s2);
+  background: var(--panel-tint);
+  border: 1px solid var(--rule);
+  border-left: 3px solid var(--official);
+  border-radius: var(--radius);
+  padding: var(--s2) var(--s3);
+  animation: rise var(--slow) var(--ease) both;
+}
+
+.briefcard-mark {
+  color: var(--official);
+  flex: none;
+  margin-top: 2px;
+}
+
+.briefcard h2 {
+  font-family: var(--sans);
+  font-size: 0.7rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+  font-weight: 600;
+  margin: 0 0 0.3rem;
+}
+
+.briefcard p {
+  margin: 0;
+  font-size: 0.88rem;
+  line-height: 1.55;
+  color: var(--ink-soft);
+  max-width: 92ch;
+}
+
+.briefcard strong {
+  color: var(--ink);
+  font-weight: 600;
+}
+
+.brief-points {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+  gap: var(--s2);
+  margin-top: 0.7rem;
+}
+
+.brief-point {
+  display: flex;
+  gap: 0.5rem;
+  align-items: flex-start;
+}
+
+.brief-point-mark {
+  color: var(--official);
+  flex: none;
+  margin-top: 2px;
+}
+
+.brief-point b {
+  display: block;
+  font-size: 0.78rem;
+  color: var(--ink);
+  font-weight: 600;
+  line-height: 1.3;
+}
+
+.brief-point span {
+  display: block;
+  font-size: 0.74rem;
+  color: var(--ink-faint);
+  line-height: 1.35;
+}
+
+/* Bar list --------------------------------------------------------------- */
+
+.barlist {
+  display: flex;
+  flex-direction: column;
+  gap: 0.32rem;
+}
+
+.barlist-row {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+}
+
+.barlist-row .barlist-name {
+  width: 168px;
+  font-size: 0.76rem;
+  color: var(--ink-soft);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.barlist-track {
+  flex: 1 1 auto;
+  height: 11px;
+  background: var(--panel-tint);
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.barlist-fill {
+  display: block;
+  height: 11px;
+  border-radius: 3px;
+  transition: width var(--slow) var(--ease);
+}
+
+.barlist-row .barlist-n {
+  width: 40px;
+  text-align: right;
+  font-family: var(--mono);
+  font-size: 0.72rem;
+  color: var(--ink-faint);
+  font-variant-numeric: tabular-nums;
+}
+
+@media (max-width: 900px) {
+  .workspace {
+    flex-direction: column;
+  }
+  .rail {
+    width: 100%;
+    position: static;
+  }
+  .barlist-row .barlist-name {
+    width: 120px;
+  }
 }

@@ -2,17 +2,22 @@
 
 import { useMemo, useState } from 'react';
 import { MacroChart } from './charts';
+import { Icon } from './icons';
+import type { IconName } from './icons';
 import type { MacroPoint } from '@/lib/series';
 
 /**
- * The macroeconomic panel, filtered the way an analyst actually narrows a set.
+ * The macroeconomic panel, filtered the way a report pane is.
  *
  * Eighty-six series is more than anyone reads at once, so the panel starts by
- * asking what the reader is looking at rather than showing everything. Three
- * slicers compose: sector, period, and a search over names. Each one narrows
- * what the others offer, so a combination that would return nothing cannot be
- * assembled — the same behaviour a cross-filtered report has, and the reason it
- * feels like exploring rather than guessing.
+ * asking what the reader is looking at rather than showing everything. The
+ * slicers are docked to the side instead of stacked above the cards: a pane
+ * that scrolls away from what it is filtering stops being a control, and the
+ * stacked version pushed every card below the fold.
+ *
+ * Three slicers compose: sector, period, and a search over names. Each one
+ * narrows what the others offer, so a combination that would return nothing
+ * cannot be assembled.
  *
  * The download follows the selection. Offering a filtered view and then a file
  * of everything is the quickest way to make a reader distrust both.
@@ -28,6 +33,18 @@ const SECTOR_LABEL: Record<string, string> = {
   DEUDA: 'Deuda externa',
   SOCIAL: 'Social y laboral',
   OTROS: 'Otros',
+};
+
+const SECTOR_ICON: Record<string, IconName> = {
+  ACTIVIDAD: 'tendencia',
+  SECTORIAL: 'cajas',
+  RECURSOS: 'hoja',
+  EXTERNO: 'globo',
+  PRECIOS: 'etiqueta',
+  MONETARIO: 'monedas',
+  DEUDA: 'balanza',
+  SOCIAL: 'personas',
+  OTROS: 'cajas',
 };
 
 const SECTOR_TONE: Record<string, string> = {
@@ -79,21 +96,18 @@ export function MacroExplorer({ points }: { points: MacroPoint[] }) {
   const maxYear = years.length ? Math.max(...years) : 2025;
 
   const sectors = useMemo(() => {
-    const counts = new Map<string, number>();
+    const counts = new Map<string, Set<string>>();
     for (const point of points) {
-      const codes = counts.get(point.sector) ?? 0;
+      const codes = counts.get(point.sector) ?? new Set<string>();
+      codes.add(point.indicatorCode);
       counts.set(point.sector, codes);
     }
-    for (const sectorKey of counts.keys()) {
-      counts.set(
-        sectorKey,
-        new Set(
-          points.filter((point) => point.sector === sectorKey).map((point) => point.indicatorCode),
-        ).size,
-      );
-    }
-    return [...counts.entries()].sort((left, right) => right[1] - left[1]);
+    return [...counts.entries()]
+      .map(([key, codes]): [string, number] => [key, codes.size])
+      .sort((left, right) => right[1] - left[1]);
   }, [points]);
+
+  const total = useMemo(() => new Set(points.map((point) => point.indicatorCode)).size, [points]);
 
   /** The selection, applied once and reused by the cards and the download. */
   const selected = useMemo(() => {
@@ -120,6 +134,7 @@ export function MacroExplorer({ points }: { points: MacroPoint[] }) {
     );
   }, [selected]);
 
+  const active = (sector === 'TODOS' ? 0 : 1) + (search.trim() ? 1 : 0) + (from > minYear ? 1 : 0);
   const query = new URLSearchParams({
     dataset: 'macro',
     ...(sector === 'TODOS' ? {} : { sector }),
@@ -128,64 +143,146 @@ export function MacroExplorer({ points }: { points: MacroPoint[] }) {
   });
 
   return (
-    <>
-      <div className="slicers">
-        <div className="slicer">
-          <span className="slicer-label">Rubro</span>
-          <div className="chips">
-            <button
-              type="button"
-              className={sector === 'TODOS' ? 'chip chip-on' : 'chip'}
-              onClick={() => setSector('TODOS')}
-            >
-              Todos
-              <em>{new Set(points.map((point) => point.indicatorCode)).size}</em>
-            </button>
-            {sectors.map(([key, count]) => (
-              <button
-                key={key}
-                type="button"
-                className={sector === key ? 'chip chip-on' : 'chip'}
-                onClick={() => setSector(sector === key ? 'TODOS' : key)}
-              >
-                {SECTOR_LABEL[key] ?? key}
-                <em>{count}</em>
-              </button>
-            ))}
-          </div>
+    <div className="workspace">
+      <aside className="rail">
+        <div className="rail-top">
+          <Icon name="filtro" size={15} />
+          <span className="rail-title">Filtros</span>
+          <span className="rail-count">{active ? `${active} activos` : 'sin filtro'}</span>
         </div>
 
-        <div className="slicer-row">
-          <label className="slicer">
-            <span className="slicer-label">Desde</span>
+        <div className="rail-sec">
+          <div className="rail-head">
+            <Icon name="cajas" size={13} />
+            Rubro
+          </div>
+          <button
+            type="button"
+            className={sector === 'TODOS' ? 'rail-item rail-item-on' : 'rail-item'}
+            onClick={() => setSector('TODOS')}
+          >
+            <Icon name="cajas" size={16} />
+            <span className="rail-name">Todos los rubros</span>
+            <span className="rail-n">{total}</span>
+          </button>
+          {sectors.map(([key, count]) => (
+            <button
+              key={key}
+              type="button"
+              className={sector === key ? 'rail-item rail-item-on' : 'rail-item'}
+              onClick={() => setSector(sector === key ? 'TODOS' : key)}
+            >
+              <Icon name={SECTOR_ICON[key] ?? 'cajas'} size={16} />
+              <span className="rail-name">{SECTOR_LABEL[key] ?? key}</span>
+              <span className="rail-n">{count}</span>
+            </button>
+          ))}
+        </div>
+
+        <div className="rail-sec">
+          <div className="rail-head">
+            <Icon name="calendario" size={13} />
+            Desde {from}
+          </div>
+          <div className="rail-field">
             <input
               type="range"
               min={minYear}
               max={maxYear - 1}
               value={from}
               onChange={(event) => setFrom(Number(event.target.value))}
+              style={{ width: '100%' }}
             />
-            <output>{from}</output>
-          </label>
+          </div>
+          <div className="rail-pills" style={{ marginTop: '0.4rem' }}>
+            {[minYear, 1990, 2010, 2020].map((year) => (
+              <button
+                key={year}
+                type="button"
+                className={from === year ? 'chip chip-on' : 'chip'}
+                onClick={() => setFrom(year)}
+              >
+                {year}
+              </button>
+            ))}
+          </div>
+        </div>
 
-          <label className="slicer slicer-grow">
-            <span className="slicer-label">Buscar indicador</span>
+        <div className="rail-sec">
+          <div className="rail-head">
+            <Icon name="buscar" size={13} />
+            Buscar indicador
+          </div>
+          <div className="rail-field">
             <input
               type="search"
               value={search}
               placeholder="inflación, reservas, gas…"
               onChange={(event) => setSearch(event.target.value)}
             />
-          </label>
+          </div>
         </div>
 
-        <div className="slicer-foot">
-          <span>
-            {cards.length} indicador{cards.length === 1 ? '' : 'es'} ·{' '}
-            {selected.length.toLocaleString('es-BO')} observaciones desde {from}
+        <div className="rail-foot">
+          Selección: <b>{cards.length}</b> de <b>{total}</b> indicadores
+          <br />
+          <b>{selected.length.toLocaleString('es-BO')}</b> observaciones anuales
+          <br />
+          Desde <b>{from}</b>
+        </div>
+      </aside>
+
+      <div className="workspace-main">
+        <div className="briefcard">
+          <span className="briefcard-mark">
+            <Icon name="globo" size={20} />
+          </span>
+          <div>
+            <h2>Contexto macroeconómico</h2>
+            <p>
+              Ochenta y seis series anuales del Banco Mundial, desde 1960 y hasta el último año
+              publicado. Elegí un rubro a la izquierda: las tarjetas, el conteo y la descarga siguen
+              esa selección.
+            </p>
+            <div className="brief-points">
+              <div className="brief-point">
+                <span className="brief-point-mark">
+                  <Icon name="balanza" size={17} />
+                </span>
+                <div>
+                  <b>Deuda por acreedor</b>
+                  <span>14 series: BM, BIRF, AIF, plazo y servicio</span>
+                </div>
+              </div>
+              <div className="brief-point">
+                <span className="brief-point-mark">
+                  <Icon name="reloj" size={17} />
+                </span>
+                <div>
+                  <b>Desde 1960</b>
+                  <span>toda la historia que publica la fuente</span>
+                </div>
+              </div>
+              <div className="brief-point">
+                <span className="brief-point-mark">
+                  <Icon name="descarga" size={17} />
+                </span>
+                <div>
+                  <b>CSV con el filtro</b>
+                  <span>se descarga lo que estás viendo</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div className="strap">
+          <Icon name={SECTOR_ICON[sector] ?? 'cajas'} size={17} />
+          <h2>{sector === 'TODOS' ? 'Todos los rubros' : (SECTOR_LABEL[sector] ?? sector)}</h2>
+          <span className="tile-hint">
+            {cards.length} indicador{cards.length === 1 ? '' : 'es'}
           </span>
           <div className="download">
-            <span className="download-label">Descargar la selección</span>
             <a className="download-btn" href={`/api/export?${query.toString()}&format=csv`}>
               CSV
             </a>
@@ -194,42 +291,45 @@ export function MacroExplorer({ points }: { points: MacroPoint[] }) {
             </a>
           </div>
         </div>
-      </div>
 
-      {cards.length ? (
-        <div className="card-grid">
-          {cards.map((point) => (
-            <article className="card" key={point.indicatorCode}>
-              <header className="card-head">
-                <span className="card-sector">{SECTOR_LABEL[point.sector] ?? point.sector}</span>
-                <h3>{point.name ?? point.indicatorCode}</h3>
-                <div className="card-figure">
-                  <span className="card-value">{headline(point)}</span>
-                  <span className="card-unit">{UNIT_LABEL[point.unit] ?? point.unit}</span>
-                </div>
-                <div className="card-meta">
-                  <span>{point.period}</span>
-                  {point.changePercent === null ? null : (
-                    <span className={point.changePercent >= 0 ? 'delta-up' : 'delta-down'}>
-                      {point.changePercent > 0 ? '+' : ''}
-                      {number(point.changePercent)} % anual
-                    </span>
-                  )}
-                </div>
-              </header>
-              <MacroChart
-                data={selected
-                  .filter((row) => row.indicatorCode === point.indicatorCode)
-                  .map((row) => ({ period: row.period, value: row.value }))}
-                unit={point.unit}
-                tone={SECTOR_TONE[point.sector] ?? 'var(--ink-soft)'}
-              />
-            </article>
-          ))}
-        </div>
-      ) : (
-        <div className="callout">Ningún indicador coincide con esta selección.</div>
-      )}
-    </>
+        {cards.length ? (
+          <div className="card-grid">
+            {cards.map((point) => (
+              <article className="card" key={point.indicatorCode}>
+                <header className="card-head">
+                  <span className="card-sector">
+                    <Icon name={SECTOR_ICON[point.sector] ?? 'cajas'} size={12} />{' '}
+                    {SECTOR_LABEL[point.sector] ?? point.sector}
+                  </span>
+                  <h3>{point.name ?? point.indicatorCode}</h3>
+                  <div className="card-figure">
+                    <span className="card-value">{headline(point)}</span>
+                    <span className="card-unit">{UNIT_LABEL[point.unit] ?? point.unit}</span>
+                  </div>
+                  <div className="card-meta">
+                    <span>{point.period}</span>
+                    {point.changePercent === null ? null : (
+                      <span className={point.changePercent >= 0 ? 'delta-up' : 'delta-down'}>
+                        {point.changePercent > 0 ? '+' : ''}
+                        {number(point.changePercent)} % anual
+                      </span>
+                    )}
+                  </div>
+                </header>
+                <MacroChart
+                  data={selected
+                    .filter((row) => row.indicatorCode === point.indicatorCode)
+                    .map((row) => ({ period: row.period, value: row.value }))}
+                  unit={point.unit}
+                  tone={SECTOR_TONE[point.sector] ?? 'var(--ink-soft)'}
+                />
+              </article>
+            ))}
+          </div>
+        ) : (
+          <div className="callout">Ningún indicador coincide con esta selección.</div>
+        )}
+      </div>
+    </div>
   );
 }

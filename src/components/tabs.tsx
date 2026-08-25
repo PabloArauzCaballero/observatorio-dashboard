@@ -1,6 +1,8 @@
 'use client';
 
 import { useState } from 'react';
+import { Icon } from './icons';
+import type { IconName } from './icons';
 
 /**
  * Section switcher.
@@ -10,7 +12,15 @@ import { useState } from 'react';
  * resize it never receives. Remounting also replays the draw animation, so a
  * section arrives rather than appears.
  */
-export function Tabs({ labels, children }: { labels: string[]; children: React.ReactNode[] }) {
+export function Tabs({
+  labels,
+  icons,
+  children,
+}: {
+  labels: string[];
+  icons: IconName[];
+  children: React.ReactNode[];
+}) {
   const [active, setActive] = useState(0);
 
   return (
@@ -25,6 +35,7 @@ export function Tabs({ labels, children }: { labels: string[]; children: React.R
             className={index === active ? 'tab tab-active' : 'tab'}
             onClick={() => setActive(index)}
           >
+            <Icon name={icons[index] ?? 'cajas'} size={15} />
             {label}
           </button>
         ))}

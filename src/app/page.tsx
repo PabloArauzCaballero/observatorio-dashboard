@@ -1,9 +1,11 @@
-import { GapChart, MacroChart, Sparkline } from '@/components/charts';
 import type { GapChartPoint, RatePoint } from '@/components/charts';
 import { Download } from '@/components/download';
 import { FilingExplorer } from '@/components/filing-explorer';
 import { FxExplorer } from '@/components/fx-explorer';
 import { MacroExplorer } from '@/components/macro-explorer';
+import { Icon } from '@/components/icons';
+import { SummaryExplorer } from '@/components/summary-explorer';
+import type { SummaryFigure } from '@/components/summary-explorer';
 import { Tabs } from '@/components/tabs';
 import { dailyAnalysis } from '@/lib/daily-analysis';
 import type { Observation } from '@/lib/econometrics';
@@ -70,30 +72,17 @@ const instant = (value: string): string =>
     timeZone: TIME_ZONE,
   }).format(new Date(value));
 
-const SIDE_LABEL: Record<string, string> = {
-  OFFICIAL: 'tipo de cambio oficial',
-  BUY: 'lado «buy»',
-  SELL: 'lado «sell»',
-};
-
-const MACRO_TONE: Record<string, string> = {
-  CPI_INFLATION_ANNUAL_PCT: 'var(--parallel)',
-  GDP_GROWTH_ANNUAL_PCT: 'var(--official)',
-  INTERNATIONAL_RESERVES_USD: 'var(--gap)',
-  CURRENT_ACCOUNT_PCT_GDP: 'var(--official)',
-  LENDING_RATE_PCT: 'var(--parallel)',
-};
-const UNIT_LABEL: Record<string, string> = {
-  PERCENT: '%',
-  PERCENT_OF_GDP: '% del PIB',
-  USD: 'USD',
-};
-
 interface RateRow extends RatePoint {
   parallelAggregation?: 'POINT_IN_TIME' | 'DAILY_AVERAGE';
   officialAggregation?: 'POINT_IN_TIME' | 'DAILY_AVERAGE';
   officialSide?: string | null;
 }
+
+const SIDE_LABEL: Record<string, string> = {
+  OFFICIAL: 'tipo de cambio oficial',
+  BUY: 'lado «buy»',
+  SELL: 'lado «sell»',
+};
 
 /** One statistic, stated with the unit it is measured in. */
 function Stat({ label, value, hint }: { label: string; value: string; hint?: string }) {
@@ -107,43 +96,6 @@ function Stat({ label, value, hint }: { label: string; value: string; hint?: str
 }
 
 /** A headline number with the shape of its own history under it. */
-function Figure({
-  label,
-  value,
-  unit,
-  meta,
-  spark,
-  tone,
-}: {
-  label: string;
-  value: string;
-  unit?: string;
-  meta?: string;
-  spark?: number[];
-  tone?: string;
-}) {
-  return (
-    <div className="figure">
-      <div className="label">{label}</div>
-      <div className="value">
-        {value}
-        {unit ? <span className="unit">{unit}</span> : null}
-      </div>
-      {meta ? <div className="meta">{meta}</div> : null}
-      {spark && spark.length > 2 ? (
-        <Sparkline data={spark} tone={tone ?? 'var(--ink-faint)'} />
-      ) : null}
-    </div>
-  );
-}
-
-/**
- * Aligns the series on one date axis without inventing missing days.
- *
- * Each series keeps its own aggregation on the row. A day where the parallel
- * rate was observed and the official one came from the archive is not "an
- * averaged day".
- */
 function buildRateSeries(buy: DailyPoint[], sell: DailyPoint[], official: DailyPoint[]): RateRow[] {
   const byDate = new Map<string, RateRow>();
   const at = (date: string): RateRow => byDate.get(date) ?? { date };
@@ -209,46 +161,6 @@ function latestByIndicator(points: MacroPoint[]): MacroPoint[] {
   }
   return [...latest.values()].sort((left, right) =>
     (left.name ?? left.indicatorCode).localeCompare(right.name ?? right.indicatorCode),
-  );
-}
-
-function macroValue(point: MacroPoint): string {
-  if (point.unit !== 'USD') return rate(point.value, 2);
-  const billions = point.value / 1_000_000_000;
-  return Math.abs(billions) >= 1
-    ? `${rate(billions, 2)} mil M`
-    : `${rate(point.value / 1_000_000, 0)} M`;
-}
-
-/** One indicator: its latest reading, its move, and its whole history. */
-function MacroCard({ point, series }: { point: MacroPoint; series: MacroPoint[] }) {
-  const history = series
-    .filter((row) => row.indicatorCode === point.indicatorCode)
-    .map((row) => ({ period: row.period, value: row.value }));
-
-  return (
-    <article className="card">
-      <header className="card-head">
-        <h3>{point.name ?? point.indicatorCode}</h3>
-        <div className="card-figure">
-          <span className="card-value">{macroValue(point)}</span>
-          <span className="card-unit">{UNIT_LABEL[point.unit] ?? point.unit}</span>
-        </div>
-        <div className="card-meta">
-          <span>{point.period}</span>
-          {point.changePercent === null ? null : (
-            <span className={point.changePercent >= 0 ? 'delta-up' : 'delta-down'}>
-              {percent(point.changePercent)} anual
-            </span>
-          )}
-        </div>
-      </header>
-      <MacroChart
-        data={history}
-        unit={point.unit}
-        tone={MACRO_TONE[point.indicatorCode] ?? 'var(--ink-soft)'}
-      />
-    </article>
   );
 }
 
@@ -353,6 +265,67 @@ export default async function Page() {
     .map((row) => midpoint(row))
     .filter((value): value is number => value !== null);
 
+  const summaryFigures: SummaryFigure[] = [
+    ...(lastOfficial
+      ? [
+          {
+            label: 'Oficial',
+            value: rate(lastOfficial.value, 2),
+            unit: 'Bs/USD',
+            meta: SIDE_LABEL[lastOfficial.side ?? ''] ?? 'lado publicado',
+            spark: tail(official).map((point) => point.value),
+            tone: 'var(--official)',
+            icon: 'banco' as const,
+          },
+        ]
+      : []),
+    ...(latestMid !== null
+      ? [
+          {
+            label: 'Paralelo (punto medio)',
+            value: rate(latestMid),
+            unit: 'Bs/USD',
+            spark: midSpark,
+            tone: 'var(--parallel)',
+            icon: 'monedas' as const,
+          },
+        ]
+      : []),
+    ...(lastGap
+      ? [
+          {
+            label: 'Brecha cambiaria',
+            value: percent(lastGap.gapPercent),
+            meta: `al ${lastGap.date}`,
+            spark: tail(gap).map((point) => point.gapPercent),
+            tone: 'var(--gap)',
+            icon: 'balanza' as const,
+          },
+        ]
+      : []),
+    ...(peakGap && lastGap && peakGap.date !== lastGap.date
+      ? [
+          {
+            label: 'Máximo histórico',
+            value: percent(peakGap.gapPercent),
+            meta: `el ${peakGap.date}`,
+            icon: 'tendencia' as const,
+          },
+        ]
+      : []),
+    ...(lastUfv
+      ? [
+          {
+            label: 'UFV',
+            value: rate(lastUfv.value, 5),
+            unit: 'Bs/UFV',
+            meta: lastUfv.date,
+            icon: 'etiqueta' as const,
+          },
+        ]
+      : []),
+  ];
+
   const analysis = dailyAnalysis({
     latestDate: observatory.latestDate,
     gap,
@@ -366,90 +339,58 @@ export default async function Page() {
 
   return (
     <main>
-      <header className="masthead">
-        <div className="dateline">
-          {observatory.latestDate ? `Datos al ${longDate(observatory.latestDate)}` : 'Sin datos'}
-          {observatory.lastReceivedAt
-            ? ` · última carga ${instant(observatory.lastReceivedAt)} (hora de Bolivia)`
-            : ''}
+      <header className="topbar">
+        <div className="brand">
+          <span className="brand-mark">
+            <Icon name="barras" size={19} />
+          </span>
+          <div>
+            <h1>Observatorio Económico de Bolivia</h1>
+            <div className="dateline">Situación económica y de los mercados</div>
+          </div>
         </div>
-        <h1>Tipo de cambio y brecha cambiaria en Bolivia</h1>
+        <div className="topbar-stamp">
+          <Icon name="reloj" size={14} />
+          <span>
+            {observatory.latestDate ? `Datos al ${longDate(observatory.latestDate)}` : 'Sin datos'}
+            {observatory.lastReceivedAt ? ` · carga ${instant(observatory.lastReceivedAt)}` : ''}
+          </span>
+        </div>
       </header>
 
-      <Tabs labels={['Resumen', 'Tipo de cambio', 'Macroeconomía', 'Empresas', 'Método']}>
+      <Tabs
+        labels={['Resumen', 'Tipo de cambio', 'Macroeconomía', 'Empresas', 'Método']}
+        icons={['diana', 'linea', 'globo', 'edificio', 'info']}
+      >
         <section className="stack">
-          <div className="figures">
-            {lastOfficial ? (
-              <Figure
-                label="Oficial"
-                value={rate(lastOfficial.value, 2)}
-                unit="Bs/USD"
-                meta={SIDE_LABEL[lastOfficial.side ?? ''] ?? 'lado publicado'}
-                spark={tail(official).map((point) => point.value)}
-                tone="var(--official)"
-              />
-            ) : null}
-            {latestMid !== null ? (
-              <Figure
-                label="Paralelo (punto medio)"
-                value={rate(latestMid)}
-                unit="Bs/USD"
-                spark={midSpark}
-                tone="var(--parallel)"
-              />
-            ) : null}
-            {lastGap ? (
-              <Figure
-                label="Brecha cambiaria"
-                value={percent(lastGap.gapPercent)}
-                meta={`al ${lastGap.date}`}
-                spark={tail(gap).map((point) => point.gapPercent)}
-                tone="var(--gap)"
-              />
-            ) : null}
-            {peakGap && lastGap && peakGap.date !== lastGap.date ? (
-              <Figure
-                label="Máximo del periodo"
-                value={percent(peakGap.gapPercent)}
-                meta={`el ${peakGap.date}`}
-              />
-            ) : null}
-            {lastUfv ? (
-              <Figure
-                label="UFV"
-                value={rate(lastUfv.value, 5)}
-                unit="Bs/UFV"
-                meta={lastUfv.date}
-              />
-            ) : null}
-          </div>
-
-          <div className="panel">
-            <div className="panel-head">
-              <h2>Brecha cambiaria</h2>
-              <p className="panel-sub">
-                Porcentaje sobre el oficial, contra el punto medio del paralelo
-              </p>
-            </div>
-            {gapSeries.length >= 2 ? (
-              <GapChart data={gapSeries} tall />
-            ) : (
-              <div className="callout">
-                La brecha solo puede calcularse en los días con ambas cotizaciones.
-              </div>
-            )}
-          </div>
-
-          <div className="analysis">
-            <h2>Análisis del día</h2>
-            <p className="analysis-note">
-              Derivado de las observaciones, no redactado: cada cifra procede de las series de este
-              informe y se recalcula con cada carga.
-            </p>
-            {analysis.lines.map((line) => (
-              <p key={line.slice(0, 40)}>{line}</p>
-            ))}
-          </div>
+          <SummaryExplorer
+            gap={gapSeries}
+            figures={summaryFigures}
+            coverage={[
+              {
+                label: 'Series diarias',
+                count: observatory.readingCount.toLocaleString('es-BO'),
+                icon: 'linea',
+              },
+              {
+                label: 'Macro anuales',
+                count: macro.length.toLocaleString('es-BO'),
+                icon: 'globo',
+              },
+              {
+                label: 'Hechos relevantes',
+                count: filings.length.toLocaleString('es-BO'),
+                icon: 'edificio',
+              },
+              {
+                label: 'Días con brecha',
+                count: gap.length.toLocaleString('es-BO'),
+                icon: 'balanza',
+              },
+            ]}
+            analysis={analysis.lines}
+            latestDate={observatory.latestDate}
+          />
         </section>
 
         <section className="stack">
@@ -461,27 +402,10 @@ export default async function Page() {
         </section>
 
         <section className="stack">
-          <div className="panel-head">
-            <h2>Contexto macroeconómico</h2>
-            <p className="panel-sub">
-              Ochenta y seis series anuales en ocho rubros —incluida la posición de deuda externa
-              por acreedor, plazo y carga de servicio—, cada una en su propia escala y desde el
-              primer año que publica la fuente. Los filtros se componen entre sí y la descarga sigue
-              a la selección.
-            </p>
-          </div>
           <MacroExplorer points={macro} />
         </section>
 
         <section className="stack">
-          <div className="panel-head">
-            <h2>Hechos relevantes</h2>
-            <p className="panel-sub">
-              Comunicaciones que los emisores registran en la Bolsa Boliviana de Valores, con el
-              sello que ésta les asigna. El rubro se deriva de la razón social del emisor: la bolsa
-              no publica una clasificación sectorial propia.
-            </p>
-          </div>
           {filings.length ? (
             <FilingExplorer filings={filings} />
           ) : (
