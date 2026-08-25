@@ -393,3 +393,67 @@ export async function readCompanyFilings(limit = 1_000): Promise<CompanyFiling[]
     summaryIsComplete: isDocumentProse(row.document_text),
   }));
 }
+
+export interface PressArticle {
+  factClaimId: string;
+  eventDate: string;
+  publishedAt: string | null;
+  outlet: string;
+  domain: string;
+  section: string;
+  headline: string;
+  summary: string | null;
+  url: string;
+  /** Derived from the headline and standfirst, not published by the outlet. */
+  topic: string;
+  /** SYNDICATED_FEED or RENDERED_SECTION: how the listing was obtained. */
+  retrievalMethod: string | null;
+  evidenceSha256: string | null;
+}
+
+/**
+ * Press coverage of the economy.
+ *
+ * Read from its own model, never joined to a series. An outlet reporting that
+ * the dollar moved is not a reading of the dollar, and the report keeps the two
+ * apart so a reader always knows which they are looking at.
+ */
+export async function readPressArticles(limit = 1_000): Promise<PressArticle[]> {
+  const { rows } = await pool().query<{
+    fact_claim_id: string;
+    event_date: string;
+    published_at: Date | null;
+    outlet: string;
+    domain: string;
+    section: string;
+    headline: string;
+    summary: string | null;
+    article_url: string;
+    topic: string;
+    retrieval_method: string | null;
+    evidence_sha256: string | null;
+  }>(
+    `SELECT fact_claim_id, event_date::text AS event_date, published_at, outlet, domain,
+            section, headline, summary, article_url, topic, retrieval_method, evidence_sha256
+     FROM read_models.press_article
+     WHERE status = 'PUBLISHED' AND NOT superseded
+     ORDER BY published_at DESC NULLS LAST, event_date DESC
+     LIMIT $1`,
+    [limit],
+  );
+
+  return rows.map((row) => ({
+    factClaimId: row.fact_claim_id,
+    eventDate: row.event_date,
+    publishedAt: row.published_at?.toISOString() ?? null,
+    outlet: row.outlet,
+    domain: row.domain,
+    section: row.section,
+    headline: row.headline,
+    summary: row.summary,
+    url: row.article_url,
+    topic: row.topic,
+    retrievalMethod: row.retrieval_method,
+    evidenceSha256: row.evidence_sha256,
+  }));
+}

@@ -3,6 +3,7 @@ import { Download } from '@/components/download';
 import { FilingExplorer } from '@/components/filing-explorer';
 import { FxExplorer } from '@/components/fx-explorer';
 import { MacroExplorer } from '@/components/macro-explorer';
+import { PressExplorer } from '@/components/press-explorer';
 import { Icon } from '@/components/icons';
 import { SummaryExplorer } from '@/components/summary-explorer';
 import type { SummaryFigure } from '@/components/summary-explorer';
@@ -12,6 +13,7 @@ import type { Observation } from '@/lib/econometrics';
 import {
   officialSeries,
   readCompanyFilings,
+  readPressArticles,
   readGap,
   readMacroAnnual,
   readObservatory,
@@ -19,6 +21,7 @@ import {
 } from '@/lib/series';
 import type {
   CompanyFiling,
+  PressArticle,
   DailyPoint,
   GapPoint,
   MacroPoint,
@@ -213,13 +216,15 @@ export default async function Page() {
   let sources: SourceNote[];
   let macro: MacroPoint[];
   let filings: CompanyFiling[];
+  let press: PressArticle[];
   try {
-    [observatory, gap, sources, macro, filings] = await Promise.all([
+    [observatory, gap, sources, macro, filings, press] = await Promise.all([
       readObservatory(),
       readGap(),
       readSources(),
       readMacroAnnual(),
       readCompanyFilings(),
+      readPressArticles(),
     ]);
   } catch (error) {
     // The message can carry the host, the user and the port. It belongs in the
@@ -359,8 +364,8 @@ export default async function Page() {
       </header>
 
       <Tabs
-        labels={['Resumen', 'Tipo de cambio', 'Macroeconomía', 'Empresas', 'Método']}
-        icons={['diana', 'linea', 'globo', 'edificio', 'info']}
+        labels={['Resumen', 'Tipo de cambio', 'Macroeconomía', 'Empresas', 'Prensa', 'Método']}
+        icons={['diana', 'linea', 'globo', 'edificio', 'ventana', 'info']}
       >
         <section className="stack">
           <SummaryExplorer
@@ -410,6 +415,14 @@ export default async function Page() {
             <FilingExplorer filings={filings} />
           ) : (
             <div className="callout">Todavía no hay hechos relevantes cargados.</div>
+          )}
+        </section>
+
+        <section className="stack">
+          {press.length ? (
+            <PressExplorer articles={press} />
+          ) : (
+            <div className="callout">Todavía no hay cobertura de prensa cargada.</div>
           )}
         </section>
 

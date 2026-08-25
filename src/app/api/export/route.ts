@@ -1,4 +1,9 @@
-import { readCompanyFilings, readMacroAnnual, readObservatory } from '@/lib/series';
+import {
+  readCompanyFilings,
+  readMacroAnnual,
+  readObservatory,
+  readPressArticles,
+} from '@/lib/series';
 
 /**
  * Every dataset the report draws, in either format.
@@ -13,7 +18,7 @@ export const dynamic = 'force-dynamic';
 
 type Row = Record<string, string | number | boolean | null>;
 
-const DATASETS = ['series', 'macro', 'filings'] as const;
+const DATASETS = ['series', 'macro', 'filings', 'prensa'] as const;
 type Dataset = (typeof DATASETS)[number];
 
 const UNITS: Record<string, string> = {
@@ -31,6 +36,8 @@ const UNITS: Record<string, string> = {
  */
 interface Selection {
   sector?: string | undefined;
+  topic?: string | undefined;
+  outlet?: string | undefined;
   /** A year on the macro panel, a calendar date on the exchange-rate one. */
   from?: string | undefined;
   search?: string | undefined;
@@ -59,6 +66,31 @@ async function collect(dataset: Dataset, selection: Selection): Promise<Row[]> {
         variacion_pct: point.changePercent,
         editor: point.publisher,
         fuente: point.sourceUrl,
+      }));
+  }
+
+  if (dataset === 'prensa') {
+    const term = selection.search?.trim().toLocaleLowerCase('es');
+    return (await readPressArticles(3_000))
+      .filter(
+        (article) =>
+          (!selection.topic || article.topic === selection.topic) &&
+          (!selection.outlet || article.outlet === selection.outlet) &&
+          (selection.from === undefined || article.eventDate >= selection.from) &&
+          (!term ||
+            article.headline.toLocaleLowerCase('es').includes(term) ||
+            (article.summary ?? '').toLocaleLowerCase('es').includes(term)),
+      )
+      .map((article) => ({
+        fecha: article.eventDate,
+        medio: article.outlet,
+        seccion: article.section,
+        tema: article.topic,
+        titular: article.headline,
+        entradilla: article.summary,
+        enlace: article.url,
+        obtencion: article.retrievalMethod,
+        evidencia_sha256: article.evidenceSha256,
       }));
   }
 
@@ -141,6 +173,8 @@ export async function GET(request: Request): Promise<Response> {
     const from = url.searchParams.get('desde')?.trim();
     const rows = await collect(dataset, {
       sector: url.searchParams.get('sector') ?? undefined,
+      topic: url.searchParams.get('tema') ?? undefined,
+      outlet: url.searchParams.get('medio') ?? undefined,
       from: from && /^\d{4}(-\d{2}-\d{2})?$/u.test(from) ? from : undefined,
       search: url.searchParams.get('buscar') ?? undefined,
     });
