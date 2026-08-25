@@ -1552,3 +1552,107 @@ code {
 .market-card .sparkline {
   margin-top: 0.4rem;
 }
+
+/* Coverage pulse --------------------------------------------------------- */
+
+/*
+ * Tone reads as a strip of cells rather than a chart: there are seven
+ * categories, they do not sum to a whole a reader cares about, and what matters
+ * is which one is largest and whether it is a warning hue.
+ */
+
+.tone-strip {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(132px, 1fr));
+  gap: 1px;
+  background: var(--rule);
+  border: 1px solid var(--rule);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+
+.tone-cell {
+  appearance: none;
+  border: none;
+  border-top: 3px solid var(--rule);
+  padding: 0.6rem 0.75rem 0.7rem;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+  transition: background var(--fast) var(--ease);
+}
+
+.tone-cell:hover {
+  background: var(--panel-tint) !important;
+}
+
+.tone-cell-on {
+  box-shadow: inset 0 0 0 1px var(--ink);
+}
+
+.tone-top {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.68rem;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  font-weight: 600;
+}
+
+.tone-count {
+  font-family: var(--mono);
+  font-size: 1.3rem;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.02em;
+  line-height: 1.15;
+}
+
+.tone-share {
+  font-family: var(--mono);
+  font-size: 0.72rem;
+  color: var(--ink-faint);
+}
+
+.tone-note {
+  font-size: 0.69rem;
+  color: var(--ink-faint);
+  line-height: 1.35;
+  margin-top: 0.15rem;
+}
+
+/* Term map --------------------------------------------------------------- */
+
+/*
+ * Size carries how often a term is said; the tint carries how many mastheads
+ * say it. Two facts, two channels — a big pale chip is one paper's campaign, a
+ * big saturated one is the country's conversation.
+ */
+
+.term-map {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.term-chip {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.3rem;
+  padding: 0.22rem 0.6rem;
+  border: 1px solid var(--rule);
+  border-radius: 999px;
+  color: var(--ink);
+  line-height: 1.35;
+}
+
+.term-chip em {
+  font-style: normal;
+  font-family: var(--mono);
+  font-size: 0.62rem;
+  color: var(--ink-faint);
+}

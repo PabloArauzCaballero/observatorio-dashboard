@@ -38,6 +38,8 @@ interface Selection {
   sector?: string | undefined;
   topic?: string | undefined;
   outlet?: string | undefined;
+  tone?: string | undefined;
+  region?: string | undefined;
   /** A year on the macro panel, a calendar date on the exchange-rate one. */
   from?: string | undefined;
   search?: string | undefined;
@@ -76,6 +78,8 @@ async function collect(dataset: Dataset, selection: Selection): Promise<Row[]> {
         (article) =>
           (!selection.topic || article.topic === selection.topic) &&
           (!selection.outlet || article.outlet === selection.outlet) &&
+          (!selection.tone || article.tone === selection.tone) &&
+          (!selection.region || article.region === selection.region) &&
           (selection.from === undefined || article.eventDate >= selection.from) &&
           (!term ||
             article.headline.toLocaleLowerCase('es').includes(term) ||
@@ -86,6 +90,8 @@ async function collect(dataset: Dataset, selection: Selection): Promise<Row[]> {
         medio: article.outlet,
         seccion: article.section,
         tema: article.topic,
+        tono: article.tone,
+        region: article.region,
         titular: article.headline,
         entradilla: article.summary,
         enlace: article.url,
@@ -175,6 +181,8 @@ export async function GET(request: Request): Promise<Response> {
       sector: url.searchParams.get('sector') ?? undefined,
       topic: url.searchParams.get('tema') ?? undefined,
       outlet: url.searchParams.get('medio') ?? undefined,
+      tone: url.searchParams.get('tono') ?? undefined,
+      region: url.searchParams.get('region') ?? undefined,
       from: from && /^\d{4}(-\d{2}-\d{2})?$/u.test(from) ? from : undefined,
       search: url.searchParams.get('buscar') ?? undefined,
     });

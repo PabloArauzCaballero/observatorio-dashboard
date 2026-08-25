@@ -3,7 +3,8 @@
 import { useMemo, useState } from 'react';
 import { Icon } from './icons';
 import type { IconName } from './icons';
-import type { PressArticle } from '@/lib/series';
+import { PressPulse } from './press-pulse';
+import type { PressArticle, TermMention } from '@/lib/series';
 
 /**
  * What the Bolivian press published, filtered by outlet and by subject.
@@ -51,10 +52,18 @@ const ECONOMIC = Object.keys(TOPIC_LABEL).filter((key) => key !== 'OTROS');
 
 const SHOWN = 40;
 
-export function PressExplorer({ articles }: { articles: PressArticle[] }) {
+export function PressExplorer({
+  articles,
+  terms,
+}: {
+  articles: PressArticle[];
+  terms: TermMention[];
+}) {
   const [topic, setTopic] = useState('ECONOMICOS');
   const [outlet, setOutlet] = useState('TODOS');
   const [search, setSearch] = useState('');
+  const [tone, setTone] = useState('TODOS');
+  const [region, setRegion] = useState('TODOS');
   const [open, setOpen] = useState<ReadonlySet<string>>(() => new Set());
 
   const toggle = (id: string) =>
@@ -92,19 +101,28 @@ export function PressExplorer({ articles }: { articles: PressArticle[] }) {
         (topic === 'TODOS' ||
           (topic === 'ECONOMICOS' ? ECONOMIC.includes(article.topic) : article.topic === topic)) &&
         (outlet === 'TODOS' || article.outlet === outlet) &&
+        (tone === 'TODOS' || article.tone === tone) &&
+        (region === 'TODOS' || article.region === region) &&
         (!term ||
           article.headline.toLocaleLowerCase('es').includes(term) ||
           (article.summary ?? '').toLocaleLowerCase('es').includes(term)),
     );
-  }, [articles, topic, outlet, search]);
+  }, [articles, topic, outlet, tone, region, search]);
 
   const peak = topics.length ? Math.max(...topics.map(([, count]) => count)) : 1;
-  const active = (topic === 'ECONOMICOS' ? 0 : 1) + (outlet === 'TODOS' ? 0 : 1) + (search ? 1 : 0);
+  const active =
+    (topic === 'ECONOMICOS' ? 0 : 1) +
+    (outlet === 'TODOS' ? 0 : 1) +
+    (tone === 'TODOS' ? 0 : 1) +
+    (region === 'TODOS' ? 0 : 1) +
+    (search ? 1 : 0);
 
   const query = new URLSearchParams({
     dataset: 'prensa',
     ...(topic === 'ECONOMICOS' || topic === 'TODOS' ? {} : { tema: topic }),
     ...(outlet === 'TODOS' ? {} : { medio: outlet }),
+    ...(tone === 'TODOS' ? {} : { tono: tone }),
+    ...(region === 'TODOS' ? {} : { region }),
     ...(search.trim() ? { buscar: search.trim() } : {}),
   });
 
@@ -179,6 +197,47 @@ export function PressExplorer({ articles }: { articles: PressArticle[] }) {
               <span className="rail-n">{count}</span>
             </button>
           ))}
+        </div>
+
+        <div className="rail-sec">
+          <div className="rail-head">
+            <Icon name="campana" size={13} />
+            Tono
+          </div>
+          <div className="rail-field">
+            <select value={tone} onChange={(event) => setTone(event.target.value)}>
+              <option value="TODOS">Cualquier tono</option>
+              <option value="ALARMA">Alarma</option>
+              <option value="CONFLICTO">Conflicto</option>
+              <option value="DETERIORO">Deterioro</option>
+              <option value="INCERTIDUMBRE">Incertidumbre</option>
+              <option value="MEJORA">Mejora</option>
+              <option value="DESINFORMACION">Desinformación</option>
+              <option value="NEUTRO">Sin marca</option>
+            </select>
+          </div>
+        </div>
+
+        <div className="rail-sec">
+          <div className="rail-head">
+            <Icon name="globo" size={13} />
+            Departamento
+          </div>
+          <div className="rail-field">
+            <select value={region} onChange={(event) => setRegion(event.target.value)}>
+              <option value="TODOS">Todo el país</option>
+              <option value="SANTA_CRUZ">Santa Cruz</option>
+              <option value="LA_PAZ">La Paz</option>
+              <option value="COCHABAMBA">Cochabamba</option>
+              <option value="ORURO">Oruro</option>
+              <option value="POTOSI">Potosí</option>
+              <option value="TARIJA">Tarija</option>
+              <option value="CHUQUISACA">Chuquisaca</option>
+              <option value="BENI">Beni</option>
+              <option value="PANDO">Pando</option>
+              <option value="NACIONAL">Sin departamento</option>
+            </select>
+          </div>
         </div>
 
         <div className="rail-sec">
@@ -271,6 +330,15 @@ export function PressExplorer({ articles }: { articles: PressArticle[] }) {
             </a>
           </div>
         </div>
+
+        <PressPulse
+          articles={articles}
+          terms={terms}
+          tone={tone}
+          region={region}
+          onTone={setTone}
+          onRegion={setRegion}
+        />
 
         {topics.length > 1 ? (
           <div className="panel">

@@ -406,6 +406,10 @@ export interface PressArticle {
   url: string;
   /** Derived from the headline and standfirst, not published by the outlet. */
   topic: string;
+  /** Lexicon category the headline matched: alarm, conflict, direction, doubt. */
+  tone: string;
+  /** Department the story names, or NACIONAL when it names none. */
+  region: string;
   /** SYNDICATED_FEED or RENDERED_SECTION: how the listing was obtained. */
   retrievalMethod: string | null;
   evidenceSha256: string | null;
@@ -430,11 +434,14 @@ export async function readPressArticles(limit = 1_000): Promise<PressArticle[]> 
     summary: string | null;
     article_url: string;
     topic: string;
+    tone: string;
+    region: string;
     retrieval_method: string | null;
     evidence_sha256: string | null;
   }>(
     `SELECT fact_claim_id, event_date::text AS event_date, published_at, outlet, domain,
-            section, headline, summary, article_url, topic, retrieval_method, evidence_sha256
+            section, headline, summary, article_url, topic, tone, region,
+            retrieval_method, evidence_sha256
      FROM read_models.press_article
      WHERE status = 'PUBLISHED' AND NOT superseded
      ORDER BY published_at DESC NULLS LAST, event_date DESC
@@ -453,6 +460,8 @@ export async function readPressArticles(limit = 1_000): Promise<PressArticle[]> 
     summary: row.summary,
     url: row.article_url,
     topic: row.topic,
+    tone: row.tone,
+    region: row.region,
     retrievalMethod: row.retrieval_method,
     evidenceSha256: row.evidence_sha256,
   }));
@@ -530,4 +539,48 @@ export async function readMarkets(): Promise<MarketSeries[]> {
       points: entry.points,
     };
   });
+}
+
+export interface TermMention {
+  term: string;
+  label: string;
+  family: string;
+  mentions: number;
+  outlets: number;
+  /** Share of the watched vocabulary this term accounts for. */
+  share: number;
+}
+
+/**
+ * How often each watched term is being said, and by how many mastheads.
+ *
+ * A watchlist rather than a word count: ranking every word surfaces "gobierno"
+ * and tells a reader nothing. The outlet count matters as much as the total —
+ * a term one paper repeats is that paper's campaign, a term six papers use is
+ * the country's conversation.
+ */
+export async function readPressTerms(): Promise<TermMention[]> {
+  const { rows } = await pool().query<{
+    term: string;
+    label: string;
+    family: string;
+    mentions: string;
+    outlets: string;
+  }>(
+    `SELECT term, label, family, count(*)::text AS mentions,
+            count(DISTINCT outlet)::text AS outlets
+     FROM read_models.press_term_mention
+     GROUP BY term, label, family
+     ORDER BY count(*) DESC`,
+  );
+
+  const total = rows.reduce((sum, row) => sum + Number(row.mentions), 0) || 1;
+  return rows.map((row) => ({
+    term: row.term,
+    label: row.label,
+    family: row.family,
+    mentions: Number(row.mentions),
+    outlets: Number(row.outlets),
+    share: Number(row.mentions) / total,
+  }));
 }

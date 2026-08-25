@@ -16,6 +16,7 @@ import {
   readCompanyFilings,
   readMarkets,
   readPressArticles,
+  readPressTerms,
   readGap,
   readMacroAnnual,
   readObservatory,
@@ -25,6 +26,7 @@ import type {
   CompanyFiling,
   MarketSeries,
   PressArticle,
+  TermMention,
   DailyPoint,
   GapPoint,
   MacroPoint,
@@ -221,8 +223,9 @@ export default async function Page() {
   let filings: CompanyFiling[];
   let press: PressArticle[];
   let markets: MarketSeries[];
+  let pressTerms: TermMention[];
   try {
-    [observatory, gap, sources, macro, filings, press, markets] = await Promise.all([
+    [observatory, gap, sources, macro, filings, press, markets, pressTerms] = await Promise.all([
       readObservatory(),
       readGap(),
       readSources(),
@@ -230,6 +233,7 @@ export default async function Page() {
       readCompanyFilings(),
       readPressArticles(),
       readMarkets(),
+      readPressTerms(),
     ]);
   } catch (error) {
     // The message can carry the host, the user and the port. It belongs in the
@@ -426,7 +430,7 @@ export default async function Page() {
 
         <section className="stack">
           {press.length ? (
-            <PressExplorer articles={press} />
+            <PressExplorer articles={press} terms={pressTerms} />
           ) : (
             <div className="callout">Todavía no hay cobertura de prensa cargada.</div>
           )}
