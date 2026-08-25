@@ -292,6 +292,44 @@ export interface CompanyFiling {
   sourceUrl: string | null;
   evidenceSha256: string | null;
   excerpt: string | null;
+  /** The filing in prose, pulled out of whatever shape the evidence has. */
+  summary: string | null;
+}
+
+/**
+ * The readable sentence inside a filing's evidence.
+ *
+ * Evidence is kept verbatim so a figure can be checked against its source, and
+ * for the register that verbatim form is a JSON record — which is correct as
+ * evidence and unreadable as copy. The prose lives in its `abstract`; entities
+ * survive the round trip through the exchange's own encoder, so they are
+ * decoded here rather than shown as `&nbsp;`.
+ *
+ * Filings captured from their own page carry prose already and pass through.
+ */
+function filingSummary(excerpt: string | null): string | null {
+  if (!excerpt) return null;
+  const trimmed = excerpt.trim();
+  if (!trimmed.startsWith('{')) return trimmed;
+  try {
+    const record: unknown = JSON.parse(trimmed);
+    const abstract =
+      typeof record === 'object' && record !== null && 'abstract' in record
+        ? (record as { abstract?: unknown }).abstract
+        : null;
+    if (typeof abstract !== 'string' || !abstract.trim()) return null;
+    return abstract
+      .replace(/&nbsp;/gu, ' ')
+      .replace(/&amp;/gu, '&')
+      .replace(/&quot;/gu, '"')
+      .replace(/&#0?39;/gu, "'")
+      .replace(/&lt;/gu, '<')
+      .replace(/&gt;/gu, '>')
+      .replace(/\s+/gu, ' ')
+      .trim();
+  } catch {
+    return null;
+  }
 }
 
 /**
@@ -338,5 +376,6 @@ export async function readCompanyFilings(limit = 1_000): Promise<CompanyFiling[]
     sourceUrl: row.source_url,
     evidenceSha256: row.evidence_sha256,
     excerpt: row.excerpt,
+    summary: filingSummary(row.excerpt),
   }));
 }

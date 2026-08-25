@@ -1090,10 +1090,14 @@ code {
 }
 
 .rail-pills {
-  display: flex;
-  flex-wrap: wrap;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 0.3rem;
   padding: 0 0.875rem;
+}
+
+.rail-pills .chip {
+  justify-content: center;
 }
 
 .workspace-main {
@@ -1282,4 +1286,112 @@ code {
   .barlist-row .barlist-name {
     width: 120px;
   }
+}
+
+/* Filing cards ----------------------------------------------------------- */
+
+/*
+ * The register as cards rather than as one column.
+ *
+ * Six hundred filings down a single full-width list ran nine thousand pixels
+ * and gave every communication the same weight as every other. In a grid the
+ * eye scans issuers and sectors instead of reading a wall, and the sector badge
+ * does the sorting work the indentation used to attempt.
+ */
+
+.filing-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(330px, 1fr));
+  gap: var(--s2);
+}
+
+.filing-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  background: var(--panel);
+  border: 1px solid var(--rule);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: var(--s2) var(--s3) 0.75rem;
+  animation: rise var(--slow) var(--ease) both;
+  transition:
+    transform var(--fast) var(--ease),
+    box-shadow var(--fast) var(--ease);
+}
+
+.filing-card:hover {
+  transform: translateY(-2px);
+  box-shadow:
+    0 2px 4px rgb(16 24 40 / 0.05),
+    0 14px 32px -14px rgb(16 24 40 / 0.22);
+}
+
+.filing-top {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  font-size: 0.63rem;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+}
+
+.filing-top .filing-date {
+  margin-left: auto;
+  font-family: var(--mono);
+  letter-spacing: 0.04em;
+  font-variant-numeric: tabular-nums;
+  text-transform: none;
+}
+
+.filing-card h4 {
+  font-family: var(--serif);
+  font-size: 0.97rem;
+  font-weight: 600;
+  line-height: 1.35;
+  margin: 0;
+  /* Two lines, so a long legal subject cannot make one card tower over its row. */
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.filing-filer {
+  margin: 0;
+  font-size: 0.78rem;
+  color: var(--ink-soft);
+  font-weight: 600;
+}
+
+.filing-summary {
+  margin: 0;
+  font-size: 0.8rem;
+  line-height: 1.5;
+  color: var(--ink-soft);
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.filing-foot {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  /* Pinned to the bottom so a row of cards shares one baseline whatever the
+     summary's length. */
+  margin: auto 0 0;
+  padding-top: 0.5rem;
+  border-top: 1px solid var(--rule-soft);
+  font-size: 0.72rem;
+  color: var(--ink-faint);
+}
+
+.filing-foot a {
+  margin-left: auto;
+  color: var(--official);
+  text-decoration-color: var(--rule);
+  white-space: nowrap;
 }

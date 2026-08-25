@@ -248,7 +248,9 @@ export function FxExplorer({ rows, official, readingCount }: FxExplorerProps) {
           <div className="rail-top">
             <Icon name="filtro" size={15} />
             <span className="rail-title">Filtros</span>
-            <span className="rail-count">{active ? `${active} activos` : 'sin filtro'}</span>
+            <span className="rail-count">
+              {active ? `${active} activo${active === 1 ? '' : 's'}` : 'sin filtro'}
+            </span>
           </div>
 
           <div className="rail-sec">
@@ -373,14 +375,18 @@ export function FxExplorer({ rows, official, readingCount }: FxExplorerProps) {
           ) : (
             <>
               <div className="panel">
-                <div className="panel-head">
+                <div className="tile-head">
+                  <Icon name="linea" size={17} />
                   <h2>Nivel</h2>
-                  <p className="panel-sub">
-                    Bolivianos por dólar. Naranja: los dos lados que publica la fuente para el
-                    paralelo. Azul: tipo de cambio oficial. El eje no arranca en cero, porque un
-                    movimiento de dos bolivianos es enorme y una base en cero lo aplanaría.
-                  </p>
+                  <span className="tile-hint">
+                    {first && last ? `${first.date} → ${last.date}` : 'sin datos'}
+                  </span>
                 </div>
+                <p className="panel-sub" style={{ marginBottom: 'var(--s2)' }}>
+                  Bolivianos por dólar. Naranja: los dos lados que publica la fuente para el
+                  paralelo. Azul: tipo de cambio oficial. El eje no arranca en cero, porque un
+                  movimiento de dos bolivianos es enorme y una base en cero lo aplanaría.
+                </p>
                 <RateChart data={visibleRows} tall />
               </div>
 

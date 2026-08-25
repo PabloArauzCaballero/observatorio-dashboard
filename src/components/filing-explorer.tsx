@@ -111,7 +111,9 @@ export function FilingExplorer({ filings }: { filings: CompanyFiling[] }) {
         <div className="rail-top">
           <Icon name="filtro" size={15} />
           <span className="rail-title">Filtros</span>
-          <span className="rail-count">{active ? `${active} activos` : 'sin filtro'}</span>
+          <span className="rail-count">
+            {active ? `${active} activo${active === 1 ? '' : 's'}` : 'sin filtro'}
+          </span>
         </div>
 
         <div className="rail-sec">
@@ -296,41 +298,34 @@ export function FilingExplorer({ filings }: { filings: CompanyFiling[] }) {
         ) : null}
 
         {selected.length ? (
-          <ol className="timeline">
+          <div className="filing-grid">
             {selected.slice(0, SHOWN).map((filing, index) => (
-              <li
+              <article
+                className="filing-card"
                 key={filing.factClaimId}
-                style={{ animationDelay: `${Math.min(index, 12) * 45}ms` }}
+                style={{ animationDelay: `${Math.min(index, 12) * 40}ms` }}
               >
-                <div className="tl-stamp">{filing.eventDate}</div>
-                <div className="tl-body">
-                  <span className="card-sector">
-                    <Icon name={SECTOR_ICON[filing.sector] ?? 'cajas'} size={12} />{' '}
-                    {SECTOR_LABEL[filing.sector] ?? filing.sector}
-                    {filing.filerCode ? ` · ${filing.filerCode}` : ''}
-                  </span>
-                  <h4>{filing.subject}</h4>
-                  <p className="tl-filer">{filing.filer}</p>
-                  {filing.excerpt ? (
-                    <p className="tl-excerpt">{filing.excerpt.slice(0, 260)}…</p>
-                  ) : null}
-                  <p className="tl-foot">
-                    {filing.instantStatedInDocument
-                      ? 'Fecha confirmada por la ficha'
-                      : 'Fecha según el registro de la bolsa'}
-                    {filing.sourceUrl ? (
-                      <>
-                        {' · '}
-                        <a href={filing.sourceUrl} target="_blank" rel="noreferrer noopener">
-                          ficha completa
-                        </a>
-                      </>
-                    ) : null}
-                  </p>
+                <div className="filing-top">
+                  <Icon name={SECTOR_ICON[filing.sector] ?? 'cajas'} size={13} />
+                  <span>{SECTOR_LABEL[filing.sector] ?? filing.sector}</span>
+                  <span className="filing-date">{filing.eventDate}</span>
                 </div>
-              </li>
+                <h4>{filing.subject}</h4>
+                <p className="filing-filer">{filing.filer}</p>
+                {filing.summary ? <p className="filing-summary">{filing.summary}</p> : null}
+                <p className="filing-foot">
+                  <Icon name={filing.instantStatedInDocument ? 'diana' : 'reloj'} size={12} />
+                  {filing.instantStatedInDocument ? 'Confirmado por la ficha' : 'Según el registro'}
+                  {filing.filerCode ? ` · ${filing.filerCode}` : ''}
+                  {filing.sourceUrl ? (
+                    <a href={filing.sourceUrl} target="_blank" rel="noreferrer noopener">
+                      ficha completa
+                    </a>
+                  ) : null}
+                </p>
+              </article>
             ))}
-          </ol>
+          </div>
         ) : (
           <div className="callout">Ningún hecho relevante coincide con esta selección.</div>
         )}

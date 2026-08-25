@@ -148,7 +148,9 @@ export function MacroExplorer({ points }: { points: MacroPoint[] }) {
         <div className="rail-top">
           <Icon name="filtro" size={15} />
           <span className="rail-title">Filtros</span>
-          <span className="rail-count">{active ? `${active} activos` : 'sin filtro'}</span>
+          <span className="rail-count">
+            {active ? `${active} activo${active === 1 ? '' : 's'}` : 'sin filtro'}
+          </span>
         </div>
 
         <div className="rail-sec">
