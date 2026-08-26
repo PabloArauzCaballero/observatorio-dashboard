@@ -90,10 +90,23 @@ const number = (value: number, decimals = 2): string =>
   });
 const signed = (value: number): string => `${value > 0 ? '+' : ''}${number(value)} %`;
 
-function Stat({ label, value, hint }: { label: string; value: string; hint?: string }) {
+function Stat({
+  label,
+  value,
+  hint,
+  icon,
+}: {
+  label: string;
+  value: string;
+  hint?: string;
+  icon: IconName;
+}) {
   return (
     <div className="stat">
-      <span className="stat-label">{label}</span>
+      <span className="stat-label">
+        <Icon name={icon} size={12} />
+        {label}
+      </span>
       <span className="stat-value">{value}</span>
       {hint ? <span className="stat-hint">{hint}</span> : null}
     </div>
@@ -393,21 +406,25 @@ export function FxExplorer({ rows, official, readingCount }: FxExplorerProps) {
               <div className="stat-strip">
                 <Stat
                   label="Volatilidad anualizada"
+                  icon="pulso"
                   value={`${number(stats.volatilityAnnual, 1)} %`}
                   hint="desviación típica de los retornos diarios, √365"
                 />
                 <Stat
                   label="Retorno medio diario"
+                  icon="sigma"
                   value={signed(stats.meanDaily)}
                   hint={`${stats.observations.toLocaleString('es-BO')} observaciones`}
                 />
                 <Stat
                   label="Asimetría"
+                  icon="area"
                   value={number(stats.skewness, 2)}
                   hint={stats.skewness > 0 ? 'sesgo a depreciaciones' : 'sesgo a apreciaciones'}
                 />
                 <Stat
                   label="Curtosis en exceso"
+                  icon="barras"
                   value={number(stats.excessKurtosis, 2)}
                   hint={
                     stats.excessKurtosis > 0 ? 'colas más gruesas que la normal' : 'colas más finas'
@@ -415,12 +432,14 @@ export function FxExplorer({ rows, official, readingCount }: FxExplorerProps) {
                 />
                 <Stat
                   label="VaR 95 % diario"
+                  icon="escudo"
                   value={`${number(stats.valueAtRisk95, 2)} %`}
                   hint="pérdida no superada en 19 de cada 20 días"
                 />
                 {stats.worstDay ? (
                   <Stat
                     label="Peor jornada"
+                    icon="rayo"
                     value={signed(stats.worstDay.ret)}
                     hint={stats.worstDay.date}
                   />

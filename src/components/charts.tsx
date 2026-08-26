@@ -69,7 +69,11 @@ export interface MacroSeriesPoint {
   value: number;
 }
 
-const dayMonth = new Intl.DateTimeFormat('es-BO', { day: '2-digit', month: 'short' });
+const dayMonth = new Intl.DateTimeFormat('es-BO', {
+  day: '2-digit',
+  month: 'short',
+  timeZone: 'UTC',
+});
 const longDate = new Intl.DateTimeFormat('es-BO', {
   day: '2-digit',
   month: 'long',
@@ -78,7 +82,20 @@ const longDate = new Intl.DateTimeFormat('es-BO', {
 });
 
 const asDate = (value: string): Date => new Date(`${value}T12:00:00Z`);
-const shortLabel = (value: string): string => dayMonth.format(asDate(value));
+/**
+ * A day on the axis, and the year whenever the axis crosses into one.
+ *
+ * These series run for years, and "16-ene" on its own leaves the reader to
+ * work out which January they are looking at from the ticks either side of it.
+ * A January tick therefore carries the year instead of the day — the same
+ * convention a price chart uses, and it costs nothing on a series short enough
+ * never to reach one.
+ */
+const shortLabel = (value: string): string => {
+  const date = asDate(value);
+  if (date.getUTCMonth() === 0) return `ene ’${String(date.getUTCFullYear()).slice(2)}`;
+  return dayMonth.format(date);
+};
 const number = (value: number, decimals = 2): string =>
   value.toLocaleString('es-BO', {
     minimumFractionDigits: decimals,
