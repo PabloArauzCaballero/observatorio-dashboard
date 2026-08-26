@@ -434,7 +434,7 @@ h2 {
 
 .card-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(310px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
   gap: var(--s2);
 }
 
@@ -964,7 +964,37 @@ code {
   border: 1px solid var(--rule);
   border-radius: var(--radius);
   box-shadow: var(--shadow);
-  overflow: hidden;
+  /*
+   * The pane scrolls itself rather than growing past the screen.
+   *
+   * Fourteen sectors and nine subjects make a list taller than a laptop, and a
+   * sticky pane that overflows simply hides its own bottom — the reader can
+   * never reach the last filter, and nothing on screen says one is missing.
+   */
+  max-height: calc(100vh - var(--s3) * 2);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.rail::-webkit-scrollbar {
+  width: 8px;
+}
+
+.rail::-webkit-scrollbar-thumb {
+  background: var(--rule);
+  border-radius: 999px;
+}
+
+.rail::-webkit-scrollbar-thumb:hover {
+  background: var(--ink-faint);
+}
+
+/* The header stays put while the list under it moves. */
+.rail-top {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: var(--panel);
 }
 
 .rail-top {
@@ -1309,7 +1339,7 @@ code {
 
 .filing-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(330px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
   gap: var(--s2);
 }
 
@@ -1585,12 +1615,21 @@ code {
   transition: background var(--fast) var(--ease);
 }
 
+.tone-cell {
+  background: var(--panel);
+}
+
+/* Selection reads from the ring and the thicker rule, not from a grey fill:
+   a tinted cell looked disabled next to the white ones beside it. */
 .tone-cell:hover {
-  background: var(--panel-tint) !important;
+  background: var(--panel) !important;
+  border-top-width: 5px;
 }
 
 .tone-cell-on {
-  box-shadow: inset 0 0 0 1px var(--ink);
+  background: var(--panel) !important;
+  border-top-width: 5px;
+  box-shadow: inset 0 0 0 2px var(--ink);
 }
 
 .tone-top {
@@ -1655,4 +1694,354 @@ code {
   font-family: var(--mono);
   font-size: 0.62rem;
   color: var(--ink-faint);
+}
+
+/* Data tables ------------------------------------------------------------ */
+
+/*
+ * One table treatment for anything that is genuinely tabular: a header that
+ * stays while the body scrolls, figures right-aligned on tabular numerals so
+ * digits line up in a column, and a wrapper that scrolls sideways rather than
+ * letting the page do it.
+ */
+
+.table-wrap {
+  overflow-x: auto;
+  border: 1px solid var(--rule);
+  border-radius: var(--radius);
+  background: var(--panel);
+  box-shadow: var(--shadow);
+}
+
+.grid-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.84rem;
+}
+
+.grid-table thead th {
+  position: sticky;
+  top: 0;
+  background: var(--panel-tint);
+  text-align: left;
+  font-size: 0.68rem;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+  font-weight: 600;
+  padding: 0.55rem var(--s3);
+  border-bottom: 1px solid var(--rule);
+  white-space: nowrap;
+}
+
+.grid-table td {
+  padding: 0.5rem var(--s3);
+  border-bottom: 1px solid var(--rule-soft);
+  color: var(--ink-soft);
+  vertical-align: baseline;
+}
+
+.grid-table tbody tr:hover td {
+  background: var(--panel-tint);
+}
+
+.grid-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.grid-table .num {
+  text-align: right;
+  font-family: var(--mono);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.grid-table code {
+  font-size: 0.78rem;
+  background: none;
+  border: none;
+  padding: 0;
+  color: var(--ink);
+}
+
+.grid-table tfoot td {
+  padding: 0.5rem var(--s3);
+  border-top: 1px solid var(--rule);
+  background: var(--panel-tint);
+  font-size: 0.78rem;
+  color: var(--ink);
+  font-weight: 600;
+}
+
+/* Year candles ----------------------------------------------------------- */
+
+/*
+ * A candle's body spans from last year's level to this one's, so its height is
+ * the annual change and its colour the direction. Rising takes the same red the
+ * report uses for a widening gap, because in most of these series a rising
+ * number is the bad news.
+ */
+
+.candles svg {
+  width: 100%;
+  height: 132px;
+  display: block;
+}
+
+.candle-axis {
+  stroke: var(--rule);
+  stroke-width: 0.4;
+  vector-effect: non-scaling-stroke;
+}
+
+.candle-wick {
+  stroke-width: 0.5;
+  vector-effect: non-scaling-stroke;
+}
+
+.candle-up rect,
+.candle-up .candle-wick {
+  fill: var(--up);
+  stroke: var(--up);
+}
+
+.candle-down rect,
+.candle-down .candle-wick {
+  fill: var(--down);
+  stroke: var(--down);
+}
+
+.candle {
+  animation: rise var(--slow) var(--ease) both;
+}
+
+.candle-foot {
+  display: flex;
+  align-items: baseline;
+  gap: 0.5rem;
+  margin-top: 0.3rem;
+  font-family: var(--mono);
+  font-size: 0.68rem;
+  color: var(--ink-faint);
+  font-variant-numeric: tabular-nums;
+}
+
+.candle-scale {
+  margin: 0 auto;
+}
+
+/* The toggle that sits in a card's top corner. */
+.card-head {
+  position: relative;
+}
+
+.card-toggle {
+  position: absolute;
+  top: -2px;
+  right: -6px;
+  appearance: none;
+  background: none;
+  border: 1px solid transparent;
+  border-radius: 7px;
+  padding: 3px 5px;
+  color: var(--ink-faint);
+  cursor: pointer;
+  line-height: 0;
+  transition:
+    color var(--fast) var(--ease),
+    border-color var(--fast) var(--ease);
+}
+
+.card-toggle:hover {
+  color: var(--ink);
+  border-color: var(--rule);
+}
+
+.card-toggle-on {
+  color: var(--official);
+  border-color: var(--official);
+}
+
+/* The day's reading, as points ------------------------------------------- */
+
+/*
+ * A point per reading: an icon that carries the direction, the label, the one
+ * figure that is the news, and the qualification under it. The figure is set
+ * apart from the label by a leader rather than crammed beside it, so the eye
+ * can run down the right-hand edge and read only the numbers.
+ */
+
+.bullets {
+  list-style: none;
+  margin: 0.9rem 0 0;
+  padding: 0;
+  display: grid;
+  gap: 0.15rem;
+}
+
+.bullet {
+  display: grid;
+  grid-template-columns: 30px 1fr;
+  gap: 0.7rem;
+  align-items: start;
+  padding: 0.6rem 0.5rem;
+  border-radius: 10px;
+  transition: background var(--fast) var(--ease);
+}
+
+.bullet + .bullet {
+  border-top: 1px solid var(--rule-soft, var(--rule));
+}
+
+.bullet:hover {
+  background: var(--panel-tint);
+}
+
+.bullet-mark {
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 9px;
+  background: var(--panel-tint);
+  color: var(--ink-soft);
+  border: 1px solid var(--rule);
+}
+
+.bullet-mark-up {
+  color: var(--up);
+  border-color: color-mix(in srgb, var(--up) 40%, var(--rule));
+}
+
+.bullet-mark-down {
+  color: var(--down);
+  border-color: color-mix(in srgb, var(--down) 40%, var(--rule));
+}
+
+.bullet-line {
+  display: flex;
+  align-items: baseline;
+  gap: 0.5rem;
+}
+
+/* The leader between name and figure: it is what makes a list read as a list. */
+.bullet-line::after {
+  content: '';
+  order: 1;
+  flex: 1;
+  height: 0;
+  margin: 0 0.1rem;
+  border-bottom: 1px dotted var(--rule);
+  transform: translateY(-0.2em);
+}
+
+.bullet-label {
+  font-size: 0.86rem;
+  letter-spacing: -0.01em;
+}
+
+.bullet-value {
+  order: 2;
+  font-family: var(--mono);
+  font-size: 0.92rem;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.bullet-value-up {
+  color: var(--up);
+}
+
+.bullet-value-down {
+  color: var(--down);
+}
+
+.bullet-detail {
+  margin: 0.15rem 0 0;
+  font-size: 0.78rem;
+  line-height: 1.5;
+  color: var(--ink-faint);
+  max-width: 62ch;
+}
+
+/* Cross-filtering ---------------------------------------------------------- */
+
+/*
+ * Every bar, cell and chip is a slicer, so every one of them has to look like
+ * it can be pressed and has to show whether it is. Selected state is a ring and
+ * an ink fill rather than a colour swap: the hue of a bar carries its category,
+ * and losing that on selection would mean the reader has to re-find which bar
+ * they picked.
+ */
+
+button.barlist-row {
+  appearance: none;
+  background: none;
+  border: none;
+  font: inherit;
+  color: inherit;
+  width: 100%;
+  padding: 0.2rem 0.35rem;
+  margin: -0.2rem -0.35rem;
+  border-radius: 7px;
+  cursor: pointer;
+  text-align: left;
+  transition: background var(--fast) var(--ease);
+}
+
+button.barlist-row:hover {
+  background: var(--panel-tint);
+}
+
+.barlist-row-on {
+  background: var(--panel-tint);
+  box-shadow: inset 0 0 0 1px var(--rule);
+}
+
+.barlist-row-on .barlist-name {
+  color: var(--ink);
+  font-weight: 600;
+}
+
+/* The year bars carry two figures: volume behind, alarm in front. */
+.barlist-track {
+  position: relative;
+}
+
+.barlist-ghost {
+  position: absolute;
+  inset: 0 auto 0 0;
+  display: block;
+  height: 11px;
+  border-radius: 3px;
+  background: var(--rule-soft);
+  transition: width var(--slow) var(--ease);
+}
+
+.barlist-fill {
+  position: relative;
+}
+
+button.term-chip {
+  appearance: none;
+  font-family: inherit;
+  cursor: pointer;
+  transition:
+    transform var(--fast) var(--ease),
+    background var(--fast) var(--ease);
+}
+
+button.term-chip:hover {
+  transform: translateY(-1px);
+}
+
+.term-chip-on em {
+  color: inherit;
+  opacity: 0.7;
+}
+
+/* While the stories for a new selection are on their way. */
+.filing-grid-loading {
+  opacity: 0.45;
+  transition: opacity var(--fast) var(--ease);
 }

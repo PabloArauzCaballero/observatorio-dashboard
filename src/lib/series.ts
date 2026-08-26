@@ -654,3 +654,229 @@ export async function readPressPulse(): Promise<PressPulseData> {
     })),
   };
 }
+
+export interface PressCube {
+  /** Dictionaries: every cell holds indices into these, never the strings. */
+  years: string[];
+  tones: string[];
+  topics: string[];
+  regions: string[];
+  outlets: string[];
+  terms: Array<{ term: string; label: string; family: string }>;
+  /** [year, tone, topic, region, outlet, articles] over the whole corpus. */
+  cells: number[][];
+  /** [term, year, tone, topic, region, outlet, articles]; one row per article per term. */
+  termCells: number[][];
+}
+
+/**
+ * The whole press corpus, small enough to filter in the browser.
+ *
+ * Cross-filtering — click a bar and every other visual narrows to it — cannot
+ * be done from counts already summed over everything, and doing it from the
+ * articles themselves would mean shipping twenty-two thousand rows. So what
+ * travels is the cross-tabulation: one row per distinct combination of year,
+ * tone, subject, department and masthead. There are about fourteen hundred of
+ * them, and any figure any visual needs is a sum over the rows that match the
+ * selections belonging to the OTHER visuals.
+ *
+ * The counts are therefore corpus-wide and exact, not counts of the page of
+ * articles that happens to be on screen — which is what a reader assumes a
+ * filter's number means.
+ */
+export async function readPressCube(): Promise<PressCube> {
+  const [facts, mentions] = await Promise.all([
+    pool().query<{
+      year: string;
+      tone: string;
+      topic: string;
+      region: string;
+      outlet: string;
+      articles: string;
+    }>(
+      `SELECT left(event_date::text, 4) AS year, tone, topic, region, outlet,
+              count(*)::text AS articles
+       FROM read_models.press_article
+       WHERE status = 'PUBLISHED' AND NOT superseded
+       GROUP BY 1, 2, 3, 4, 5`,
+    ),
+    pool().query<{
+      term: string;
+      label: string;
+      family: string;
+      year: string;
+      tone: string;
+      topic: string;
+      region: string;
+      outlet: string;
+      articles: string;
+    }>(
+      `SELECT term, label, family, left(event_date::text, 4) AS year, tone, topic, region, outlet,
+              count(*)::text AS articles
+       FROM read_models.press_term_mention
+       GROUP BY 1, 2, 3, 4, 5, 6, 7, 8`,
+    ),
+  ]);
+
+  /** Assigns each distinct value an index, in first-seen order. */
+  const dictionary = (): { of: (value: string) => number; values: string[] } => {
+    const index = new Map<string, number>();
+    const values: string[] = [];
+    return {
+      of(value: string): number {
+        const held = index.get(value);
+        if (held !== undefined) return held;
+        index.set(value, values.length);
+        values.push(value);
+        return values.length - 1;
+      },
+      values,
+    };
+  };
+
+  const years = dictionary();
+  const tones = dictionary();
+  const topics = dictionary();
+  const regions = dictionary();
+  const outlets = dictionary();
+  const termIndex = new Map<string, number>();
+  const terms: Array<{ term: string; label: string; family: string }> = [];
+
+  const cells = facts.rows.map((row) => [
+    years.of(row.year),
+    tones.of(row.tone),
+    topics.of(row.topic),
+    regions.of(row.region),
+    outlets.of(row.outlet),
+    Number(row.articles),
+  ]);
+
+  const termCells = mentions.rows.map((row) => {
+    let index = termIndex.get(row.term);
+    if (index === undefined) {
+      index = terms.length;
+      termIndex.set(row.term, index);
+      terms.push({ term: row.term, label: row.label, family: row.family });
+    }
+    return [
+      index,
+      years.of(row.year),
+      tones.of(row.tone),
+      topics.of(row.topic),
+      regions.of(row.region),
+      outlets.of(row.outlet),
+      Number(row.articles),
+    ];
+  });
+
+  return {
+    years: years.values,
+    tones: tones.values,
+    topics: topics.values,
+    regions: regions.values,
+    outlets: outlets.values,
+    terms,
+    cells,
+    termCells,
+  };
+}
+
+export interface PressQuery {
+  year?: string | undefined;
+  tone?: string | undefined;
+  topic?: string | undefined;
+  region?: string | undefined;
+  outlet?: string | undefined;
+  term?: string | undefined;
+  search?: string | undefined;
+}
+
+/**
+ * The page of articles a selection points at, chosen in the database.
+ *
+ * The cube says how many; this says which. Both read the same view under the
+ * same predicate, so the number on a filter and the stories under it can never
+ * disagree — which they would the moment the page filtered a cached first
+ * thousand while the counts spoke for the whole corpus.
+ */
+export async function readPressPage(
+  query: PressQuery,
+  limit = 60,
+): Promise<{ articles: PressArticle[]; total: number }> {
+  const where: string[] = [`status = 'PUBLISHED'`, 'NOT superseded'];
+  const values: unknown[] = [];
+  const bind = (value: unknown): string => {
+    values.push(value);
+    return `$${values.length}`;
+  };
+
+  if (query.year) where.push(`left(event_date::text, 4) = ${bind(query.year)}`);
+  if (query.tone) where.push(`tone = ${bind(query.tone)}`);
+  if (query.region) where.push(`region = ${bind(query.region)}`);
+  if (query.outlet) where.push(`outlet = ${bind(query.outlet)}`);
+  if (query.topic === 'ECONOMICOS') where.push(`topic <> 'OTROS'`);
+  else if (query.topic) where.push(`topic = ${bind(query.topic)}`);
+  if (query.term) {
+    where.push(
+      `fact_claim_id IN (SELECT fact_claim_id FROM read_models.press_term_mention
+                          WHERE term = ${bind(query.term)})`,
+    );
+  }
+  if (query.search) {
+    const pattern = bind(`%${query.search}%`);
+    where.push(`(headline ILIKE ${pattern} OR coalesce(summary, '') ILIKE ${pattern})`);
+  }
+
+  const predicate = where.join(' AND ');
+  const [page, count] = await Promise.all([
+    pool().query<{
+      fact_claim_id: string;
+      event_date: string;
+      published_at: Date | null;
+      outlet: string;
+      domain: string;
+      section: string;
+      headline: string;
+      summary: string | null;
+      article_url: string;
+      topic: string;
+      tone: string;
+      region: string;
+      retrieval_method: string | null;
+      evidence_sha256: string | null;
+    }>(
+      `SELECT fact_claim_id, event_date::text AS event_date, published_at, outlet, domain,
+              section, headline, summary, article_url, topic, tone, region,
+              retrieval_method, evidence_sha256
+       FROM read_models.press_article
+       WHERE ${predicate}
+       ORDER BY event_date DESC, published_at DESC NULLS LAST
+       LIMIT ${bind(limit)}`,
+      values,
+    ),
+    pool().query<{ total: string }>(
+      `SELECT count(*)::text AS total FROM read_models.press_article WHERE ${predicate}`,
+      values.slice(0, -1),
+    ),
+  ]);
+
+  return {
+    articles: page.rows.map((row) => ({
+      factClaimId: row.fact_claim_id,
+      eventDate: row.event_date,
+      publishedAt: row.published_at?.toISOString() ?? null,
+      outlet: row.outlet,
+      domain: row.domain,
+      section: row.section,
+      headline: row.headline,
+      summary: row.summary,
+      url: row.article_url,
+      topic: row.topic,
+      tone: row.tone,
+      region: row.region,
+      retrievalMethod: row.retrieval_method,
+      evidenceSha256: row.evidence_sha256,
+    })),
+    total: Number(count.rows[0]?.total ?? 0),
+  };
+}

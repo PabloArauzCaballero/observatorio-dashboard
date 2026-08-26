@@ -15,9 +15,9 @@ import {
   officialSeries,
   readCompanyFilings,
   readMarkets,
-  readPressArticles,
+  readPressCube,
+  readPressPage,
   readPressPulse,
-  readPressTerms,
   readGap,
   readMacroAnnual,
   readObservatory,
@@ -28,7 +28,7 @@ import type {
   MarketSeries,
   PressArticle,
   PressPulseData,
-  TermMention,
+  PressCube,
   DailyPoint,
   GapPoint,
   MacroPoint,
@@ -180,23 +180,56 @@ function latestByIndicator(points: MacroPoint[]): MacroPoint[] {
  * What matters about a filing is when it landed relative to the others, which a
  * row in a table hides and a spine down the page makes obvious.
  */
+/**
+ * Where every figure comes from, as a table.
+ *
+ * A list of sources was the wrong shape for it: this is five columns of facts
+ * about each series — what it measures, who publishes it, how much of it there
+ * is and over what span — and columns that line up let a reader compare them
+ * down the page instead of reading each row as a sentence.
+ */
 function SourceList({ sources }: { sources: SourceNote[] }) {
+  const total = sources.reduce((sum, source) => sum + source.readings, 0);
   return (
-    <ul className="sources">
-      {sources.map((source) => (
-        <li key={`${source.indicator}-${source.sourceUrl}`}>
-          <code>{source.indicator}</code>
-          <span>{source.publisher}</span>
-          <span className="src-span">
-            {source.firstDay} → {source.lastDay} · {source.readings.toLocaleString('es-BO')}{' '}
-            lecturas
-          </span>
-          <a href={source.sourceUrl} target="_blank" rel="noreferrer noopener">
-            abrir
-          </a>
-        </li>
-      ))}
-    </ul>
+    <div className="table-wrap">
+      <table className="grid-table">
+        <thead>
+          <tr>
+            <th>Indicador</th>
+            <th>Publicador</th>
+            <th className="num">Lecturas</th>
+            <th>Desde</th>
+            <th>Hasta</th>
+            <th>Fuente</th>
+          </tr>
+        </thead>
+        <tbody>
+          {sources.map((source) => (
+            <tr key={`${source.indicator}-${source.sourceUrl}`}>
+              <td>
+                <code>{source.indicator}</code>
+              </td>
+              <td>{source.publisher}</td>
+              <td className="num">{source.readings.toLocaleString('es-BO')}</td>
+              <td className="num">{source.firstDay}</td>
+              <td className="num">{source.lastDay}</td>
+              <td>
+                <a href={source.sourceUrl} target="_blank" rel="noreferrer noopener">
+                  abrir
+                </a>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+        <tfoot>
+          <tr>
+            <td colSpan={2}>{sources.length} series</td>
+            <td className="num">{total.toLocaleString('es-BO')}</td>
+            <td colSpan={3} />
+          </tr>
+        </tfoot>
+      </table>
+    </div>
   );
 }
 
@@ -225,19 +258,19 @@ export default async function Page() {
   let filings: CompanyFiling[];
   let press: PressArticle[];
   let markets: MarketSeries[];
-  let pressTerms: TermMention[];
+  let pressCube: PressCube;
   let pressPulse: PressPulseData;
   try {
-    [observatory, gap, sources, macro, filings, press, markets, pressTerms, pressPulse] =
+    [observatory, gap, sources, macro, filings, press, markets, pressCube, pressPulse] =
       await Promise.all([
         readObservatory(),
         readGap(),
         readSources(),
         readMacroAnnual(),
         readCompanyFilings(),
-        readPressArticles(),
+        readPressPage({ topic: 'ECONOMICOS' }, 60).then((page) => page.articles),
         readMarkets(),
-        readPressTerms(),
+        readPressCube(),
         readPressPulse(),
       ]);
   } catch (error) {
@@ -407,7 +440,7 @@ export default async function Page() {
                 icon: 'balanza',
               },
             ]}
-            analysis={analysis.lines}
+            analysis={analysis.bullets}
             latestDate={observatory.latestDate}
             markets={<MarketCards markets={markets} />}
           />
@@ -435,7 +468,16 @@ export default async function Page() {
 
         <section className="stack">
           {press.length ? (
-            <PressExplorer articles={press} terms={pressTerms} pulse={pressPulse} />
+            <PressExplorer
+              cube={pressCube}
+              initialArticles={press}
+              span={{
+                total: pressPulse.total,
+                outlets: pressPulse.outlets,
+                firstDay: pressPulse.firstDay,
+                lastDay: pressPulse.lastDay,
+              }}
+            />
           ) : (
             <div className="callout">Todavía no hay cobertura de prensa cargada.</div>
           )}

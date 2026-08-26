@@ -1,13 +1,29 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Icon } from './icons';
 import type { IconName } from './icons';
 import { PressPulse } from './press-pulse';
-import type { PressArticle, PressPulseData, TermMention } from '@/lib/series';
+import {
+  ECONOMIC_TOPICS,
+  NO_SELECTION,
+  activeCount,
+  countsFor,
+  pressQuery,
+  totalFor,
+} from '@/lib/cross-filter';
+import type { PressSelection } from '@/lib/cross-filter';
+import type { PressArticle, PressCube } from '@/lib/series';
 
 /**
- * What the Bolivian press published, filtered by outlet and by subject.
+ * What the Bolivian press published, sliced from any visual on the page.
+ *
+ * Every count here speaks for the whole corpus, not for the page of stories on
+ * screen: the panel holds a cross-tabulation of all twenty-two thousand
+ * articles and re-sums it on every click, while the stories themselves are
+ * fetched for the selection. The alternative — filtering a cached first
+ * thousand — produces a filter that says "338" beside a corpus of 22,302, which
+ * is a number that means nothing to the reader it is shown to.
  *
  * This section answers a question no series can: why a number moved. A fuel
  * decree, a blockade or a shortage is reported days before any table records
@@ -45,27 +61,111 @@ const TOPIC_ICON: Record<string, IconName> = {
   OTROS: 'cajas',
 };
 
-const TONES = ['var(--official)', 'var(--parallel)', 'var(--gap)', 'var(--down)', 'var(--up)'];
+const TONE_LABEL: Record<string, string> = {
+  ALARMA: 'Alarma',
+  CONFLICTO: 'Conflicto',
+  DETERIORO: 'Deterioro',
+  INCERTIDUMBRE: 'Incertidumbre',
+  MEJORA: 'Mejora',
+  DESINFORMACION: 'Desinformación',
+  NEUTRO: 'Sin marca',
+};
 
-/** Economic subjects, so the default view is the observatory's own remit. */
-const ECONOMIC = Object.keys(TOPIC_LABEL).filter((key) => key !== 'OTROS');
+const REGION_LABEL: Record<string, string> = {
+  SANTA_CRUZ: 'Santa Cruz',
+  LA_PAZ: 'La Paz',
+  COCHABAMBA: 'Cochabamba',
+  ORURO: 'Oruro',
+  POTOSI: 'Potosí',
+  TARIJA: 'Tarija',
+  CHUQUISACA: 'Chuquisaca',
+  BENI: 'Beni',
+  PANDO: 'Pando',
+  NACIONAL: 'Sin departamento',
+};
 
-const SHOWN = 40;
+const BAR_TONES = ['var(--official)', 'var(--parallel)', 'var(--gap)', 'var(--down)', 'var(--up)'];
+
+const SHOWN = 60;
+
+/** What each active slicer is called, so it can be named and removed. */
+function chipsFor(
+  selection: PressSelection,
+  terms: PressCube['terms'],
+): Array<{ dimension: keyof PressSelection; value: string; label: string; icon: IconName }> {
+  const out: Array<{
+    dimension: keyof PressSelection;
+    value: string;
+    label: string;
+    icon: IconName;
+  }> = [];
+  if (selection.topic !== ECONOMIC_TOPICS) {
+    out.push({
+      dimension: 'topic',
+      value: selection.topic,
+      label:
+        selection.topic === 'TODOS'
+          ? 'Todos los temas'
+          : (TOPIC_LABEL[selection.topic] ?? selection.topic),
+      icon: TOPIC_ICON[selection.topic] ?? 'cajas',
+    });
+  }
+  if (selection.year !== 'TODOS') {
+    out.push({
+      dimension: 'year',
+      value: selection.year,
+      label: selection.year,
+      icon: 'calendario',
+    });
+  }
+  if (selection.tone !== 'TODOS') {
+    out.push({
+      dimension: 'tone',
+      value: selection.tone,
+      label: TONE_LABEL[selection.tone] ?? selection.tone,
+      icon: 'campana',
+    });
+  }
+  if (selection.region !== 'TODOS') {
+    out.push({
+      dimension: 'region',
+      value: selection.region,
+      label: REGION_LABEL[selection.region] ?? selection.region,
+      icon: 'globo',
+    });
+  }
+  if (selection.outlet !== 'TODOS') {
+    out.push({
+      dimension: 'outlet',
+      value: selection.outlet,
+      label: selection.outlet,
+      icon: 'ventana',
+    });
+  }
+  if (selection.term !== 'TODOS') {
+    out.push({
+      dimension: 'term',
+      value: selection.term,
+      label: terms.find((entry) => entry.term === selection.term)?.label ?? selection.term,
+      icon: 'etiqueta',
+    });
+  }
+  return out;
+}
 
 export function PressExplorer({
-  articles,
-  terms,
-  pulse,
+  cube,
+  initialArticles,
+  span,
 }: {
-  articles: PressArticle[];
-  terms: TermMention[];
-  pulse: PressPulseData;
+  cube: PressCube;
+  initialArticles: PressArticle[];
+  span: { total: number; outlets: number; firstDay: string | null; lastDay: string | null };
 }) {
-  const [topic, setTopic] = useState('ECONOMICOS');
-  const [outlet, setOutlet] = useState('TODOS');
+  const [selection, setSelection] = useState<PressSelection>(NO_SELECTION);
   const [search, setSearch] = useState('');
-  const [tone, setTone] = useState('TODOS');
-  const [region, setRegion] = useState('TODOS');
+  const [articles, setArticles] = useState<PressArticle[]>(initialArticles);
+  const [loading, setLoading] = useState(false);
   const [open, setOpen] = useState<ReadonlySet<string>>(() => new Set());
 
   const toggle = (id: string) =>
@@ -75,58 +175,54 @@ export function PressExplorer({
       return next;
     });
 
-  const topics = useMemo(() => {
-    const counts = new Map<string, number>();
-    for (const article of articles) counts.set(article.topic, (counts.get(article.topic) ?? 0) + 1);
-    return [...counts.entries()].sort((left, right) => right[1] - left[1]);
-  }, [articles]);
+  const pick = (dimension: keyof PressSelection, value: string): void =>
+    setSelection((current) => ({ ...current, [dimension]: value }));
 
-  const economicCount = useMemo(
-    () => articles.filter((article) => ECONOMIC.includes(article.topic)).length,
-    [articles],
+  const byTopic = useMemo(() => countsFor(cube, selection, 'topic'), [cube, selection]);
+  const byOutlet = useMemo(() => countsFor(cube, selection, 'outlet'), [cube, selection]);
+  const total = useMemo(() => totalFor(cube, selection), [cube, selection]);
+  const economicTotal = useMemo(
+    () => totalFor(cube, { ...selection, topic: ECONOMIC_TOPICS }),
+    [cube, selection],
   );
 
-  const outlets = useMemo(() => {
-    const counts = new Map<string, number>();
-    for (const article of articles) {
-      if (topic === 'ECONOMICOS' && !ECONOMIC.includes(article.topic)) continue;
-      if (topic !== 'ECONOMICOS' && topic !== 'TODOS' && article.topic !== topic) continue;
-      counts.set(article.outlet, (counts.get(article.outlet) ?? 0) + 1);
-    }
-    return [...counts.entries()].sort((left, right) => right[1] - left[1]);
-  }, [articles, topic]);
+  const topics = [...byTopic.entries()]
+    .filter(([, count]) => count > 0)
+    .sort((left, right) => right[1] - left[1]);
+  const outlets = [...byOutlet.entries()]
+    .filter(([, count]) => count > 0)
+    .sort((left, right) => right[1] - left[1]);
 
-  const selected = useMemo(() => {
-    const term = search.trim().toLocaleLowerCase('es');
-    return articles.filter(
-      (article) =>
-        (topic === 'TODOS' ||
-          (topic === 'ECONOMICOS' ? ECONOMIC.includes(article.topic) : article.topic === topic)) &&
-        (outlet === 'TODOS' || article.outlet === outlet) &&
-        (tone === 'TODOS' || article.tone === tone) &&
-        (region === 'TODOS' || article.region === region) &&
-        (!term ||
-          article.headline.toLocaleLowerCase('es').includes(term) ||
-          (article.summary ?? '').toLocaleLowerCase('es').includes(term)),
-    );
-  }, [articles, topic, outlet, tone, region, search]);
+  const query = pressQuery(selection, search);
+  const address = query.toString();
 
-  const peak = topics.length ? Math.max(...topics.map(([, count]) => count)) : 1;
-  const active =
-    (topic === 'ECONOMICOS' ? 0 : 1) +
-    (outlet === 'TODOS' ? 0 : 1) +
-    (tone === 'TODOS' ? 0 : 1) +
-    (region === 'TODOS' ? 0 : 1) +
-    (search ? 1 : 0);
+  /**
+   * The stories for the selection. The counts already changed on the click; the
+   * cards catch up, and a request that is overtaken by a newer one is dropped
+   * rather than allowed to land after it.
+   */
+  const generation = useRef(0);
+  useEffect(() => {
+    const mine = ++generation.current;
+    setLoading(true);
+    const timer = setTimeout(() => {
+      fetch(`/api/prensa?${address}`)
+        .then((response) => response.json() as Promise<{ articles: PressArticle[] }>)
+        .then((page) => {
+          if (mine !== generation.current) return;
+          setArticles(page.articles ?? []);
+          setLoading(false);
+        })
+        .catch(() => {
+          if (mine === generation.current) setLoading(false);
+        });
+    }, 180);
+    return () => clearTimeout(timer);
+  }, [address]);
 
-  const query = new URLSearchParams({
-    dataset: 'prensa',
-    ...(topic === 'ECONOMICOS' || topic === 'TODOS' ? {} : { tema: topic }),
-    ...(outlet === 'TODOS' ? {} : { medio: outlet }),
-    ...(tone === 'TODOS' ? {} : { tono: tone }),
-    ...(region === 'TODOS' ? {} : { region }),
-    ...(search.trim() ? { buscar: search.trim() } : {}),
-  });
+  const active = activeCount(selection, search);
+  const chips = chipsFor(selection, cube.terms);
+  const peakTopic = topics.length ? Math.max(...topics.map(([, count]) => count)) : 1;
 
   return (
     <div className="workspace">
@@ -139,6 +235,39 @@ export function PressExplorer({
           </span>
         </div>
 
+        {chips.length ? (
+          <div className="rail-sec">
+            <div className="rail-head">
+              <Icon name="capas" size={13} />
+              Selección activa
+            </div>
+            <div className="rail-pills">
+              {chips.map((chip) => (
+                <button
+                  key={`${chip.dimension}-${chip.value}`}
+                  type="button"
+                  className="chip chip-on"
+                  onClick={() => pick(chip.dimension, NO_SELECTION[chip.dimension])}
+                  title="Quitar este filtro"
+                >
+                  <Icon name={chip.icon} size={12} />
+                  {chip.label} ×
+                </button>
+              ))}
+              <button
+                type="button"
+                className="chip"
+                onClick={() => {
+                  setSelection(NO_SELECTION);
+                  setSearch('');
+                }}
+              >
+                Limpiar todo
+              </button>
+            </div>
+          </div>
+        ) : null}
+
         <div className="rail-sec">
           <div className="rail-head">
             <Icon name="cajas" size={13} />
@@ -146,29 +275,23 @@ export function PressExplorer({
           </div>
           <button
             type="button"
-            className={topic === 'ECONOMICOS' ? 'rail-item rail-item-on' : 'rail-item'}
-            onClick={() => {
-              setTopic('ECONOMICOS');
-              setOutlet('TODOS');
-            }}
+            className={selection.topic === ECONOMIC_TOPICS ? 'rail-item rail-item-on' : 'rail-item'}
+            onClick={() => pick('topic', ECONOMIC_TOPICS)}
           >
             <Icon name="tendencia" size={16} />
             <span className="rail-name">Sólo económicos</span>
-            <span className="rail-n">{economicCount}</span>
+            <span className="rail-n">{economicTotal.toLocaleString('es-BO')}</span>
           </button>
           {topics.map(([key, count]) => (
             <button
               key={key}
               type="button"
-              className={topic === key ? 'rail-item rail-item-on' : 'rail-item'}
-              onClick={() => {
-                setTopic(topic === key ? 'ECONOMICOS' : key);
-                setOutlet('TODOS');
-              }}
+              className={selection.topic === key ? 'rail-item rail-item-on' : 'rail-item'}
+              onClick={() => pick('topic', selection.topic === key ? ECONOMIC_TOPICS : key)}
             >
               <Icon name={TOPIC_ICON[key] ?? 'cajas'} size={16} />
               <span className="rail-name">{TOPIC_LABEL[key] ?? key}</span>
-              <span className="rail-n">{count}</span>
+              <span className="rail-n">{count.toLocaleString('es-BO')}</span>
             </button>
           ))}
         </div>
@@ -180,66 +303,25 @@ export function PressExplorer({
           </div>
           <button
             type="button"
-            className={outlet === 'TODOS' ? 'rail-item rail-item-on' : 'rail-item'}
-            onClick={() => setOutlet('TODOS')}
+            className={selection.outlet === 'TODOS' ? 'rail-item rail-item-on' : 'rail-item'}
+            onClick={() => pick('outlet', 'TODOS')}
           >
             <Icon name="ventana" size={16} />
             <span className="rail-name">Todos los medios</span>
-            <span className="rail-n">{selected.length}</span>
+            <span className="rail-n">{total.toLocaleString('es-BO')}</span>
           </button>
           {outlets.map(([name, count]) => (
             <button
               key={name}
               type="button"
-              className={outlet === name ? 'rail-item rail-item-on' : 'rail-item'}
-              onClick={() => setOutlet(outlet === name ? 'TODOS' : name)}
+              className={selection.outlet === name ? 'rail-item rail-item-on' : 'rail-item'}
+              onClick={() => pick('outlet', selection.outlet === name ? 'TODOS' : name)}
             >
               <Icon name="ventana" size={16} />
               <span className="rail-name">{name}</span>
-              <span className="rail-n">{count}</span>
+              <span className="rail-n">{count.toLocaleString('es-BO')}</span>
             </button>
           ))}
-        </div>
-
-        <div className="rail-sec">
-          <div className="rail-head">
-            <Icon name="campana" size={13} />
-            Tono
-          </div>
-          <div className="rail-field">
-            <select value={tone} onChange={(event) => setTone(event.target.value)}>
-              <option value="TODOS">Cualquier tono</option>
-              <option value="ALARMA">Alarma</option>
-              <option value="CONFLICTO">Conflicto</option>
-              <option value="DETERIORO">Deterioro</option>
-              <option value="INCERTIDUMBRE">Incertidumbre</option>
-              <option value="MEJORA">Mejora</option>
-              <option value="DESINFORMACION">Desinformación</option>
-              <option value="NEUTRO">Sin marca</option>
-            </select>
-          </div>
-        </div>
-
-        <div className="rail-sec">
-          <div className="rail-head">
-            <Icon name="globo" size={13} />
-            Departamento
-          </div>
-          <div className="rail-field">
-            <select value={region} onChange={(event) => setRegion(event.target.value)}>
-              <option value="TODOS">Todo el país</option>
-              <option value="SANTA_CRUZ">Santa Cruz</option>
-              <option value="LA_PAZ">La Paz</option>
-              <option value="COCHABAMBA">Cochabamba</option>
-              <option value="ORURO">Oruro</option>
-              <option value="POTOSI">Potosí</option>
-              <option value="TARIJA">Tarija</option>
-              <option value="CHUQUISACA">Chuquisaca</option>
-              <option value="BENI">Beni</option>
-              <option value="PANDO">Pando</option>
-              <option value="NACIONAL">Sin departamento</option>
-            </select>
-          </div>
         </div>
 
         <div className="rail-sec">
@@ -258,10 +340,9 @@ export function PressExplorer({
         </div>
 
         <div className="rail-foot">
-          Selección: <b>{selected.length}</b> nota{selected.length === 1 ? '' : 's'}
+          Selección: <b>{total.toLocaleString('es-BO')}</b> nota{total === 1 ? '' : 's'}
           <br />
-          de <b>{new Set(selected.map((article) => article.outlet)).size}</b> medio
-          {new Set(selected.map((article) => article.outlet)).size === 1 ? '' : 's'}
+          de <b>{outlets.length}</b> medio{outlets.length === 1 ? '' : 's'}
           <br />
           Tema <b>derivado</b> del titular
         </div>
@@ -291,11 +372,11 @@ export function PressExplorer({
               </div>
               <div className="brief-point">
                 <span className="brief-point-mark">
-                  <Icon name="cajas" size={17} />
+                  <Icon name="capas" size={17} />
                 </span>
                 <div>
-                  <b>Tema derivado</b>
-                  <span>del titular; el medio no lo publica</span>
+                  <b>Todo cruza con todo</b>
+                  <span>tocá cualquier barra y el resto se filtra</span>
                 </div>
               </div>
               <div className="brief-point">
@@ -312,85 +393,72 @@ export function PressExplorer({
         </div>
 
         <div className="strap">
-          <Icon name={TOPIC_ICON[topic] ?? 'tendencia'} size={17} />
+          <Icon name={TOPIC_ICON[selection.topic] ?? 'tendencia'} size={17} />
           <h2>
-            {topic === 'ECONOMICOS'
+            {selection.topic === ECONOMIC_TOPICS
               ? 'Cobertura económica'
-              : topic === 'TODOS'
+              : selection.topic === 'TODOS'
                 ? 'Toda la cobertura'
-                : (TOPIC_LABEL[topic] ?? topic)}
+                : (TOPIC_LABEL[selection.topic] ?? selection.topic)}
           </h2>
           <span className="tile-hint">
-            {selected.length} de {pulse.total.toLocaleString('es-BO')} nota
-            {pulse.total === 1 ? '' : 's'}
+            {total.toLocaleString('es-BO')} de {span.total.toLocaleString('es-BO')} nota
+            {span.total === 1 ? '' : 's'}
           </span>
           <div className="download">
-            <a className="download-btn" href={`/api/export?${query.toString()}&format=csv`}>
+            <a className="download-btn" href={`/api/export?dataset=prensa&${address}&format=csv`}>
               CSV
             </a>
-            <a className="download-btn" href={`/api/export?${query.toString()}&format=json`}>
+            <a className="download-btn" href={`/api/export?dataset=prensa&${address}&format=json`}>
               JSON
             </a>
           </div>
         </div>
 
-        <PressPulse
-          pulse={pulse}
-          terms={terms}
-          tone={tone}
-          region={region}
-          onTone={setTone}
-          onRegion={setRegion}
-        />
+        <PressPulse cube={cube} selection={selection} span={span} onPick={pick} />
 
         {topics.length > 1 ? (
           <div className="panel">
             <div className="tile-head">
               <Icon name="barras" size={17} />
               <h2>Cobertura por tema</h2>
-              <span className="tile-hint">{articles.length} notas</span>
+              <span className="tile-hint">
+                {topics.reduce((sum, [, count]) => sum + count, 0).toLocaleString('es-BO')} notas,
+                sin filtrar por tema
+              </span>
             </div>
             <div className="barlist">
-              {topics.map(([key, count], index) => (
-                <button
-                  key={key}
-                  type="button"
-                  className="barlist-row"
-                  onClick={() => {
-                    setTopic(topic === key ? 'ECONOMICOS' : key);
-                    setOutlet('TODOS');
-                  }}
-                  style={{
-                    appearance: 'none',
-                    background: 'none',
-                    border: 'none',
-                    padding: 0,
-                    font: 'inherit',
-                    cursor: 'pointer',
-                    width: '100%',
-                  }}
-                >
-                  <Icon name={TOPIC_ICON[key] ?? 'cajas'} size={14} />
-                  <span className="barlist-name">{TOPIC_LABEL[key] ?? key}</span>
-                  <span className="barlist-track">
-                    <span
-                      className="barlist-fill"
-                      style={{
-                        width: `${(count / peak) * 100}%`,
-                        background: topic === key ? 'var(--ink)' : TONES[index % TONES.length],
-                      }}
-                    />
-                  </span>
-                  <span className="barlist-n">{count}</span>
-                </button>
-              ))}
+              {topics.map(([key, count], index) => {
+                const on = selection.topic === key;
+                return (
+                  <button
+                    key={key}
+                    type="button"
+                    className={on ? 'barlist-row barlist-row-on' : 'barlist-row'}
+                    onClick={() => pick('topic', on ? ECONOMIC_TOPICS : key)}
+                  >
+                    <Icon name={TOPIC_ICON[key] ?? 'cajas'} size={14} />
+                    <span className="barlist-name">{TOPIC_LABEL[key] ?? key}</span>
+                    <span className="barlist-track">
+                      <span
+                        className="barlist-fill"
+                        style={{
+                          width: `${(count / peakTopic) * 100}%`,
+                          background: on ? 'var(--ink)' : BAR_TONES[index % BAR_TONES.length],
+                        }}
+                      />
+                    </span>
+                    <span className="barlist-n">{count.toLocaleString('es-BO')}</span>
+                  </button>
+                );
+              })}
             </div>
           </div>
         ) : null}
 
-        {selected.length ? (
-          <div className="filing-grid">
-            {selected.slice(0, SHOWN).map((article, index) => {
+        {articles.length ? (
+          <div className={loading ? 'filing-grid filing-grid-loading' : 'filing-grid'}>
+            {articles.slice(0, SHOWN).map((article, index) => {
               const isOpen = open.has(article.factClaimId);
               return (
                 <article
@@ -430,13 +498,17 @@ export function PressExplorer({
             })}
           </div>
         ) : (
-          <div className="callout">Ninguna nota coincide con esta selección.</div>
+          <div className="callout">
+            {loading
+              ? 'Buscando las notas de esta selección…'
+              : 'Ninguna nota coincide con esta selección.'}
+          </div>
         )}
 
-        {selected.length > SHOWN ? (
+        {total > articles.length ? (
           <p className="panel-sub">
-            Se muestran las {SHOWN} más recientes de {selected.length}. La descarga incluye la
-            selección completa.
+            Se muestran las {articles.length} más recientes de {total.toLocaleString('es-BO')}. La
+            descarga incluye la selección completa.
           </p>
         ) : null}
       </div>

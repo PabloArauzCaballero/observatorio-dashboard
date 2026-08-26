@@ -1,9 +1,4 @@
-import {
-  readCompanyFilings,
-  readMacroAnnual,
-  readObservatory,
-  readPressArticles,
-} from '@/lib/series';
+import { readCompanyFilings, readMacroAnnual, readObservatory, readPressPage } from '@/lib/series';
 
 /**
  * Every dataset the report draws, in either format.
@@ -40,6 +35,9 @@ interface Selection {
   outlet?: string | undefined;
   tone?: string | undefined;
   region?: string | undefined;
+  /** Press only: the year and the watched term the panel was slicing by. */
+  year?: string | undefined;
+  term?: string | undefined;
   /** A year on the macro panel, a calendar date on the exchange-rate one. */
   from?: string | undefined;
   search?: string | undefined;
@@ -72,19 +70,23 @@ async function collect(dataset: Dataset, selection: Selection): Promise<Row[]> {
   }
 
   if (dataset === 'prensa') {
-    const term = selection.search?.trim().toLocaleLowerCase('es');
-    return (await readPressArticles(60_000))
-      .filter(
-        (article) =>
-          (!selection.topic || article.topic === selection.topic) &&
-          (!selection.outlet || article.outlet === selection.outlet) &&
-          (!selection.tone || article.tone === selection.tone) &&
-          (!selection.region || article.region === selection.region) &&
-          (selection.from === undefined || article.eventDate >= selection.from) &&
-          (!term ||
-            article.headline.toLocaleLowerCase('es').includes(term) ||
-            (article.summary ?? '').toLocaleLowerCase('es').includes(term)),
-      )
+    // The same predicate the panel counts with, run in the database. Filtering a
+    // cached corpus here instead would let the file and the figure on screen
+    // disagree, which is the one thing a download must never do.
+    const { articles } = await readPressPage(
+      {
+        year: selection.year,
+        tone: selection.tone,
+        topic: selection.topic,
+        region: selection.region,
+        outlet: selection.outlet,
+        term: selection.term,
+        search: selection.search?.trim(),
+      },
+      60_000,
+    );
+    return articles
+      .filter((article) => selection.from === undefined || article.eventDate >= selection.from)
       .map((article) => ({
         fecha: article.eventDate,
         medio: article.outlet,
@@ -183,6 +185,8 @@ export async function GET(request: Request): Promise<Response> {
       outlet: url.searchParams.get('medio') ?? undefined,
       tone: url.searchParams.get('tono') ?? undefined,
       region: url.searchParams.get('region') ?? undefined,
+      year: url.searchParams.get('anio') ?? undefined,
+      term: url.searchParams.get('termino') ?? undefined,
       from: from && /^\d{4}(-\d{2}-\d{2})?$/u.test(from) ? from : undefined,
       search: url.searchParams.get('buscar') ?? undefined,
     });

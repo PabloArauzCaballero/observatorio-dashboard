@@ -566,3 +566,73 @@ export function Histogram({ data }: { data: HistogramBucket[] }) {
     </div>
   );
 }
+
+export interface CandlePoint {
+  period: string;
+  open: number;
+  close: number;
+}
+
+/**
+ * Year-on-year change as candles.
+ *
+ * Each candle spans from the previous year's level to this one's, so its body
+ * IS the annual change: tall means the series moved a lot, and the colour says
+ * which way. A line answers "what was the level"; this answers "what did the
+ * year do", which is the question an annual series is usually asked.
+ *
+ * Drawn rather than composed from a chart library's OHLC series, because what
+ * is wanted here is two numbers a year and not a trading instrument.
+ */
+export function YearCandles({ data, unit }: { data: CandlePoint[]; unit: string }) {
+  if (data.length < 2) {
+    return <div className="callout">Se necesitan al menos dos años para comparar.</div>;
+  }
+
+  const width = 100;
+  const height = 132;
+  const values = data.flatMap((point) => [point.open, point.close]);
+  const low = Math.min(...values);
+  const high = Math.max(...values);
+  const span = high - low || 1;
+  const pad = 10;
+  const scale = (value: number): number =>
+    height - pad - ((value - low) / span) * (height - pad * 2);
+
+  const step = width / data.length;
+  const body = Math.max(step * 0.55, 0.6);
+
+  return (
+    <div className="candles">
+      <svg viewBox={`0 0 ${width} ${height}`} preserveAspectRatio="none" role="img">
+        <line x1="0" y1={height - pad} x2={width} y2={height - pad} className="candle-axis" />
+        {data.map((point, index) => {
+          const centre = step * (index + 0.5);
+          const top = scale(Math.max(point.open, point.close));
+          const bottom = scale(Math.min(point.open, point.close));
+          const rising = point.close >= point.open;
+          return (
+            <g key={point.period} className={rising ? 'candle candle-up' : 'candle candle-down'}>
+              <line x1={centre} y1={top} x2={centre} y2={bottom} className="candle-wick" />
+              <rect
+                x={centre - body / 2}
+                y={top}
+                width={body}
+                height={Math.max(bottom - top, 0.8)}
+                rx={0.4}
+              />
+            </g>
+          );
+        })}
+      </svg>
+      <div className="candle-foot">
+        <span>{data[0]?.period}</span>
+        <span className="candle-scale">
+          {low.toLocaleString('es-BO', { maximumFractionDigits: 2 })} –{' '}
+          {high.toLocaleString('es-BO', { maximumFractionDigits: 2 })} {unit}
+        </span>
+        <span>{data.at(-1)?.period}</span>
+      </div>
+    </div>
+  );
+}

@@ -1,7 +1,8 @@
 'use client';
 
 import { useMemo, useState } from 'react';
-import { MacroChart } from './charts';
+import { MacroChart, YearCandles } from './charts';
+import type { CandlePoint } from './charts';
 import { Icon } from './icons';
 import type { IconName } from './icons';
 import type { MacroPoint } from '@/lib/series';
@@ -297,35 +298,11 @@ export function MacroExplorer({ points }: { points: MacroPoint[] }) {
         {cards.length ? (
           <div className="card-grid">
             {cards.map((point) => (
-              <article className="card" key={point.indicatorCode}>
-                <header className="card-head">
-                  <span className="card-sector">
-                    <Icon name={SECTOR_ICON[point.sector] ?? 'cajas'} size={12} />{' '}
-                    {SECTOR_LABEL[point.sector] ?? point.sector}
-                  </span>
-                  <h3>{point.name ?? point.indicatorCode}</h3>
-                  <div className="card-figure">
-                    <span className="card-value">{headline(point)}</span>
-                    <span className="card-unit">{UNIT_LABEL[point.unit] ?? point.unit}</span>
-                  </div>
-                  <div className="card-meta">
-                    <span>{point.period}</span>
-                    {point.changePercent === null ? null : (
-                      <span className={point.changePercent >= 0 ? 'delta-up' : 'delta-down'}>
-                        {point.changePercent > 0 ? '+' : ''}
-                        {number(point.changePercent)} % anual
-                      </span>
-                    )}
-                  </div>
-                </header>
-                <MacroChart
-                  data={selected
-                    .filter((row) => row.indicatorCode === point.indicatorCode)
-                    .map((row) => ({ period: row.period, value: row.value }))}
-                  unit={point.unit}
-                  tone={SECTOR_TONE[point.sector] ?? 'var(--ink-soft)'}
-                />
-              </article>
+              <MacroCard
+                key={point.indicatorCode}
+                point={point}
+                series={selected.filter((row) => row.indicatorCode === point.indicatorCode)}
+              />
             ))}
           </div>
         ) : (
@@ -333,5 +310,76 @@ export function MacroExplorer({ points }: { points: MacroPoint[] }) {
         )}
       </div>
     </div>
+  );
+}
+
+/**
+ * One indicator, read either as a level or as a year's change.
+ *
+ * The line answers "where is this number now"; the candles answer "what did
+ * each year do to it", which for an annual series is usually the actual
+ * question — a debt stock that rose every year for a decade looks like a smooth
+ * climb on a line and like ten red bodies here. The toggle sits in the card's
+ * top corner and is per card, because a reader comparing two indicators wants
+ * one of them in each reading, not both in the same one.
+ */
+function MacroCard({ point, series }: { point: MacroPoint; series: MacroPoint[] }) {
+  const [candles, setCandles] = useState(false);
+  const tone = SECTOR_TONE[point.sector] ?? 'var(--ink-soft)';
+
+  /** A candle per year: it opens at the year before and closes at this one. */
+  const ohlc = useMemo((): CandlePoint[] => {
+    const ordered = [...series].sort((left, right) => left.period.localeCompare(right.period));
+    const out: CandlePoint[] = [];
+    for (let index = 1; index < ordered.length; index += 1) {
+      const previous = ordered[index - 1];
+      const current = ordered[index];
+      if (!previous || !current) continue;
+      out.push({ period: current.period, open: previous.value, close: current.value });
+    }
+    return out;
+  }, [series]);
+
+  return (
+    <article className="card">
+      <header className="card-head">
+        <span className="card-sector">
+          <Icon name={SECTOR_ICON[point.sector] ?? 'cajas'} size={12} />{' '}
+          {SECTOR_LABEL[point.sector] ?? point.sector}
+        </span>
+        <button
+          type="button"
+          className={candles ? 'card-toggle card-toggle-on' : 'card-toggle'}
+          onClick={() => setCandles(!candles)}
+          title={candles ? 'Ver la serie como línea' : 'Ver la variación interanual en velas'}
+          aria-pressed={candles}
+        >
+          <Icon name={candles ? 'linea' : 'velas'} size={16} />
+        </button>
+        <h3>{point.name ?? point.indicatorCode}</h3>
+        <div className="card-figure">
+          <span className="card-value">{headline(point)}</span>
+          <span className="card-unit">{UNIT_LABEL[point.unit] ?? point.unit}</span>
+        </div>
+        <div className="card-meta">
+          <span>{candles ? `${ohlc.length} variaciones anuales` : point.period}</span>
+          {point.changePercent === null ? null : (
+            <span className={point.changePercent >= 0 ? 'delta-up' : 'delta-down'}>
+              {point.changePercent > 0 ? '+' : ''}
+              {number(point.changePercent)} % anual
+            </span>
+          )}
+        </div>
+      </header>
+      {candles ? (
+        <YearCandles data={ohlc} unit={UNIT_LABEL[point.unit] ?? point.unit} />
+      ) : (
+        <MacroChart
+          data={series.map((row) => ({ period: row.period, value: row.value }))}
+          unit={point.unit}
+          tone={tone}
+        />
+      )}
+    </article>
   );
 }

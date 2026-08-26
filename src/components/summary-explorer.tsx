@@ -5,6 +5,7 @@ import { GapChart, Sparkline } from './charts';
 import type { GapChartPoint } from './charts';
 import { Icon } from './icons';
 import type { IconName } from './icons';
+import type { AnalysisBullet } from '@/lib/daily-analysis';
 
 /**
  * The landing panel, under the same docked rail as every other section.
@@ -35,7 +36,7 @@ export interface SummaryExplorerProps {
   gap: GapChartPoint[];
   figures: SummaryFigure[];
   coverage: ReadonlyArray<{ label: string; count: string; icon: IconName }>;
-  analysis: string[];
+  analysis: AnalysisBullet[];
   latestDate: string | null;
   /** The dollar-linked markets, rendered by the caller that reads them. */
   markets?: React.ReactNode;
@@ -214,9 +215,24 @@ export function SummaryExplorer({
             Derivado de las observaciones, no redactado: cada cifra procede de las series de este
             informe y se recalcula con cada carga.
           </p>
-          {analysis.map((line) => (
-            <p key={line.slice(0, 40)}>{line}</p>
-          ))}
+          <ul className="bullets">
+            {analysis.map((bullet) => (
+              <li className="bullet" key={bullet.key}>
+                <span className={`bullet-mark bullet-mark-${bullet.tone}`}>
+                  <Icon name={bullet.icon as IconName} size={16} />
+                </span>
+                <div className="bullet-body">
+                  <div className="bullet-line">
+                    <b className="bullet-label">{bullet.label}</b>
+                    <span className={`bullet-value bullet-value-${bullet.tone}`}>
+                      {bullet.value}
+                    </span>
+                  </div>
+                  <p className="bullet-detail">{bullet.detail}</p>
+                </div>
+              </li>
+            ))}
+          </ul>
         </div>
       </div>
     </div>
