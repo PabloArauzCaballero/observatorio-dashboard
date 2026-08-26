@@ -504,6 +504,14 @@ export function PressExplorer({
           </div>
         ) : null}
 
+        {total > articles.length ? (
+          <p className="panel-sub register-note">
+            <Icon name="reloj" size={13} /> El registro abre por lo más reciente:{' '}
+            <b>{articles.length}</b> notas de <b>{total.toLocaleString('es-BO')}</b>. Para leer otro
+            año, tocalo en «Alarma y conflicto por año»; la descarga trae la selección completa.
+          </p>
+        ) : null}
+
         {articles.length ? (
           <div className={loading ? 'filing-grid filing-grid-loading' : 'filing-grid'}>
             {articles.slice(0, SHOWN).map((article, index) => {
@@ -561,13 +569,6 @@ export function PressExplorer({
             )}
           </div>
         )}
-
-        {total > articles.length ? (
-          <p className="panel-sub">
-            Se muestran las {articles.length} más recientes de {total.toLocaleString('es-BO')}. La
-            descarga incluye la selección completa.
-          </p>
-        ) : null}
       </div>
     </div>
   );

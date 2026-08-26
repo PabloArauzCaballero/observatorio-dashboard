@@ -1209,6 +1209,19 @@ code {
   margin-top: 2px;
 }
 
+/*
+ * The card's body has to grow, or the card does not fill.
+ *
+ * As a flex item it sized to its own content — a paragraph capped at 92
+ * characters for readability — so on a wide screen the three points beneath it
+ * huddled into the left half and the rest of the card was empty. The measure
+ * belongs to the paragraph, not to the block that holds it.
+ */
+.briefcard > div {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
 .briefcard h2 {
   font-family: var(--sans);
   font-size: 0.7rem;
@@ -2303,4 +2316,22 @@ button.term-chip:hover {
   font-size: 0.68rem;
   color: var(--ink-faint);
   text-align: center;
+}
+
+/*
+ * Said before the register, not after it.
+ *
+ * The cards open on the newest coverage, so a reader who scrolls a screenful of
+ * August 2026 concludes the archive is all 2026 — the note that says otherwise
+ * was underneath, where they reached it only after forming the impression.
+ */
+.register-note {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  max-width: none;
+  padding: 0.5rem 0.7rem;
+  border: 1px dashed var(--rule);
+  border-radius: 9px;
+  background: var(--panel-tint);
 }

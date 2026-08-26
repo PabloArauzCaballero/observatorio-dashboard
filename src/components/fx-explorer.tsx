@@ -113,37 +113,56 @@ function Stat({
   );
 }
 
+/**
+ * One of the four readings of the rate, assembled from the rows held.
+ *
+ * Lifted out of the panel because the pane needs to build every choice, not
+ * just the chosen one: a slicer that cannot say how many readings an option
+ * has is a slicer that will hand the reader an empty chart without warning.
+ */
+function seriesOf(rows: RatePoint[], official: Observation[], choice: SeriesChoice): Observation[] {
+  if (choice === 'OFICIAL') return official;
+  const out: Observation[] = [];
+  for (const row of rows) {
+    const buy = row.parallelBuy ?? null;
+    const sell = row.parallelSell ?? null;
+    const value =
+      choice === 'BUY'
+        ? buy
+        : choice === 'SELL'
+          ? sell
+          : buy !== null && sell !== null
+            ? (buy + sell) / 2
+            : (buy ?? sell);
+    if (value === null) continue;
+    out.push({
+      date: row.date,
+      value,
+      aggregation: row.archived ? ('DAILY_AVERAGE' as const) : ('POINT_IN_TIME' as const),
+    });
+  }
+  return out;
+}
+
 export function FxExplorer({ rows, official, readingCount }: FxExplorerProps) {
   const [range, setRange] = useState('todo');
   const [series, setSeries] = useState<SeriesChoice>('MID');
   const [span, setSpan] = useState<number>(30);
   const [pointInTimeOnly, setPointInTimeOnly] = useState(false);
 
-  /** Every reading of the chosen series, before the period filter narrows it. */
-  const full = useMemo<Observation[]>(() => {
-    if (series === 'OFICIAL') return official;
-    return rows
-      .map((row) => {
-        const buy = row.parallelBuy ?? null;
-        const sell = row.parallelSell ?? null;
-        const value =
-          series === 'BUY'
-            ? buy
-            : series === 'SELL'
-              ? sell
-              : buy !== null && sell !== null
-                ? (buy + sell) / 2
-                : (buy ?? sell);
-        return value === null
-          ? null
-          : {
-              date: row.date,
-              value,
-              aggregation: row.archived ? ('DAILY_AVERAGE' as const) : ('POINT_IN_TIME' as const),
-            };
-      })
-      .filter((point): point is Observation => point !== null);
-  }, [rows, official, series]);
+  /** Every reading of one series, before the period filter narrows it. */
+  const build = useMemo(() => {
+    const cache = new Map<SeriesChoice, Observation[]>();
+    return (choice: SeriesChoice): Observation[] => {
+      const held = cache.get(choice);
+      if (held) return held;
+      const built = seriesOf(rows, official, choice);
+      cache.set(choice, built);
+      return built;
+    };
+  }, [rows, official]);
+
+  const full = useMemo<Observation[]>(() => build(series), [build, series]);
 
   /** The cut-off the period control implies, as a date the series can be sliced on. */
   const floor = useMemo(() => {
@@ -197,6 +216,30 @@ export function FxExplorer({ rows, official, readingCount }: FxExplorerProps) {
     () => returns.map((point) => ({ date: point.date, value: point.ret })),
     [returns],
   );
+
+  /**
+   * How many readings each option would leave standing, counted under every
+   * other slicer but its own.
+   *
+   * The four series do not cover the same ground — the official was a flat
+   * administered line for most of the record, and the point-in-time base drops
+   * everything the collector did not read itself. Without these figures a
+   * reader picks a combination, gets "fewer than five sessions chained" and has
+   * no way to know which choice emptied it.
+   */
+  const countFor = (choice: SeriesChoice): number =>
+    build(choice).filter(
+      (point) =>
+        (floor === null || point.date >= floor) &&
+        (!pointInTimeOnly || point.aggregation === 'POINT_IN_TIME'),
+    ).length;
+
+  const countForBase = (onlyPointInTime: boolean): number =>
+    full.filter(
+      (point) =>
+        (floor === null || point.date >= floor) &&
+        (!onlyPointInTime || point.aggregation === 'POINT_IN_TIME'),
+    ).length;
 
   const chosen = SERIES.find((entry) => entry.key === series);
   const first = selected.at(0);
@@ -300,6 +343,7 @@ export function FxExplorer({ rows, official, readingCount }: FxExplorerProps) {
               >
                 <Icon name={entry.icon} size={16} />
                 <span className="rail-name">{entry.label}</span>
+                <span className="rail-n">{countFor(entry.key).toLocaleString('es-BO')}</span>
               </button>
             ))}
           </div>
@@ -336,6 +380,7 @@ export function FxExplorer({ rows, official, readingCount }: FxExplorerProps) {
             >
               <Icon name="capas" size={16} />
               <span className="rail-name">Toda la serie</span>
+              <span className="rail-n">{countForBase(false).toLocaleString('es-BO')}</span>
             </button>
             <button
               type="button"
@@ -345,6 +390,7 @@ export function FxExplorer({ rows, official, readingCount }: FxExplorerProps) {
             >
               <Icon name="reloj" size={16} />
               <span className="rail-name">Solo lectura puntual</span>
+              <span className="rail-n">{countForBase(true).toLocaleString('es-BO')}</span>
             </button>
           </div>
 
