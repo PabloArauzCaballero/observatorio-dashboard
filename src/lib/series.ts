@@ -827,38 +827,40 @@ export async function readPressPage(
     where.push(`(headline ILIKE ${pattern} OR coalesce(summary, '') ILIKE ${pattern})`);
   }
 
+  /*
+   * One query, not two. `press_article` is a view that reassembles each claim
+   * from its evidence, so asking it for the page and then again for the count
+   * builds the whole corpus twice — a term filter took 2.3 s that way. A window
+   * function carries the total on every row: window functions are computed
+   * before LIMIT, so the count is the count of the selection, not of the page.
+   */
   const predicate = where.join(' AND ');
-  const [page, count] = await Promise.all([
-    pool().query<{
-      fact_claim_id: string;
-      event_date: string;
-      published_at: Date | null;
-      outlet: string;
-      domain: string;
-      section: string;
-      headline: string;
-      summary: string | null;
-      article_url: string;
-      topic: string;
-      tone: string;
-      region: string;
-      retrieval_method: string | null;
-      evidence_sha256: string | null;
-    }>(
-      `SELECT fact_claim_id, event_date::text AS event_date, published_at, outlet, domain,
-              section, headline, summary, article_url, topic, tone, region,
-              retrieval_method, evidence_sha256
-       FROM read_models.press_article
-       WHERE ${predicate}
-       ORDER BY event_date DESC, published_at DESC NULLS LAST
-       LIMIT ${bind(limit)}`,
-      values,
-    ),
-    pool().query<{ total: string }>(
-      `SELECT count(*)::text AS total FROM read_models.press_article WHERE ${predicate}`,
-      values.slice(0, -1),
-    ),
-  ]);
+  const page = await pool().query<{
+    fact_claim_id: string;
+    event_date: string;
+    published_at: Date | null;
+    outlet: string;
+    domain: string;
+    section: string;
+    headline: string;
+    summary: string | null;
+    article_url: string;
+    topic: string;
+    tone: string;
+    region: string;
+    retrieval_method: string | null;
+    evidence_sha256: string | null;
+    total: string;
+  }>(
+    `SELECT fact_claim_id, event_date::text AS event_date, published_at, outlet, domain,
+            section, headline, summary, article_url, topic, tone, region,
+            retrieval_method, evidence_sha256, count(*) OVER ()::text AS total
+     FROM read_models.press_article
+     WHERE ${predicate}
+     ORDER BY event_date DESC, published_at DESC NULLS LAST
+     LIMIT ${bind(limit)}`,
+    values,
+  );
 
   return {
     articles: page.rows.map((row) => ({
@@ -877,6 +879,6 @@ export async function readPressPage(
       retrievalMethod: row.retrieval_method,
       evidenceSha256: row.evidence_sha256,
     })),
-    total: Number(count.rows[0]?.total ?? 0),
+    total: Number(page.rows[0]?.total ?? 0),
   };
 }

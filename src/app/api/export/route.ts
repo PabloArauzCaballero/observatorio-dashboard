@@ -35,6 +35,8 @@ interface Selection {
   outlet?: string | undefined;
   tone?: string | undefined;
   region?: string | undefined;
+  /** Filings only: the issuer the panel was slicing by. */
+  filer?: string | undefined;
   /** Press only: the year and the watched term the panel was slicing by. */
   year?: string | undefined;
   term?: string | undefined;
@@ -108,6 +110,7 @@ async function collect(dataset: Dataset, selection: Selection): Promise<Row[]> {
       .filter(
         (filing) =>
           (!selection.sector || filing.sector === selection.sector) &&
+          (!selection.filer || filing.filer === selection.filer) &&
           (selection.from === undefined || filing.eventDate >= selection.from) &&
           (!term ||
             filing.subject.toLocaleLowerCase('es').includes(term) ||
@@ -185,6 +188,7 @@ export async function GET(request: Request): Promise<Response> {
       outlet: url.searchParams.get('medio') ?? undefined,
       tone: url.searchParams.get('tono') ?? undefined,
       region: url.searchParams.get('region') ?? undefined,
+      filer: url.searchParams.get('emisor') ?? undefined,
       year: url.searchParams.get('anio') ?? undefined,
       term: url.searchParams.get('termino') ?? undefined,
       from: from && /^\d{4}(-\d{2}-\d{2})?$/u.test(from) ? from : undefined,

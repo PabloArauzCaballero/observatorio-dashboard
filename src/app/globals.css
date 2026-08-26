@@ -2064,3 +2064,22 @@ button.term-chip:hover {
   flex: none;
   margin-top: 0.15em;
 }
+
+/*
+ * A filing's card leads with the issuer, because the subject line repeats:
+ * three "Determinaciones de Directorio" are three identical headings, and the
+ * name above them is the only thing that says which company. The subject
+ * becomes the kicker, in the same voice as the other small labels.
+ */
+.filing-kicker {
+  margin: 0 0 0.1rem;
+  font-size: 0.72rem;
+  letter-spacing: 0.01em;
+  color: var(--ink-soft);
+}
+
+/* A chip names one choice, and one choice fits on one line. */
+.rail-pills .chip {
+  max-width: 100%;
+  white-space: nowrap;
+}

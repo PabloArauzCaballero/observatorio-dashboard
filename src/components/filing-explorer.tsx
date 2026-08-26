@@ -61,6 +61,17 @@ const TONES = ['var(--official)', 'var(--parallel)', 'var(--gap)', 'var(--down)'
 
 const SHOWN = 40;
 
+/**
+ * A chip names one choice, so it has to fit on one line.
+ *
+ * Clipping it in CSS leaves the ellipsis fighting the × at the end and shows
+ * the middle of the name; cutting the string keeps the beginning, which is the
+ * part that identifies a company. The full name stays on the chip's tooltip and
+ * in the control below it.
+ */
+const shortName = (name: string): string =>
+  name.length > 26 ? `${name.slice(0, 25).trimEnd()}…` : name;
+
 export function FilingExplorer({ filings }: { filings: CompanyFiling[] }) {
   const [sector, setSector] = useState('TODOS');
   const [filer, setFiler] = useState('TODOS');
@@ -75,35 +86,56 @@ export function FilingExplorer({ filings }: { filings: CompanyFiling[] }) {
       return next;
     });
 
+  /** Whether a filing survives every slicer but the one being counted. */
+  const matches = useMemo(() => {
+    const term = search.trim().toLocaleLowerCase('es');
+    return (filing: CompanyFiling, except: 'sector' | 'filer' | null): boolean =>
+      (except === 'sector' || sector === 'TODOS' || filing.sector === sector) &&
+      (except === 'filer' || filer === 'TODOS' || filing.filer === filer) &&
+      (!term ||
+        filing.subject.toLocaleLowerCase('es').includes(term) ||
+        filing.filer.toLocaleLowerCase('es').includes(term));
+  }, [sector, filer, search]);
+
+  /**
+   * Each slicer counted under every other one, never under itself — choosing an
+   * issuer narrows the industries to the ones that issuer files under, while the
+   * industry list keeps offering all of them so the choice can be undone.
+   */
   const sectors = useMemo(() => {
     const counts = new Map<string, number>();
-    for (const filing of filings) counts.set(filing.sector, (counts.get(filing.sector) ?? 0) + 1);
+    for (const filing of filings) {
+      if (!matches(filing, 'sector')) continue;
+      counts.set(filing.sector, (counts.get(filing.sector) ?? 0) + 1);
+    }
     return [...counts.entries()].sort((left, right) => right[1] - left[1]);
-  }, [filings]);
+  }, [filings, matches]);
 
-  /** Issuers offered are only those the sector choice leaves standing. */
   const filers = useMemo(() => {
     const counts = new Map<string, number>();
     for (const filing of filings) {
-      if (sector !== 'TODOS' && filing.sector !== sector) continue;
+      if (!matches(filing, 'filer')) continue;
       counts.set(filing.filer, (counts.get(filing.filer) ?? 0) + 1);
     }
     return [...counts.entries()].sort((left, right) => right[1] - left[1]);
-  }, [filings, sector]);
+  }, [filings, matches]);
 
-  const selected = useMemo(() => {
-    const term = search.trim().toLocaleLowerCase('es');
-    return filings.filter(
-      (filing) =>
-        (sector === 'TODOS' || filing.sector === sector) &&
-        (filer === 'TODOS' || filing.filer === filer) &&
-        (!term ||
-          filing.subject.toLocaleLowerCase('es').includes(term) ||
-          filing.filer.toLocaleLowerCase('es').includes(term)),
-    );
-  }, [filings, sector, filer, search]);
+  const selected = useMemo(
+    () => filings.filter((filing) => matches(filing, null)),
+    [filings, matches],
+  );
 
   const peak = sectors.length ? Math.max(...sectors.map(([, count]) => count)) : 1;
+  /**
+   * Whichever field tells the cards apart leads them.
+   *
+   * Across the register the subject line repeats — a dozen filings called
+   * "Determinaciones de Directorio" — and the issuer is what distinguishes
+   * them. Once a single issuer is chosen that inverts exactly: every card
+   * carries the same name, and the subject is the only thing left that says
+   * which filing this is.
+   */
+  const leadWithSubject = filer !== 'TODOS';
   const issuers = new Set(selected.map((filing) => filing.filer)).size;
   const active =
     (sector === 'TODOS' ? 0 : 1) + (filer === 'TODOS' ? 0 : 1) + (search.trim() ? 1 : 0);
@@ -111,6 +143,7 @@ export function FilingExplorer({ filings }: { filings: CompanyFiling[] }) {
   const query = new URLSearchParams({
     dataset: 'filings',
     ...(sector === 'TODOS' ? {} : { sector }),
+    ...(filer === 'TODOS' ? {} : { emisor: filer }),
     ...(search.trim() ? { buscar: search.trim() } : {}),
   });
 
@@ -124,6 +157,55 @@ export function FilingExplorer({ filings }: { filings: CompanyFiling[] }) {
             {active ? `${active} activo${active === 1 ? '' : 's'}` : 'sin filtro'}
           </span>
         </div>
+
+        {active ? (
+          <div className="rail-sec">
+            <div className="rail-head">
+              <Icon name="capas" size={13} />
+              Selección activa
+            </div>
+            <div className="rail-pills">
+              {sector === 'TODOS' ? null : (
+                <button
+                  type="button"
+                  className="chip chip-on"
+                  onClick={() => setSector('TODOS')}
+                  title="Quitar este filtro"
+                >
+                  <Icon name={SECTOR_ICON[sector] ?? 'cajas'} size={12} />
+                  {SECTOR_LABEL[sector] ?? sector} ×
+                </button>
+              )}
+              {filer === 'TODOS' ? null : (
+                <button
+                  type="button"
+                  className="chip chip-on"
+                  onClick={() => setFiler('TODOS')}
+                  title={`${filer} — tocá para quitar este filtro`}
+                >
+                  <Icon name="edificio" size={12} />
+                  {shortName(filer)} ×
+                </button>
+              )}
+              {search.trim() ? (
+                <button type="button" className="chip chip-on" onClick={() => setSearch('')}>
+                  <Icon name="buscar" size={12} />«{search.trim()}» ×
+                </button>
+              ) : null}
+              <button
+                type="button"
+                className="chip"
+                onClick={() => {
+                  setSector('TODOS');
+                  setFiler('TODOS');
+                  setSearch('');
+                }}
+              >
+                Limpiar todo
+              </button>
+            </div>
+          </div>
+        ) : null}
 
         <div className="rail-sec">
           <div className="rail-head">
@@ -140,7 +222,9 @@ export function FilingExplorer({ filings }: { filings: CompanyFiling[] }) {
           >
             <Icon name="cajas" size={16} />
             <span className="rail-name">Todos los rubros</span>
-            <span className="rail-n">{filings.length}</span>
+            <span className="rail-n">
+              {sectors.reduce((sum, [, count]) => sum + count, 0).toLocaleString('es-BO')}
+            </span>
           </button>
           {sectors.map(([key, count]) => (
             <button
@@ -266,27 +350,18 @@ export function FilingExplorer({ filings }: { filings: CompanyFiling[] }) {
             <div className="tile-head">
               <Icon name="barras" size={17} />
               <h2>Actividad por rubro</h2>
-              <span className="tile-hint">{filings.length} comunicados</span>
+              <span className="tile-hint">
+                {sectors.reduce((sum, [, count]) => sum + count, 0).toLocaleString('es-BO')}{' '}
+                comunicados, sin filtrar por rubro
+              </span>
             </div>
             <div className="barlist">
               {sectors.map(([key, count], index) => (
                 <button
                   key={key}
                   type="button"
-                  className="barlist-row"
-                  onClick={() => {
-                    setSector(sector === key ? 'TODOS' : key);
-                    setFiler('TODOS');
-                  }}
-                  style={{
-                    appearance: 'none',
-                    background: 'none',
-                    border: 'none',
-                    padding: 0,
-                    font: 'inherit',
-                    cursor: 'pointer',
-                    width: '100%',
-                  }}
+                  className={sector === key ? 'barlist-row barlist-row-on' : 'barlist-row'}
+                  onClick={() => setSector(sector === key ? 'TODOS' : key)}
                 >
                   <Icon name={SECTOR_ICON[key] ?? 'cajas'} size={14} />
                   <span className="barlist-name">{SECTOR_LABEL[key] ?? key}</span>
@@ -323,8 +398,17 @@ export function FilingExplorer({ filings }: { filings: CompanyFiling[] }) {
                     <span>{SECTOR_LABEL[filing.sector] ?? filing.sector}</span>
                     <span className="filing-date">{filing.eventDate}</span>
                   </div>
-                  <h4>{filing.subject}</h4>
-                  <p className="filing-filer">{filing.filer}</p>
+                  {leadWithSubject ? (
+                    <>
+                      <p className="filing-kicker">{filing.filer}</p>
+                      <h4>{filing.subject}</h4>
+                    </>
+                  ) : (
+                    <>
+                      <p className="filing-kicker">{filing.subject}</p>
+                      <h4>{filing.filer}</h4>
+                    </>
+                  )}
                   {filing.summary ? <p className="filing-summary">{filing.summary}</p> : null}
                   {isOpen && !filing.summaryIsComplete ? (
                     <p className="filing-partial">
