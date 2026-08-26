@@ -2083,3 +2083,68 @@ button.term-chip:hover {
   max-width: 100%;
   white-space: nowrap;
 }
+
+/* Sources and their caveats ------------------------------------------------ */
+
+/*
+ * A series row leads with what it measures and keeps its code underneath in the
+ * monospace the rest of the report uses for identifiers. The name is what a
+ * reader is scanning for; the code is what they quote when they ask for it.
+ */
+.cell-name {
+  display: block;
+  font-size: 0.82rem;
+}
+
+.cell-code {
+  display: block;
+  font-size: 0.66rem;
+  color: var(--ink-faint);
+  letter-spacing: 0.01em;
+}
+
+/*
+ * The caveats are cards, not a wall of prose: a reader comes here looking for
+ * the one note that applies to the figure they are about to quote, and a
+ * definition list makes them read all six to find it.
+ */
+.note-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: var(--s2);
+}
+
+.note-card {
+  display: grid;
+  grid-template-columns: 34px 1fr;
+  gap: 0.75rem;
+  align-items: start;
+  background: var(--panel);
+  border: 1px solid var(--rule);
+  border-radius: var(--radius);
+  padding: var(--s2) var(--s3);
+}
+
+.note-mark {
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+  background: var(--panel-tint);
+  border: 1px solid var(--rule);
+  color: var(--ink-soft);
+}
+
+.note-card h3 {
+  margin: 0 0 0.3rem;
+  font-size: 0.9rem;
+  line-height: 1.3;
+}
+
+.note-card p {
+  margin: 0;
+  font-size: 0.8rem;
+  line-height: 1.55;
+  color: var(--ink-soft);
+}

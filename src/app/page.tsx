@@ -5,6 +5,7 @@ import { FxExplorer } from '@/components/fx-explorer';
 import { MacroExplorer } from '@/components/macro-explorer';
 import { MarketCards } from '@/components/market-cards';
 import { PressExplorer } from '@/components/press-explorer';
+import { SourcesExplorer } from '@/components/sources-explorer';
 import { Icon } from '@/components/icons';
 import { SummaryExplorer } from '@/components/summary-explorer';
 import type { SummaryFigure } from '@/components/summary-explorer';
@@ -180,59 +181,6 @@ function latestByIndicator(points: MacroPoint[]): MacroPoint[] {
  * What matters about a filing is when it landed relative to the others, which a
  * row in a table hides and a spine down the page makes obvious.
  */
-/**
- * Where every figure comes from, as a table.
- *
- * A list of sources was the wrong shape for it: this is five columns of facts
- * about each series — what it measures, who publishes it, how much of it there
- * is and over what span — and columns that line up let a reader compare them
- * down the page instead of reading each row as a sentence.
- */
-function SourceList({ sources }: { sources: SourceNote[] }) {
-  const total = sources.reduce((sum, source) => sum + source.readings, 0);
-  return (
-    <div className="table-wrap">
-      <table className="grid-table">
-        <thead>
-          <tr>
-            <th>Indicador</th>
-            <th>Publicador</th>
-            <th className="num">Lecturas</th>
-            <th>Desde</th>
-            <th>Hasta</th>
-            <th>Fuente</th>
-          </tr>
-        </thead>
-        <tbody>
-          {sources.map((source) => (
-            <tr key={`${source.indicator}-${source.sourceUrl}`}>
-              <td>
-                <code>{source.indicator}</code>
-              </td>
-              <td>{source.publisher}</td>
-              <td className="num">{source.readings.toLocaleString('es-BO')}</td>
-              <td className="num">{source.firstDay}</td>
-              <td className="num">{source.lastDay}</td>
-              <td>
-                <a href={source.sourceUrl} target="_blank" rel="noreferrer noopener">
-                  abrir
-                </a>
-              </td>
-            </tr>
-          ))}
-        </tbody>
-        <tfoot>
-          <tr>
-            <td colSpan={2}>{sources.length} series</td>
-            <td className="num">{total.toLocaleString('es-BO')}</td>
-            <td colSpan={3} />
-          </tr>
-        </tfoot>
-      </table>
-    </div>
-  );
-}
-
 function Unreadable() {
   return (
     <main>
@@ -483,75 +431,12 @@ export default async function Page() {
           )}
         </section>
 
-        <section className="stack notes">
-          <div className="panel-head">
-            <h2>Fuentes</h2>
-          </div>
-          <SourceList sources={sources} />
-
-          <h2 className="section-gap">Notas metodológicas</h2>
-          <dl>
-            <dt>Los dos lados del paralelo no son una horquilla compra/venta</dt>
-            <dd>
-              La fuente publica dos valores por día bajo las etiquetas <code>buy</code> y{' '}
-              <code>sell</code>.
-              {reversal ? (
-                <>
-                  {' '}
-                  Su orden <strong>se invierte el {reversal}</strong>: antes de esa fecha uno es
-                  sistemáticamente mayor y después el otro. Una horquilla de compra y venta no puede
-                  intercambiarse, así que estas etiquetas no corresponden a la convención boliviana.
-                </>
-              ) : (
-                ' Se reportan tal como las publica la fuente.'
-              )}{' '}
-              Por eso el informe no las traduce, encabeza con el <strong>punto medio</strong> —que
-              no depende de esa distinción— y mide la brecha contra él.
-            </dd>
-
-            <dt>El oficial sí es consistente</dt>
-            <dd>
-              En el tipo de cambio oficial el lado «sell» es mayor o igual al «buy» en toda la
-              serie. Cuando existe el valor único que publica el Banco Central, el informe usa ese;
-              si no, el lado «sell», que es lo que paga quien adquiere dólares.
-            </dd>
-
-            <dt>Valor del día</dt>
-            <dd>
-              Cuando varias plazas cotizan el mismo día, el valor publicado es la{' '}
-              <strong>mediana discreta</strong>: resiste que una plaza se desvíe y devuelve un
-              precio efectivamente cotizado en lugar de un valor intermedio que nadie ofreció.
-            </dd>
-
-            <dt>Promedio diario frente a lectura puntual</dt>
-            <dd>
-              La serie anterior al inicio de la recolección diaria es un{' '}
-              <strong>promedio diario</strong> de las cotizaciones intradía; desde que el recolector
-              opera, cada lectura es el precio <strong>en el momento</strong> de la consulta. Son
-              estadísticos distintos y no se promedian entre sí.
-            </dd>
-
-            <dt>Frecuencias separadas</dt>
-            <dd>
-              Una cifra anual y un precio cotizado a diario viven en modelos de lectura distintos,
-              de modo que ningún gráfico puede ponerlas en el mismo eje ni promediarlas.
-            </dd>
-
-            <dt>Trazabilidad y sus límites</dt>
-            <dd>
-              Cada lectura cita su fuente y conserva el hash del documento del que se obtuvo. En la
-              serie histórica del <strong>oficial</strong> y en los hechos relevantes, la cita es el
-              fragmento literal del que se leyó el dato. En la del <strong>paralelo</strong>,
-              cargada antes de esa mejora, es una reformulación de los valores y no un extracto
-              literal: sigue siendo trazable hasta el documento y su hash, pero no al nivel de la
-              cita.
-            </dd>
-          </dl>
-
-          <p className="panel-sub section-gap">
-            {observatory.readingCount.toLocaleString('es-BO')} puntos de serie leídos del núcleo del
-            observatorio.
-          </p>
+        <section className="stack">
+          <SourcesExplorer
+            sources={sources}
+            readingCount={observatory.readingCount}
+            reversal={reversal}
+          />
         </section>
       </Tabs>
     </main>

@@ -161,28 +161,52 @@ export interface SourceNote {
   publisher: string;
   sourceUrl: string;
   indicator: string;
+  /** What the series measures, as its publisher names it. */
+  name: string | null;
+  unit: string | null;
+  frequency: string | null;
   readings: number;
+  /** How many distinct documents this series was read from. */
+  documents: number;
   firstDay: string;
   lastDay: string;
 }
 
-/** Where each series comes from, so a reader can go and check it. */
+/**
+ * Where each series comes from, so a reader can go and check it.
+ *
+ * One row per series and publisher, not per document. Grouping by the address
+ * as well listed the official rate three times — once per capture the collector
+ * made — which reads as three different series rather than as one series with
+ * three receipts. The receipt count is kept as its own column, because how many
+ * documents a series was assembled from is a fact about how much it can be
+ * trusted, and the row still links to one of them.
+ */
 export async function readSources(): Promise<SourceNote[]> {
   const { rows } = await pool().query<{
     publisher: string;
     source_url: string;
     indicator_code: string;
+    indicator_name: string | null;
+    unit: string | null;
+    frequency: string | null;
     readings: string;
+    documents: string;
     first_day: string;
     last_day: string;
   }>(
-    `SELECT publisher, source_url, indicator_code,
+    `SELECT publisher, indicator_code,
+            max(indicator_name) AS indicator_name,
+            max(unit) AS unit,
+            max(frequency) AS frequency,
             count(*)::text AS readings,
+            count(DISTINCT source_url)::text AS documents,
+            min(source_url) AS source_url,
             min(event_date)::text AS first_day,
             max(event_date)::text AS last_day
      FROM read_models.economic_indicator_reading
      WHERE status = 'PUBLISHED' AND NOT superseded
-     GROUP BY publisher, source_url, indicator_code
+     GROUP BY publisher, indicator_code
      ORDER BY indicator_code, publisher`,
   );
 
@@ -190,7 +214,11 @@ export async function readSources(): Promise<SourceNote[]> {
     publisher: row.publisher,
     sourceUrl: row.source_url,
     indicator: row.indicator_code,
+    name: row.indicator_name,
+    unit: row.unit,
+    frequency: row.frequency,
     readings: Number(row.readings),
+    documents: Number(row.documents),
     firstDay: row.first_day,
     lastDay: row.last_day,
   }));
