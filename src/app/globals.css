@@ -315,7 +315,7 @@ h2 {
 
 .figures {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(196px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(196px, 100%), 1fr));
   gap: var(--s2);
 }
 
@@ -434,7 +434,7 @@ h2 {
 
 .card-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(300px, 100%), 1fr));
   gap: var(--s2);
 }
 
@@ -898,7 +898,7 @@ code {
 
 .stat-strip {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(158px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(158px, 100%), 1fr));
   gap: 1px;
   background: var(--rule);
   border: 1px solid var(--rule);
@@ -936,7 +936,7 @@ code {
 
 .grid-two {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(360px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(360px, 100%), 1fr));
   gap: var(--s2);
 }
 
@@ -1234,7 +1234,7 @@ code {
 
 .brief-points {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(190px, 100%), 1fr));
   gap: var(--s2);
   margin-top: 0.7rem;
 }
@@ -1314,8 +1314,18 @@ code {
 }
 
 @media (max-width: 900px) {
+  /*
+   * Stacked, the two panes must still be told to fill the column.
+   *
+   * `.workspace` aligns its items to the start so the rail does not stretch to
+   * the height of the report beside it. Turned on its side that same rule sizes
+   * both panes to their CONTENT width instead of the screen's, and one wide
+   * table then drags the whole page — headings, intro card and all — off the
+   * right edge. Stretching is only correct once the axis has flipped.
+   */
   .workspace {
     flex-direction: column;
+    align-items: stretch;
   }
   .rail {
     width: 100%;
@@ -1339,7 +1349,7 @@ code {
 
 .filing-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(320px, 100%), 1fr));
   gap: var(--s2);
 }
 
@@ -1504,7 +1514,7 @@ code {
 
 .market-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(230px, 100%), 1fr));
   gap: var(--s2);
 }
 
@@ -1593,7 +1603,7 @@ code {
 
 .tone-strip {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(132px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(132px, 100%), 1fr));
   gap: 1px;
   background: var(--rule);
   border: 1px solid var(--rule);
@@ -1705,8 +1715,19 @@ code {
  * letting the page do it.
  */
 
+/*
+ * A wide table scrolls inside its own box; the page never scrolls sideways.
+ *
+ * `overflow-x` alone does not achieve that: as a flex item the wrapper keeps
+ * `min-width: auto`, so it grows to the table's intrinsic width and takes the
+ * whole column with it. On a phone that made the sources page 1,075 px wide
+ * and every other block on it — the intro card, the headings — drift off the
+ * right edge. The floor keeps the columns legible while they scroll.
+ */
 .table-wrap {
   overflow-x: auto;
+  min-width: 0;
+  max-width: 100%;
   border: 1px solid var(--rule);
   border-radius: var(--radius);
   background: var(--panel);
@@ -1715,6 +1736,7 @@ code {
 
 .grid-table {
   width: 100%;
+  min-width: 660px;
   border-collapse: collapse;
   font-size: 0.84rem;
 }
@@ -2110,7 +2132,7 @@ button.term-chip:hover {
  */
 .note-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(320px, 100%), 1fr));
   gap: var(--s2);
 }
 
@@ -2147,4 +2169,70 @@ button.term-chip:hover {
   font-size: 0.8rem;
   line-height: 1.55;
   color: var(--ink-soft);
+}
+
+/*
+ * On a phone the sources table keeps the columns that answer "what is this and
+ * can I check it". The frequency and the document count are context a reader
+ * can get from the rail and from the wider view; taking them out buys back the
+ * width the name needs.
+ */
+@media (max-width: 720px) {
+  .grid-table {
+    min-width: 460px;
+  }
+  .grid-table th:nth-child(3),
+  .grid-table td:nth-child(3),
+  .grid-table th:nth-child(5),
+  .grid-table td:nth-child(5) {
+    display: none;
+  }
+}
+
+/*
+ * Controls a thumb can actually hit.
+ *
+ * Tapping a bar, a term or a tone cell IS how this report is filtered, so on a
+ * phone those cannot be 24 px tall — a miss selects the row above and the
+ * reader has to undo a filter they never meant to set. The density that makes
+ * a list of fourteen sectors readable on a laptop is the wrong density for a
+ * thumb, so it is raised here rather than everywhere.
+ */
+@media (max-width: 720px) {
+  button.barlist-row {
+    padding-block: 0.5rem;
+  }
+
+  .term-map {
+    gap: 0.45rem;
+  }
+
+  button.term-chip {
+    padding-block: 0.42rem;
+  }
+
+  .filing-toggle,
+  .filing-foot a {
+    padding-block: 0.35rem;
+  }
+
+  .card-toggle {
+    top: -6px;
+    right: -8px;
+    padding: 8px 10px;
+  }
+
+  .rail-item {
+    padding-block: 0.5rem;
+  }
+
+  .chip {
+    padding-block: 0.42rem;
+  }
+
+  /* The one control in each table row; the rows themselves are not tappable. */
+  .grid-table a {
+    display: inline-block;
+    padding-block: 0.4rem;
+  }
 }
