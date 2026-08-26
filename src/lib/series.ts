@@ -712,39 +712,56 @@ export interface PressCube {
  * articles that happens to be on screen — which is what a reader assumes a
  * filter's number means.
  */
-export async function readPressCube(): Promise<PressCube> {
-  const [facts, mentions] = await Promise.all([
-    pool().query<{
-      year: string;
-      tone: string;
-      topic: string;
-      region: string;
-      outlet: string;
-      articles: string;
-    }>(
-      `SELECT left(event_date::text, 4) AS year, tone, topic, region, outlet,
-              count(*)::text AS articles
-       FROM read_models.press_article
-       WHERE status = 'PUBLISHED' AND NOT superseded
-       GROUP BY 1, 2, 3, 4, 5`,
-    ),
-    pool().query<{
-      term: string;
-      label: string;
-      family: string;
-      year: string;
-      tone: string;
-      topic: string;
-      region: string;
-      outlet: string;
-      articles: string;
-    }>(
-      `SELECT term, label, family, left(event_date::text, 4) AS year, tone, topic, region, outlet,
-              count(*)::text AS articles
-       FROM read_models.press_term_mention
-       GROUP BY 1, 2, 3, 4, 5, 6, 7, 8`,
-    ),
-  ]);
+export async function readPressCube(search?: string): Promise<PressCube> {
+  /*
+   * A free-text search cannot be answered from the cross-tabulation — there is
+   * no text in it — so when there is one the cube is rebuilt under it. Leaving
+   * the search out would leave every count on the panel speaking for the whole
+   * corpus while the stories underneath spoke for the search: the figures would
+   * simply be wrong, which is worse than being slow.
+   *
+   * It is done in two scans and never as a join. Joining the vocabulary view to
+   * the article view makes the planner materialise both and pair twenty-two
+   * thousand rows against eight thousand — that query ran for over ten minutes
+   * before it was cancelled. Scanning the articles once yields both the counts
+   * and the ids that matched, and the vocabulary is then read for those ids
+   * alone, which for a real search is a few hundred of them.
+   */
+  const term = search?.trim() ? `%${search.trim()}%` : null;
+
+  const facts = await pool().query<{
+    fact_claim_id: string;
+    year: string;
+    tone: string;
+    topic: string;
+    region: string;
+    outlet: string;
+  }>(
+    `SELECT fact_claim_id, left(event_date::text, 4) AS year, tone, topic, region, outlet
+     FROM read_models.press_article
+     WHERE status = 'PUBLISHED' AND NOT superseded
+     ${term ? `AND (headline ILIKE $1 OR coalesce(summary, '') ILIKE $1)` : ''}`,
+    term ? [term] : [],
+  );
+
+  const mentions = await pool().query<{
+    term: string;
+    label: string;
+    family: string;
+    year: string;
+    tone: string;
+    topic: string;
+    region: string;
+    outlet: string;
+    articles: string;
+  }>(
+    `SELECT term, label, family, left(event_date::text, 4) AS year, tone, topic, region, outlet,
+            count(*)::text AS articles
+     FROM read_models.press_term_mention
+     ${term ? 'WHERE fact_claim_id = ANY($1::uuid[])' : ''}
+     GROUP BY 1, 2, 3, 4, 5, 6, 7, 8`,
+    term ? [facts.rows.map((row) => row.fact_claim_id)] : [],
+  );
 
   /** Assigns each distinct value an index, in first-seen order. */
   const dictionary = (): { of: (value: string) => number; values: string[] } => {
@@ -770,14 +787,22 @@ export async function readPressCube(): Promise<PressCube> {
   const termIndex = new Map<string, number>();
   const terms: Array<{ term: string; label: string; family: string }> = [];
 
-  const cells = facts.rows.map((row) => [
-    years.of(row.year),
-    tones.of(row.tone),
-    topics.of(row.topic),
-    regions.of(row.region),
-    outlets.of(row.outlet),
-    Number(row.articles),
-  ]);
+  /** One cell per distinct combination, tallied from the rows just read. */
+  const tally = new Map<string, number[]>();
+  for (const row of facts.rows) {
+    const cell = [
+      years.of(row.year),
+      tones.of(row.tone),
+      topics.of(row.topic),
+      regions.of(row.region),
+      outlets.of(row.outlet),
+    ];
+    const key = cell.join(':');
+    const held = tally.get(key);
+    if (held) held[5] = (held[5] ?? 0) + 1;
+    else tally.set(key, [...cell, 1]);
+  }
+  const cells = [...tally.values()];
 
   const termCells = mentions.rows.map((row) => {
     let index = termIndex.get(row.term);

@@ -165,7 +165,25 @@ export function PressExplorer({
   const [selection, setSelection] = useState<PressSelection>(NO_SELECTION);
   const [search, setSearch] = useState('');
   const [articles, setArticles] = useState<PressArticle[]>(initialArticles);
+  /**
+   * The cross-tabulation every visual is counted from.
+   *
+   * It is the whole corpus until the reader searches, and there is no text in
+   * it to search — so a searching request brings back a cube rebuilt under the
+   * same predicate and it takes over. Without that the tone strip, the years
+   * and the vocabulary all keep reporting the corpus while the stories below
+   * report the search, and the figures on the page are simply wrong.
+   */
+  const [searchCube, setSearchCube] = useState<PressCube | null>(null);
   const [loading, setLoading] = useState(false);
+  /**
+   * Whether the last request failed.
+   *
+   * A failed request used to render as an empty result: zero stories under a
+   * count of zero, which reads as "there is nothing here" when what happened is
+   * "we could not find out". The panel says which.
+   */
+  const [failed, setFailed] = useState(false);
   const [open, setOpen] = useState<ReadonlySet<string>>(() => new Set());
 
   const toggle = (id: string) =>
@@ -178,12 +196,13 @@ export function PressExplorer({
   const pick = (dimension: keyof PressSelection, value: string): void =>
     setSelection((current) => ({ ...current, [dimension]: value }));
 
-  const byTopic = useMemo(() => countsFor(cube, selection, 'topic'), [cube, selection]);
-  const byOutlet = useMemo(() => countsFor(cube, selection, 'outlet'), [cube, selection]);
-  const total = useMemo(() => totalFor(cube, selection), [cube, selection]);
+  const counting = searchCube ?? cube;
+  const byTopic = useMemo(() => countsFor(counting, selection, 'topic'), [counting, selection]);
+  const byOutlet = useMemo(() => countsFor(counting, selection, 'outlet'), [counting, selection]);
+  const total = useMemo(() => totalFor(counting, selection), [counting, selection]);
   const economicTotal = useMemo(
-    () => totalFor(cube, { ...selection, topic: ECONOMIC_TOPICS }),
-    [cube, selection],
+    () => totalFor(counting, { ...selection, topic: ECONOMIC_TOPICS }),
+    [counting, selection],
   );
 
   const topics = [...byTopic.entries()]
@@ -202,23 +221,40 @@ export function PressExplorer({
    * rather than allowed to land after it.
    */
   const generation = useRef(0);
+  const searching = search.trim().length > 0;
   useEffect(() => {
     const mine = ++generation.current;
     setLoading(true);
     const timer = setTimeout(() => {
-      fetch(`/api/prensa?${address}`)
-        .then((response) => response.json() as Promise<{ articles: PressArticle[] }>)
+      fetch(`/api/prensa?${address}${searching ? '&cubo=1' : ''}`)
+        .then(
+          (response) =>
+            response.json() as Promise<{
+              articles: PressArticle[];
+              cube: PressCube | null;
+              error?: string;
+            }>,
+        )
         .then((page) => {
           if (mine !== generation.current) return;
-          setArticles(page.articles ?? []);
+          // A search whose counts could not be rebuilt would leave every visual
+          // reporting the corpus while the cards report the search.
+          const broken = Boolean(page.error) || (searching && !page.cube);
+          setFailed(broken);
+          if (!broken) {
+            setArticles(page.articles ?? []);
+            setSearchCube(searching ? (page.cube ?? null) : null);
+          }
           setLoading(false);
         })
         .catch(() => {
-          if (mine === generation.current) setLoading(false);
+          if (mine !== generation.current) return;
+          setFailed(true);
+          setLoading(false);
         });
     }, 180);
     return () => clearTimeout(timer);
-  }, [address]);
+  }, [address, searching]);
 
   const active = activeCount(selection, search);
   const chips = chipsFor(selection, cube.terms);
@@ -235,13 +271,18 @@ export function PressExplorer({
           </span>
         </div>
 
-        {chips.length ? (
+        {chips.length || search.trim() ? (
           <div className="rail-sec">
             <div className="rail-head">
               <Icon name="capas" size={13} />
               Selección activa
             </div>
             <div className="rail-pills">
+              {search.trim() ? (
+                <button type="button" className="chip chip-on" onClick={() => setSearch('')}>
+                  <Icon name="buscar" size={12} />«{search.trim()}» ×
+                </button>
+              ) : null}
               {chips.map((chip) => (
                 <button
                   key={`${chip.dimension}-${chip.value}`}
@@ -415,7 +456,7 @@ export function PressExplorer({
           </div>
         </div>
 
-        <PressPulse cube={cube} selection={selection} span={span} onPick={pick} />
+        <PressPulse cube={counting} selection={selection} span={span} onPick={pick} />
 
         {topics.length > 1 ? (
           <div className="panel">
@@ -453,6 +494,13 @@ export function PressExplorer({
                 );
               })}
             </div>
+          </div>
+        ) : null}
+
+        {failed ? (
+          <div className="callout callout-warn">
+            <Icon name="campana" size={14} /> No se pudo consultar esta selección, así que la página
+            no muestra cifras que no pudo verificar. Las de arriba son de la selección anterior.
           </div>
         ) : null}
 
@@ -499,9 +547,18 @@ export function PressExplorer({
           </div>
         ) : (
           <div className="callout">
-            {loading
-              ? 'Buscando las notas de esta selección…'
-              : 'Ninguna nota coincide con esta selección.'}
+            {loading ? (
+              'Buscando las notas de esta selección…'
+            ) : search.trim() ? (
+              <>
+                Ninguna nota contiene «{search.trim()}» con los demás filtros puestos.{' '}
+                <button type="button" className="callout-link" onClick={() => setSearch('')}>
+                  Quitar la búsqueda
+                </button>
+              </>
+            ) : (
+              'Ninguna nota coincide con esta selección.'
+            )}
           </div>
         )}
 
