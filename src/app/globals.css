@@ -2259,3 +2259,48 @@ button.term-chip:hover {
   background: color-mix(in srgb, var(--up) 6%, var(--panel));
   color: var(--ink);
 }
+
+/*
+ * A fact is not a slicer.
+ *
+ * The coverage rows looked exactly like the filter rows beside them — same
+ * icon, same name, same figure on the right — so a reader clicked them and
+ * nothing happened. They keep the shape, because the shape is what makes a
+ * column of figures readable, and drop the affordances that promised a click.
+ */
+.rail-fact {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  width: 100%;
+  padding: 0.34rem 0.2rem;
+  cursor: default;
+  color: var(--ink-soft);
+}
+
+.rail-fact + .rail-fact {
+  border-top: 1px solid var(--rule-soft, var(--rule));
+}
+
+.rail-fact .rail-name {
+  flex: 1 1 auto;
+  font-size: 0.78rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.rail-fact .rail-n {
+  font-family: var(--mono);
+  font-size: 0.74rem;
+  font-variant-numeric: tabular-nums;
+  color: var(--ink);
+}
+
+.rail-note {
+  margin: 0.5rem 0 0;
+  font-family: var(--mono);
+  font-size: 0.68rem;
+  color: var(--ink-faint);
+  text-align: center;
+}

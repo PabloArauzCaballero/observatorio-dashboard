@@ -466,7 +466,8 @@ export function SourcesExplorer({
         </div>
 
         <p className="panel-sub">
-          {readingCount.toLocaleString('es-BO')} puntos de serie leídos del núcleo del observatorio.
+          El núcleo del observatorio guarda {readingCount.toLocaleString('es-BO')} puntos de serie
+          en total, con o sin filtro.
         </p>
       </div>
     </div>

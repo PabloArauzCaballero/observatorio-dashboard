@@ -93,6 +93,18 @@ export function SummaryExplorer({
     [shown],
   );
 
+  /**
+   * What the chosen window contains, said where the window is chosen.
+   *
+   * The period slicer sat above a pane that never reported back: a reader could
+   * pick "90 días" and the rail said nothing about what those ninety days held.
+   * The span, the extremes and the movement across them are the first four
+   * things anyone asks of a window, and they cost nothing to state.
+   */
+  const first = shown.at(0);
+  const last = shown.at(-1);
+  const move = first && last ? last.gapPercent - first.gapPercent : null;
+
   return (
     <div className="workspace">
       <aside className="rail">
@@ -121,13 +133,56 @@ export function SummaryExplorer({
           </div>
         </div>
 
+        {first && last ? (
+          <div className="rail-sec">
+            <div className="rail-head">
+              <Icon name="area" size={13} />
+              En esta ventana
+            </div>
+            <div className="rail-fact">
+              <Icon name="calendario" size={16} />
+              <span className="rail-name">Jornadas</span>
+              <span className="rail-n">{shown.length.toLocaleString('es-BO')}</span>
+            </div>
+            <div className="rail-fact">
+              <Icon name="tendencia" size={16} />
+              <span className="rail-name">Máxima</span>
+              <span className="rail-n">{peak ? percent(peak.gapPercent) : '—'}</span>
+            </div>
+            <div className="rail-fact">
+              <Icon name="area" size={16} />
+              <span className="rail-name">Mínima</span>
+              <span className="rail-n">{trough ? percent(trough.gapPercent) : '—'}</span>
+            </div>
+            <div className="rail-fact">
+              <Icon name="pulso" size={16} />
+              <span className="rail-name">Movimiento</span>
+              <span
+                className={
+                  move === null ? 'rail-n' : move >= 0 ? 'rail-n delta-up' : 'rail-n delta-down'
+                }
+              >
+                {move === null
+                  ? '—'
+                  : `${move > 0 ? '+' : ''}${move.toLocaleString('es-BO', {
+                      minimumFractionDigits: 1,
+                      maximumFractionDigits: 1,
+                    })} pts`}
+              </span>
+            </div>
+            <p className="rail-note">
+              {first.date} → {last.date}
+            </p>
+          </div>
+        ) : null}
+
         <div className="rail-sec">
           <div className="rail-head">
             <Icon name="capas" size={13} />
-            Cobertura
+            Lo que guarda el observatorio
           </div>
           {coverage.map((row) => (
-            <div className="rail-item" key={row.label} style={{ cursor: 'default' }}>
+            <div className="rail-fact" key={row.label}>
               <Icon name={row.icon} size={16} />
               <span className="rail-name">{row.label}</span>
               <span className="rail-n">{row.count}</span>

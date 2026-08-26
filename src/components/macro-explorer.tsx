@@ -33,6 +33,7 @@ const SECTOR_LABEL: Record<string, string> = {
   MONETARIO: 'Monetario y financiero',
   DEUDA: 'Deuda externa',
   SOCIAL: 'Social y laboral',
+  CAMBIARIO: 'Tipo de cambio',
   OTROS: 'Otros',
 };
 
@@ -45,6 +46,7 @@ const SECTOR_ICON: Record<string, IconName> = {
   MONETARIO: 'monedas',
   DEUDA: 'balanza',
   SOCIAL: 'personas',
+  CAMBIARIO: 'balanza',
   OTROS: 'cajas',
 };
 
@@ -57,6 +59,7 @@ const SECTOR_TONE: Record<string, string> = {
   MONETARIO: 'var(--gap)',
   DEUDA: 'var(--up)',
   SOCIAL: 'var(--down)',
+  CAMBIARIO: 'var(--parallel)',
   OTROS: 'var(--ink-soft)',
 };
 
@@ -96,9 +99,29 @@ export function MacroExplorer({ points }: { points: MacroPoint[] }) {
   const minYear = years.length ? Math.min(...years) : 1960;
   const maxYear = years.length ? Math.max(...years) : 2025;
 
+  /** Whether a reading survives every slicer but the one being counted. */
+  const matches = useMemo(() => {
+    const term = search.trim().toLocaleLowerCase('es');
+    return (point: MacroPoint, except: 'sector' | null): boolean =>
+      (except === 'sector' || sector === 'TODOS' || point.sector === sector) &&
+      Number(point.period) >= from &&
+      (!term ||
+        (point.name ?? '').toLocaleLowerCase('es').includes(term) ||
+        point.indicatorCode.toLocaleLowerCase('es').includes(term));
+  }, [sector, search, from]);
+
+  /**
+   * Industries counted under the search and the period, never under themselves.
+   *
+   * Counting them over the whole catalogue instead left the pane offering
+   * "Sectorial 20" while a search for «reservas» had narrowed the panel to two
+   * series — a number that describes nothing the reader is looking at, and that
+   * sends them clicking into an empty result.
+   */
   const sectors = useMemo(() => {
     const counts = new Map<string, Set<string>>();
     for (const point of points) {
+      if (!matches(point, 'sector')) continue;
       const codes = counts.get(point.sector) ?? new Set<string>();
       codes.add(point.indicatorCode);
       counts.set(point.sector, codes);
@@ -106,22 +129,25 @@ export function MacroExplorer({ points }: { points: MacroPoint[] }) {
     return [...counts.entries()]
       .map(([key, codes]): [string, number] => [key, codes.size])
       .sort((left, right) => right[1] - left[1]);
-  }, [points]);
+  }, [points, matches]);
 
-  const total = useMemo(() => new Set(points.map((point) => point.indicatorCode)).size, [points]);
+  /** How many series the other slicers leave standing, whatever industry is on. */
+  const total = useMemo(
+    () =>
+      new Set(
+        points.filter((point) => matches(point, 'sector')).map((point) => point.indicatorCode),
+      ).size,
+    [points, matches],
+  );
+
+  /** How many the catalogue holds at all, so the pane can say "of". */
+  const catalogue = useMemo(
+    () => new Set(points.map((point) => point.indicatorCode)).size,
+    [points],
+  );
 
   /** The selection, applied once and reused by the cards and the download. */
-  const selected = useMemo(() => {
-    const term = search.trim().toLocaleLowerCase('es');
-    return points.filter(
-      (point) =>
-        (sector === 'TODOS' || point.sector === sector) &&
-        Number(point.period) >= from &&
-        (!term ||
-          (point.name ?? '').toLocaleLowerCase('es').includes(term) ||
-          point.indicatorCode.toLocaleLowerCase('es').includes(term)),
-    );
-  }, [points, sector, search, from]);
+  const selected = useMemo(() => points.filter((point) => matches(point, null)), [points, matches]);
 
   /** Latest published year of each indicator that survived the filter. */
   const cards = useMemo(() => {
@@ -227,7 +253,7 @@ export function MacroExplorer({ points }: { points: MacroPoint[] }) {
         </div>
 
         <div className="rail-foot">
-          Selección: <b>{cards.length}</b> de <b>{total}</b> indicadores
+          Selección: <b>{cards.length}</b> de <b>{catalogue}</b> indicadores
           <br />
           <b>{selected.length.toLocaleString('es-BO')}</b> observaciones anuales
           <br />
