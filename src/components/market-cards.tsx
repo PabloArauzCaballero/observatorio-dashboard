@@ -30,7 +30,7 @@ const TONE: Record<string, { accent: string; tint: string; icon: IconName }> = {
 const CAPTION: Record<string, string> = {
   XAU_USD: 'Token redimible por una onza asignada; sigue al contado',
   BTC_USD: 'Cierre diario en dólares',
-  USDT_USD: 'Su desvío del dólar mide tensión en el canal cripto',
+  USDT_USD: 'Dos estables anclados al dólar; su desvío mide tensión en el canal cripto',
 };
 
 const number = (value: number, decimals: number): string =>
@@ -49,7 +49,7 @@ function headline(series: MarketSeries): string {
 function deviation(series: MarketSeries): string | null {
   if (series.code !== 'USDT_USD') return null;
   const points = (series.latest - 1) * 10_000;
-  return `${points > 0 ? '+' : ''}${number(points, 1)} pb del dólar`;
+  return `${points > 0 ? '+' : ''}${number(points, 1)} pb entre estables`;
 }
 
 export function MarketCards({ markets }: { markets: MarketSeries[] }) {
