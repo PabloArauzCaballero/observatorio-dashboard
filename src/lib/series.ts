@@ -584,3 +584,73 @@ export async function readPressTerms(): Promise<TermMention[]> {
     share: Number(row.mentions) / total,
   }));
 }
+
+export interface ToneYear {
+  year: string;
+  tone: string;
+  articles: number;
+}
+
+export interface RegionCount {
+  region: string;
+  articles: number;
+}
+
+export interface PressPulseData {
+  total: number;
+  outlets: number;
+  firstDay: string | null;
+  lastDay: string | null;
+  toneByYear: ToneYear[];
+  regions: RegionCount[];
+}
+
+/**
+ * The shape of the whole corpus, counted where it lives.
+ *
+ * Twenty thousand articles do not travel to a browser to be tallied there: the
+ * database groups them and the page receives the counts. The register below
+ * still shows individual stories, but a page of them rather than all of them,
+ * because nobody reads twenty thousand cards and sending them costs seconds.
+ */
+export async function readPressPulse(): Promise<PressPulseData> {
+  const [summary, tones, regions] = await Promise.all([
+    pool().query<{ total: string; outlets: string; first_day: string; last_day: string }>(
+      `SELECT count(*)::text AS total, count(DISTINCT outlet)::text AS outlets,
+              min(event_date)::text AS first_day, max(event_date)::text AS last_day
+       FROM read_models.press_article
+       WHERE status = 'PUBLISHED' AND NOT superseded`,
+    ),
+    pool().query<{ year: string; tone: string; articles: string }>(
+      `SELECT left(event_date::text, 4) AS year, tone, count(*)::text AS articles
+       FROM read_models.press_article
+       WHERE status = 'PUBLISHED' AND NOT superseded
+       GROUP BY 1, 2
+       ORDER BY 1, 3 DESC`,
+    ),
+    pool().query<{ region: string; articles: string }>(
+      `SELECT region, count(*)::text AS articles
+       FROM read_models.press_article
+       WHERE status = 'PUBLISHED' AND NOT superseded
+       GROUP BY 1
+       ORDER BY 2 DESC`,
+    ),
+  ]);
+
+  const head = summary.rows[0];
+  return {
+    total: Number(head?.total ?? 0),
+    outlets: Number(head?.outlets ?? 0),
+    firstDay: head?.first_day ?? null,
+    lastDay: head?.last_day ?? null,
+    toneByYear: tones.rows.map((row) => ({
+      year: row.year,
+      tone: row.tone,
+      articles: Number(row.articles),
+    })),
+    regions: regions.rows.map((row) => ({
+      region: row.region,
+      articles: Number(row.articles),
+    })),
+  };
+}

@@ -16,6 +16,7 @@ import {
   readCompanyFilings,
   readMarkets,
   readPressArticles,
+  readPressPulse,
   readPressTerms,
   readGap,
   readMacroAnnual,
@@ -26,6 +27,7 @@ import type {
   CompanyFiling,
   MarketSeries,
   PressArticle,
+  PressPulseData,
   TermMention,
   DailyPoint,
   GapPoint,
@@ -224,17 +226,20 @@ export default async function Page() {
   let press: PressArticle[];
   let markets: MarketSeries[];
   let pressTerms: TermMention[];
+  let pressPulse: PressPulseData;
   try {
-    [observatory, gap, sources, macro, filings, press, markets, pressTerms] = await Promise.all([
-      readObservatory(),
-      readGap(),
-      readSources(),
-      readMacroAnnual(),
-      readCompanyFilings(),
-      readPressArticles(),
-      readMarkets(),
-      readPressTerms(),
-    ]);
+    [observatory, gap, sources, macro, filings, press, markets, pressTerms, pressPulse] =
+      await Promise.all([
+        readObservatory(),
+        readGap(),
+        readSources(),
+        readMacroAnnual(),
+        readCompanyFilings(),
+        readPressArticles(),
+        readMarkets(),
+        readPressTerms(),
+        readPressPulse(),
+      ]);
   } catch (error) {
     // The message can carry the host, the user and the port. It belongs in the
     // log, not in a page served to the public.
@@ -430,7 +435,7 @@ export default async function Page() {
 
         <section className="stack">
           {press.length ? (
-            <PressExplorer articles={press} terms={pressTerms} />
+            <PressExplorer articles={press} terms={pressTerms} pulse={pressPulse} />
           ) : (
             <div className="callout">Todavía no hay cobertura de prensa cargada.</div>
           )}

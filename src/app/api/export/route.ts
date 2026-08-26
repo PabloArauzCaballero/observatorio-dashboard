@@ -73,7 +73,7 @@ async function collect(dataset: Dataset, selection: Selection): Promise<Row[]> {
 
   if (dataset === 'prensa') {
     const term = selection.search?.trim().toLocaleLowerCase('es');
-    return (await readPressArticles(3_000))
+    return (await readPressArticles(60_000))
       .filter(
         (article) =>
           (!selection.topic || article.topic === selection.topic) &&

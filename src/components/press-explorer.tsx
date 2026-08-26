@@ -4,7 +4,7 @@ import { useMemo, useState } from 'react';
 import { Icon } from './icons';
 import type { IconName } from './icons';
 import { PressPulse } from './press-pulse';
-import type { PressArticle, TermMention } from '@/lib/series';
+import type { PressArticle, PressPulseData, TermMention } from '@/lib/series';
 
 /**
  * What the Bolivian press published, filtered by outlet and by subject.
@@ -55,9 +55,11 @@ const SHOWN = 40;
 export function PressExplorer({
   articles,
   terms,
+  pulse,
 }: {
   articles: PressArticle[];
   terms: TermMention[];
+  pulse: PressPulseData;
 }) {
   const [topic, setTopic] = useState('ECONOMICOS');
   const [outlet, setOutlet] = useState('TODOS');
@@ -319,7 +321,8 @@ export function PressExplorer({
                 : (TOPIC_LABEL[topic] ?? topic)}
           </h2>
           <span className="tile-hint">
-            {selected.length} nota{selected.length === 1 ? '' : 's'}
+            {selected.length} de {pulse.total.toLocaleString('es-BO')} nota
+            {pulse.total === 1 ? '' : 's'}
           </span>
           <div className="download">
             <a className="download-btn" href={`/api/export?${query.toString()}&format=csv`}>
@@ -332,7 +335,7 @@ export function PressExplorer({
         </div>
 
         <PressPulse
-          articles={articles}
+          pulse={pulse}
           terms={terms}
           tone={tone}
           region={region}
