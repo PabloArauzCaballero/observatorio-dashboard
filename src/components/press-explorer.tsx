@@ -231,9 +231,22 @@ export function PressExplorer({
     [counting, selection],
   );
 
+  /**
+   * Subjects by weight, with the residual last.
+   *
+   * Sorting «Otros» by its count put the bucket that means "no rule claimed
+   * this" second from the top of the pane, above every subject the observatory
+   * can actually name. A residual is not a finding and does not compete for
+   * that place; it is what is left, and it reads last, where a reader looks for
+   * it rather than past it.
+   */
   const topics = [...byTopic.entries()]
     .filter(([, count]) => count > 0)
-    .sort((left, right) => right[1] - left[1]);
+    .sort((left, right) => {
+      if (left[0] === 'OTROS') return 1;
+      if (right[0] === 'OTROS') return -1;
+      return right[1] - left[1];
+    });
   const outlets = [...byOutlet.entries()]
     .filter(([, count]) => count > 0)
     .sort((left, right) => right[1] - left[1]);

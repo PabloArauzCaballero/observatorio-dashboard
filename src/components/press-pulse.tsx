@@ -75,8 +75,14 @@ const TONE: Record<string, { label: string; colour: string; icon: IconName; note
     note: 'se anuncia, se crea, se regula',
   },
   NEUTRO: {
+    /*
+     * The residual is the largest cell on the strip and must not read as a
+     * disabled one. `--rule` is the hairline colour: in dark mode it made the
+     * biggest category look switched off, which says the opposite of what four
+     * notes in ten deserve.
+     */
     label: 'Sin marca',
-    colour: 'var(--rule)',
+    colour: 'var(--ink-faint)',
     icon: 'cajas',
     note: 'ninguna regla del léxico coincidió',
   },
