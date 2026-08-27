@@ -5,6 +5,7 @@ import { MacroChart, YearCandles } from './charts';
 import type { CandlePoint } from './charts';
 import { Icon } from './icons';
 import type { IconName } from './icons';
+import { GLOSSARY, UNIT_MEANING } from '@/lib/indicator-glossary';
 import type { MacroPoint } from '@/lib/series';
 
 /**
@@ -91,6 +92,15 @@ function headline(point: MacroPoint): string {
 }
 
 export function MacroExplorer({ points }: { points: MacroPoint[] }) {
+  /**
+   * Cards or table.
+   *
+   * A card is how you read one indicator; a table is how you compare eighty.
+   * The reader asking "what did every debt series do last year" cannot get that
+   * from eighty little charts, and the answer is not to hide the filters to
+   * make room — it is to lay the same selection out as rows.
+   */
+  const [asTable, setAsTable] = useState(false);
   const [sector, setSector] = useState<string>('TODOS');
   const [search, setSearch] = useState('');
   const [from, setFrom] = useState<number>(1990);
@@ -314,6 +324,22 @@ export function MacroExplorer({ points }: { points: MacroPoint[] }) {
             {cards.length} indicador{cards.length === 1 ? '' : 'es'}
           </span>
           <div className="download">
+            <button
+              type="button"
+              className={asTable ? 'download-btn' : 'download-btn download-btn-on'}
+              onClick={() => setAsTable(false)}
+              aria-pressed={!asTable}
+            >
+              <Icon name="cajas" size={13} /> Tarjetas
+            </button>
+            <button
+              type="button"
+              className={asTable ? 'download-btn download-btn-on' : 'download-btn'}
+              onClick={() => setAsTable(true)}
+              aria-pressed={asTable}
+            >
+              <Icon name="barras" size={13} /> Tabla
+            </button>
             <a className="download-btn" href={`/api/export?${query.toString()}&format=csv`}>
               CSV
             </a>
@@ -323,7 +349,9 @@ export function MacroExplorer({ points }: { points: MacroPoint[] }) {
           </div>
         </div>
 
-        {cards.length ? (
+        {cards.length && asTable ? <MacroTable rows={cards} series={selected} /> : null}
+
+        {cards.length && !asTable ? (
           <div className="card-grid">
             {cards.map((point) => (
               <MacroCard
@@ -333,7 +361,9 @@ export function MacroExplorer({ points }: { points: MacroPoint[] }) {
               />
             ))}
           </div>
-        ) : (
+        ) : null}
+
+        {cards.length ? null : (
           <div className="callout">Ningún indicador coincide con esta selección.</div>
         )}
       </div>
@@ -353,6 +383,9 @@ export function MacroExplorer({ points }: { points: MacroPoint[] }) {
  */
 function MacroCard({ point, series }: { point: MacroPoint; series: MacroPoint[] }) {
   const [candles, setCandles] = useState(false);
+  /** Whether the reader has asked what this indicator actually measures. */
+  const [explained, setExplained] = useState(false);
+  const definition = GLOSSARY[point.indicatorCode];
   const tone = SECTOR_TONE[point.sector] ?? 'var(--ink-soft)';
 
   /** A candle per year: it opens at the year before and closes at this one. */
@@ -375,15 +408,26 @@ function MacroCard({ point, series }: { point: MacroPoint; series: MacroPoint[] 
           <Icon name={SECTOR_ICON[point.sector] ?? 'cajas'} size={12} />{' '}
           {SECTOR_LABEL[point.sector] ?? point.sector}
         </span>
-        <button
-          type="button"
-          className={candles ? 'card-toggle card-toggle-on' : 'card-toggle'}
-          onClick={() => setCandles(!candles)}
-          title={candles ? 'Ver la serie como línea' : 'Ver la variación interanual en velas'}
-          aria-pressed={candles}
-        >
-          <Icon name={candles ? 'linea' : 'velas'} size={16} />
-        </button>
+        <span className="card-tools">
+          <button
+            type="button"
+            className={explained ? 'card-toggle card-toggle-on' : 'card-toggle'}
+            onClick={() => setExplained(!explained)}
+            title={explained ? 'Ocultar la explicación' : '¿Qué mide este indicador?'}
+            aria-pressed={explained}
+          >
+            <Icon name="info" size={16} />
+          </button>
+          <button
+            type="button"
+            className={candles ? 'card-toggle card-toggle-on' : 'card-toggle'}
+            onClick={() => setCandles(!candles)}
+            title={candles ? 'Ver la serie como línea' : 'Ver la variación interanual en velas'}
+            aria-pressed={candles}
+          >
+            <Icon name={candles ? 'linea' : 'velas'} size={16} />
+          </button>
+        </span>
         <h3>{point.name ?? point.indicatorCode}</h3>
         <div className="card-figure">
           <span className="card-value">{headline(point)}</span>
@@ -399,6 +443,45 @@ function MacroCard({ point, series }: { point: MacroPoint; series: MacroPoint[] 
           )}
         </div>
       </header>
+      {explained ? (
+        <div className="card-note">
+          {definition ? (
+            <>
+              <p>
+                <b>Qué mide.</b> {definition.what}
+              </p>
+              <p>
+                <b>Cómo leerlo.</b> {definition.howToRead}
+              </p>
+              {definition.caveat ? (
+                <p className="card-note-caveat">
+                  <Icon name="info" size={12} /> {definition.caveat}
+                </p>
+              ) : null}
+            </>
+          ) : (
+            <p>
+              El observatorio no escribió una definición propia para esta serie. La publica{' '}
+              <b>{point.publisher ?? 'la fuente citada'}</b> bajo el nombre{' '}
+              <b>{point.name ?? point.indicatorCode}</b>, y se mide en{' '}
+              {UNIT_MEANING[point.unit] ?? UNIT_LABEL[point.unit] ?? point.unit}. Preferimos admitir
+              el hueco antes que redactar una explicación que nadie verificó.
+            </p>
+          )}
+          <p className="card-note-source">
+            <code>{point.indicatorCode}</code> ·{' '}
+            {UNIT_MEANING[point.unit] ?? UNIT_LABEL[point.unit] ?? point.unit}
+            {point.sourceUrl ? (
+              <>
+                {' · '}
+                <a href={point.sourceUrl} target="_blank" rel="noreferrer noopener">
+                  ver la fuente
+                </a>
+              </>
+            ) : null}
+          </p>
+        </div>
+      ) : null}
       {candles ? (
         <YearCandles data={ohlc} unit={UNIT_LABEL[point.unit] ?? point.unit} />
       ) : (
@@ -409,5 +492,90 @@ function MacroCard({ point, series }: { point: MacroPoint; series: MacroPoint[] 
         />
       )}
     </article>
+  );
+}
+
+/**
+ * The same selection laid out as rows.
+ *
+ * Every column is a fact the cards already show, put where it can be compared
+ * down the page instead of hunted across eighty tiles: what the series
+ * measures, its industry, the last year published, the figure, what it moved,
+ * and how much history there is behind it. The figures are right-aligned and
+ * tabular so the digits line up, which is the only reason a table beats a grid.
+ *
+ * It scrolls inside its own box, so the page never scrolls sideways and the
+ * filter pane stays where it is — a reader comparing rows still needs to be
+ * able to change what is in them.
+ */
+function MacroTable({ rows, series }: { rows: MacroPoint[]; series: MacroPoint[] }) {
+  const history = new Map<string, { first: string; last: string; count: number }>();
+  for (const point of series) {
+    const held = history.get(point.indicatorCode);
+    if (!held) {
+      history.set(point.indicatorCode, { first: point.period, last: point.period, count: 1 });
+      continue;
+    }
+    held.count += 1;
+    if (point.period < held.first) held.first = point.period;
+    if (point.period > held.last) held.last = point.period;
+  }
+
+  return (
+    <div className="table-wrap">
+      <table className="grid-table">
+        <thead>
+          <tr>
+            <th>Indicador</th>
+            <th>Rubro</th>
+            <th>Último año</th>
+            <th className="num">Valor</th>
+            <th>Unidad</th>
+            <th className="num">Var. anual</th>
+            <th className="num">Años</th>
+            <th>Desde → hasta</th>
+          </tr>
+        </thead>
+        <tbody>
+          {rows.map((point) => {
+            const span = history.get(point.indicatorCode);
+            return (
+              <tr key={point.indicatorCode}>
+                <td>
+                  <span className="cell-name">{point.name ?? point.indicatorCode}</span>
+                  <code className="cell-code">{point.indicatorCode}</code>
+                </td>
+                <td>{SECTOR_LABEL[point.sector] ?? point.sector}</td>
+                <td className="num">{point.period}</td>
+                <td className="num">{headline(point)}</td>
+                <td>{UNIT_LABEL[point.unit] ?? point.unit}</td>
+                <td className="num">
+                  {point.changePercent === null ? (
+                    '—'
+                  ) : (
+                    <span className={point.changePercent >= 0 ? 'delta-up' : 'delta-down'}>
+                      {point.changePercent > 0 ? '+' : ''}
+                      {number(point.changePercent)} %
+                    </span>
+                  )}
+                </td>
+                <td className="num">{span?.count ?? 0}</td>
+                <td className="num">{span ? `${span.first} → ${span.last}` : '—'}</td>
+              </tr>
+            );
+          })}
+        </tbody>
+        <tfoot>
+          <tr>
+            <td colSpan={3}>
+              {rows.length} indicador{rows.length === 1 ? '' : 'es'}
+            </td>
+            <td colSpan={5} className="num">
+              {series.length.toLocaleString('es-BO')} observaciones anuales en la selección
+            </td>
+          </tr>
+        </tfoot>
+      </table>
+    </div>
   );
 }

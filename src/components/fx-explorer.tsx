@@ -144,8 +144,14 @@ function seriesOf(rows: RatePoint[], official: Observation[], choice: SeriesChoi
   return out;
 }
 
-/** Above this many sessions the candles are grouped into weeks to stay legible. */
-const DAILY_LIMIT = 90;
+/**
+ * Above this many sessions the candles are grouped into weeks to stay legible.
+ *
+ * A hundred and twenty, not ninety: «90 días» leaves ninety-one sessions, and a
+ * threshold of ninety turned the one selection the caption tells the reader to
+ * pick into the weekly view it was meant to escape.
+ */
+const DAILY_LIMIT = 120;
 /** And no more weeks than fit with a body a reader can see. */
 const WEEK_LIMIT = 104;
 

@@ -609,7 +609,7 @@ export function YearCandles({ data, unit }: { data: CandlePoint[]; unit: string 
     return <div className="callout">Se necesitan al menos dos años para comparar.</div>;
   }
 
-  const width = data.length * 10;
+  const width = 1000;
   const height = 132;
   const values = data.flatMap((point) => [point.open, point.close]);
   const low = Math.min(...values);
@@ -620,7 +620,7 @@ export function YearCandles({ data, unit }: { data: CandlePoint[]; unit: string 
     height - pad - ((value - low) / span) * (height - pad * 2);
 
   const step = width / data.length;
-  const body = step * 0.6;
+  const body = Math.min(step * 0.6, 20);
   const shown = hover === null ? null : data[hover];
   /*
    * The change the candle draws, stated as the reader reads it. A body is only
@@ -743,15 +743,17 @@ export function DayCandles({ data, unit }: { data: DayCandle[]; unit: string }) 
   }
 
   /*
-   * The drawing space is sized to the number of candles, not to a fixed 100.
+   * A fixed drawing space, and a body that cannot become a slab.
    *
-   * A hundred-unit box stretched across two thousand pixels magnifies every
-   * horizontal length twenty times and every vertical one not at all: rounded
-   * corners smear into ovals, hairlines thicken, and the whole chart reads as a
-   * blurred ribbon. Ten units per candle keeps the stretch near 1:1 at any
-   * width the panel takes.
+   * The box is stretched to whatever width the panel takes, so its own width
+   * decides how much every horizontal length is magnified. Sizing it per candle
+   * made that factor depend on how many there were: thirteen weekly candles
+   * across a wide screen came out as hundred-pixel slabs wider than they were
+   * tall, which is not a candle. A thousand units is close to the panel's real
+   * width, so the stretch stays near 1:1, and the body is capped so a short
+   * selection draws candles rather than blocks.
    */
-  const width = data.length * 10;
+  const width = 1000;
   const height = 260;
   const values = data.flatMap((point) => [point.high, point.low, point.open, point.close]);
   const low = Math.min(...values);

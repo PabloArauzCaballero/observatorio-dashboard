@@ -2536,3 +2536,74 @@ button.term-chip:hover {
   left: var(--s3);
   top: var(--s3);
 }
+
+/* The card's two controls, and what the first one opens ------------------- */
+
+.card-tools {
+  position: absolute;
+  top: -2px;
+  right: -6px;
+  display: inline-flex;
+  gap: 0.15rem;
+}
+
+.card-tools .card-toggle {
+  position: static;
+}
+
+/*
+ * What an indicator actually measures, opened from the card rather than sent
+ * to a glossary page. A reader who has to leave the figure to find out what it
+ * is usually does not come back, and by the time they do they have lost the
+ * comparison they were making.
+ */
+.card-note {
+  margin: 0.6rem 0 0.2rem;
+  padding: 0.7rem 0.8rem;
+  background: var(--panel-tint);
+  border: 1px solid var(--rule);
+  border-left: 3px solid var(--official);
+  border-radius: 9px;
+  animation: rise var(--fast) var(--ease) both;
+}
+
+.card-note p {
+  margin: 0 0 0.45rem;
+  font-size: 0.79rem;
+  line-height: 1.55;
+  color: var(--ink-soft);
+}
+
+.card-note p:last-child {
+  margin-bottom: 0;
+}
+
+.card-note b {
+  color: var(--ink);
+}
+
+.card-note-caveat {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.35rem;
+  color: var(--ink-faint) !important;
+}
+
+.card-note-source {
+  font-family: var(--mono);
+  font-size: 0.68rem !important;
+  color: var(--ink-faint) !important;
+}
+
+/* The view switch sits with the downloads: both act on the same selection. */
+.download-btn-on {
+  background: var(--ink);
+  color: var(--panel);
+  border-color: var(--ink);
+}
+
+.download-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.32rem;
+}
