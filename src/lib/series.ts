@@ -631,6 +631,14 @@ export interface PressPulseData {
   lastDay: string | null;
   toneByYear: ToneYear[];
   regions: RegionCount[];
+  /**
+   * What share of coverage the tone lexicon leaves unmarked, split by how much
+   * text it had to read. An archived row carries only the headline recovered
+   * from its address; a live one carries the standfirst too. The difference is
+   * the honest explanation of the unmarked share, and it is measured rather
+   * than asserted so it cannot drift away from the corpus.
+   */
+  unmarked: { archive: number; live: number; archiveLength: number; liveLength: number };
 }
 
 /**
@@ -642,7 +650,7 @@ export interface PressPulseData {
  * because nobody reads twenty thousand cards and sending them costs seconds.
  */
 export async function readPressPulse(): Promise<PressPulseData> {
-  const [summary, tones, regions] = await Promise.all([
+  const [summary, tones, regions, marks] = await Promise.all([
     pool().query<{ total: string; outlets: string; first_day: string; last_day: string }>(
       `SELECT count(*)::text AS total, count(DISTINCT outlet)::text AS outlets,
               min(event_date)::text AS first_day, max(event_date)::text AS last_day
@@ -663,7 +671,20 @@ export async function readPressPulse(): Promise<PressPulseData> {
        GROUP BY 1
        ORDER BY 2 DESC`,
     ),
+    pool().query<{ archived: boolean; unmarked: string; letters: string }>(
+      `SELECT coalesce(retrieval_method, 'WEB_ARCHIVE') = 'WEB_ARCHIVE' AS archived,
+              round(100.0 * count(*) FILTER (WHERE tone = 'NEUTRO') / count(*), 0)::text
+                AS unmarked,
+              round(avg(length(coalesce(headline, '') || coalesce(summary, ''))))::text
+                AS letters
+       FROM read_models.press_article
+       WHERE status = 'PUBLISHED' AND NOT superseded
+       GROUP BY 1`,
+    ),
   ]);
+
+  const archived = marks.rows.find((row) => row.archived);
+  const live = marks.rows.find((row) => !row.archived);
 
   const head = summary.rows[0];
   return {
@@ -680,6 +701,12 @@ export async function readPressPulse(): Promise<PressPulseData> {
       region: row.region,
       articles: Number(row.articles),
     })),
+    unmarked: {
+      archive: Number(archived?.unmarked ?? 0),
+      live: Number(live?.unmarked ?? 0),
+      archiveLength: Number(archived?.letters ?? 0),
+      liveLength: Number(live?.letters ?? 0),
+    },
   };
 }
 

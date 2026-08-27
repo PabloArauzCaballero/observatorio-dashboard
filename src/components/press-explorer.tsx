@@ -50,6 +50,7 @@ const TOPIC_LABEL: Record<string, string> = {
   INFRAESTRUCTURA: 'Obras e infraestructura',
   SOCIAL: 'Social',
   ACTIVIDAD: 'Actividad económica',
+  CONFLICTO: 'Conflicto social',
   OTROS: 'Otros temas',
 };
 
@@ -66,6 +67,7 @@ const TOPIC_ICON: Record<string, IconName> = {
   INFRAESTRUCTURA: 'casco',
   SOCIAL: 'personas',
   ACTIVIDAD: 'tendencia',
+  CONFLICTO: 'rayo',
   OTROS: 'cajas',
 };
 
@@ -170,7 +172,13 @@ export function PressExplorer({
 }: {
   cube: PressCube;
   initialArticles: PressArticle[];
-  span: { total: number; outlets: number; firstDay: string | null; lastDay: string | null };
+  span: {
+    total: number;
+    outlets: number;
+    firstDay: string | null;
+    lastDay: string | null;
+    unmarked: { archive: number; live: number; archiveLength: number; liveLength: number };
+  };
 }) {
   const [selection, setSelection] = useState<PressSelection>(NO_SELECTION);
   const [search, setSearch] = useState('');

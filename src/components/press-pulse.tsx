@@ -116,7 +116,13 @@ export interface PressPulseProps {
   cube: PressCube;
   selection: PressSelection;
   /** Corpus figures that no selection changes: the span and the mastheads held. */
-  span: { total: number; outlets: number; firstDay: string | null; lastDay: string | null };
+  span: {
+    total: number;
+    outlets: number;
+    firstDay: string | null;
+    lastDay: string | null;
+    unmarked: { archive: number; live: number; archiveLength: number; liveLength: number };
+  };
   onPick: (dimension: keyof PressSelection, value: string) => void;
 }
 
@@ -196,6 +202,13 @@ export function PressPulse({ cube, selection, span, onPick }: PressPulseProps) {
           Léxico, no modelo: cada categoría es una lista de palabras que podés revisar. No lee
           ironía ni distingue quién habla — un titular que cita la alarma de otro cuenta como
           alarma. Tocá una y el resto del tablero se filtra con ella.
+        </p>
+        <p className="panel-sub" style={{ marginBottom: 'var(--s2)' }}>
+          «Sin marca» no quiere decir calma: quiere decir que ninguna palabra de la lista apareció.
+          Depende de cuánto texto hay que leer — <b>{span.unmarked.live} %</b> en las notas que
+          llegan con entradilla ({span.unmarked.liveLength} caracteres de media) y{' '}
+          <b>{span.unmarked.archive} %</b> en las de archivo, que sólo conservan el titular
+          reconstruido de su dirección ({span.unmarked.archiveLength} caracteres).
         </p>
         <div className="tone-strip">
           {tones.map((key) => {

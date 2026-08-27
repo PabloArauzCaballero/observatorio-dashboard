@@ -424,6 +424,7 @@ export default async function Page() {
                 outlets: pressPulse.outlets,
                 firstDay: pressPulse.firstDay,
                 lastDay: pressPulse.lastDay,
+                unmarked: pressPulse.unmarked,
               }}
             />
           ) : (
