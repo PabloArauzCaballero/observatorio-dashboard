@@ -201,7 +201,7 @@ export function SummaryExplorer({
         </div>
       </aside>
 
-      <div className="workspace-main">
+      <div className="workspace-main" id="tablero" tabIndex={-1}>
         <div className="figures">
           {figures.map((figure) => (
             <div className="figure" key={figure.label}>

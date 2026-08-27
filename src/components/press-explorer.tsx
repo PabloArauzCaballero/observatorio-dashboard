@@ -415,6 +415,7 @@ export function PressExplorer({
             <input
               type="search"
               value={search}
+              aria-label="Buscar en el titular de las notas"
               placeholder="diésel, dólar, reservas…"
               onChange={(event) => {
                 setOffset(0);
@@ -433,7 +434,7 @@ export function PressExplorer({
         </div>
       </aside>
 
-      <div className="workspace-main">
+      <div className="workspace-main" id="tablero" tabIndex={-1}>
         <div className="briefcard">
           <span className="briefcard-mark">
             <Icon name="ventana" size={20} />

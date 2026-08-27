@@ -2477,3 +2477,54 @@ button.term-chip:hover {
 .candles svg {
   cursor: crosshair;
 }
+
+/* Keyboard ---------------------------------------------------------------- */
+
+/*
+ * Where the keyboard is.
+ *
+ * Every slicer on this report is a button, and not one of them showed a focus
+ * ring: a reader driving it from the keyboard could press Enter without knowing
+ * what they were about to filter by. `:focus-visible` rather than `:focus`, so
+ * the ring appears for the keyboard and stays out of the way of the mouse.
+ *
+ * The ring is drawn with `outline` and an offset rather than a border, because
+ * a border would move the layout of a bar or a cell every time focus landed on
+ * it. It goes on the elements themselves rather than on a wildcard, so a cell
+ * that already carries a selection ring does not end up with two.
+ */
+:where(button, a[href], input, select, summary, [tabindex]):focus-visible {
+  outline: 2px solid var(--official);
+  outline-offset: 2px;
+  border-radius: 6px;
+}
+
+.tone-cell:focus-visible,
+.filing-card:focus-visible {
+  outline-offset: -2px;
+}
+
+/*
+ * A way past the filters.
+ *
+ * The pane holds a hundred controls, so reaching the first chart from the
+ * keyboard meant a hundred presses of Tab. The link is the first thing focus
+ * lands on and is invisible until it is focused, which is the whole convention.
+ */
+.skip-link {
+  position: absolute;
+  left: -9999px;
+  top: 0;
+  z-index: 40;
+  padding: 0.55rem 0.9rem;
+  background: var(--panel);
+  color: var(--ink);
+  border: 1px solid var(--official);
+  border-radius: 8px;
+  font-size: 0.84rem;
+}
+
+.skip-link:focus {
+  left: var(--s3);
+  top: var(--s3);
+}

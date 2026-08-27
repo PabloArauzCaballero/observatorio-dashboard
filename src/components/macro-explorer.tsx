@@ -216,6 +216,7 @@ export function MacroExplorer({ points }: { points: MacroPoint[] }) {
           <div className="rail-field">
             <input
               type="range"
+              aria-label={`Año desde el que se muestran los indicadores: ${from}`}
               min={minYear}
               max={maxYear - 1}
               value={from}
@@ -246,6 +247,7 @@ export function MacroExplorer({ points }: { points: MacroPoint[] }) {
             <input
               type="search"
               value={search}
+              aria-label="Buscar un indicador por nombre o código"
               placeholder="inflación, reservas, gas…"
               onChange={(event) => setSearch(event.target.value)}
             />
@@ -261,7 +263,7 @@ export function MacroExplorer({ points }: { points: MacroPoint[] }) {
         </div>
       </aside>
 
-      <div className="workspace-main">
+      <div className="workspace-main" id="tablero" tabIndex={-1}>
         <div className="briefcard">
           <span className="briefcard-mark">
             <Icon name="globo" size={20} />

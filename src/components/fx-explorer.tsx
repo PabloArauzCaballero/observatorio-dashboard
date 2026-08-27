@@ -491,7 +491,7 @@ export function FxExplorer({ rows, official, readingCount }: FxExplorerProps) {
           </div>
         </aside>
 
-        <div className="workspace-main">
+        <div className="workspace-main" id="tablero" tabIndex={-1}>
           <div className="strap">
             <Icon name="linea" size={17} />
             <h2>{chosen?.label}</h2>

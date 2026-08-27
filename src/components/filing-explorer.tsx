@@ -288,6 +288,7 @@ export function FilingExplorer({ filings }: { filings: CompanyFiling[] }) {
             <input
               type="search"
               value={search}
+              aria-label="Buscar en el hecho relevante"
               placeholder="calificación, emisión, dividendos…"
               onChange={(event) => {
                 setOffset(0);
@@ -306,7 +307,7 @@ export function FilingExplorer({ filings }: { filings: CompanyFiling[] }) {
         </div>
       </aside>
 
-      <div className="workspace-main">
+      <div className="workspace-main" id="tablero" tabIndex={-1}>
         <div className="briefcard">
           <span className="briefcard-mark">
             <Icon name="edificio" size={20} />

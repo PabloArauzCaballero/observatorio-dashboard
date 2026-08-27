@@ -339,6 +339,10 @@ export default async function Page() {
 
   return (
     <main>
+      {/* The pane holds a hundred controls; this is the way past them. */}
+      <a className="skip-link" href="#tablero">
+        Saltar los filtros e ir al tablero
+      </a>
       <header className="topbar">
         <div className="brand">
           <span className="brand-mark">

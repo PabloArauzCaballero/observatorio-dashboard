@@ -320,6 +320,7 @@ export function SourcesExplorer({
             <input
               type="search"
               value={search}
+              aria-label="Buscar una serie por nombre o código"
               placeholder="reservas, deuda, dólar…"
               onChange={(event) => setSearch(event.target.value)}
             />
@@ -336,7 +337,7 @@ export function SourcesExplorer({
         </div>
       </aside>
 
-      <div className="workspace-main">
+      <div className="workspace-main" id="tablero" tabIndex={-1}>
         <div className="briefcard">
           <span className="briefcard-mark">
             <Icon name="diana" size={20} />
