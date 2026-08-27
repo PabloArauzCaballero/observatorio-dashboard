@@ -1855,8 +1855,14 @@ code {
 
 .candles svg {
   width: 100%;
-  height: 132px;
+  height: 152px;
   display: block;
+  /* The box is sized per candle, so a body is drawn on whole pixels. */
+  shape-rendering: crispEdges;
+}
+
+.candles .candle-wick {
+  shape-rendering: auto;
 }
 
 .candle-axis {
@@ -2451,12 +2457,14 @@ button.term-chip:hover {
   stroke: none;
 }
 
-.candle-up .candle-ring,
-.candle-down .candle-ring {
-  fill: none;
-  stroke: var(--ink);
-  stroke-width: 0.5;
-  vector-effect: non-scaling-stroke;
+/* The hovered candle is lit from behind rather than ringed: at this size a ring
+   is thicker than the body it is meant to outline. */
+.candle-up .candle-lit,
+.candle-down .candle-lit {
+  fill: var(--ink);
+  fill-opacity: 0.07;
+  stroke: none;
+  pointer-events: none;
 }
 
 .candle-tip {

@@ -47,7 +47,13 @@ function createPool(): Pool {
     idleTimeoutMillis: 30_000,
     connectionTimeoutMillis: 10_000,
     // A page that hangs is worse than a page that says it could not read.
-    statement_timeout: 15_000,
+    /*
+     * The corpus-wide cross-tabulation reads thirty-eight thousand claims out
+     * of a view that reassembles each one from its evidence. It is held in
+     * memory once computed, so this ceiling is reached by the first request
+     * after a restart and by nothing else.
+     */
+    statement_timeout: 45_000,
   });
 }
 

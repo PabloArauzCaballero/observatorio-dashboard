@@ -609,7 +609,7 @@ export function YearCandles({ data, unit }: { data: CandlePoint[]; unit: string 
     return <div className="callout">Se necesitan al menos dos años para comparar.</div>;
   }
 
-  const width = 100;
+  const width = data.length * 10;
   const height = 132;
   const values = data.flatMap((point) => [point.open, point.close]);
   const low = Math.min(...values);
@@ -620,7 +620,7 @@ export function YearCandles({ data, unit }: { data: CandlePoint[]; unit: string 
     height - pad - ((value - low) / span) * (height - pad * 2);
 
   const step = width / data.length;
-  const body = Math.max(step * 0.55, 0.6);
+  const body = step * 0.6;
   const shown = hover === null ? null : data[hover];
   /*
    * The change the candle draws, stated as the reader reads it. A body is only
@@ -664,16 +664,15 @@ export function YearCandles({ data, unit }: { data: CandlePoint[]; unit: string 
                 x={centre - body / 2}
                 y={top}
                 width={body}
-                height={Math.max(bottom - top, 0.8)}
-                rx={0.4}
+                height={Math.max(bottom - top, 1.2)}
               />
               {hover === index ? (
                 <rect
-                  x={centre - body / 2 - 0.4}
-                  y={top - 0.4}
-                  width={body + 0.8}
-                  height={Math.max(bottom - top, 0.8) + 0.8}
-                  className="candle-ring"
+                  x={centre - step / 2}
+                  y={0}
+                  width={step}
+                  height={height}
+                  className="candle-lit"
                 />
               ) : null}
             </g>
@@ -743,18 +742,28 @@ export function DayCandles({ data, unit }: { data: DayCandle[]; unit: string }) 
     return <div className="callout">Se necesitan al menos dos jornadas para comparar.</div>;
   }
 
-  const width = 100;
-  const height = 190;
+  /*
+   * The drawing space is sized to the number of candles, not to a fixed 100.
+   *
+   * A hundred-unit box stretched across two thousand pixels magnifies every
+   * horizontal length twenty times and every vertical one not at all: rounded
+   * corners smear into ovals, hairlines thicken, and the whole chart reads as a
+   * blurred ribbon. Ten units per candle keeps the stretch near 1:1 at any
+   * width the panel takes.
+   */
+  const width = data.length * 10;
+  const height = 260;
   const values = data.flatMap((point) => [point.high, point.low, point.open, point.close]);
   const low = Math.min(...values);
   const high = Math.max(...values);
   const span = high - low || 1;
-  const pad = 10;
+  const pad = 14;
   const scale = (value: number): number =>
     height - pad - ((value - low) / span) * (height - pad * 2);
 
   const step = width / data.length;
-  const body = Math.max(step * 0.6, 0.25);
+  /** Square, like a real candle body: a rounded one is a pill at this size. */
+  const body = step * 0.62;
   const shown = hover === null ? null : data[hover];
   const move = shown && shown.open !== 0 ? ((shown.close - shown.open) / shown.open) * 100 : null;
 
@@ -795,9 +804,17 @@ export function DayCandles({ data, unit }: { data: DayCandle[]; unit: string }) 
                 x={centre - body / 2}
                 y={top}
                 width={body}
-                height={Math.max(bottom - top, 0.5)}
-                rx={0.2}
+                height={Math.max(bottom - top, 1.2)}
               />
+              {hover === index ? (
+                <rect
+                  x={centre - step / 2}
+                  y={0}
+                  width={step}
+                  height={height}
+                  className="candle-lit"
+                />
+              ) : null}
             </g>
           );
         })}
@@ -814,7 +831,7 @@ export function DayCandles({ data, unit }: { data: DayCandle[]; unit: string }) 
                 })} %`}
           </span>
           <span className="candle-tip-detail">
-            apertura {number(shown.open, 4)} · cierre {number(shown.close, 4)} · lados{' '}
+            apertura {number(shown.open, 4)} · cierre {number(shown.close, 4)} · rango{' '}
             {number(shown.low, 4)}/{number(shown.high, 4)} {unit}
           </span>
         </div>

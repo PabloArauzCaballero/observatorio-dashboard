@@ -2,7 +2,44 @@ import 'server-only';
 import { pool } from './db';
 
 /**
+ * Corpus-wide aggregates, computed once and held for a while.
+ *
+ * The cross-tabulation and the pulse describe the whole archive and do not
+ * depend on who is asking, but they are read from a view that reassembles every
+ * claim from its evidence — at thirty-eight thousand articles that is seconds
+ * of work, repeated on every page load, and it pushed the landing page past the
+ * statement timeout.
+ *
+ * The corpus only changes when the collectors run and the seeds are loaded, so
+ * a few minutes of staleness costs nothing and the figures stay exact. The
+ * promise itself is cached rather than its result, so ten simultaneous readers
+ * wait on one query instead of starting ten.
+ */
+const HELD = new Map<string, { at: number; value: Promise<unknown> }>();
+const HOLD_MS = 5 * 60 * 1000;
+
+function held<T>(key: string, build: () => Promise<T>): Promise<T> {
+  const now = Date.now();
+  const entry = HELD.get(key);
+  if (entry && now - entry.at < HOLD_MS) return entry.value as Promise<T>;
+  const value = build().catch((error: unknown) => {
+    // A failed read must not be remembered as the answer for five minutes.
+    HELD.delete(key);
+    throw error;
+  });
+  HELD.set(key, { at: now, value });
+  return value;
+}
+
+/**
  * Reads the observatory's daily series and shapes them for reporting.
+ *
+ * The press panels read `press_article_snapshot` rather than the view it
+ * copies. The view is the definition — the thing to read to know how a note was
+ * filed — but it reassembles every claim from its evidence and applies the
+ * whole lexicon on each query, which at thirty-eight thousand notes is nine
+ * seconds. The snapshot is that same output, indexed, rebuilt when a collection
+ * or a seed load ends. See ADR 0020.
  *
  * Every figure the dashboard shows comes from `read_models`, the contract the
  * core publishes for analysis. Nothing is recomputed here that the database
@@ -470,7 +507,7 @@ export async function readPressArticles(limit = 1_000): Promise<PressArticle[]> 
     `SELECT fact_claim_id, event_date::text AS event_date, published_at, outlet, domain,
             section, headline, summary, article_url, topic, tone, region,
             retrieval_method, evidence_sha256
-     FROM read_models.press_article
+     FROM read_models.press_article_snapshot
      WHERE status = 'PUBLISHED' AND NOT superseded
      ORDER BY published_at DESC NULLS LAST, event_date DESC
      LIMIT $1`,
@@ -597,7 +634,7 @@ export async function readPressTerms(): Promise<TermMention[]> {
   }>(
     `SELECT term, label, family, count(*)::text AS mentions,
             count(DISTINCT outlet)::text AS outlets
-     FROM read_models.press_term_mention
+     FROM read_models.press_term_mention_snapshot
      GROUP BY term, label, family
      ORDER BY count(*) DESC`,
   );
@@ -649,24 +686,28 @@ export interface PressPulseData {
  * still shows individual stories, but a page of them rather than all of them,
  * because nobody reads twenty thousand cards and sending them costs seconds.
  */
-export async function readPressPulse(): Promise<PressPulseData> {
+export function readPressPulse(): Promise<PressPulseData> {
+  return held('pulse', buildPressPulse);
+}
+
+async function buildPressPulse(): Promise<PressPulseData> {
   const [summary, tones, regions, marks] = await Promise.all([
     pool().query<{ total: string; outlets: string; first_day: string; last_day: string }>(
       `SELECT count(*)::text AS total, count(DISTINCT outlet)::text AS outlets,
               min(event_date)::text AS first_day, max(event_date)::text AS last_day
-       FROM read_models.press_article
+       FROM read_models.press_article_snapshot
        WHERE status = 'PUBLISHED' AND NOT superseded`,
     ),
     pool().query<{ year: string; tone: string; articles: string }>(
       `SELECT left(event_date::text, 4) AS year, tone, count(*)::text AS articles
-       FROM read_models.press_article
+       FROM read_models.press_article_snapshot
        WHERE status = 'PUBLISHED' AND NOT superseded
        GROUP BY 1, 2
        ORDER BY 1, 3 DESC`,
     ),
     pool().query<{ region: string; articles: string }>(
       `SELECT region, count(*)::text AS articles
-       FROM read_models.press_article
+       FROM read_models.press_article_snapshot
        WHERE status = 'PUBLISHED' AND NOT superseded
        GROUP BY 1
        ORDER BY 2 DESC`,
@@ -677,7 +718,7 @@ export async function readPressPulse(): Promise<PressPulseData> {
                 AS unmarked,
               round(avg(length(coalesce(headline, '') || coalesce(summary, ''))))::text
                 AS letters
-       FROM read_models.press_article
+       FROM read_models.press_article_snapshot
        WHERE status = 'PUBLISHED' AND NOT superseded
        GROUP BY 1`,
     ),
@@ -739,7 +780,12 @@ export interface PressCube {
  * articles that happens to be on screen — which is what a reader assumes a
  * filter's number means.
  */
-export async function readPressCube(search?: string): Promise<PressCube> {
+export function readPressCube(search?: string): Promise<PressCube> {
+  const term = search?.trim() ?? '';
+  return term ? buildPressCube(search) : held('cube', () => buildPressCube(undefined));
+}
+
+async function buildPressCube(search?: string): Promise<PressCube> {
   /*
    * A free-text search cannot be answered from the cross-tabulation — there is
    * no text in it — so when there is one the cube is rebuilt under it. Leaving
@@ -765,7 +811,7 @@ export async function readPressCube(search?: string): Promise<PressCube> {
     outlet: string;
   }>(
     `SELECT fact_claim_id, left(event_date::text, 4) AS year, tone, topic, region, outlet
-     FROM read_models.press_article
+     FROM read_models.press_article_snapshot
      WHERE status = 'PUBLISHED' AND NOT superseded
      ${term ? `AND (headline ILIKE $1 OR coalesce(summary, '') ILIKE $1)` : ''}`,
     term ? [term] : [],
@@ -784,7 +830,7 @@ export async function readPressCube(search?: string): Promise<PressCube> {
   }>(
     `SELECT term, label, family, left(event_date::text, 4) AS year, tone, topic, region, outlet,
             count(*)::text AS articles
-     FROM read_models.press_term_mention
+     FROM read_models.press_term_mention_snapshot
      ${term ? 'WHERE fact_claim_id = ANY($1::uuid[])' : ''}
      GROUP BY 1, 2, 3, 4, 5, 6, 7, 8`,
     term ? [facts.rows.map((row) => row.fact_claim_id)] : [],
@@ -899,7 +945,7 @@ export async function readPressPage(
   else if (query.topic) where.push(`topic = ${bind(query.topic)}`);
   if (query.term) {
     where.push(
-      `fact_claim_id IN (SELECT fact_claim_id FROM read_models.press_term_mention
+      `fact_claim_id IN (SELECT fact_claim_id FROM read_models.press_term_mention_snapshot
                           WHERE term = ${bind(query.term)})`,
     );
   }
@@ -909,11 +955,15 @@ export async function readPressPage(
   }
 
   /*
-   * One query, not two. `press_article` is a view that reassembles each claim
-   * from its evidence, so asking it for the page and then again for the count
-   * builds the whole corpus twice — a term filter took 2.3 s that way. A window
-   * function carries the total on every row: window functions are computed
-   * before LIMIT, so the count is the count of the selection, not of the page.
+   * The page, and nothing but the page.
+   *
+   * It used to carry `count(*) OVER ()` so the panel could say how many the
+   * selection held. That window function is computed before LIMIT, which means
+   * counting every matching claim out of a view that reassembles each one from
+   * its evidence: two seconds on every request once the corpus reached
+   * thirty-eight thousand. The panel already knows the total — it sums it from
+   * the cross-tabulation it holds — so asking the database for it again was
+   * paying twice for an answer already in hand.
    */
   const predicate = where.join(' AND ');
   const page = await pool().query<{
@@ -931,12 +981,11 @@ export async function readPressPage(
     region: string;
     retrieval_method: string | null;
     evidence_sha256: string | null;
-    total: string;
   }>(
     `SELECT fact_claim_id, event_date::text AS event_date, published_at, outlet, domain,
             section, headline, summary, article_url, topic, tone, region,
-            retrieval_method, evidence_sha256, count(*) OVER ()::text AS total
-     FROM read_models.press_article
+            retrieval_method, evidence_sha256
+     FROM read_models.press_article_snapshot
      WHERE ${predicate}
      ORDER BY event_date DESC, published_at DESC NULLS LAST, fact_claim_id
      LIMIT ${bind(limit)} OFFSET ${bind(offset)}`,
@@ -960,6 +1009,8 @@ export async function readPressPage(
       retrievalMethod: row.retrieval_method,
       evidenceSha256: row.evidence_sha256,
     })),
-    total: Number(page.rows[0]?.total ?? 0),
+    // The panel counts the selection from its cross-tabulation; this is only
+    // a floor for the callers that have none.
+    total: page.rows.length,
   };
 }
