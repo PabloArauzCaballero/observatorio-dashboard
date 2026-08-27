@@ -84,6 +84,9 @@ const longDate = new Intl.DateTimeFormat('es-BO', {
   timeZone: 'UTC',
 });
 
+/** A day written out, for the captions that sit outside a chart. */
+export const sayDate = (value: string): string => longDate.format(asDate(value));
+
 const asDate = (value: string): Date => new Date(`${value}T12:00:00Z`);
 /**
  * A day on the axis, and the year whenever the axis crosses into one.
@@ -278,8 +281,25 @@ function TooltipShell({
  * A rate against time, with the market's two published sides and, where it
  * exists, the administered rate.
  */
-export function RateChart({ data, tall }: { data: RatePoint[]; tall?: boolean }) {
-  const zoom = useRangeZoom(data.map((point) => point.date));
+export function RateChart({
+  data,
+  tall,
+  zoom: shared,
+}: {
+  data: RatePoint[];
+  tall?: boolean;
+  /**
+   * A zoom owned by the panel rather than by this chart.
+   *
+   * The exchange-rate panel draws the same dates as a line and as candles, and
+   * a reader who drags a stretch on one and then switches expects to still be
+   * looking at it. A zoom that lives inside one chart cannot be honoured by the
+   * other, so the panel holds it and both are handed the same one.
+   */
+  zoom?: RangeZoom;
+}) {
+  const own = useRangeZoom(data.map((point) => point.date));
+  const zoom = shared ?? own;
   const shown = zoom.visible(data);
   const domain = fittedDomain(
     shown.flatMap((point) =>

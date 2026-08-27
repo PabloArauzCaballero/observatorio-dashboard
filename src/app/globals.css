@@ -2679,3 +2679,40 @@ button.term-chip:hover {
 .chart-frame .recharts-surface {
   cursor: crosshair;
 }
+
+/*
+ * On a wide screen the card reads across, not down.
+ *
+ * The paragraph keeps a measure — a line of prose 1,900 px long is scanned and
+ * lost, not read — so on a wide card it left half the width empty above three
+ * points that had already spread into it. Putting the text and the points side
+ * by side uses that width without stretching a single line: the reader gets the
+ * explanation on the left and the three things to know on the right, and the
+ * card is full because it has something in all of it.
+ *
+ * Below this width they stack, which is the right order to read them in when
+ * there is only one column to read.
+ */
+@media (min-width: 1280px) {
+  .briefcard > div {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1.05fr);
+    column-gap: var(--s4);
+    align-items: start;
+  }
+
+  .briefcard > div > h2 {
+    grid-column: 1;
+  }
+
+  .briefcard > div > p {
+    grid-column: 1;
+    max-width: none;
+  }
+
+  .briefcard .brief-points {
+    grid-column: 2;
+    grid-row: 1 / span 3;
+    margin-top: 0;
+  }
+}

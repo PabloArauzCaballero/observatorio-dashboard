@@ -1,7 +1,15 @@
 'use client';
 
 import { useMemo, useState } from 'react';
-import { DayCandles, Histogram, RateChart, SeriesChart } from './charts';
+import {
+  DayCandles,
+  Histogram,
+  RateChart,
+  SeriesChart,
+  ZoomExit,
+  sayDate,
+  useRangeZoom,
+} from './charts';
 import type { DayCandle, RatePoint } from './charts';
 import { Icon } from './icons';
 import type { IconName } from './icons';
@@ -255,6 +263,16 @@ export function FxExplorer({ rows, official, readingCount }: FxExplorerProps) {
     ).length;
 
   /**
+   * The stretch the reader dragged on the level chart, held by the panel.
+   *
+   * Both readings of the level — the line and the candles — draw the same
+   * dates, so the zoom belongs to the panel and not to either chart. Dragging
+   * on the line and then switching to candles used to throw the selection away,
+   * which is the one thing a reader doing that does not expect.
+   */
+  const levelZoom = useRangeZoom(visibleRows.map((row) => row.date));
+
+  /**
    * The rate as candles, over the period the reader chose.
    *
    * A candle needs a high and a low that are not its own body. With one quote a
@@ -273,9 +291,11 @@ export function FxExplorer({ rows, official, readingCount }: FxExplorerProps) {
    * holds one reading a day; drawing four prices from a single quote would be
    * inventing three of them.
    */
+  const zoomedRows = levelZoom.visible(visibleRows);
+
   const dayCandles = useMemo((): DayCandle[] => {
     const sessions: Array<{ date: string; mid: number; buy: number; sell: number }> = [];
-    for (const row of visibleRows) {
+    for (const row of zoomedRows) {
       const buy = row.parallelBuy ?? null;
       const sell = row.parallelSell ?? null;
       if (buy === null || sell === null) continue;
@@ -323,9 +343,9 @@ export function FxExplorer({ rows, official, readingCount }: FxExplorerProps) {
           low: Math.min(...mids),
         };
       });
-  }, [visibleRows]);
+  }, [zoomedRows]);
 
-  const weekly = dayCandles.length > 0 && dayCandles.length !== visibleRows.length - 1;
+  const weekly = dayCandles.length > 0 && dayCandles.length !== zoomedRows.length - 1;
 
   const chosen = SERIES.find((entry) => entry.key === series);
   const first = selected.at(0);
@@ -562,6 +582,8 @@ export function FxExplorer({ rows, official, readingCount }: FxExplorerProps) {
                       <b>No es una vela intradía</b>: el observatorio guarda una lectura por día, y
                       dibujar cuatro precios a partir de una sola cotización sería inventarlos.
                     </p>
+                    {/* The candles honour the drag, so they carry the way out of it. */}
+                    <ZoomExit zoom={levelZoom} format={sayDate} />
                     <DayCandles data={dayCandles} unit="Bs/USD" />
                   </>
                 ) : (
@@ -571,7 +593,7 @@ export function FxExplorer({ rows, official, readingCount }: FxExplorerProps) {
                       paralelo. Azul: tipo de cambio oficial. El eje no arranca en cero, porque un
                       movimiento de dos bolivianos es enorme y una base en cero lo aplanaría.
                     </p>
-                    <RateChart data={visibleRows} tall />
+                    <RateChart data={visibleRows} tall zoom={levelZoom} />
                   </>
                 )}
               </div>
