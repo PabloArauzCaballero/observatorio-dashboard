@@ -2710,9 +2710,52 @@ button.term-chip:hover {
     max-width: none;
   }
 
+  /*
+   * The points sit with the text, not with the heading above it.
+   *
+   * Spanning them from the first row floated them level with the small
+   * uppercase label while the prose began underneath, so the two halves of the
+   * card started at different heights and read as two unrelated blocks.
+   */
   .briefcard .brief-points {
     grid-column: 2;
-    grid-row: 1 / span 3;
+    grid-row: 2 / span 2;
     margin-top: 0;
+    align-content: start;
   }
+}
+
+/*
+ * The readings behind one card's line.
+ *
+ * Capped and scrolled: sixty-five years of a series would push the card taller
+ * than the screen and shove every neighbour out of view. The head stays put
+ * while the years move under it, so a reader deep in the eighties still knows
+ * which column is which.
+ */
+.card-table {
+  margin-top: 0.6rem;
+}
+
+.card-table .table-wrap {
+  max-height: 320px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.card-table .grid-table {
+  min-width: 0;
+  font-size: 0.76rem;
+}
+
+.card-table .grid-table thead th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: var(--panel);
+}
+
+/* An expanded card takes the row: a table squeezed into a third of it is not one. */
+.card:has(.card-table) {
+  flex-basis: 100%;
 }

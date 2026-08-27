@@ -15,7 +15,17 @@
  *
  * An indicator with no entry shows its publisher's own name and nothing
  * invented. A definition written to fill a gap is worse than an admitted gap.
+ *
+ * **These definitions are the observatory's own.** They are written from the
+ * standard economic concept, not copied from the publisher's metadata, and the
+ * card says so: the figure comes from the source it cites, the explanation
+ * comes from here. Letting one link stand for both would suggest the Banco
+ * Mundial vouched for wording it has never seen, which is exactly the kind of
+ * borrowed authority this report exists to avoid.
  */
+
+/** Who wrote the explanation, as distinct from who published the figure. */
+export const DEFINITION_AUTHOR = 'Observatorio Económico de Bolivia';
 
 export interface Definition {
   /** What the figure counts, in one sentence. */
@@ -183,7 +193,8 @@ export const GLOSSARY: Record<string, Definition> = {
   },
   MINERAL_RENTS_PCT_GDP: {
     what: 'Qué parte del PIB proviene de la renta minera.',
-    howToRead: 'Igual que la del gas, pero para minerales. Sigue de cerca los precios internacionales.',
+    howToRead:
+      'Igual que la del gas, pero para minerales. Sigue de cerca los precios internacionales.',
   },
 };
 

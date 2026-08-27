@@ -5,7 +5,7 @@ import { MacroChart, YearCandles } from './charts';
 import type { CandlePoint } from './charts';
 import { Icon } from './icons';
 import type { IconName } from './icons';
-import { GLOSSARY, UNIT_MEANING } from '@/lib/indicator-glossary';
+import { DEFINITION_AUTHOR, GLOSSARY, UNIT_MEANING } from '@/lib/indicator-glossary';
 import type { MacroPoint } from '@/lib/series';
 
 /**
@@ -281,9 +281,10 @@ export function MacroExplorer({ points }: { points: MacroPoint[] }) {
           <div>
             <h2>Contexto macroeconómico</h2>
             <p>
-              Ochenta y seis series anuales del Banco Mundial, desde 1960 y hasta el último año
+              <b>{catalogue}</b> series anuales del Banco Mundial, desde 1960 y hasta el último año
               publicado. Elegí un rubro a la izquierda: las tarjetas, el conteo y la descarga siguen
-              esa selección.
+              esa selección. Tocá el <b>ⓘ</b> de una tarjeta para saber qué mide, y el{' '}
+              <b>desplegar</b> para ver sus observaciones año por año.
             </p>
             <div className="brief-points">
               <div className="brief-point">
@@ -385,6 +386,8 @@ function MacroCard({ point, series }: { point: MacroPoint; series: MacroPoint[] 
   const [candles, setCandles] = useState(false);
   /** Whether the reader has asked what this indicator actually measures. */
   const [explained, setExplained] = useState(false);
+  /** Whether they have opened the readings behind the line. */
+  const [expanded, setExpanded] = useState(false);
   const definition = GLOSSARY[point.indicatorCode];
   const tone = SECTOR_TONE[point.sector] ?? 'var(--ink-soft)';
 
@@ -427,6 +430,15 @@ function MacroCard({ point, series }: { point: MacroPoint; series: MacroPoint[] 
           >
             <Icon name={candles ? 'linea' : 'velas'} size={16} />
           </button>
+          <button
+            type="button"
+            className={expanded ? 'card-toggle card-toggle-on' : 'card-toggle'}
+            onClick={() => setExpanded(!expanded)}
+            title={expanded ? 'Cerrar la tabla de observaciones' : 'Ver las observaciones en tabla'}
+            aria-pressed={expanded}
+          >
+            <Icon name={expanded ? 'plegar' : 'desplegar'} size={16} />
+          </button>
         </span>
         <h3>{point.name ?? point.indicatorCode}</h3>
         <div className="card-figure">
@@ -468,17 +480,30 @@ function MacroCard({ point, series }: { point: MacroPoint; series: MacroPoint[] 
               el hueco antes que redactar una explicación que nadie verificó.
             </p>
           )}
+          {/*
+            Two provenances, and they are not the same one. The figure is the
+            publisher's; the explanation is ours, written from the standard
+            concept rather than copied from their metadata. One link standing
+            for both would suggest they vouched for wording they never saw.
+          */}
           <p className="card-note-source">
-            <code>{point.indicatorCode}</code> ·{' '}
-            {UNIT_MEANING[point.unit] ?? UNIT_LABEL[point.unit] ?? point.unit}
+            <b>Dato:</b> {point.publisher ?? 'fuente citada'}
             {point.sourceUrl ? (
               <>
                 {' · '}
                 <a href={point.sourceUrl} target="_blank" rel="noreferrer noopener">
-                  ver la fuente
+                  ver la serie publicada
                 </a>
               </>
             ) : null}
+          </p>
+          <p className="card-note-source">
+            <b>Definición:</b> redactada por el {DEFINITION_AUTHOR} a partir del concepto estándar.
+            No es la del publicador.
+          </p>
+          <p className="card-note-source">
+            <code>{point.indicatorCode}</code> ·{' '}
+            {UNIT_MEANING[point.unit] ?? UNIT_LABEL[point.unit] ?? point.unit}
           </p>
         </div>
       ) : null}
@@ -491,6 +516,7 @@ function MacroCard({ point, series }: { point: MacroPoint; series: MacroPoint[] 
           tone={tone}
         />
       )}
+      {expanded ? <ObservationTable point={point} series={series} /> : null}
     </article>
   );
 }
@@ -576,6 +602,68 @@ function MacroTable({ rows, series }: { rows: MacroPoint[]; series: MacroPoint[]
           </tr>
         </tfoot>
       </table>
+    </div>
+  );
+}
+
+/**
+ * Every reading behind one card's line, as a table.
+ *
+ * A chart answers "what shape did this take"; only the numbers answer "what
+ * was it in 2014, and by how much did it move". The card carries both because
+ * the reader who asks the second question is looking at the first one when it
+ * occurs to them, and sending them to a separate view loses the indicator they
+ * were on.
+ *
+ * Newest first, because the last published year is what a reader checks before
+ * anything else, and the change is computed against the year below it in the
+ * same table — so a reader can verify the column by subtracting two rows.
+ */
+function ObservationTable({ point, series }: { point: MacroPoint; series: MacroPoint[] }) {
+  const rows = [...series].sort((left, right) => right.period.localeCompare(left.period));
+  const unit = UNIT_LABEL[point.unit] ?? point.unit;
+
+  return (
+    <div className="card-table">
+      <div className="table-wrap">
+        <table className="grid-table">
+          <thead>
+            <tr>
+              <th>Año</th>
+              <th className="num">Valor</th>
+              <th className="num">Var. anual</th>
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map((row) => (
+              <tr key={row.period}>
+                <td className="num">{row.period}</td>
+                <td className="num">
+                  {number(row.value, 2)} <span className="cell-code">{unit}</span>
+                </td>
+                <td className="num">
+                  {row.changePercent === null ? (
+                    '—'
+                  ) : (
+                    <span className={row.changePercent >= 0 ? 'delta-up' : 'delta-down'}>
+                      {row.changePercent > 0 ? '+' : ''}
+                      {number(row.changePercent)} %
+                    </span>
+                  )}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+          <tfoot>
+            <tr>
+              <td colSpan={3}>
+                {rows.length} {rows.length === 1 ? 'observación' : 'observaciones'} ·{' '}
+                {rows.at(-1)?.period} → {rows[0]?.period}
+              </td>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
     </div>
   );
 }
