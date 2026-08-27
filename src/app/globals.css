@@ -2607,3 +2607,35 @@ button.term-chip:hover {
   align-items: center;
   gap: 0.32rem;
 }
+
+/*
+ * Four controls on a strap that was built for two.
+ *
+ * Adding the view switch beside the downloads pushed the row past a phone's
+ * width. The strap wraps now, and the group of buttons wraps within it, so the
+ * heading keeps its line and the controls fall underneath instead of dragging
+ * the page sideways.
+ */
+.strap {
+  flex-wrap: wrap;
+}
+
+.download {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+@media (max-width: 720px) {
+  .download {
+    width: 100%;
+    margin-left: 0;
+  }
+
+  .download-btn {
+    flex: 1 1 auto;
+    justify-content: center;
+    /* A control a thumb has to hit, like every other one on a phone. */
+    padding-block: 0.45rem;
+  }
+}
