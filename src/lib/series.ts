@@ -855,6 +855,7 @@ export interface PressQuery {
 export async function readPressPage(
   query: PressQuery,
   limit = 60,
+  offset = 0,
 ): Promise<{ articles: PressArticle[]; total: number }> {
   const where: string[] = [`status = 'PUBLISHED'`, 'NOT superseded'];
   const values: unknown[] = [];
@@ -910,8 +911,8 @@ export async function readPressPage(
             retrieval_method, evidence_sha256, count(*) OVER ()::text AS total
      FROM read_models.press_article
      WHERE ${predicate}
-     ORDER BY event_date DESC, published_at DESC NULLS LAST
-     LIMIT ${bind(limit)}`,
+     ORDER BY event_date DESC, published_at DESC NULLS LAST, fact_claim_id
+     LIMIT ${bind(limit)} OFFSET ${bind(offset)}`,
     values,
   );
 

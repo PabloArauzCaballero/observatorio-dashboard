@@ -46,6 +46,10 @@ const TOPIC_LABEL: Record<string, string> = {
   COMERCIO_EXTERIOR: 'Comercio exterior',
   SECTOR_REAL: 'Sector real',
   LABORAL: 'Laboral',
+  ENERGIA: 'Energía y electricidad',
+  INFRAESTRUCTURA: 'Obras e infraestructura',
+  SOCIAL: 'Social',
+  ACTIVIDAD: 'Actividad económica',
   OTROS: 'Otros temas',
 };
 
@@ -58,6 +62,10 @@ const TOPIC_ICON: Record<string, IconName> = {
   COMERCIO_EXTERIOR: 'globo',
   SECTOR_REAL: 'fabrica',
   LABORAL: 'personas',
+  ENERGIA: 'rayo',
+  INFRAESTRUCTURA: 'casco',
+  SOCIAL: 'personas',
+  ACTIVIDAD: 'tendencia',
   OTROS: 'cajas',
 };
 
@@ -68,6 +76,7 @@ const TONE_LABEL: Record<string, string> = {
   INCERTIDUMBRE: 'Incertidumbre',
   MEJORA: 'Mejora',
   DESINFORMACION: 'Desinformación',
+  MEDIDA: 'Medida tomada',
   NEUTRO: 'Sin marca',
 };
 
@@ -86,7 +95,8 @@ const REGION_LABEL: Record<string, string> = {
 
 const BAR_TONES = ['var(--official)', 'var(--parallel)', 'var(--gap)', 'var(--down)', 'var(--up)'];
 
-const SHOWN = 60;
+/** One page of the register; the API is asked for exactly this many. */
+const PAGE_SIZE = 60;
 
 /** What each active slicer is called, so it can be named and removed. */
 function chipsFor(
@@ -185,6 +195,8 @@ export function PressExplorer({
    */
   const [failed, setFailed] = useState(false);
   const [open, setOpen] = useState<ReadonlySet<string>>(() => new Set());
+  /** Which page of the register is on screen, counted in stories skipped. */
+  const [offset, setOffset] = useState(0);
 
   const toggle = (id: string) =>
     setOpen((current) => {
@@ -193,8 +205,12 @@ export function PressExplorer({
       return next;
     });
 
-  const pick = (dimension: keyof PressSelection, value: string): void =>
+  const pick = (dimension: keyof PressSelection, value: string): void => {
+    // Page four of a selection that no longer has four pages is a blank screen
+    // with nothing on it to explain itself.
+    setOffset(0);
     setSelection((current) => ({ ...current, [dimension]: value }));
+  };
 
   const counting = searchCube ?? cube;
   const byTopic = useMemo(() => countsFor(counting, selection, 'topic'), [counting, selection]);
@@ -226,7 +242,7 @@ export function PressExplorer({
     const mine = ++generation.current;
     setLoading(true);
     const timer = setTimeout(() => {
-      fetch(`/api/prensa?${address}${searching ? '&cubo=1' : ''}`)
+      fetch(`/api/prensa?${address}${searching ? '&cubo=1' : ''}&desde=${offset}`)
         .then(
           (response) =>
             response.json() as Promise<{
@@ -254,8 +270,10 @@ export function PressExplorer({
         });
     }, 180);
     return () => clearTimeout(timer);
-  }, [address, searching]);
+  }, [address, searching, offset]);
 
+  const pages = Math.max(1, Math.ceil(total / PAGE_SIZE));
+  const page = Math.min(pages, Math.floor(offset / PAGE_SIZE) + 1);
   const active = activeCount(selection, search);
   const chips = chipsFor(selection, cube.terms);
   const peakTopic = topics.length ? Math.max(...topics.map(([, count]) => count)) : 1;
@@ -375,7 +393,10 @@ export function PressExplorer({
               type="search"
               value={search}
               placeholder="diésel, dólar, reservas…"
-              onChange={(event) => setSearch(event.target.value)}
+              onChange={(event) => {
+                setOffset(0);
+                setSearch(event.target.value);
+              }}
             />
           </div>
         </div>
@@ -504,17 +525,18 @@ export function PressExplorer({
           </div>
         ) : null}
 
-        {total > articles.length ? (
+        {total > PAGE_SIZE ? (
           <p className="panel-sub register-note">
-            <Icon name="reloj" size={13} /> El registro abre por lo más reciente:{' '}
-            <b>{articles.length}</b> notas de <b>{total.toLocaleString('es-BO')}</b>. Para leer otro
-            año, tocalo en «Alarma y conflicto por año»; la descarga trae la selección completa.
+            <Icon name="reloj" size={13} /> El registro va de lo más reciente a lo más antiguo:
+            página <b>{page}</b> de <b>{pages.toLocaleString('es-BO')}</b>,{' '}
+            <b>{total.toLocaleString('es-BO')}</b> notas en esta selección. La descarga trae la
+            selección completa.
           </p>
         ) : null}
 
         {articles.length ? (
           <div className={loading ? 'filing-grid filing-grid-loading' : 'filing-grid'}>
-            {articles.slice(0, SHOWN).map((article, index) => {
+            {articles.map((article, index) => {
               const isOpen = open.has(article.factClaimId);
               return (
                 <article
@@ -569,6 +591,29 @@ export function PressExplorer({
             )}
           </div>
         )}
+        {pages > 1 ? (
+          <nav className="pager" aria-label="Páginas del registro">
+            <button
+              type="button"
+              className="pager-step"
+              onClick={() => setOffset(Math.max(0, offset - PAGE_SIZE))}
+              disabled={page <= 1 || loading}
+            >
+              <Icon name="plegar" size={14} /> Más recientes
+            </button>
+            <span className="pager-where">
+              Página <b>{page}</b> de <b>{pages.toLocaleString('es-BO')}</b>
+            </span>
+            <button
+              type="button"
+              className="pager-step"
+              onClick={() => setOffset(offset + PAGE_SIZE)}
+              disabled={page >= pages || loading}
+            >
+              Más antiguas <Icon name="desplegar" size={14} />
+            </button>
+          </nav>
+        ) : null}
       </div>
     </div>
   );

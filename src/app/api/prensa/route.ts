@@ -12,6 +12,9 @@ import { readPressCube, readPressPage } from '@/lib/series';
 
 export const dynamic = 'force-dynamic';
 
+/** How many stories a page of the register holds; the panel asks for the same. */
+const PAGE_SIZE = 60;
+
 /** A selection value only reaches SQL when it is a real filter. */
 const pick = (value: string | null): string | undefined =>
   value && value !== 'TODOS' ? value.slice(0, 120) : undefined;
@@ -37,7 +40,8 @@ export async function GET(request: Request): Promise<Response> {
         term: pick(params.get('termino')),
         search,
       },
-      60,
+      PAGE_SIZE,
+      Math.max(0, Number(params.get('desde') ?? 0)) || 0,
     );
     return Response.json({ ...page, cube }, { headers: { 'cache-control': 'no-store' } });
   } catch (error) {

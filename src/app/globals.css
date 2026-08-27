@@ -304,7 +304,13 @@ h2 {
   color: var(--ink-soft);
   font-size: 0.87rem;
   margin: 0.25rem 0 0;
-  max-width: 74ch;
+  /*
+   * Prose keeps a measure; a line 1,500 px long is not read, it is scanned and
+   * lost. The cap is the one thing on these panels that does not fill the row,
+   * and that is deliberate — but it was tighter than it needed to be, so on a
+   * wide screen it left more empty than the reading asked for.
+   */
+  max-width: 92ch;
 }
 
 .section-gap {
@@ -2339,4 +2345,59 @@ button.term-chip:hover {
 /* The second figure on a bar row: present, but not competing with the first. */
 .barlist-aside {
   color: var(--ink-faint);
+}
+
+/*
+ * The register's pager.
+ *
+ * Twenty-two thousand stories behind sixty on screen needed a way through that
+ * was not "narrow the filters until it fits". It reads in the direction the
+ * register runs — newest first — so the buttons say which way in time they go
+ * rather than "previous" and "next", which in a reverse-chronological list mean
+ * the opposite of what a reader expects.
+ */
+.pager {
+  display: flex;
+  align-items: center;
+  gap: var(--s2);
+  padding: var(--s2) var(--s3);
+  background: var(--panel);
+  border: 1px solid var(--rule);
+  border-radius: var(--radius);
+}
+
+.pager-step {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  appearance: none;
+  font: inherit;
+  font-size: 0.82rem;
+  color: var(--ink);
+  background: var(--panel);
+  border: 1px solid var(--rule);
+  border-radius: 9px;
+  padding: 0.42rem 0.8rem;
+  cursor: pointer;
+  transition:
+    background var(--fast) var(--ease),
+    border-color var(--fast) var(--ease);
+}
+
+.pager-step:hover:not(:disabled) {
+  background: var(--panel-tint);
+  border-color: var(--ink-faint);
+}
+
+.pager-step:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.pager-where {
+  margin: 0 auto;
+  font-family: var(--mono);
+  font-size: 0.76rem;
+  color: var(--ink-faint);
+  font-variant-numeric: tabular-nums;
 }

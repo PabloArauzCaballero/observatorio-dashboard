@@ -68,6 +68,12 @@ const TONE: Record<string, { label: string; colour: string; icon: IconName; note
     icon: 'escudo',
     note: 'verificado como falso o manipulado',
   },
+  MEDIDA: {
+    label: 'Medida tomada',
+    colour: 'var(--official)',
+    icon: 'capas',
+    note: 'se anuncia, se crea, se regula',
+  },
   NEUTRO: {
     label: 'Sin marca',
     colour: 'var(--rule)',
@@ -95,6 +101,7 @@ const ORDER = [
   'DETERIORO',
   'INCERTIDUMBRE',
   'MEJORA',
+  'MEDIDA',
   'DESINFORMACION',
   'NEUTRO',
 ];
