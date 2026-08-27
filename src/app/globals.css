@@ -320,12 +320,14 @@ h2 {
 /* Figures ---------------------------------------------------------------- */
 
 .figures {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(min(196px, 100%), 1fr));
+  display: flex;
+  flex-wrap: wrap;
   gap: var(--s2);
 }
 
 .figure {
+  flex: 1 1 200px;
+  min-width: 0;
   background: var(--panel);
   border: 1px solid var(--rule);
   border-radius: var(--radius);
@@ -439,12 +441,14 @@ h2 {
 /* Macro cards ------------------------------------------------------------ */
 
 .card-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(min(300px, 100%), 1fr));
+  display: flex;
+  flex-wrap: wrap;
   gap: var(--s2);
 }
 
 .card {
+  flex: 1 1 300px;
+  min-width: 0;
   background: var(--panel);
   border: 1px solid var(--rule);
   border-radius: var(--radius);
@@ -1366,10 +1370,25 @@ code {
  * does the sorting work the indentation used to attempt.
  */
 
+/*
+ * The last row fills, whatever is left over.
+ *
+ * A grid gives every track the same width, so eighty-nine cards over four
+ * columns leave the eighty-ninth alone in a row with three quarters of it
+ * empty — the hole a reader points at and calls the page broken. Wrapping with
+ * flex lets whatever lands on the last row grow into it, and the count that
+ * lands there changes with every filter, so no column count can be chosen in
+ * advance to avoid it.
+ */
 .filing-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(min(320px, 100%), 1fr));
+  display: flex;
+  flex-wrap: wrap;
   gap: var(--s2);
+}
+
+.filing-card {
+  flex: 1 1 320px;
+  min-width: 0;
 }
 
 .filing-card {
@@ -1458,7 +1477,7 @@ code {
 
 /* Expanded cards leave the row and take the width they need to be read. */
 .filing-card-open {
-  grid-column: 1 / -1;
+  flex-basis: 100%;
   border-color: var(--official);
 }
 
@@ -1620,9 +1639,18 @@ code {
  * is which one is largest and whether it is a warning hue.
  */
 
+/*
+ * The strip wraps, and the last row fills.
+ *
+ * A grid gives every track the same width, so eight categories on a laptop put
+ * seven on one row and «Sin marca» alone on a second, the rest of it empty —
+ * the widest hole on the page and the one a reader points at. Flex wrapping
+ * lets whatever lands on the last row grow into it, whichever categories the
+ * current selection happens to leave standing.
+ */
 .tone-strip {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(min(132px, 100%), 1fr));
+  display: flex;
+  flex-wrap: wrap;
   gap: 1px;
   background: var(--rule);
   border: 1px solid var(--rule);
@@ -1631,6 +1659,8 @@ code {
 }
 
 .tone-cell {
+  flex: 1 1 148px;
+  min-width: 0;
   appearance: none;
   border: none;
   border-top: 3px solid var(--rule);

@@ -59,7 +59,9 @@ const SECTOR_ICON: Record<string, IconName> = {
 /** Five tones cycled by rank, so a bar's colour never implies a category. */
 const TONES = ['var(--official)', 'var(--parallel)', 'var(--gap)', 'var(--down)', 'var(--up)'];
 
-const SHOWN = 40;
+/** One page of the register. The whole register is already in the browser, so
+ * paging it costs nothing but the state that says where the reader is. */
+const PAGE_SIZE = 40;
 
 /**
  * A chip names one choice, so it has to fit on one line.
@@ -78,6 +80,8 @@ export function FilingExplorer({ filings }: { filings: CompanyFiling[] }) {
   const [search, setSearch] = useState('');
   /** Which filings the reader has opened; collapsed is a clamp, never a cut. */
   const [open, setOpen] = useState<ReadonlySet<string>>(() => new Set());
+  /** Which page of the register is on screen, counted in filings skipped. */
+  const [offset, setOffset] = useState(0);
 
   const toggle = (id: string) =>
     setOpen((current) => {
@@ -125,6 +129,9 @@ export function FilingExplorer({ filings }: { filings: CompanyFiling[] }) {
     [filings, matches],
   );
 
+  const pages = Math.max(1, Math.ceil(selected.length / PAGE_SIZE));
+  const page = Math.min(pages, Math.floor(offset / PAGE_SIZE) + 1);
+  const shown = selected.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
   const peak = sectors.length ? Math.max(...sectors.map(([, count]) => count)) : 1;
   /**
    * Whichever field tells the cards apart leads them.
@@ -169,7 +176,10 @@ export function FilingExplorer({ filings }: { filings: CompanyFiling[] }) {
                 <button
                   type="button"
                   className="chip chip-on"
-                  onClick={() => setSector('TODOS')}
+                  onClick={() => {
+                    setOffset(0);
+                    setSector('TODOS');
+                  }}
                   title="Quitar este filtro"
                 >
                   <Icon name={SECTOR_ICON[sector] ?? 'cajas'} size={12} />
@@ -180,7 +190,10 @@ export function FilingExplorer({ filings }: { filings: CompanyFiling[] }) {
                 <button
                   type="button"
                   className="chip chip-on"
-                  onClick={() => setFiler('TODOS')}
+                  onClick={() => {
+                    setOffset(0);
+                    setFiler('TODOS');
+                  }}
                   title={`${filer} — tocá para quitar este filtro`}
                 >
                   <Icon name="edificio" size={12} />
@@ -249,7 +262,13 @@ export function FilingExplorer({ filings }: { filings: CompanyFiling[] }) {
             Emisor ({filers.length})
           </div>
           <div className="rail-field">
-            <select value={filer} onChange={(event) => setFiler(event.target.value)}>
+            <select
+              value={filer}
+              onChange={(event) => {
+                setOffset(0);
+                setFiler(event.target.value);
+              }}
+            >
               <option value="TODOS">Todos los emisores</option>
               {filers.map(([name, count]) => (
                 <option key={name} value={name}>
@@ -270,7 +289,10 @@ export function FilingExplorer({ filings }: { filings: CompanyFiling[] }) {
               type="search"
               value={search}
               placeholder="calificación, emisión, dividendos…"
-              onChange={(event) => setSearch(event.target.value)}
+              onChange={(event) => {
+                setOffset(0);
+                setSearch(event.target.value);
+              }}
             />
           </div>
         </div>
@@ -361,7 +383,10 @@ export function FilingExplorer({ filings }: { filings: CompanyFiling[] }) {
                   key={key}
                   type="button"
                   className={sector === key ? 'barlist-row barlist-row-on' : 'barlist-row'}
-                  onClick={() => setSector(sector === key ? 'TODOS' : key)}
+                  onClick={() => {
+                    setOffset(0);
+                    setSector(sector === key ? 'TODOS' : key);
+                  }}
                 >
                   <Icon name={SECTOR_ICON[key] ?? 'cajas'} size={14} />
                   <span className="barlist-name">{SECTOR_LABEL[key] ?? key}</span>
@@ -381,9 +406,9 @@ export function FilingExplorer({ filings }: { filings: CompanyFiling[] }) {
           </div>
         ) : null}
 
-        {selected.length ? (
+        {shown.length ? (
           <div className="filing-grid">
-            {selected.slice(0, SHOWN).map((filing, index) => {
+            {shown.map((filing, index) => {
               const isOpen = open.has(filing.factClaimId);
               return (
                 <article
@@ -446,11 +471,29 @@ export function FilingExplorer({ filings }: { filings: CompanyFiling[] }) {
           <div className="callout">Ningún hecho relevante coincide con esta selección.</div>
         )}
 
-        {selected.length > SHOWN ? (
-          <p className="panel-sub">
-            Se muestran los {SHOWN} más recientes de {selected.length.toLocaleString('es-BO')}. La
-            descarga incluye la selección completa.
-          </p>
+        {pages > 1 ? (
+          <nav className="pager" aria-label="Páginas del registro">
+            <button
+              type="button"
+              className="pager-step"
+              onClick={() => setOffset(Math.max(0, offset - PAGE_SIZE))}
+              disabled={page <= 1}
+            >
+              <Icon name="plegar" size={14} /> Más recientes
+            </button>
+            <span className="pager-where">
+              Página <b>{page}</b> de <b>{pages.toLocaleString('es-BO')}</b> ·{' '}
+              {selected.length.toLocaleString('es-BO')} hechos
+            </span>
+            <button
+              type="button"
+              className="pager-step"
+              onClick={() => setOffset(offset + PAGE_SIZE)}
+              disabled={page >= pages}
+            >
+              Más antiguos <Icon name="desplegar" size={14} />
+            </button>
+          </nav>
         ) : null}
       </div>
     </div>
