@@ -53,6 +53,7 @@ const TOPIC_LABEL: Record<string, string> = {
   CONFLICTO: 'Conflicto social',
   POLITICA: 'Política y Estado',
   EMPRESARIAL: 'Empresas y marcas',
+  CLIMA: 'Clima y desastres',
   CRONICA_ROJA: 'Crónica roja',
   OTROS: 'Otros temas',
 };
@@ -73,6 +74,7 @@ const TOPIC_ICON: Record<string, IconName> = {
   CONFLICTO: 'rayo',
   POLITICA: 'banco',
   EMPRESARIAL: 'maletin',
+  CLIMA: 'gota',
   CRONICA_ROJA: 'escudo',
   OTROS: 'cajas',
 };
