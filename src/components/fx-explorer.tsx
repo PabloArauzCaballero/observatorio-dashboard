@@ -1,8 +1,8 @@
 'use client';
 
 import { useMemo, useState } from 'react';
-import { Histogram, RateChart, SeriesChart } from './charts';
-import type { RatePoint } from './charts';
+import { DayCandles, Histogram, RateChart, SeriesChart } from './charts';
+import type { DayCandle, RatePoint } from './charts';
 import { Icon } from './icons';
 import type { IconName } from './icons';
 import {
@@ -144,11 +144,18 @@ function seriesOf(rows: RatePoint[], official: Observation[], choice: SeriesChoi
   return out;
 }
 
+/** Above this many sessions the candles are grouped into weeks to stay legible. */
+const DAILY_LIMIT = 90;
+/** And no more weeks than fit with a body a reader can see. */
+const WEEK_LIMIT = 104;
+
 export function FxExplorer({ rows, official, readingCount }: FxExplorerProps) {
   const [range, setRange] = useState('todo');
   const [series, setSeries] = useState<SeriesChoice>('MID');
   const [span, setSpan] = useState<number>(30);
   const [pointInTimeOnly, setPointInTimeOnly] = useState(false);
+  /** Whether the level is read as a line or as one candle per session. */
+  const [candles, setCandles] = useState(false);
 
   /** Every reading of one series, before the period filter narrows it. */
   const build = useMemo(() => {
@@ -240,6 +247,79 @@ export function FxExplorer({ rows, official, readingCount }: FxExplorerProps) {
         (floor === null || point.date >= floor) &&
         (!onlyPointInTime || point.aggregation === 'POINT_IN_TIME'),
     ).length;
+
+  /**
+   * The rate as candles, over the period the reader chose.
+   *
+   * A candle needs a high and a low that are not its own body. With one quote a
+   * day the close of each session IS the open of the next, so daily candles
+   * tile into a continuous ribbon — honest, and unreadable as a candle chart.
+   * Grouping the sessions into weeks fixes that with real numbers: the week
+   * opens at its first mid-point, closes at its last, and its high and low are
+   * the highest and lowest the rate actually reached inside it.
+   *
+   * Short selections stay daily, because ninety sessions do read, and there the
+   * wick is the spread the source published that day — a long one is a session
+   * where the two sides pulled apart, which is when the parallel market is
+   * under strain.
+   *
+   * Neither is an intraday candle and the caption says so. The observatory
+   * holds one reading a day; drawing four prices from a single quote would be
+   * inventing three of them.
+   */
+  const dayCandles = useMemo((): DayCandle[] => {
+    const sessions: Array<{ date: string; mid: number; buy: number; sell: number }> = [];
+    for (const row of visibleRows) {
+      const buy = row.parallelBuy ?? null;
+      const sell = row.parallelSell ?? null;
+      if (buy === null || sell === null) continue;
+      sessions.push({ date: row.date, mid: (buy + sell) / 2, buy, sell });
+    }
+
+    if (sessions.length <= DAILY_LIMIT) {
+      const out: DayCandle[] = [];
+      let previous: number | null = null;
+      for (const session of sessions) {
+        if (previous !== null) {
+          out.push({
+            date: session.date,
+            open: previous,
+            close: session.mid,
+            high: Math.max(session.buy, session.sell, previous, session.mid),
+            low: Math.min(session.buy, session.sell, previous, session.mid),
+          });
+        }
+        previous = session.mid;
+      }
+      return out;
+    }
+
+    /** Sessions grouped by the Monday they belong to. */
+    const weeks = new Map<string, Array<(typeof sessions)[number]>>();
+    for (const session of sessions) {
+      const day = new Date(`${session.date}T12:00:00Z`);
+      const monday = new Date(day);
+      monday.setUTCDate(day.getUTCDate() - ((day.getUTCDay() + 6) % 7));
+      const key = monday.toISOString().slice(0, 10);
+      weeks.set(key, [...(weeks.get(key) ?? []), session]);
+    }
+
+    return [...weeks.entries()]
+      .sort((left, right) => left[0].localeCompare(right[0]))
+      .slice(-WEEK_LIMIT)
+      .map(([week, held]) => {
+        const mids = held.map((session) => session.mid);
+        return {
+          date: week,
+          open: held[0]?.mid ?? 0,
+          close: held.at(-1)?.mid ?? 0,
+          high: Math.max(...mids),
+          low: Math.min(...mids),
+        };
+      });
+  }, [visibleRows]);
+
+  const weekly = dayCandles.length > 0 && dayCandles.length !== visibleRows.length - 1;
 
   const chosen = SERIES.find((entry) => entry.key === series);
   const first = selected.at(0);
@@ -434,19 +514,60 @@ export function FxExplorer({ rows, official, readingCount }: FxExplorerProps) {
           ) : (
             <>
               <div className="panel">
-                <div className="tile-head">
-                  <Icon name="linea" size={17} />
+                <div className="tile-head card-head">
+                  <Icon name={candles ? 'velas' : 'linea'} size={17} />
                   <h2>Nivel</h2>
                   <span className="tile-hint">
                     {first && last ? `${first.date} → ${last.date}` : 'sin datos'}
                   </span>
+                  <button
+                    type="button"
+                    className={candles ? 'card-toggle card-toggle-on' : 'card-toggle'}
+                    onClick={() => setCandles(!candles)}
+                    title={
+                      candles ? 'Ver la serie como línea' : 'Ver una vela por jornada del paralelo'
+                    }
+                    aria-pressed={candles}
+                  >
+                    <Icon name={candles ? 'linea' : 'velas'} size={16} />
+                  </button>
                 </div>
-                <p className="panel-sub" style={{ marginBottom: 'var(--s2)' }}>
-                  Bolivianos por dólar. Naranja: los dos lados que publica la fuente para el
-                  paralelo. Azul: tipo de cambio oficial. El eje no arranca en cero, porque un
-                  movimiento de dos bolivianos es enorme y una base en cero lo aplanaría.
-                </p>
-                <RateChart data={visibleRows} tall />
+                {candles ? (
+                  <>
+                    <p className="panel-sub" style={{ marginBottom: 'var(--s2)' }}>
+                      {weekly ? (
+                        <>
+                          Una vela por <b>semana</b> del paralelo: abre en el punto medio de su
+                          primera jornada, cierra en el de la última, y la mecha va del mínimo al
+                          máximo que el tipo de cambio alcanzó dentro de esa semana. Con más de{' '}
+                          {DAILY_LIMIT} jornadas se agrupa así porque, con una cotización por día,
+                          el cierre de una vela diaria <b>es</b> la apertura de la siguiente y los
+                          cuerpos se pegan en una cinta continua. Elegí «90 días» a la izquierda
+                          para verlas jornada por jornada.
+                        </>
+                      ) : (
+                        <>
+                          Una vela por <b>jornada</b>. El cuerpo va del punto medio de la jornada
+                          anterior al de esta, así que su altura <b>es</b> la variación del día; la
+                          mecha son los dos lados que publica la fuente, de modo que una mecha larga
+                          es una jornada en la que compra y venta se separaron.
+                        </>
+                      )}{' '}
+                      <b>No es una vela intradía</b>: el observatorio guarda una lectura por día, y
+                      dibujar cuatro precios a partir de una sola cotización sería inventarlos.
+                    </p>
+                    <DayCandles data={dayCandles} unit="Bs/USD" />
+                  </>
+                ) : (
+                  <>
+                    <p className="panel-sub" style={{ marginBottom: 'var(--s2)' }}>
+                      Bolivianos por dólar. Naranja: los dos lados que publica la fuente para el
+                      paralelo. Azul: tipo de cambio oficial. El eje no arranca en cero, porque un
+                      movimiento de dos bolivianos es enorme y una base en cero lo aplanaría.
+                    </p>
+                    <RateChart data={visibleRows} tall />
+                  </>
+                )}
               </div>
 
               <div className="stat-strip">

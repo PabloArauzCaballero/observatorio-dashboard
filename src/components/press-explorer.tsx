@@ -51,6 +51,7 @@ const TOPIC_LABEL: Record<string, string> = {
   SOCIAL: 'Social',
   ACTIVIDAD: 'Actividad económica',
   CONFLICTO: 'Conflicto social',
+  CRONICA_ROJA: 'Crónica roja',
   OTROS: 'Otros temas',
 };
 
@@ -68,6 +69,7 @@ const TOPIC_ICON: Record<string, IconName> = {
   SOCIAL: 'personas',
   ACTIVIDAD: 'tendencia',
   CONFLICTO: 'rayo',
+  CRONICA_ROJA: 'escudo',
   OTROS: 'cajas',
 };
 

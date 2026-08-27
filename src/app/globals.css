@@ -2431,3 +2431,49 @@ button.term-chip:hover {
   color: var(--ink-faint);
   font-variant-numeric: tabular-nums;
 }
+
+/*
+ * What a candle says when the reader points at it.
+ *
+ * The body's length is the change, but a length is not a figure: the label
+ * gives the percentage an economist would quote and the two levels the body
+ * runs between. It replaces the axis footer rather than floating over the
+ * chart, so nothing the reader is looking at gets covered.
+ *
+ * The pointer target and the selection ring must out-rank `.candle-up rect`,
+ * which is a descendant selector and would otherwise paint them the candle's
+ * own colour — a full-height invisible target rendered solid, which turned the
+ * whole chart into a wall of red and green.
+ */
+.candle-up .candle-hit,
+.candle-down .candle-hit {
+  fill: transparent;
+  stroke: none;
+}
+
+.candle-up .candle-ring,
+.candle-down .candle-ring {
+  fill: none;
+  stroke: var(--ink);
+  stroke-width: 0.5;
+  vector-effect: non-scaling-stroke;
+}
+
+.candle-tip {
+  display: flex;
+  align-items: baseline;
+  gap: 0.5rem;
+  margin-top: 0.3rem;
+  font-family: var(--mono);
+  font-size: 0.7rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.candle-tip-detail {
+  margin-left: auto;
+  color: var(--ink-faint);
+}
+
+.candles svg {
+  cursor: crosshair;
+}

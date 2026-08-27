@@ -1,5 +1,6 @@
 'use client';
 
+import { useState } from 'react';
 import {
   Area,
   Bar,
@@ -602,6 +603,8 @@ export interface CandlePoint {
  * is wanted here is two numbers a year and not a trading instrument.
  */
 export function YearCandles({ data, unit }: { data: CandlePoint[]; unit: string }) {
+  const [hover, setHover] = useState<number | null>(null);
+
   if (data.length < 2) {
     return <div className="callout">Se necesitan al menos dos años para comparar.</div>;
   }
@@ -618,10 +621,23 @@ export function YearCandles({ data, unit }: { data: CandlePoint[]; unit: string 
 
   const step = width / data.length;
   const body = Math.max(step * 0.55, 0.6);
+  const shown = hover === null ? null : data[hover];
+  /*
+   * The change the candle draws, stated as the reader reads it. A body is only
+   * a length until it says how much: the percentage is what an economist quotes
+   * and the points are what the axis shows, so the label carries both.
+   */
+  const move =
+    shown && shown.open !== 0 ? ((shown.close - shown.open) / Math.abs(shown.open)) * 100 : null;
 
   return (
     <div className="candles">
-      <svg viewBox={`0 0 ${width} ${height}`} preserveAspectRatio="none" role="img">
+      <svg
+        viewBox={`0 0 ${width} ${height}`}
+        preserveAspectRatio="none"
+        role="img"
+        onMouseLeave={() => setHover(null)}
+      >
         <line x1="0" y1={height - pad} x2={width} y2={height - pad} className="candle-axis" />
         {data.map((point, index) => {
           const centre = step * (index + 0.5);
@@ -629,7 +645,20 @@ export function YearCandles({ data, unit }: { data: CandlePoint[]; unit: string 
           const bottom = scale(Math.min(point.open, point.close));
           const rising = point.close >= point.open;
           return (
-            <g key={point.period} className={rising ? 'candle candle-up' : 'candle candle-down'}>
+            <g
+              key={point.period}
+              className={rising ? 'candle candle-up' : 'candle candle-down'}
+              onMouseEnter={() => setHover(index)}
+            >
+              {/* A full-height target: a two-pixel body is not something a
+                  pointer can be expected to find. */}
+              <rect
+                x={centre - step / 2}
+                y={0}
+                width={step}
+                height={height}
+                className="candle-hit"
+              />
               <line x1={centre} y1={top} x2={centre} y2={bottom} className="candle-wick" />
               <rect
                 x={centre - body / 2}
@@ -638,18 +667,167 @@ export function YearCandles({ data, unit }: { data: CandlePoint[]; unit: string 
                 height={Math.max(bottom - top, 0.8)}
                 rx={0.4}
               />
+              {hover === index ? (
+                <rect
+                  x={centre - body / 2 - 0.4}
+                  y={top - 0.4}
+                  width={body + 0.8}
+                  height={Math.max(bottom - top, 0.8) + 0.8}
+                  className="candle-ring"
+                />
+              ) : null}
             </g>
           );
         })}
       </svg>
-      <div className="candle-foot">
-        <span>{data[0]?.period}</span>
-        <span className="candle-scale">
-          {low.toLocaleString('es-BO', { maximumFractionDigits: 2 })} –{' '}
-          {high.toLocaleString('es-BO', { maximumFractionDigits: 2 })} {unit}
-        </span>
-        <span>{data.at(-1)?.period}</span>
-      </div>
+      {shown ? (
+        <div className="candle-tip">
+          <b>{shown.period}</b>
+          <span className={move !== null && move >= 0 ? 'delta-up' : 'delta-down'}>
+            {move === null
+              ? '—'
+              : `${move > 0 ? '+' : ''}${move.toLocaleString('es-BO', {
+                  minimumFractionDigits: 1,
+                  maximumFractionDigits: 1,
+                })} %`}
+          </span>
+          <span className="candle-tip-detail">
+            {number(shown.open, 2)} → {number(shown.close, 2)} {unit}
+          </span>
+        </div>
+      ) : (
+        <div className="candle-foot">
+          <span>{data[0]?.period}</span>
+          <span className="candle-scale">
+            {low.toLocaleString('es-BO', { maximumFractionDigits: 2 })} –{' '}
+            {high.toLocaleString('es-BO', { maximumFractionDigits: 2 })} {unit}
+          </span>
+          <span>{data.at(-1)?.period}</span>
+        </div>
+      )}
+    </div>
+  );
+}
+
+export interface DayCandle {
+  date: string;
+  /** Where the day started: the previous session's mid-point. */
+  open: number;
+  /** Where it ended: this session's mid-point. */
+  close: number;
+  /** The two sides the source published that day. */
+  high: number;
+  low: number;
+}
+
+/**
+ * The parallel dollar as one candle per session.
+ *
+ * Built from exactly what the source publishes and nothing more. It quotes two
+ * prices a day — the two sides it labels `buy` and `sell` — so the day's range
+ * is those two, and the body runs from yesterday's mid-point to today's. That
+ * is a real high, a real low and a real change, which is what a candle is for.
+ *
+ * It is NOT an intraday candle and the caption says so. A true one would need
+ * the ticks inside the session and the observatory holds one reading a day;
+ * drawing four numbers from a single quote and calling it OHLC would be an
+ * invention dressed as a market chart.
+ *
+ * The wick is the published spread, so a day where the two sides diverged shows
+ * a long wick — which is exactly when the parallel market is under strain.
+ */
+export function DayCandles({ data, unit }: { data: DayCandle[]; unit: string }) {
+  const [hover, setHover] = useState<number | null>(null);
+
+  if (data.length < 2) {
+    return <div className="callout">Se necesitan al menos dos jornadas para comparar.</div>;
+  }
+
+  const width = 100;
+  const height = 190;
+  const values = data.flatMap((point) => [point.high, point.low, point.open, point.close]);
+  const low = Math.min(...values);
+  const high = Math.max(...values);
+  const span = high - low || 1;
+  const pad = 10;
+  const scale = (value: number): number =>
+    height - pad - ((value - low) / span) * (height - pad * 2);
+
+  const step = width / data.length;
+  const body = Math.max(step * 0.6, 0.25);
+  const shown = hover === null ? null : data[hover];
+  const move = shown && shown.open !== 0 ? ((shown.close - shown.open) / shown.open) * 100 : null;
+
+  return (
+    <div className="candles">
+      <svg
+        viewBox={`0 0 ${width} ${height}`}
+        preserveAspectRatio="none"
+        role="img"
+        onMouseLeave={() => setHover(null)}
+      >
+        {data.map((point, index) => {
+          const centre = step * (index + 0.5);
+          const top = scale(Math.max(point.open, point.close));
+          const bottom = scale(Math.min(point.open, point.close));
+          const rising = point.close >= point.open;
+          return (
+            <g
+              key={point.date}
+              className={rising ? 'candle candle-up' : 'candle candle-down'}
+              onMouseEnter={() => setHover(index)}
+            >
+              <rect
+                x={centre - step / 2}
+                y={0}
+                width={step}
+                height={height}
+                className="candle-hit"
+              />
+              <line
+                x1={centre}
+                y1={scale(point.high)}
+                x2={centre}
+                y2={scale(point.low)}
+                className="candle-wick"
+              />
+              <rect
+                x={centre - body / 2}
+                y={top}
+                width={body}
+                height={Math.max(bottom - top, 0.5)}
+                rx={0.2}
+              />
+            </g>
+          );
+        })}
+      </svg>
+      {shown ? (
+        <div className="candle-tip">
+          <b>{shown.date}</b>
+          <span className={move !== null && move >= 0 ? 'delta-up' : 'delta-down'}>
+            {move === null
+              ? '—'
+              : `${move > 0 ? '+' : ''}${move.toLocaleString('es-BO', {
+                  minimumFractionDigits: 2,
+                  maximumFractionDigits: 2,
+                })} %`}
+          </span>
+          <span className="candle-tip-detail">
+            apertura {number(shown.open, 4)} · cierre {number(shown.close, 4)} · lados{' '}
+            {number(shown.low, 4)}/{number(shown.high, 4)} {unit}
+          </span>
+        </div>
+      ) : (
+        <div className="candle-foot">
+          <span>{data[0]?.date}</span>
+          <span className="candle-scale">
+            {low.toLocaleString('es-BO', { maximumFractionDigits: 2 })} –{' '}
+            {high.toLocaleString('es-BO', { maximumFractionDigits: 2 })} {unit}
+          </span>
+          <span>{data.at(-1)?.date}</span>
+        </div>
+      )}
     </div>
   );
 }
