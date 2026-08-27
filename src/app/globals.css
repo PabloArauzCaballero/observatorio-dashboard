@@ -2335,3 +2335,8 @@ button.term-chip:hover {
   border-radius: 9px;
   background: var(--panel-tint);
 }
+
+/* The second figure on a bar row: present, but not competing with the first. */
+.barlist-aside {
+  color: var(--ink-faint);
+}

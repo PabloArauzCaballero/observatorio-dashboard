@@ -129,12 +129,29 @@ export function PressPulse({ cube, selection, span, onPick }: PressPulseProps) {
         alarm.set(year, (alarm.get(year) ?? 0) + count);
       }
     }
+    /*
+     * How many mastheads each year was read from.
+     *
+     * A reader comparing two years is entitled to know whether they are
+     * comparing two years or two newspapers: the archive holds four outlets for
+     * 2020 and ten for this year, so a thin year can mean a quiet year or a
+     * year nobody archived. Counted from the same rows, so it cannot drift.
+     */
+    const mastheads = new Map<string, Set<number>>();
+    for (const row of cube.cells) {
+      const year = cube.years[row[0] ?? -1] ?? '';
+      const held = mastheads.get(year) ?? new Set<number>();
+      held.add(row[4] ?? -1);
+      mastheads.set(year, held);
+    }
+
     return [...totals.entries()]
       .filter(([, count]) => count > 0)
       .sort((left, right) => left[0].localeCompare(right[0]))
       .map(([year, articles]) => ({
         year,
         articles,
+        outlets: mastheads.get(year)?.size ?? 0,
         share: ((alarm.get(year) ?? 0) / (articles || 1)) * 100,
       }));
   })();
@@ -208,7 +225,9 @@ export function PressPulse({ cube, selection, span, onPick }: PressPulseProps) {
           </div>
           <p className="panel-sub" style={{ marginBottom: 'var(--s2)' }}>
             Porcentaje de la cobertura de cada año que el léxico marca como escasez, colas, bloqueos
-            o paros. Tocá un año para quedarte con él.
+            o paros. Tocá un año para quedarte con él. La cifra entre paréntesis es{' '}
+            <b>cuántos medios</b> se pudieron leer ese año: un año con menos notas puede ser un año
+            tranquilo o un año que nadie archivó, y esa columna dice cuál.
           </p>
           <div className="barlist">
             {alarmByYear.map((row) => {
@@ -238,8 +257,9 @@ export function PressPulse({ cube, selection, span, onPick }: PressPulseProps) {
                       }}
                     />
                   </span>
-                  <span className="barlist-n" style={{ width: 116 }}>
-                    {row.share.toFixed(1)} % de {row.articles.toLocaleString('es-BO')}
+                  <span className="barlist-n" style={{ width: 152 }}>
+                    {row.share.toFixed(1)} % de {row.articles.toLocaleString('es-BO')}{' '}
+                    <span className="barlist-aside">({row.outlets})</span>
                   </span>
                 </button>
               );
