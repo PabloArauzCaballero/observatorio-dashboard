@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { Icon } from './icons';
 import {
   Area,
   Bar,
@@ -8,6 +9,7 @@ import {
   Cell,
   ComposedChart,
   Line,
+  ReferenceArea,
   ReferenceLine,
   ResponsiveContainer,
   Tooltip,
@@ -94,7 +96,12 @@ const asDate = (value: string): Date => new Date(`${value}T12:00:00Z`);
  */
 const shortLabel = (value: string): string => {
   const date = asDate(value);
-  if (date.getUTCMonth() === 0) return `ene ’${String(date.getUTCFullYear()).slice(2)}`;
+  // Only the tick that opens a January carries the year. Marking every January
+  // tick printed «ene '26» three times in a row on a zoomed axis, which reads
+  // as a broken chart rather than as a year boundary.
+  if (date.getUTCMonth() === 0 && date.getUTCDate() <= 10) {
+    return `ene ’${String(date.getUTCFullYear()).slice(2)}`;
+  }
   return dayMonth.format(date);
 };
 const number = (value: number, decimals = 2): string =>
@@ -102,6 +109,115 @@ const number = (value: number, decimals = 2): string =>
     minimumFractionDigits: decimals,
     maximumFractionDigits: decimals,
   });
+
+/**
+ * Drag across a chart to zoom into those dates.
+ *
+ * Press anywhere on the plot and a line marks where you started; keep the
+ * button down and it opens into a band that follows the pointer; let go and the
+ * chart redraws to that stretch alone. It is the gesture a reader already knows
+ * from every trading terminal, and it answers the question a fixed period
+ * control cannot: "what happened between those two weeks in particular".
+ *
+ * The right button works as well as the left, because that is the one people
+ * reach for, and the context menu is suppressed only while a drag is in
+ * progress — a reader who right-clicks without dragging still gets their menu.
+ *
+ * A drag that covers fewer than two readings is treated as a click and clears
+ * the zoom instead of setting one: pinching the chart to a single day would
+ * leave nothing to look at and no obvious way back.
+ */
+export interface RangeZoom {
+  /** The rows the chart should draw: the whole series, or the chosen stretch. */
+  visible: <T>(rows: readonly T[]) => T[];
+  /** Whether a stretch is currently chosen. */
+  zoomed: boolean;
+  /** The band being dragged right now, if any. */
+  marking: { from: string; to: string } | null;
+  /** The labels bounding the chosen stretch, for the caption. */
+  bounds: { from: string; to: string } | null;
+  begin: (label?: unknown) => void;
+  drag: (label?: unknown) => void;
+  finish: () => void;
+  reset: () => void;
+}
+
+export function useRangeZoom(labels: readonly string[]): RangeZoom {
+  const [anchor, setAnchor] = useState<string | null>(null);
+  const [cursor, setCursor] = useState<string | null>(null);
+  const [range, setRange] = useState<[number, number] | null>(null);
+
+  const at = (label: string): number => labels.indexOf(label);
+
+  return {
+    zoomed: range !== null,
+    bounds:
+      range && labels[range[0]] && labels[range[1]]
+        ? { from: labels[range[0]] as string, to: labels[range[1]] as string }
+        : null,
+    marking: anchor && cursor && anchor !== cursor ? { from: anchor, to: cursor } : null,
+    visible: <T,>(rows: readonly T[]): T[] =>
+      range ? rows.slice(range[0], range[1] + 1) : [...rows],
+    begin: (label?: unknown) => {
+      // The axis holds dates, but Recharts types the active label as a string
+      // or a number; anything that is not one of our labels is ignored.
+      if (typeof label !== 'string') return;
+      setAnchor(label);
+      setCursor(label);
+    },
+    drag: (label?: unknown) => {
+      if (anchor && typeof label === 'string') setCursor(label);
+    },
+    finish: () => {
+      if (anchor && cursor) {
+        const edges = [at(anchor), at(cursor)].sort((left, right) => left - right);
+        const low = edges[0] ?? -1;
+        const high = edges[1] ?? -1;
+        if (low >= 0 && high - low >= 2) {
+          // Indices are into the labels of what is on screen, so a zoom inside
+          // a zoom composes with the one already applied.
+          setRange((held) => (held ? [held[0] + low, held[0] + high] : [low, high]));
+        }
+      }
+      setAnchor(null);
+      setCursor(null);
+    },
+    reset: () => setRange(null),
+  };
+}
+
+/** The band a drag is painting, drawn over the series it is selecting. */
+export function ZoomBand({ zoom }: { zoom: RangeZoom }) {
+  if (!zoom.marking) return null;
+  return (
+    <ReferenceArea
+      x1={zoom.marking.from}
+      x2={zoom.marking.to}
+      strokeOpacity={0.9}
+      stroke="var(--ink-faint)"
+      fill="var(--ink)"
+      fillOpacity={0.08}
+    />
+  );
+}
+
+/** The way back out, shown only once there is somewhere to go back to. */
+export function ZoomExit({
+  zoom,
+  format,
+}: {
+  zoom: RangeZoom;
+  format?: (label: string) => string;
+}) {
+  if (!zoom.zoomed || !zoom.bounds) return null;
+  const say = format ?? ((label: string) => label);
+  return (
+    <button type="button" className="zoom-exit" onClick={zoom.reset}>
+      <Icon name="refrescar" size={13} />
+      {say(zoom.bounds.from)} → {say(zoom.bounds.to)} · ver todo
+    </button>
+  );
+}
 
 /** Padding that keeps a line off the frame without inventing headroom. */
 function fittedDomain(values: number[]): [number, number] {
@@ -113,9 +229,21 @@ function fittedDomain(values: number[]): [number, number] {
   return [Number((min - pad).toFixed(4)), Number((max + pad).toFixed(4))];
 }
 
+/**
+ * The box a chart is drawn in, and the one place the context menu is refused.
+ *
+ * Readers reach for the right button to drag a range — it is what a trading
+ * terminal trains them to do — and the browser answers with its own menu
+ * instead. Suppressing it here, over the plot and nowhere else, lets either
+ * button paint the band. Everywhere else on the page the menu still works,
+ * including on the text and links inside these panels.
+ */
 function Frame({ children, tall }: { children: React.ReactElement; tall?: boolean }) {
   return (
-    <div className={tall ? 'chart-frame chart-frame-tall' : 'chart-frame'}>
+    <div
+      className={tall ? 'chart-frame chart-frame-tall' : 'chart-frame'}
+      onContextMenu={(event) => event.preventDefault()}
+    >
       <ResponsiveContainer width="100%" height="100%">
         {children}
       </ResponsiveContainer>
@@ -151,8 +279,10 @@ function TooltipShell({
  * exists, the administered rate.
  */
 export function RateChart({ data, tall }: { data: RatePoint[]; tall?: boolean }) {
+  const zoom = useRangeZoom(data.map((point) => point.date));
+  const shown = zoom.visible(data);
   const domain = fittedDomain(
-    data.flatMap((point) =>
+    shown.flatMap((point) =>
       [point.parallelBuy, point.parallelSell, point.official].filter(
         (value): value is number => typeof value === 'number',
       ),
@@ -180,59 +310,72 @@ export function RateChart({ data, tall }: { data: RatePoint[]; tall?: boolean })
   };
 
   return (
-    <Frame {...(tall ? { tall: true } : {})}>
-      <ComposedChart data={data} margin={{ top: 10, right: 14, bottom: 4, left: 4 }}>
-        <defs>
-          <linearGradient id="fillOfficial" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor="var(--official)" stopOpacity={0.18} />
-            <stop offset="100%" stopColor="var(--official)" stopOpacity={0} />
-          </linearGradient>
-        </defs>
-        <CartesianGrid {...GRID} />
-        <XAxis dataKey="date" tickFormatter={shortLabel} minTickGap={52} {...AXIS} />
-        <YAxis domain={domain} width={54} tickFormatter={(value) => number(value, 2)} {...AXIS} />
-        <Tooltip content={renderTooltip} cursor={{ stroke: 'var(--rule)', strokeWidth: 1 }} />
-        <Area
-          type="monotone"
-          dataKey="official"
-          name="Oficial"
-          stroke="var(--official)"
-          strokeWidth={2}
-          fill="url(#fillOfficial)"
-          dot={false}
-          connectNulls
-          animationDuration={MOTION.duration}
-          animationEasing={MOTION.easing}
-        />
-        <Line
-          type="monotone"
-          dataKey="parallelBuy"
-          name="Paralelo buy"
-          stroke="var(--parallel)"
-          strokeWidth={2}
-          dot={false}
-          connectNulls
-          animationDuration={MOTION.duration}
-          animationEasing={MOTION.easing}
-        />
-        <Line
-          type="monotone"
-          dataKey="parallelSell"
-          name="Paralelo sell"
-          stroke="var(--parallel)"
-          strokeWidth={1.1}
-          strokeDasharray="4 3"
-          dot={false}
-          connectNulls
-          animationDuration={MOTION.duration}
-          animationEasing={MOTION.easing}
-        />
-      </ComposedChart>
-    </Frame>
+    <>
+      <ZoomExit zoom={zoom} format={(label) => longDate.format(asDate(label))} />
+      <Frame {...(tall ? { tall: true } : {})}>
+        <ComposedChart
+          data={shown}
+          margin={{ top: 10, right: 14, bottom: 4, left: 4 }}
+          onMouseDown={(event) => zoom.begin(event?.activeLabel)}
+          onMouseMove={(event) => zoom.drag(event?.activeLabel)}
+          onMouseUp={zoom.finish}
+          onMouseLeave={zoom.finish}
+        >
+          <defs>
+            <linearGradient id="fillOfficial" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stopColor="var(--official)" stopOpacity={0.18} />
+              <stop offset="100%" stopColor="var(--official)" stopOpacity={0} />
+            </linearGradient>
+          </defs>
+          <CartesianGrid {...GRID} />
+          <XAxis dataKey="date" tickFormatter={shortLabel} minTickGap={52} {...AXIS} />
+          <YAxis domain={domain} width={54} tickFormatter={(value) => number(value, 2)} {...AXIS} />
+          <Tooltip content={renderTooltip} cursor={{ stroke: 'var(--rule)', strokeWidth: 1 }} />
+          <Area
+            type="monotone"
+            dataKey="official"
+            name="Oficial"
+            stroke="var(--official)"
+            strokeWidth={2}
+            fill="url(#fillOfficial)"
+            dot={false}
+            connectNulls
+            animationDuration={MOTION.duration}
+            animationEasing={MOTION.easing}
+          />
+          <Line
+            type="monotone"
+            dataKey="parallelBuy"
+            name="Paralelo buy"
+            stroke="var(--parallel)"
+            strokeWidth={2}
+            dot={false}
+            connectNulls
+            animationDuration={MOTION.duration}
+            animationEasing={MOTION.easing}
+          />
+          <Line
+            type="monotone"
+            dataKey="parallelSell"
+            name="Paralelo sell"
+            stroke="var(--parallel)"
+            strokeWidth={1.1}
+            strokeDasharray="4 3"
+            dot={false}
+            connectNulls
+            animationDuration={MOTION.duration}
+            animationEasing={MOTION.easing}
+          />
+          <ZoomBand zoom={zoom} />
+        </ComposedChart>
+      </Frame>
+    </>
   );
 }
 
 export function GapChart({ data, tall }: { data: GapChartPoint[]; tall?: boolean }) {
+  const zoom = useRangeZoom(data.map((point) => point.date));
+  const shown = zoom.visible(data);
   const renderTooltip = ({ active, payload, label }: TooltipRender) => {
     if (!active || !payload?.length || typeof label !== 'string') return null;
     const point = payload[0]?.payload as GapChartPoint | undefined;
@@ -246,33 +389,44 @@ export function GapChart({ data, tall }: { data: GapChartPoint[]; tall?: boolean
   };
 
   return (
-    <Frame {...(tall ? { tall: true } : {})}>
-      <ComposedChart data={data} margin={{ top: 10, right: 14, bottom: 4, left: 4 }}>
-        <defs>
-          <linearGradient id="fillGap" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor="var(--gap)" stopOpacity={0.28} />
-            <stop offset="100%" stopColor="var(--gap)" stopOpacity={0.02} />
-          </linearGradient>
-        </defs>
-        <CartesianGrid {...GRID} />
-        <XAxis dataKey="date" tickFormatter={shortLabel} minTickGap={52} {...AXIS} />
-        <YAxis width={54} tickFormatter={(value) => `${number(value, 0)}%`} {...AXIS} />
-        <Tooltip content={renderTooltip} cursor={{ stroke: 'var(--rule)', strokeWidth: 1 }} />
-        {/* Parity is a real reference here, unlike on a rate axis. */}
-        <ReferenceLine y={0} stroke="var(--ink-faint)" strokeDasharray="3 3" />
-        <Area
-          type="monotone"
-          dataKey="gapPercent"
-          name="Brecha"
-          stroke="var(--gap)"
-          fill="url(#fillGap)"
-          strokeWidth={2}
-          dot={false}
-          animationDuration={MOTION.duration}
-          animationEasing={MOTION.easing}
-        />
-      </ComposedChart>
-    </Frame>
+    <>
+      <ZoomExit zoom={zoom} format={(label) => longDate.format(asDate(label))} />
+      <Frame {...(tall ? { tall: true } : {})}>
+        <ComposedChart
+          data={shown}
+          margin={{ top: 10, right: 14, bottom: 4, left: 4 }}
+          onMouseDown={(event) => zoom.begin(event?.activeLabel)}
+          onMouseMove={(event) => zoom.drag(event?.activeLabel)}
+          onMouseUp={zoom.finish}
+          onMouseLeave={zoom.finish}
+        >
+          <defs>
+            <linearGradient id="fillGap" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stopColor="var(--gap)" stopOpacity={0.28} />
+              <stop offset="100%" stopColor="var(--gap)" stopOpacity={0.02} />
+            </linearGradient>
+          </defs>
+          <CartesianGrid {...GRID} />
+          <XAxis dataKey="date" tickFormatter={shortLabel} minTickGap={52} {...AXIS} />
+          <YAxis width={54} tickFormatter={(value) => `${number(value, 0)}%`} {...AXIS} />
+          <Tooltip content={renderTooltip} cursor={{ stroke: 'var(--rule)', strokeWidth: 1 }} />
+          {/* Parity is a real reference here, unlike on a rate axis. */}
+          <ReferenceLine y={0} stroke="var(--ink-faint)" strokeDasharray="3 3" />
+          <Area
+            type="monotone"
+            dataKey="gapPercent"
+            name="Brecha"
+            stroke="var(--gap)"
+            fill="url(#fillGap)"
+            strokeWidth={2}
+            dot={false}
+            animationDuration={MOTION.duration}
+            animationEasing={MOTION.easing}
+          />
+          <ZoomBand zoom={zoom} />
+        </ComposedChart>
+      </Frame>
+    </>
   );
 }
 
@@ -334,7 +488,9 @@ export function MacroChart({
   unit: string;
   tone: string;
 }) {
-  const domain = fittedDomain(data.map((point) => point.value));
+  const zoom = useRangeZoom(data.map((point) => point.period));
+  const shown = zoom.visible(data);
+  const domain = fittedDomain(shown.map((point) => point.value));
   const compact = (value: number): string =>
     unit === 'USD'
       ? Math.abs(value) >= 1_000_000_000
@@ -350,28 +506,42 @@ export function MacroChart({
   };
 
   return (
-    <div className="chart-frame chart-frame-small">
-      <ResponsiveContainer width="100%" height="100%">
-        <ComposedChart data={data} margin={{ top: 8, right: 6, bottom: 0, left: 0 }}>
-          <CartesianGrid {...GRID} />
-          <XAxis dataKey="period" minTickGap={34} {...AXIS} />
-          <YAxis domain={domain} width={46} tickFormatter={compact} {...AXIS} />
-          <Tooltip content={renderTooltip} cursor={{ stroke: 'var(--rule)', strokeWidth: 1 }} />
-          {domain[0] < 0 ? (
-            <ReferenceLine y={0} stroke="var(--ink-faint)" strokeDasharray="3 3" />
-          ) : null}
-          <Line
-            type="monotone"
-            dataKey="value"
-            stroke={tone}
-            strokeWidth={1.9}
-            dot={false}
-            animationDuration={MOTION.duration}
-            animationEasing={MOTION.easing}
-          />
-        </ComposedChart>
-      </ResponsiveContainer>
-    </div>
+    <>
+      <ZoomExit zoom={zoom} />
+      <div
+        className="chart-frame chart-frame-small"
+        onContextMenu={(event) => event.preventDefault()}
+      >
+        <ResponsiveContainer width="100%" height="100%">
+          <ComposedChart
+            data={shown}
+            margin={{ top: 8, right: 6, bottom: 0, left: 0 }}
+            onMouseDown={(event) => zoom.begin(event?.activeLabel)}
+            onMouseMove={(event) => zoom.drag(event?.activeLabel)}
+            onMouseUp={zoom.finish}
+            onMouseLeave={zoom.finish}
+          >
+            <CartesianGrid {...GRID} />
+            <XAxis dataKey="period" minTickGap={34} {...AXIS} />
+            <YAxis domain={domain} width={46} tickFormatter={compact} {...AXIS} />
+            <Tooltip content={renderTooltip} cursor={{ stroke: 'var(--rule)', strokeWidth: 1 }} />
+            {domain[0] < 0 ? (
+              <ReferenceLine y={0} stroke="var(--ink-faint)" strokeDasharray="3 3" />
+            ) : null}
+            <Line
+              type="monotone"
+              dataKey="value"
+              stroke={tone}
+              strokeWidth={1.9}
+              dot={false}
+              animationDuration={MOTION.duration}
+              animationEasing={MOTION.easing}
+            />
+            <ZoomBand zoom={zoom} />
+          </ComposedChart>
+        </ResponsiveContainer>
+      </div>
+    </>
   );
 }
 
@@ -442,6 +612,8 @@ export function SeriesChart({
 }) {
   const gradientId = `grad-${tone.replace(/[^a-z]/gu, '')}-${kind}`;
   const values = data.map((point) => point.value);
+  const zoom = useRangeZoom(data.map((point) => point.date));
+  const shown = zoom.visible(data);
   const axisDomain = domain ?? fittedDomain(values);
 
   const renderTooltip = ({ active, payload, label }: TooltipRender) => {
@@ -464,74 +636,85 @@ export function SeriesChart({
         : 'chart-frame';
 
   return (
-    <div className={frameClass}>
-      <ResponsiveContainer width="100%" height="100%">
-        <ComposedChart data={data} margin={{ top: 10, right: 14, bottom: 4, left: 4 }}>
-          <defs>
-            <linearGradient id={gradientId} x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor={tone} stopOpacity={0.3} />
-              <stop offset="100%" stopColor={tone} stopOpacity={0.02} />
-            </linearGradient>
-          </defs>
-          <CartesianGrid {...GRID} />
-          <XAxis dataKey="date" tickFormatter={shortLabel} minTickGap={52} {...AXIS} />
-          <YAxis
-            domain={axisDomain}
-            width={54}
-            tickFormatter={(value) => number(value, decimals === 0 ? 0 : 1)}
-            {...AXIS}
-          />
-          <Tooltip content={renderTooltip} cursor={{ stroke: 'var(--rule)', strokeWidth: 1 }} />
-          {zeroLine ? (
-            <ReferenceLine y={0} stroke="var(--ink-faint)" strokeDasharray="3 3" />
-          ) : null}
-          {boundary ? (
-            <ReferenceLine
-              x={boundary}
-              stroke="var(--ink-faint)"
-              strokeDasharray="2 4"
-              label={{
-                value: 'cambio de método',
-                position: 'insideTopLeft',
-                fontSize: 10,
-                fill: 'var(--ink-faint)',
-              }}
+    <>
+      <ZoomExit zoom={zoom} format={(label) => longDate.format(asDate(label))} />
+      <div className={frameClass} onContextMenu={(event) => event.preventDefault()}>
+        <ResponsiveContainer width="100%" height="100%">
+          <ComposedChart
+            data={shown}
+            margin={{ top: 10, right: 14, bottom: 4, left: 4 }}
+            onMouseDown={(event) => zoom.begin(event?.activeLabel)}
+            onMouseMove={(event) => zoom.drag(event?.activeLabel)}
+            onMouseUp={zoom.finish}
+            onMouseLeave={zoom.finish}
+          >
+            <defs>
+              <linearGradient id={gradientId} x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor={tone} stopOpacity={0.3} />
+                <stop offset="100%" stopColor={tone} stopOpacity={0.02} />
+              </linearGradient>
+            </defs>
+            <CartesianGrid {...GRID} />
+            <XAxis dataKey="date" tickFormatter={shortLabel} minTickGap={52} {...AXIS} />
+            <YAxis
+              domain={axisDomain}
+              width={54}
+              tickFormatter={(value) => number(value, decimals === 0 ? 0 : 1)}
+              {...AXIS}
             />
-          ) : null}
-          {kind === 'bar' ? (
-            <Bar
-              dataKey="value"
-              fill={tone}
-              fillOpacity={0.75}
-              isAnimationActive
-              animationDuration={MOTION.duration}
-              animationEasing={MOTION.easing}
-            />
-          ) : kind === 'area' ? (
-            <Area
-              type="monotone"
-              dataKey="value"
-              stroke={tone}
-              strokeWidth={1.9}
-              fill={`url(#${gradientId})`}
-              dot={false}
-              animationDuration={MOTION.duration}
-              animationEasing={MOTION.easing}
-            />
-          ) : (
-            <Line
-              type="monotone"
-              dataKey="value"
-              stroke={tone}
-              strokeWidth={1.9}
-              dot={false}
-              animationDuration={MOTION.duration}
-              animationEasing={MOTION.easing}
-            />
-          )}
-        </ComposedChart>
-      </ResponsiveContainer>
-    </div>
+            <Tooltip content={renderTooltip} cursor={{ stroke: 'var(--rule)', strokeWidth: 1 }} />
+            {zeroLine ? (
+              <ReferenceLine y={0} stroke="var(--ink-faint)" strokeDasharray="3 3" />
+            ) : null}
+            {boundary ? (
+              <ReferenceLine
+                x={boundary}
+                stroke="var(--ink-faint)"
+                strokeDasharray="2 4"
+                label={{
+                  value: 'cambio de método',
+                  position: 'insideTopLeft',
+                  fontSize: 10,
+                  fill: 'var(--ink-faint)',
+                }}
+              />
+            ) : null}
+            {kind === 'bar' ? (
+              <Bar
+                dataKey="value"
+                fill={tone}
+                fillOpacity={0.75}
+                isAnimationActive
+                animationDuration={MOTION.duration}
+                animationEasing={MOTION.easing}
+              />
+            ) : kind === 'area' ? (
+              <Area
+                type="monotone"
+                dataKey="value"
+                stroke={tone}
+                strokeWidth={1.9}
+                fill={`url(#${gradientId})`}
+                dot={false}
+                animationDuration={MOTION.duration}
+                animationEasing={MOTION.easing}
+              />
+            ) : (
+              <Line
+                type="monotone"
+                dataKey="value"
+                stroke={tone}
+                strokeWidth={1.9}
+                dot={false}
+                animationDuration={MOTION.duration}
+                animationEasing={MOTION.easing}
+              />
+            )}
+            <ZoomBand zoom={zoom} />
+          </ComposedChart>
+        </ResponsiveContainer>
+      </div>
+    </>
   );
 }
 

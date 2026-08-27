@@ -2639,3 +2639,43 @@ button.term-chip:hover {
     padding-block: 0.45rem;
   }
 }
+
+/* Zoom by dragging -------------------------------------------------------- */
+
+/*
+ * The way out of a zoom, and the only sign that there is one.
+ *
+ * It appears above the chart the moment a stretch is chosen and says which
+ * stretch, because a reader who steps away and comes back needs to know the
+ * chart is not showing everything. It disappears when there is nothing to
+ * return from, so a chart nobody has zoomed carries no chrome at all.
+ */
+.zoom-exit {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  appearance: none;
+  margin: 0 0 0.4rem;
+  padding: 0.3rem 0.6rem;
+  font: inherit;
+  font-family: var(--mono);
+  font-size: 0.68rem;
+  color: var(--ink-soft);
+  background: var(--panel-tint);
+  border: 1px solid var(--rule);
+  border-radius: 7px;
+  cursor: pointer;
+  transition:
+    color var(--fast) var(--ease),
+    border-color var(--fast) var(--ease);
+}
+
+.zoom-exit:hover {
+  color: var(--ink);
+  border-color: var(--ink-faint);
+}
+
+/* The plot itself says it can be dragged. */
+.chart-frame .recharts-surface {
+  cursor: crosshair;
+}
