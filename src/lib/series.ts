@@ -351,6 +351,14 @@ export interface CompanyFiling {
   filerCode: string | null;
   /** Industry derived from the issuer's registered name, not published by the exchange. */
   sector: string;
+  /**
+   * What the filing is about, read from its subject line.
+   *
+   * The exchange lets each issuer word its own subject, so the register holds
+   * four thousand distinct ones. Migration 0061 files them into eleven
+   * categories and a residual.
+   */
+  category: string;
   subject: string;
   statedInstant: string | null;
   instantStatedInDocument: boolean | null;
@@ -417,6 +425,7 @@ export async function readCompanyFilings(limit = 1_000): Promise<CompanyFiling[]
     filer: string;
     filer_code: string | null;
     sector: string;
+    category: string;
     document_text: string | null;
     subject: string;
     stated_instant: string | null;
@@ -426,7 +435,7 @@ export async function readCompanyFilings(limit = 1_000): Promise<CompanyFiling[]
     excerpt: string | null;
   }>(
     `SELECT fact_claim_id, event_date::text AS event_date, published_at, filer, filer_code,
-            sector, subject, stated_instant, instant_stated_in_document, source_url,
+            sector, category, subject, stated_instant, instant_stated_in_document, source_url,
             evidence_sha256, excerpt, document_text
      FROM read_models.company_filing
      WHERE status = 'PUBLISHED' AND NOT superseded
@@ -442,6 +451,7 @@ export async function readCompanyFilings(limit = 1_000): Promise<CompanyFiling[]
     filer: row.filer,
     filerCode: row.filer_code,
     sector: row.sector,
+    category: row.category,
     subject: row.subject,
     statedInstant: row.stated_instant,
     instantStatedInDocument: row.instant_stated_in_document,

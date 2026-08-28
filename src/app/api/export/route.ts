@@ -35,8 +35,9 @@ interface Selection {
   outlet?: string | undefined;
   tone?: string | undefined;
   region?: string | undefined;
-  /** Filings only: the issuer the panel was slicing by. */
+  /** Filings only: the issuer and the kind of filing the panel was slicing by. */
   filer?: string | undefined;
+  category?: string | undefined;
   /** Press only: the year and the watched term the panel was slicing by. */
   year?: string | undefined;
   term?: string | undefined;
@@ -110,6 +111,7 @@ async function collect(dataset: Dataset, selection: Selection): Promise<Row[]> {
       .filter(
         (filing) =>
           (!selection.sector || filing.sector === selection.sector) &&
+          (!selection.category || filing.category === selection.category) &&
           (!selection.filer || filing.filer === selection.filer) &&
           (selection.from === undefined || filing.eventDate >= selection.from) &&
           (!term ||
@@ -120,6 +122,7 @@ async function collect(dataset: Dataset, selection: Selection): Promise<Row[]> {
         fecha: filing.eventDate,
         sello: filing.statedInstant,
         rubro: filing.sector,
+        tipo_de_hecho: filing.category,
         codigo_emisor: filing.filerCode,
         emisor: filing.filer,
         asunto: filing.subject,
@@ -189,6 +192,7 @@ export async function GET(request: Request): Promise<Response> {
       tone: url.searchParams.get('tono') ?? undefined,
       region: url.searchParams.get('region') ?? undefined,
       filer: url.searchParams.get('emisor') ?? undefined,
+      category: url.searchParams.get('categoria') ?? undefined,
       year: url.searchParams.get('anio') ?? undefined,
       term: url.searchParams.get('termino') ?? undefined,
       from: from && /^\d{4}(-\d{2}-\d{2})?$/u.test(from) ? from : undefined,

@@ -1328,7 +1328,8 @@ code {
 }
 
 .barlist-row .barlist-n {
-  width: 40px;
+  /* Wide enough for the whole register: five figures and a thousands stop. */
+  width: 52px;
   text-align: right;
   font-family: var(--mono);
   font-size: 0.72rem;
