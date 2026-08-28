@@ -1,5 +1,6 @@
 import type { GapChartPoint, RatePoint } from '@/components/charts';
 import { Download } from '@/components/download';
+import { Donate } from '@/components/donate';
 import { FilingExplorer } from '@/components/filing-explorer';
 import { FxExplorer } from '@/components/fx-explorer';
 import { MacroExplorer } from '@/components/macro-explorer';
@@ -360,6 +361,7 @@ export default async function Page() {
             {observatory.lastReceivedAt ? ` · carga ${instant(observatory.lastReceivedAt)}` : ''}
           </span>
         </div>
+        <Donate />
       </header>
 
       <Tabs

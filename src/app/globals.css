@@ -2760,3 +2760,129 @@ button.term-chip:hover {
 .card:has(.card-table) {
   flex-basis: 100%;
 }
+
+/* Donation --------------------------------------------------------------- */
+
+/*
+ * The ask sits in the masthead beside the timestamp, so it is on every section
+ * and shouts on none. It borrows the pill of the download controls rather than
+ * inventing a shape, and spends the only warm hue on the page — the parallel
+ * hue, which the charts already use for "market" — on its outline alone.
+ */
+
+.donate-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  appearance: none;
+  cursor: pointer;
+  font-family: var(--mono);
+  font-size: 0.75rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  padding: 0.35rem 0.85rem;
+  border: 1px solid var(--rule);
+  border-radius: 999px;
+  background: var(--panel);
+  color: var(--ink-soft);
+  transition:
+    border-color var(--fast) var(--ease),
+    color var(--fast) var(--ease),
+    transform var(--fast) var(--ease);
+}
+
+.donate-btn:hover {
+  border-color: var(--parallel);
+  color: var(--parallel);
+  transform: translateY(-1px);
+}
+
+.donate-btn:focus-visible {
+  outline: 2px solid var(--official);
+  outline-offset: 2px;
+}
+
+.donate-dialog {
+  width: min(24rem, calc(100vw - 2rem));
+  padding: 0;
+  border: 1px solid var(--rule);
+  border-radius: var(--radius);
+  background: var(--panel);
+  color: var(--ink);
+  box-shadow: var(--shadow);
+}
+
+.donate-dialog::backdrop {
+  background: rgb(16 24 40 / 0.42);
+}
+
+.donate-body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s2);
+  padding: var(--s3);
+}
+
+.donate-lead {
+  margin: 0;
+  font-size: 0.88rem;
+  color: var(--ink-soft);
+}
+
+/*
+ * A QR is read by a camera, not by a reader: it keeps its own white ground and
+ * quiet zone in both themes, because a code inverted for the dark palette is a
+ * code that does not scan.
+ */
+.donate-qr {
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--s1);
+  padding: var(--s2);
+  border: 1px solid var(--rule);
+  border-radius: var(--radius);
+  background: #ffffff;
+}
+
+.donate-qr img {
+  display: block;
+  width: 220px;
+  height: 220px;
+}
+
+.donate-test {
+  font-family: var(--mono);
+  font-size: 0.68rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #78839a;
+}
+
+.donate-note {
+  margin: 0;
+  font-size: 0.78rem;
+  color: var(--ink-faint);
+}
+
+.donate-close {
+  align-self: flex-end;
+  appearance: none;
+  cursor: pointer;
+  font: inherit;
+  font-size: 0.85rem;
+  padding: 0.4rem 1rem;
+  border: 1px solid var(--rule);
+  border-radius: 999px;
+  background: var(--panel-tint);
+  color: var(--ink-soft);
+  transition:
+    border-color var(--fast) var(--ease),
+    color var(--fast) var(--ease);
+}
+
+.donate-close:hover {
+  border-color: var(--ink-soft);
+  color: var(--ink);
+}
