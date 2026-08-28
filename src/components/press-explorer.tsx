@@ -55,6 +55,10 @@ const TOPIC_LABEL: Record<string, string> = {
   EMPRESARIAL: 'Empresas y marcas',
   CLIMA: 'Clima y desastres',
   CRONICA_ROJA: 'Crónica roja',
+  JUDICIAL: 'Justicia y tribunales',
+  CULTURA: 'Cultura y turismo',
+  DEPORTES: 'Deportes',
+  INTERNACIONAL: 'Internacional',
   OTROS: 'Otros temas',
 };
 
@@ -76,6 +80,10 @@ const TOPIC_ICON: Record<string, IconName> = {
   EMPRESARIAL: 'maletin',
   CLIMA: 'gota',
   CRONICA_ROJA: 'escudo',
+  JUDICIAL: 'banco',
+  CULTURA: 'hoja',
+  DEPORTES: 'diana',
+  INTERNACIONAL: 'globo',
   OTROS: 'cajas',
 };
 
@@ -87,6 +95,7 @@ const TONE_LABEL: Record<string, string> = {
   MEJORA: 'Mejora',
   DESINFORMACION: 'Desinformación',
   MEDIDA: 'Medida tomada',
+  DECLARACION: 'Declaración',
   NEUTRO: 'Sin marca',
 };
 
