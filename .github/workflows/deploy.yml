@@ -104,3 +104,36 @@ jobs:
 
           echo "el despliegue seguia en curso tras trece minutos; no se da por bueno" >&2
           exit 1
+
+      - name: Check that the deployed page reads the database
+        run: |
+          # Un contenedor que arranca no es un tablero que funciona. Hoy mismo el
+          # recurso esta "running" y sirve la pagina de error de lectura: sin esta
+          # comprobacion el despliegue quedaria verde igual. Se mira la portada
+          # por la interfaz de la tailnet, que es donde el contenedor publica.
+          url="http://100.101.207.88:${WEB_PUBLISH_PORT:-3003}/"
+
+          for attempt in $(seq 1 20); do
+            # La primera peticion tras un arranque arma la tabulacion completa del
+            # corpus, asi que el margen es amplio a proposito.
+            body=$(curl --silent --show-error --max-time 120 "$url" || true)
+            if [ -n "$body" ]; then
+              break
+            fi
+            echo "intento $attempt: el tablero aun no responde"
+            sleep 10
+          done
+
+          if [ -z "$body" ]; then
+            echo "el tablero no respondio en $url" >&2
+            exit 1
+          fi
+
+          if printf '%s' "$body" | grep -q 'No fue posible leer la base de datos'; then
+            echo "el tablero responde pero no pudo leer la base." >&2
+            echo "Revisa DASHBOARD_DATABASE_URL en el recurso de Coolify y que" >&2
+            echo "'Connect To Predefined Network' este activado." >&2
+            exit 1
+          fi
+
+          echo "el tablero responde y leyo la base"
