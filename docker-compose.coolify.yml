@@ -1,0 +1,61 @@
+# Despliegue del tablero en Coolify (servidor pablo-h310).
+#
+# El tablero consulta PostgreSQL directamente, sin pasar por la API del backend,
+# asi que necesita su propia credencial de lectura y vivir en la red `coolify`,
+# que es donde el hostname interno de la base resuelve.
+#
+# Requisito previo en la UI de Coolify: "Connect To Predefined Network" activado
+# en este recurso. Sin eso el contenedor no resuelve el nombre de la base.
+
+services:
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    environment:
+      # Coolify sustituye esta variable por el dominio asignado y genera las
+      # etiquetas de Traefik hacia el puerto 3000.
+      SERVICE_FQDN_WEB_3000:
+      NODE_ENV: production
+      # Next escucha en todas las interfaces: el proxy entra por la red Docker,
+      # no por loopback.
+      HOSTNAME: 0.0.0.0
+      PORT: 3000
+      # Unica variable que el codigo lee. Apunta a `economic_observatory`, no a
+      # la base `postgres` del mismo servidor, que conserva una copia antigua.
+      DASHBOARD_DATABASE_URL: ${DASHBOARD_DATABASE_URL:?requerida}
+      # Fijo, no heredado de la UI: este PostgreSQL corre con `ssl = off` y
+      # rechaza el handshake, asi que exigir TLS deja todos los paneles vacios.
+      # El trafico no sale de la red Docker del servidor.
+      DASHBOARD_DATABASE_SSL: 'false'
+    expose: ['3000']
+    # Publicado solo sobre la interfaz de Tailscale, igual que la API. El 3000 y
+    # el 3002 del servidor ya estan tomados, de ahi el 3003.
+    ports:
+      - '${WEB_PUBLISH_ADDRESS:-100.101.207.88}:${WEB_PUBLISH_PORT:-3003}:3000'
+    init: true
+    read_only: true
+    tmpfs: [/tmp]
+    cap_drop: [ALL]
+    security_opt: ['no-new-privileges:true']
+    healthcheck:
+      test:
+        [
+          'CMD',
+          'node',
+          '-e',
+          "fetch('http://127.0.0.1:3000/').then(r=>{if(!r.ok)process.exit(1)}).catch(()=>process.exit(1))",
+        ]
+      interval: 20s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    stop_grace_period: 30s
+    networks: [coolify]
+    restart: unless-stopped
+
+# Red compartida que crea Coolify: es la que permite resolver el hostname
+# interno de la base.
+networks:
+  coolify:
+    external: true

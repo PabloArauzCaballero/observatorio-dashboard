@@ -28,6 +28,23 @@ function isLoopback(connectionString: string): boolean {
   }
 }
 
+/**
+ * TLS is demanded and the certificate verified rather than trusted blindly.
+ *
+ * Two targets are exempt, and both are databases no stranger can sit in front
+ * of. A database on loopback has no network segment to intercept. And the
+ * PostgreSQL behind the Coolify deployment runs with `ssl = off` on a private
+ * Docker network: there the handshake is refused outright, so demanding TLS
+ * buys nothing and costs every figure on the page. That second case has to be
+ * declared — `DASHBOARD_DATABASE_SSL=false` — because the host name alone does
+ * not tell a private Docker network apart from the open internet.
+ */
+function tlsFor(connectionString: string): false | { rejectUnauthorized: true } {
+  if (isLoopback(connectionString)) return false;
+  if (process.env.DASHBOARD_DATABASE_SSL === 'false') return false;
+  return { rejectUnauthorized: true };
+}
+
 function createPool(): Pool {
   const connectionString = process.env.DASHBOARD_DATABASE_URL;
   if (!connectionString) {
@@ -37,12 +54,7 @@ function createPool(): Pool {
   }
   return new Pool({
     connectionString,
-    // TLS is demanded and the certificate verified rather than trusted blindly.
-    // The one exception is a database on loopback, where there is no network
-    // segment for anyone to sit on; every hosted target is remote and keeps
-    // verification. This is decided from the host, not from a flag a
-    // misconfigured deployment could set.
-    ...(isLoopback(connectionString) ? {} : { ssl: { rejectUnauthorized: true } }),
+    ssl: tlsFor(connectionString),
     max: 4,
     idleTimeoutMillis: 30_000,
     connectionTimeoutMillis: 10_000,
