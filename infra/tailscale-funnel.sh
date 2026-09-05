@@ -7,7 +7,19 @@
 # entrega el trafico por la conexion que el propio servidor ya mantiene, sin
 # abrir un puerto en el router ni depender de una IP domestica que cambia.
 #
-#   https://pablo-h310.taila8f993.ts.net  ->  127.0.0.1:3003  ->  contenedor web
+#   https://pablo-h310.taila8f993.ts.net:8443  ->  100.101.207.88:3003
+#
+# DOS DECISIONES QUE PARECEN RARAS Y NO LO SON:
+#
+# 1) El destino es la direccion de Tailscale del servidor, no `127.0.0.1`.
+#    El 3003 de loopback pertenece a AloVida, otro proyecto que vive en esta
+#    misma maquina. Son interfaces distintas y por eso ambos usan el 3003 sin
+#    estorbarse, pero un tunel a loopback sirve AloVida, no el Observatorio.
+#
+# 2) El puerto publico es el 8443 y no el 443. El 443 de este nodo ya lo ocupa
+#    AloVida en `/` y en `/webhook/front`; tomarlo dejaria a ese proyecto sin su
+#    direccion. Funnel admite 443, 8443 y 10000, asi que el tablero se queda con
+#    el 8443 y nadie pierde nada.
 #
 # Se corre UNA vez, EN EL SERVIDOR. La configuracion queda guardada en el estado
 # de tailscaled: sobrevive a reinicios del contenedor, del demonio y de la
@@ -16,42 +28,38 @@
 #
 #   ssh pablo-h310 'sudo bash -s' < infra/tailscale-funnel.sh
 #
-# Para retirar la publicacion: `sudo tailscale funnel reset`.
+# Para retirar SOLO esta publicacion, sin tocar la de AloVida:
+#   sudo tailscale funnel --https=8443 off
 #
 # Ojo: lo que se abre es el tablero y solo el tablero. La API vecina, en el 3002,
-# corre hoy con AUTH_MODE=disabled y no debe publicarse por aqui.
+# corre hoy con AUTH_MODE=disabled sobre los datos reales y no debe publicarse.
 set -euo pipefail
 
+HOST="${WEB_PUBLISH_ADDRESS:-100.101.207.88}"
 PORT="${WEB_PUBLISH_PORT:-3003}"
+PUBLIC_PORT="${FUNNEL_PORT:-8443}"
+TARGET="http://${HOST}:${PORT}"
 
 if ! command -v tailscale >/dev/null 2>&1; then
   echo "tailscale no esta instalado en este servidor" >&2
   exit 1
 fi
 
-# El contenedor publica en loopback justamente para esto. Si no responde ahi, se
-# prueba la interfaz de la tailnet, que es la otra publicacion del compose: un
-# contenedor levantado antes de que el compose trajera el bind de loopback solo
-# esta en esa. Sin ninguna de las dos, el tunel apuntaria a un puerto muerto y
-# serviria un 502 publico, asi que se falla aqui y no despues.
-target=""
-for candidate in "127.0.0.1:${PORT}" "100.101.207.88:${PORT}"; do
-  if curl --silent --fail --max-time 15 --output /dev/null "http://${candidate}/"; then
-    target="$candidate"
-    break
-  fi
-done
-
-if [ -z "$target" ]; then
-  echo "nadie responde en el puerto ${PORT}: despliega el tablero antes de abrir el tunel" >&2
+# No basta con que algo responda en el puerto: el error que este guion existe
+# para no repetir fue precisamente abrir un tunel hacia el vecino equivocado.
+# `/api/version` solo la sirve el tablero, asi que identifica lo que hay detras.
+if ! curl --silent --fail --max-time 15 "${TARGET}/api/version" | grep -q startedAt; then
+  echo "en ${TARGET} no responde el tablero del Observatorio." >&2
+  echo "Despliegalo antes de abrir el tunel, o comprueba que no sea otro" >&2
+  echo "proyecto el que ocupa ese puerto." >&2
   exit 1
 fi
 
-echo "destino del tunel: http://${target}"
+echo "destino verificado: ${TARGET} sirve el Observatorio"
 
 # Funnel exige que la tailnet tenga HTTPS habilitado y el atributo `funnel`
 # concedido al nodo. Si falta alguno, tailscale lo dice aqui y no mas adelante.
-tailscale funnel --bg "http://${target}"
+tailscale funnel --bg --https="${PUBLIC_PORT}" "${TARGET}"
 
 echo
 tailscale funnel status
