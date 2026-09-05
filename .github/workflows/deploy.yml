@@ -25,10 +25,15 @@ concurrency:
   group: deploy-coolify-dashboard
   cancel-in-progress: false
 
+env:
+  # El contenedor publica aqui, sobre la interfaz de Tailscale. Es tambien la
+  # unica via por la que este trabajo puede comprobar lo que desplego.
+  DASHBOARD_URL: http://100.101.207.88:3003/
+
 jobs:
   deploy:
     runs-on: ubuntu-24.04
-    timeout-minutes: 15
+    timeout-minutes: 25
     steps:
       - name: Join the tailnet
         uses: tailscale/github-action@v3
@@ -51,8 +56,21 @@ jobs:
           echo "no hay ruta al servidor por la tailnet" >&2
           exit 1
 
+      - name: Note which build is serving now
+        id: before
+        run: |
+          # Next nombra su hoja de estilos por el contenido, asi que la ruta
+          # cambia con cada compilacion. Guardarla antes de desplegar es lo que
+          # permite despues distinguir «el tablero nuevo ya responde» de «el viejo
+          # sigue en pie». La alternativa —el estado del despliegue en la API de
+          # Coolify— exige un token con permiso de lectura, y el que hay aqui solo
+          # puede disparar webhooks.
+          id=$(curl --silent --max-time 60 "$DASHBOARD_URL" \
+               | grep -oE '/_next/static/css/[a-z0-9]+[.]css' | head -n 1 || true)
+          echo "hoja en servicio: ${id:-ninguna, el tablero no responde}"
+          echo "build=$id" >> "$GITHUB_OUTPUT"
+
       - name: Trigger the deployment
-        id: trigger
         env:
           WEBHOOK: ${{ secrets.PABLO_H310_COOLIFY_WEBHOOK }}
           TOKEN: ${{ secrets.PABLO_H310_COOLIFY_TOKEN }}
@@ -64,76 +82,59 @@ jobs:
           # POST, no GET: Coolify movio este endpoint y responde 405 a un GET.
           # --fail-with-body para que un rechazo suyo se vea en el log en vez de
           # morir con un codigo de salida mudo.
-          body=$(curl --fail-with-body --silent --show-error --max-time 60                       --request POST                       --header "Authorization: Bearer $TOKEN"                       --header "Accept: application/json"                       --header "Content-Length: 0"                       "$WEBHOOK")
-          echo "$body"
+          curl --fail-with-body --silent --show-error --max-time 60 \
+               --request POST \
+               --header "Authorization: Bearer $TOKEN" \
+               --header "Accept: application/json" \
+               --header "Content-Length: 0" \
+               "$WEBHOOK"
+          echo
           echo "despliegue solicitado a Coolify"
 
-          # Coolify devuelve el identificador del despliegue que acaba de encolar.
-          # Se extrae para poder esperarlo; si la forma de la respuesta cambia, el
-          # paso siguiente lo informa y no falla el trabajo por eso.
-          uuid=$(printf '%s' "$body" | jq -r '.deployments[0].deployment_uuid // empty' 2>/dev/null || true)
-          echo "deployment_uuid=$uuid" >> "$GITHUB_OUTPUT"
-
-      - name: Wait for the build to finish
+      - name: Wait for the new build to serve, and to read the database
         env:
-          UUID: ${{ steps.trigger.outputs.deployment_uuid }}
-          TOKEN: ${{ secrets.PABLO_H310_COOLIFY_TOKEN }}
+          BEFORE: ${{ steps.before.outputs.build }}
         run: |
-          # Sin esta espera el trabajo queda en verde por haber pedido el
-          # despliegue, aunque Coolify falle al construir la imagen un minuto
-          # despues: el tablero seguiria sirviendo la version anterior y nadie
-          # se enteraria hasta abrirlo.
-          if [ -z "$UUID" ]; then
-            echo "Coolify no devolvio un deployment_uuid; no hay nada que esperar." >&2
-            echo "Revisa el estado del recurso en el panel." >&2
-            exit 0
-          fi
+          # Un contenedor que arranca no es un tablero que funciona: el recurso
+          # ha estado «running» y verde sirviendo la pagina de error de lectura.
+          # Asi que no se da por bueno un despliegue hasta que la compilacion
+          # nueva responde Y trae cifras.
+          #
+          # Veinte minutos de margen: Coolify construye la imagen de Next en el
+          # servidor, y la primera peticion despues arma la tabulacion completa
+          # del corpus, que es lenta una vez por diseno.
+          deadline=$(( $(date +%s) + 1200 ))
+          served=""
 
-          for attempt in $(seq 1 80); do
-            status=$(curl --silent --show-error --max-time 30                           --header "Authorization: Bearer $TOKEN"                           --header "Accept: application/json"                           "http://100.101.207.88/api/v1/deployments/$UUID"                      | jq -r '.status // empty')
-            case "$status" in
-              finished) echo "despliegue terminado"; exit 0 ;;
-              failed|cancelled-by-user)
-                echo "el despliegue termino en '$status'; revisa el log en Coolify" >&2
-                exit 1 ;;
-              "") echo "intento $attempt: Coolify aun no reporta estado" ;;
-              *) echo "intento $attempt: $status" ;;
-            esac
-            sleep 10
-          done
+          while [ "$(date +%s)" -lt "$deadline" ]; do
+            body=$(curl --silent --max-time 150 "$DASHBOARD_URL" || true)
+            id=$(printf '%s' "$body" | grep -oE '/_next/static/css/[a-z0-9]+\.css' | head -n 1 || true)
 
-          echo "el despliegue seguia en curso tras trece minutos; no se da por bueno" >&2
-          exit 1
-
-      - name: Check that the deployed page reads the database
-        run: |
-          # Un contenedor que arranca no es un tablero que funciona. Hoy mismo el
-          # recurso esta "running" y sirve la pagina de error de lectura: sin esta
-          # comprobacion el despliegue quedaria verde igual. Se mira la portada
-          # por la interfaz de la tailnet, que es donde el contenedor publica.
-          url="http://100.101.207.88:${WEB_PUBLISH_PORT:-3003}/"
-
-          for attempt in $(seq 1 20); do
-            # La primera peticion tras un arranque arma la tabulacion completa del
-            # corpus, asi que el margen es amplio a proposito.
-            body=$(curl --silent --show-error --max-time 120 "$url" || true)
-            if [ -n "$body" ]; then
+            if [ -n "$id" ] && [ "$id" != "$BEFORE" ]; then
+              served="$body"
+              echo "la compilacion nueva ya responde"
               break
             fi
-            echo "intento $attempt: el tablero aun no responde"
-            sleep 10
+
+            if [ -z "$id" ]; then
+              echo "el tablero no responde todavia"
+            else
+              echo "sigue en servicio la compilacion anterior"
+            fi
+            sleep 15
           done
 
-          if [ -z "$body" ]; then
-            echo "el tablero no respondio en $url" >&2
+          if [ -z "$served" ]; then
+            echo "la compilacion nueva no llego a servir en veinte minutos." >&2
+            echo "Revisa el log del despliegue en Coolify." >&2
             exit 1
           fi
 
-          if printf '%s' "$body" | grep -q 'No fue posible leer la base de datos'; then
+          if printf '%s' "$served" | grep -q 'No fue posible leer la base de datos'; then
             echo "el tablero responde pero no pudo leer la base." >&2
             echo "Revisa DASHBOARD_DATABASE_URL en el recurso de Coolify y que" >&2
             echo "'Connect To Predefined Network' este activado." >&2
             exit 1
           fi
 
-          echo "el tablero responde y leyo la base"
+          echo "el tablero desplegado responde y leyo la base"
