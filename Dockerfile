@@ -10,7 +10,9 @@ COPY . .
 # El tablero lee la base en cada peticion; ninguna pagina se prerenderiza en el
 # build, asi que la construccion no necesita credenciales de base de datos.
 ENV NEXT_TELEMETRY_DISABLED=1
-RUN npm run build
+# `public/` es opcional en Next y hoy no existe en esta rama; se crea vacio para
+# que la copia de la etapa final no dependa de que la rama lo traiga.
+RUN mkdir -p public && npm run build
 
 FROM node:22.16.0-bookworm-slim AS runtime
 ENV NODE_ENV=production
