@@ -6,6 +6,10 @@
 #
 # Requisito previo en la UI de Coolify: "Connect To Predefined Network" activado
 # en este recurso. Sin eso el contenedor no resuelve el nombre de la base.
+#
+# Variables que hay que definir en la UI de Coolify (las demas tienen valor por
+# defecto aqui):
+#   DASHBOARD_DATABASE_URL  cadena de solo lectura a `economic_observatory`.
 
 services:
   web:
@@ -21,21 +25,33 @@ services:
       # no por loopback.
       HOSTNAME: 0.0.0.0
       PORT: 3000
-      # Unica variable que el codigo lee. Apunta a `economic_observatory`, no a
-      # la base `postgres` del mismo servidor, que conserva una copia antigua.
+      NEXT_TELEMETRY_DISABLED: '1'
+      # Unica variable que el codigo lee para hablar con la base. Apunta a
+      # `economic_observatory`, no a la base `postgres` del mismo servidor, que
+      # conserva una copia antigua.
       DASHBOARD_DATABASE_URL: ${DASHBOARD_DATABASE_URL:?requerida}
       # Fijo, no heredado de la UI: este PostgreSQL corre con `ssl = off` y
       # rechaza el handshake, asi que exigir TLS deja todos los paneles vacios.
       # El trafico no sale de la red Docker del servidor.
       DASHBOARD_DATABASE_SSL: 'false'
     expose: ['3000']
-    # Publicado solo sobre la interfaz de Tailscale, igual que la API. El 3000 y
-    # el 3002 del servidor ya estan tomados, de ahi el 3003.
+    # Dos publicaciones, ninguna en 0.0.0.0:
+    #   - la interfaz de Tailscale, para llegar al tablero desde la tailnet sin
+    #     pasar por el tunel;
+    #   - loopback, que es lo unico que `tailscale funnel` acepta como destino.
+    #     Sin este bind el tunel publico no tiene a que apuntar.
+    # El 3000 y el 3002 del servidor ya estan tomados, de ahi el 3003.
     ports:
       - '${WEB_PUBLISH_ADDRESS:-100.101.207.88}:${WEB_PUBLISH_PORT:-3003}:3000'
+      - '127.0.0.1:${WEB_PUBLISH_PORT:-3003}:3000'
     init: true
     read_only: true
-    tmpfs: [/tmp]
+    # El proceso no escribe nada que deba sobrevivir a un reinicio, pero Next
+    # abre `.next/cache` al arrancar; sin este tmpfs el sistema de archivos de
+    # solo lectura lo tumbaria.
+    tmpfs:
+      - /tmp
+      - /app/.next/cache
     cap_drop: [ALL]
     security_opt: ['no-new-privileges:true']
     healthcheck:
@@ -49,7 +65,10 @@ services:
       interval: 20s
       timeout: 5s
       retries: 5
-      start_period: 30s
+      # La portada arma la tabulacion completa del corpus en la primera peticion
+      # tras un arranque; darle menos margen que eso marca el contenedor como
+      # enfermo justo cuando esta haciendo su trabajo mas caro.
+      start_period: 90s
     stop_grace_period: 30s
     networks: [coolify]
     restart: unless-stopped

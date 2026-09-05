@@ -1,0 +1,66 @@
+name: inspect-coolify
+
+# Diagnostico de solo lectura del recurso del tablero en Coolify.
+#
+# Coolify vive detras de la tailnet, asi que no hay forma de mirar su estado
+# desde una maquina cualquiera. Este trabajo entra, pregunta y reporta. No
+# escribe nada: usa los mismos endpoints en GET.
+#
+# Nunca imprime el valor de una variable de entorno, solo su nombre y si esta
+# vacia. Un log de Actions es legible por cualquiera con acceso al repositorio y
+# la cadena de conexion de la base no pertenece ahi.
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  inspect:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - name: Join the tailnet
+        uses: tailscale/github-action@v3
+        with:
+          authkey: ${{ secrets.PABLO_H310_TAILSCALE_AUTHKEY }}
+          args: --ssh=false
+
+      - name: Report the dashboard resource
+        env:
+          TOKEN: ${{ secrets.PABLO_H310_COOLIFY_TOKEN }}
+        run: |
+          set -u
+          api() {
+            curl --silent --show-error --max-time 30 \
+                 --header "Authorization: Bearer $TOKEN" \
+                 --header "Accept: application/json" \
+                 "http://100.101.207.88/api/v1/$1"
+          }
+
+          echo "=== aplicaciones registradas ==="
+          apps=$(api applications)
+          echo "$apps" | jq -r '.[] | "\(.uuid)  \(.name)  rama=\(.git_branch)  estado=\(.status)"'
+
+          uuid=$(echo "$apps" | jq -r '.[] | select(.name | test("dashboard")) | .uuid' | head -n 1)
+          if [ -z "$uuid" ]; then
+            echo "no hay ninguna aplicacion cuyo nombre contenga 'dashboard'" >&2
+            exit 1
+          fi
+          echo
+          echo "=== recurso del tablero: $uuid ==="
+          api "applications/$uuid" | jq '{
+            name, status, git_repository, git_branch, build_pack,
+            docker_compose_location, fqdn,
+            connect_to_docker_network: .connect_to_docker_network
+          }'
+
+          echo
+          echo "=== variables definidas (solo nombres) ==="
+          api "applications/$uuid/envs" \
+            | jq -r '.[] | "\(.key)  definida=\(if (.value // "") == "" then "no" else "si" end)  build_time=\(.is_build_time)"'
+
+          echo
+          echo "=== bases de datos del servidor ==="
+          api databases | jq -r '.[] | "\(.uuid)  \(.name)  tipo=\(.type)  estado=\(.status)  host_interno=\(.internal_db_url // "n/d" | sub("://[^@]*@"; "://<credencial>@"))"'
