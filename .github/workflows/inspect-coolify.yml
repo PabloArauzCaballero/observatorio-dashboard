@@ -38,6 +38,7 @@ jobs:
           TOKEN: ${{ secrets.PABLO_H310_COOLIFY_TOKEN }}
         run: |
           set -u
+
           api() {
             curl --silent --show-error --max-time 30 \
                  --header "Authorization: Bearer $TOKEN" \
@@ -45,28 +46,41 @@ jobs:
                  "http://100.101.207.88/api/v1/$1"
           }
 
+          # La respuesta llega como lista o envuelta en `.data`, y ante un rechazo
+          # es un objeto con `message`. Se normaliza antes de leerla para que un
+          # cambio de forma no se confunda con un recurso ausente.
+          unwrap='if type == "array" then . elif type == "object" and (.data | type) == "array" then .data else empty end'
+
           echo "=== aplicaciones registradas ==="
           apps=$(api applications)
-          echo "$apps" | jq -r '.[] | "\(.uuid)  \(.name)  rama=\(.git_branch)  estado=\(.status)"'
+          list=$(printf '%s' "$apps" | jq "$unwrap")
+          if [ -z "$list" ]; then
+            echo "Coolify no devolvio una lista de aplicaciones. Respuesta:" >&2
+            printf '%s\n' "$apps" | head -c 2000 >&2
+            exit 1
+          fi
+          printf '%s' "$list" | jq -r '.[] | "\(.uuid)  \(.name)  rama=\(.git_branch // "n/d")  estado=\(.status // "n/d")"'
 
-          uuid=$(echo "$apps" | jq -r '.[] | select(.name | test("dashboard")) | .uuid' | head -n 1)
+          uuid=$(printf '%s' "$list" | jq -r '.[] | select((.name // "") | test("dashboard")) | .uuid' | head -n 1)
           if [ -z "$uuid" ]; then
             echo "no hay ninguna aplicacion cuyo nombre contenga 'dashboard'" >&2
             exit 1
           fi
+
           echo
           echo "=== recurso del tablero: $uuid ==="
           api "applications/$uuid" | jq '{
             name, status, git_repository, git_branch, build_pack,
             docker_compose_location, fqdn,
-            connect_to_docker_network: .connect_to_docker_network
+            connect_to_docker_network
           }'
 
           echo
           echo "=== variables definidas (solo nombres) ==="
           api "applications/$uuid/envs" \
-            | jq -r '.[] | "\(.key)  definida=\(if (.value // "") == "" then "no" else "si" end)  build_time=\(.is_build_time)"'
+            | jq -r "$unwrap"' | .[] | "\(.key)  definida=\(if (.value // "") == "" then "no" else "si" end)"'
 
           echo
           echo "=== bases de datos del servidor ==="
-          api databases | jq -r '.[] | "\(.uuid)  \(.name)  tipo=\(.type)  estado=\(.status)  host_interno=\(.internal_db_url // "n/d" | sub("://[^@]*@"; "://<credencial>@"))"'
+          api databases \
+            | jq -r "$unwrap"' | .[] | "\(.uuid)  \(.name)  tipo=\(.type // "n/d")  estado=\(.status // "n/d")"'
