@@ -56,8 +56,10 @@ function classify(error: unknown): Verdict {
 const REMEDY: Record<Verdict, string> = {
   ok: 'la base responde',
   'host-no-resuelve':
-    'el hostname de DASHBOARD_DATABASE_URL no resuelve desde el contenedor: ' +
-    'activa «Connect To Predefined Network» en este recurso, o corrige el host',
+    'el hostname de DASHBOARD_DATABASE_URL no resuelve desde el contenedor. ' +
+    'O activas «Connect To Predefined Network» en este recurso de Coolify, o ' +
+    'cambias el host por 100.101.207.88:5433, que es el mismo PostgreSQL ' +
+    'publicado en la tailnet y no depende de la red interna de Docker',
   'conexion-rechazada': 'nadie escucha en ese host y puerto: revisa el puerto de DASHBOARD_DATABASE_URL',
   'tiempo-agotado': 'el host no contesta: el contenedor no comparte red con la base',
   'tls-rechazado': 'la base no sirve TLS: define DASHBOARD_DATABASE_SSL=false',
