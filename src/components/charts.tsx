@@ -1,10 +1,11 @@
 'use client';
 
-import { useState } from 'react';
+import { Fragment, useState } from 'react';
 import { Icon } from './icons';
 import {
   Area,
   Bar,
+  BarChart,
   CartesianGrid,
   Cell,
   ComposedChart,
@@ -83,6 +84,22 @@ const longDate = new Intl.DateTimeFormat('es-BO', {
   year: 'numeric',
   timeZone: 'UTC',
 });
+
+/** Month names, for the tooltips that name a month rather than plot it. */
+const MONTH_NAME = [
+  'enero',
+  'febrero',
+  'marzo',
+  'abril',
+  'mayo',
+  'junio',
+  'julio',
+  'agosto',
+  'septiembre',
+  'octubre',
+  'noviembre',
+  'diciembre',
+];
 
 /** A day written out, for the captions that sit outside a chart. */
 export const sayDate = (value: string): string => longDate.format(asDate(value));
@@ -1050,6 +1067,516 @@ export function DayCandles({ data, unit }: { data: DayCandle[]; unit: string }) 
           <span>{data.at(-1)?.date}</span>
         </div>
       )}
+    </div>
+  );
+}
+
+/* ---------------------------------------------------------------------------
+ * The social register's charts.
+ *
+ * Everything above draws a series against time. These draw a breakdown at one
+ * moment, because that is what a published reading is: a compiler's count of a
+ * corpus in a month, never a value that moved. So there is no zoom, no drag and
+ * no date axis - offering them would promise a history the source never had.
+ *
+ * They keep the axis, tooltip and draw animation of the charts above so the
+ * section does not read as a different product.
+ * ------------------------------------------------------------------------- */
+
+export interface ShareSlice {
+  name: string;
+  value: number;
+  /** Set where one slice is the finding rather than one of several. */
+  emphasis?: boolean;
+}
+
+/**
+ * A breakdown, ranked, as horizontal bars.
+ *
+ * Horizontal because the categories are Spanish phrases: a vertical axis would
+ * either truncate them or turn them sideways. Ranked because the order is the
+ * reading - nobody asks what share Instagram took without asking who took more.
+ */
+export function ShareBars({
+  data,
+  tone = 'var(--official)',
+  unit = '%',
+  height = 220,
+}: {
+  data: ShareSlice[];
+  tone?: string;
+  unit?: string;
+  height?: number;
+}) {
+  const rows = [...data].sort((left, right) => right.value - left.value);
+  const renderTooltip = ({ active, payload }: TooltipRender) => {
+    if (!active || !payload?.length) return null;
+    const point = payload[0]?.payload as ShareSlice | undefined;
+    if (!point) return null;
+    return (
+      <TooltipShell
+        label={point.name}
+        rows={[{ name: 'Valor', value: `${number(point.value, 1)} ${unit}` }]}
+      />
+    );
+  };
+
+  return (
+    <div className="chart-frame" style={{ height }}>
+      <ResponsiveContainer width="100%" height="100%">
+        <BarChart data={rows} layout="vertical" margin={{ top: 4, right: 30, bottom: 0, left: 4 }}>
+          <CartesianGrid {...GRID} horizontal={false} vertical />
+          <XAxis type="number" tickFormatter={(value: number) => number(value, 0)} {...AXIS} />
+          <YAxis type="category" dataKey="name" width={172} {...AXIS} />
+          <Tooltip content={renderTooltip} cursor={{ fill: 'var(--rule-soft)' }} />
+          <Bar
+            dataKey="value"
+            radius={[0, 3, 3, 0]}
+            animationDuration={MOTION.duration}
+            animationEasing={MOTION.easing}
+          >
+            {rows.map((row) => (
+              <Cell key={row.name} fill={row.emphasis ? 'var(--up)' : tone} />
+            ))}
+          </Bar>
+        </BarChart>
+      </ResponsiveContainer>
+    </div>
+  );
+}
+
+export interface ReachBar {
+  platform: string;
+  value: number;
+  exceeds: boolean;
+}
+
+/**
+ * Declared platform reach against the number of people who are online at all.
+ *
+ * The reference line is the chart. Reading these bars without it invites the
+ * ranking question - who is biggest - when the finding is that the tallest bar
+ * claims more reachable adults than Bolivia has internet users, and so counts
+ * accounts rather than people.
+ */
+export function ReachChart({
+  data,
+  ceiling,
+  height = 260,
+}: {
+  data: ReachBar[];
+  ceiling: number | null;
+  height?: number;
+}) {
+  const millions = (value: number): string => `${number(value / 1_000_000, 1)} M`;
+  const renderTooltip = ({ active, payload }: TooltipRender) => {
+    if (!active || !payload?.length) return null;
+    const point = payload[0]?.payload as ReachBar | undefined;
+    if (!point) return null;
+    return (
+      <TooltipShell
+        label={point.platform}
+        rows={[{ name: 'Alcance declarado', value: point.value.toLocaleString('es-BO') }]}
+        {...(point.exceeds ? { note: 'Excede a los internautas del pais' } : {})}
+      />
+    );
+  };
+
+  return (
+    <div className="chart-frame" style={{ height }}>
+      <ResponsiveContainer width="100%" height="100%">
+        <BarChart data={data} layout="vertical" margin={{ top: 4, right: 46, bottom: 0, left: 4 }}>
+          <CartesianGrid {...GRID} horizontal={false} vertical />
+          <XAxis type="number" tickFormatter={millions} {...AXIS} />
+          <YAxis type="category" dataKey="platform" width={96} {...AXIS} />
+          <Tooltip content={renderTooltip} cursor={{ fill: 'var(--rule-soft)' }} />
+          {ceiling === null ? null : (
+            <ReferenceLine
+              x={ceiling}
+              stroke="var(--ink)"
+              strokeDasharray="4 3"
+              /*
+               * Bottom, not top. The line falls where the tallest bar is, and
+               * a label there sat on a dark fill in pale ink. The short bars
+               * leave the foot of the plot empty on both sides of it.
+               */
+              label={{
+                value: `${millions(ceiling)} internautas`,
+                position: 'insideBottomLeft',
+                fill: 'var(--ink-soft)',
+                fontSize: 11,
+                offset: 10,
+              }}
+            />
+          )}
+          <Bar
+            dataKey="value"
+            radius={[0, 3, 3, 0]}
+            animationDuration={MOTION.duration}
+            animationEasing={MOTION.easing}
+          >
+            {data.map((row) => (
+              <Cell key={row.platform} fill={row.exceeds ? 'var(--up)' : 'var(--official)'} />
+            ))}
+          </Bar>
+        </BarChart>
+      </ResponsiveContainer>
+    </div>
+  );
+}
+
+export interface StackedRow {
+  name: string;
+  informal: number;
+  mixto: number;
+  formal: number;
+  note?: string;
+}
+
+/**
+ * A basket's channels, split by whether the trade is invoiced anywhere.
+ *
+ * Stacked and not a ring, and the difference is not decorative: these
+ * penetrations are multi-response — the same household buys clothing in a fair
+ * and in a mall — so the bar does not exhaust a whole and a ring would invent
+ * the denominator. The axis is left free to pass 100 for exactly that reason,
+ * and the caption under the chart states what the total means.
+ */
+export function StackedBars({ data, height = 200 }: { data: StackedRow[]; height?: number }) {
+  const renderTooltip = ({ active, payload, label }: TooltipRender) => {
+    if (!active || !payload?.length) return null;
+    const point = payload[0]?.payload as StackedRow | undefined;
+    if (!point) return null;
+    const total = point.informal + point.mixto + point.formal;
+    return (
+      <TooltipShell
+        label={String(label)}
+        rows={[
+          { name: 'Informal', value: `${number(point.informal, 0)} %` },
+          { name: 'Mixto', value: `${number(point.mixto, 0)} %` },
+          { name: 'Formal', value: `${number(point.formal, 0)} %` },
+        ]}
+        note={`Las penetraciones suman ${number(total, 0)} % porque un hogar compra en varios canales`}
+      />
+    );
+  };
+
+  return (
+    <div className="chart-frame" style={{ height }}>
+      <ResponsiveContainer width="100%" height="100%">
+        <BarChart data={data} layout="vertical" margin={{ top: 4, right: 24, bottom: 0, left: 4 }}>
+          <CartesianGrid {...GRID} horizontal={false} vertical />
+          <XAxis type="number" tickFormatter={(value: number) => number(value, 0)} {...AXIS} />
+          <YAxis type="category" dataKey="name" width={128} {...AXIS} />
+          <Tooltip content={renderTooltip} cursor={{ fill: 'var(--rule-soft)' }} />
+          <Bar
+            dataKey="informal"
+            stackId="mix"
+            fill="var(--up)"
+            animationDuration={MOTION.duration}
+            animationEasing={MOTION.easing}
+          />
+          <Bar dataKey="mixto" stackId="mix" fill="var(--parallel)" animationDuration={0} />
+          <Bar
+            dataKey="formal"
+            stackId="mix"
+            fill="var(--official)"
+            radius={[0, 3, 3, 0]}
+            animationDuration={0}
+          />
+        </BarChart>
+      </ResponsiveContainer>
+    </div>
+  );
+}
+
+export interface DivergingRow {
+  name: string;
+  value: number;
+  meta?: string;
+}
+
+/**
+ * Distances from a reference, drawn on both sides of zero.
+ *
+ * Bars and a zero line rather than two series side by side: the quantity here
+ * is the difference itself, and drawing the two levels would invite the reader
+ * to compare heights and miss it. Red above the reference and green below is
+ * this report's own convention, not a traffic light — the same one the exchange
+ * rate uses, where a figure over the measured series is the one to slow down on.
+ */
+export function DivergingBars({
+  data,
+  unit = 'puntos',
+  height = 260,
+}: {
+  data: DivergingRow[];
+  unit?: string;
+  height?: number;
+}) {
+  const rows = [...data].sort((left, right) => right.value - left.value);
+  const renderTooltip = ({ active, payload }: TooltipRender) => {
+    if (!active || !payload?.length) return null;
+    const point = payload[0]?.payload as DivergingRow | undefined;
+    if (!point) return null;
+    return (
+      <TooltipShell
+        label={point.name}
+        rows={[
+          {
+            name: 'Distancia',
+            value: `${point.value > 0 ? '+' : ''}${number(point.value, 1)} ${unit}`,
+          },
+        ]}
+        {...(point.meta ? { note: point.meta } : {})}
+      />
+    );
+  };
+
+  return (
+    <div className="chart-frame" style={{ height }}>
+      <ResponsiveContainer width="100%" height="100%">
+        <BarChart data={rows} layout="vertical" margin={{ top: 4, right: 24, bottom: 0, left: 4 }}>
+          <CartesianGrid {...GRID} horizontal={false} vertical />
+          <XAxis
+            type="number"
+            tickFormatter={(value: number) => `${value > 0 ? '+' : ''}${number(value, 0)}`}
+            {...AXIS}
+          />
+          <YAxis type="category" dataKey="name" width={210} {...AXIS} />
+          <Tooltip content={renderTooltip} cursor={{ fill: 'var(--rule-soft)' }} />
+          <ReferenceLine x={0} stroke="var(--ink-faint)" strokeWidth={1.2} />
+          <Bar dataKey="value" animationDuration={MOTION.duration} animationEasing={MOTION.easing}>
+            {rows.map((row) => (
+              <Cell key={row.name} fill={row.value >= 0 ? 'var(--up)' : 'var(--down)'} />
+            ))}
+          </Bar>
+        </BarChart>
+      </ResponsiveContainer>
+    </div>
+  );
+}
+
+export interface HeatCell {
+  row: string;
+  column: string;
+  value: number;
+  hint?: string;
+}
+
+/**
+ * A matrix where the ink is the count.
+ *
+ * Used where the question is coverage rather than magnitude: which forms of
+ * trade somebody measured, in which place, and where nobody measured anything.
+ * An empty cell is drawn empty on purpose — a zero would read as a measurement
+ * that came out zero, and the whole point of this grid is to show the holes.
+ *
+ * Not a chart library: a grid of cells reads at a glance, prints, and survives
+ * a screenshot, which a canvas heatmap with a hover-only legend does not.
+ */
+export function HeatGrid({
+  rows,
+  columns,
+  cells,
+  unit = 'lecturas',
+}: {
+  rows: readonly string[];
+  columns: readonly string[];
+  cells: readonly HeatCell[];
+  unit?: string;
+}) {
+  const index = new Map(cells.map((cell) => [`${cell.row}|${cell.column}`, cell]));
+  const peak = cells.reduce((highest, cell) => Math.max(highest, cell.value), 0);
+
+  return (
+    <div className="heat-scroll">
+      <div
+        className="heat-grid"
+        style={{ gridTemplateColumns: `minmax(9rem, 1.4fr) repeat(${columns.length}, 1fr)` }}
+      >
+        <span className="heat-corner" />
+        {columns.map((column) => (
+          <span className="heat-head" key={column}>
+            {column}
+          </span>
+        ))}
+        {rows.map((row) => (
+          <Fragment key={row}>
+            <span className="heat-row">{row}</span>
+            {columns.map((column) => {
+              const cell = index.get(`${row}|${column}`);
+              const weight = cell && peak > 0 ? Math.max(0.12, cell.value / peak) : 0;
+              return (
+                <span
+                  className={cell ? 'heat-cell heat-cell-filled' : 'heat-cell'}
+                  key={`${row}|${column}`}
+                  style={
+                    cell
+                      ? {
+                          background: `color-mix(in srgb, var(--official) ${Math.round(weight * 100)}%, transparent)`,
+                        }
+                      : undefined
+                  }
+                  title={
+                    cell
+                      ? `${row} · ${column}: ${number(cell.value, 0)} ${cell.hint ?? unit}`
+                      : `${row} · ${column}: sin lectura`
+                  }
+                >
+                  {cell ? number(cell.value, 0) : ''}
+                </span>
+              );
+            })}
+          </Fragment>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+export interface MonthBar {
+  month: string;
+  mentions: number;
+  adverse: number;
+}
+
+/**
+ * A subject's coverage month by month, with the share that read badly inside
+ * each bar.
+ *
+ * Bars and not a line, because the quantity is a count of notes in a month and
+ * a line between two months asserts values in between that nobody published.
+ * Stacked in two parts rather than coloured by a dominant tone: a month covered
+ * with equal alarm and improvement is a real month, and naming one winner would
+ * erase it.
+ *
+ * The axis labels a month only when the year turns, which keeps eighty months
+ * legible without rotating anything.
+ */
+export function MonthlyBars({ data, height = 220 }: { data: MonthBar[]; height?: number }) {
+  const rows = data.map((row) => ({
+    ...row,
+    calm: Math.max(0, row.mentions - row.adverse),
+  }));
+  let lastYear = '';
+  const renderTooltip = ({ active, payload }: TooltipRender) => {
+    if (!active || !payload?.length) return null;
+    const point = payload[0]?.payload as (MonthBar & { calm: number }) | undefined;
+    if (!point) return null;
+    const [year = '', month = ''] = point.month.split('-');
+    return (
+      <TooltipShell
+        label={`${MONTH_NAME[Number(month) - 1] ?? month} de ${year}`}
+        rows={[
+          { name: 'Notas', value: number(point.mentions, 0) },
+          { name: 'Tono adverso', value: number(point.adverse, 0) },
+          { name: 'Resto', value: number(point.calm, 0) },
+        ]}
+      />
+    );
+  };
+
+  return (
+    <div className="chart-frame" style={{ height }}>
+      <ResponsiveContainer width="100%" height="100%">
+        <BarChart data={rows} margin={{ top: 4, right: 8, bottom: 0, left: 0 }}>
+          <CartesianGrid {...GRID} />
+          <XAxis
+            dataKey="month"
+            interval={0}
+            tickFormatter={(value: string) => {
+              const year = value.slice(0, 4);
+              if (year === lastYear) return '';
+              lastYear = year;
+              return year;
+            }}
+            {...AXIS}
+          />
+          <YAxis tickFormatter={(value: number) => number(value, 0)} width={38} {...AXIS} />
+          <Tooltip content={renderTooltip} cursor={{ fill: 'var(--rule-soft)' }} />
+          <Bar
+            dataKey="adverse"
+            stackId="mes"
+            fill="var(--up)"
+            animationDuration={MOTION.duration}
+            animationEasing={MOTION.easing}
+          />
+          <Bar dataKey="calm" stackId="mes" fill="var(--official)" animationDuration={0} />
+        </BarChart>
+      </ResponsiveContainer>
+    </div>
+  );
+}
+
+export interface YearSeriesPoint {
+  year: string;
+  [country: string]: string | number;
+}
+
+/**
+ * One indicator across years, with a bar per country.
+ *
+ * Bars and not lines, and the reason is what the panel holds: an annual figure
+ * for a country is a value the publisher states for that year, not a point on a
+ * continuous path. A line between 1994 and 1996 draws a 1995 that may simply
+ * not exist — the panel is full of series that skip years — where a missing bar
+ * says so.
+ *
+ * The axis labels every fifth year. Sixty-six labels do not fit and rotating
+ * them makes a chart nobody reads sideways.
+ */
+export function YearSeriesBars({
+  data,
+  countries,
+  height = 260,
+}: {
+  data: YearSeriesPoint[];
+  countries: readonly string[];
+  height?: number;
+}) {
+  const tones = ['var(--official)', 'var(--parallel)', 'var(--gap)', 'var(--down)'];
+  const renderTooltip = ({ active, payload, label }: TooltipRender) => {
+    if (!active || !payload?.length) return null;
+    return (
+      <TooltipShell
+        label={String(label)}
+        rows={payload.map((entry) => ({
+          name: String(entry.name ?? ''),
+          value: number(Number(entry.value), 2),
+        }))}
+      />
+    );
+  };
+
+  return (
+    <div className="chart-frame" style={{ height }}>
+      <ResponsiveContainer width="100%" height="100%">
+        <BarChart data={data} margin={{ top: 4, right: 8, bottom: 0, left: 0 }}>
+          <CartesianGrid {...GRID} />
+          <XAxis
+            dataKey="year"
+            interval={0}
+            tickFormatter={(value: string) => (Number(value) % 5 === 0 ? value : '')}
+            {...AXIS}
+          />
+          <YAxis
+            tickFormatter={(value: number) => number(value, Math.abs(value) < 10 ? 1 : 0)}
+            width={54}
+            {...AXIS}
+          />
+          <Tooltip content={renderTooltip} cursor={{ fill: 'var(--rule-soft)' }} />
+          {countries.map((country, index) => (
+            <Bar
+              key={country}
+              dataKey={country}
+              fill={tones[index % tones.length] ?? 'var(--official)'}
+              animationDuration={index === 0 ? MOTION.duration : 0}
+              animationEasing={MOTION.easing}
+            />
+          ))}
+        </BarChart>
+      </ResponsiveContainer>
     </div>
   );
 }

@@ -1024,3 +1024,654 @@ export async function readPressPage(
     total: page.rows.length,
   };
 }
+
+export interface SocialReading {
+  metric: string;
+  platform: string;
+  subject: string;
+  label: string;
+  value: number;
+  unit: string;
+  referencePeriod: string;
+  eventDate: string;
+  publisher: string;
+  publication: string;
+  method: string;
+  evidenceGrade: string;
+  emotionalRegister: string;
+  officialCounterpart: string;
+  statement: string | null;
+  url: string;
+}
+
+export interface SocialAudience {
+  platform: string;
+  metric: string;
+  label: string;
+  value: number;
+  unit: string;
+  internetUsers: number | null;
+  exceedsInternetUsers: boolean;
+}
+
+/**
+ * What third parties published about the social platforms.
+ *
+ * Read from its own model and never mixed into a series. Every other figure on
+ * this report is a measurement or a report of one; these are readings of what a
+ * country expects and feels, compiled by people who sell the compilation. The
+ * evidence grade travels with each row so the panel can show what it rests on
+ * instead of averaging a household panel and a platform's ad planner into one
+ * voice.
+ */
+export async function readSocialReadings(): Promise<SocialReading[]> {
+  const { rows } = await pool().query<{
+    metric: string;
+    platform: string;
+    subject: string;
+    label: string;
+    value: string;
+    unit: string;
+    reference_period: string;
+    event_date: string;
+    publisher: string;
+    publication: string;
+    method: string;
+    evidence_grade: string;
+    emotional_register: string;
+    official_counterpart: string;
+    statement: string | null;
+    reading_url: string;
+  }>(
+    `SELECT metric, platform, subject, label, value::text AS value, unit,
+            reference_period, to_char(event_date, 'YYYY-MM-DD') AS event_date,
+            publisher, publication, method, evidence_grade,
+            emotional_register, official_counterpart, statement, reading_url
+     FROM read_models.social_reading_snapshot
+     ORDER BY subject, platform, metric`,
+  );
+
+  return rows.map((row) => ({
+    metric: row.metric,
+    platform: row.platform,
+    subject: row.subject,
+    label: row.label,
+    value: Number(row.value),
+    unit: row.unit,
+    referencePeriod: row.reference_period,
+    eventDate: row.event_date,
+    publisher: row.publisher,
+    publication: row.publication,
+    method: row.method,
+    evidenceGrade: row.evidence_grade,
+    emotionalRegister: row.emotional_register,
+    officialCounterpart: row.official_counterpart,
+    statement: row.statement,
+    url: row.reading_url,
+  }));
+}
+
+/**
+ * The platform audiences, with the ceiling they have to be read against.
+ *
+ * `exceedsInternetUsers` is computed in the database rather than here, so a
+ * platform added to the catalogue tomorrow inherits the check. It is the whole
+ * reason this table is not a ranking: TikTok declares more reachable adults
+ * than Bolivia has people online.
+ */
+export async function readSocialAudience(): Promise<SocialAudience[]> {
+  const { rows } = await pool().query<{
+    platform: string;
+    metric: string;
+    label: string;
+    value: string;
+    unit: string;
+    internet_users: string | null;
+    reach_exceeds_internet_users: boolean;
+  }>(
+    // The sort is qualified on purpose. `value` is also the name of the text
+    // alias above, and an unqualified ORDER BY binds to the output column
+    // first — which sorts the reaches as strings and puts 494.000 above
+    // 3.950.000. Qualifying it makes the sort read the numeric column.
+    `SELECT platform, metric, label, audience.value::text AS value, unit,
+            internet_users::text AS internet_users, reach_exceeds_internet_users
+     FROM read_models.social_platform_audience AS audience
+     WHERE metric = 'AD_REACH'
+     ORDER BY audience.value DESC`,
+  );
+
+  return rows.map((row) => ({
+    platform: row.platform,
+    metric: row.metric,
+    label: row.label,
+    value: Number(row.value),
+    unit: row.unit,
+    internetUsers: row.internet_users === null ? null : Number(row.internet_users),
+    exceedsInternetUsers: row.reach_exceeds_internet_users,
+  }));
+}
+
+export interface TradeCoverage {
+  businessForm: string;
+  marketRegime: string;
+  readings: number;
+  highGrade: number;
+  lowGrade: number;
+  compilers: number;
+  territories: number;
+  settlementsRead: number;
+  latestPeriod: string | null;
+  unread: boolean;
+}
+
+export interface ChannelMix {
+  goodsClass: string;
+  territory: string;
+  referencePeriod: string;
+  readings: number;
+  formsRead: number;
+  oneReadingPerForm: boolean;
+  penetrationSum: number | null;
+  channelsPerHousehold: number | null;
+  informalPenetration: number | null;
+  mixedPenetration: number | null;
+  formalPenetration: number | null;
+  informalShareOfVisits: number | null;
+  forms: string[];
+}
+
+export interface TradeReading {
+  metric: string;
+  label: string;
+  value: number;
+  unit: string;
+  referencePeriod: string;
+  platform: string;
+  businessForm: string;
+  marketRegime: string;
+  tradeSide: string;
+  settlementMeans: string;
+  goodsClass: string;
+  measureKind: string;
+  populationScope: string;
+  territory: string;
+  publisher: string;
+  evidenceGrade: string;
+  url: string;
+}
+
+export interface TradeGap {
+  label: string;
+  socialValue: number;
+  referencePeriod: string;
+  businessForm: string;
+  territory: string;
+  socialPublisher: string;
+  evidenceGrade: string;
+  indicatorCode: string;
+  measuredValue: number | null;
+  measuredPublisher: string | null;
+  distancePoints: number | null;
+}
+
+/**
+ * True when the database has no such relation yet.
+ *
+ * The trade models arrive with a migration, and this report is deployed from a
+ * different repository than the one that migrates. Between the two deploys the
+ * views do not exist, and a reader that threw would take the whole briefing
+ * down — every tab, not only its own — because the page loads its sections in
+ * one `Promise.all`. An absent model is reported as an empty section instead,
+ * which is what it is.
+ */
+function isMissingRelation(error: unknown): boolean {
+  return (
+    typeof error === 'object' && error !== null && (error as { code?: string }).code === '42P01'
+  );
+}
+
+/** What the register can and cannot say about each form of doing business. */
+export async function readTradeCoverage(): Promise<TradeCoverage[]> {
+  try {
+    const { rows } = await pool().query<{
+      business_form: string;
+      market_regime: string;
+      readings: string;
+      high_grade: string;
+      low_grade: string;
+      compilers: string;
+      territories: string;
+      settlements_read: string;
+      latest_period: string | null;
+      unread: boolean;
+    }>(
+      `SELECT business_form, market_regime, readings::text, high_grade::text, low_grade::text,
+              compilers::text, territories::text, settlements_read::text, latest_period, unread
+       FROM read_models.informal_trade_coverage
+       ORDER BY readings DESC, business_form`,
+    );
+
+    return rows.map((row) => ({
+      businessForm: row.business_form,
+      marketRegime: row.market_regime,
+      readings: Number(row.readings),
+      highGrade: Number(row.high_grade),
+      lowGrade: Number(row.low_grade),
+      compilers: Number(row.compilers),
+      territories: Number(row.territories),
+      settlementsRead: Number(row.settlements_read),
+      latestPeriod: row.latest_period,
+      unread: row.unread,
+    }));
+  } catch (error) {
+    if (isMissingRelation(error)) return [];
+    throw error;
+  }
+}
+
+/**
+ * How many channels a household buys through, and how much of that is informal.
+ *
+ * The quotients arrive null whenever the group holds several readings of one
+ * channel, because there is no mix to compute there. The panel keeps the row
+ * with its counts rather than dropping it: a group that cannot be summed is
+ * still a group somebody measured.
+ */
+export async function readChannelMix(): Promise<ChannelMix[]> {
+  try {
+    const { rows } = await pool().query<{
+      goods_class: string;
+      territory: string;
+      reference_period: string;
+      readings: string;
+      forms_read: string;
+      one_reading_per_form: boolean;
+      penetration_sum: string | null;
+      channels_per_household: string | null;
+      informal_penetration: string | null;
+      mixed_penetration: string | null;
+      formal_penetration: string | null;
+      informal_share_of_visits: string | null;
+      forms: string[];
+    }>(
+      `SELECT goods_class, territory, reference_period, readings::text, forms_read::text,
+              one_reading_per_form, penetration_sum::text, channels_per_household::text,
+              informal_penetration::text, mixed_penetration::text, formal_penetration::text,
+              informal_share_of_visits::text, forms
+       FROM read_models.informal_trade_channel_mix
+       ORDER BY reference_period DESC, goods_class, territory`,
+    );
+
+    return rows.map((row) => ({
+      goodsClass: row.goods_class,
+      territory: row.territory,
+      referencePeriod: row.reference_period,
+      readings: Number(row.readings),
+      formsRead: Number(row.forms_read),
+      oneReadingPerForm: row.one_reading_per_form,
+      penetrationSum: row.penetration_sum === null ? null : Number(row.penetration_sum),
+      channelsPerHousehold:
+        row.channels_per_household === null ? null : Number(row.channels_per_household),
+      informalPenetration:
+        row.informal_penetration === null ? null : Number(row.informal_penetration),
+      mixedPenetration: row.mixed_penetration === null ? null : Number(row.mixed_penetration),
+      formalPenetration: row.formal_penetration === null ? null : Number(row.formal_penetration),
+      informalShareOfVisits:
+        row.informal_share_of_visits === null ? null : Number(row.informal_share_of_visits),
+      forms: row.forms,
+    }));
+  } catch (error) {
+    if (isMissingRelation(error)) return [];
+    throw error;
+  }
+}
+
+/** Every commerce reading, filed by the way the trade is actually done. */
+export async function readTradeReadings(): Promise<TradeReading[]> {
+  try {
+    const { rows } = await pool().query<{
+      metric: string;
+      label: string;
+      value: string;
+      unit: string;
+      reference_period: string;
+      platform: string;
+      business_form: string;
+      market_regime: string;
+      trade_side: string;
+      settlement_means: string;
+      goods_class: string;
+      measure_kind: string;
+      population_scope: string;
+      territory: string;
+      publisher: string;
+      evidence_grade: string;
+      reading_url: string;
+    }>(
+      `SELECT metric, label, commerce.value::text AS value, unit, reference_period, platform,
+              business_form, market_regime, trade_side, settlement_means, goods_class,
+              measure_kind, population_scope, territory, publisher, evidence_grade, reading_url
+       FROM read_models.social_commerce AS commerce
+       WHERE status = 'PUBLISHED' AND NOT superseded
+       ORDER BY business_form, reference_period DESC, label`,
+    );
+
+    return rows.map((row) => ({
+      metric: row.metric,
+      label: row.label,
+      value: Number(row.value),
+      unit: row.unit,
+      referencePeriod: row.reference_period,
+      platform: row.platform,
+      businessForm: row.business_form,
+      marketRegime: row.market_regime,
+      tradeSide: row.trade_side,
+      settlementMeans: row.settlement_means,
+      goodsClass: row.goods_class,
+      measureKind: row.measure_kind,
+      populationScope: row.population_scope,
+      territory: row.territory,
+      publisher: row.publisher,
+      evidenceGrade: row.evidence_grade,
+      url: row.reading_url,
+    }));
+  } catch (error) {
+    if (isMissingRelation(error)) return [];
+    throw error;
+  }
+}
+
+/**
+ * The distance between a social reading and the measured series for its year.
+ *
+ * Two measurements of one economy by different houses with different methods.
+ * The distance is never an error term, and the panel that draws it says so.
+ */
+export async function readTradeGap(): Promise<TradeGap[]> {
+  try {
+    const { rows } = await pool().query<{
+      label: string;
+      social_value: string;
+      reference_period: string;
+      business_form: string;
+      territory: string;
+      social_publisher: string;
+      evidence_grade: string;
+      indicator_code: string;
+      measured_value: string | null;
+      measured_publisher: string | null;
+      distance_points: string | null;
+    }>(
+      `SELECT label, social_value::text AS social_value, reference_period, business_form,
+              territory, social_publisher, evidence_grade, indicator_code,
+              round(measured_value, 2)::text AS measured_value, measured_publisher,
+              distance_points::text
+       FROM read_models.informal_trade_gap
+       WHERE measured_value IS NOT NULL
+       ORDER BY reference_period DESC, label`,
+    );
+
+    return rows.map((row) => ({
+      label: row.label,
+      socialValue: Number(row.social_value),
+      referencePeriod: row.reference_period,
+      businessForm: row.business_form,
+      territory: row.territory,
+      socialPublisher: row.social_publisher,
+      evidenceGrade: row.evidence_grade,
+      indicatorCode: row.indicator_code,
+      measuredValue: row.measured_value === null ? null : Number(row.measured_value),
+      measuredPublisher: row.measured_publisher,
+      distancePoints: row.distance_points === null ? null : Number(row.distance_points),
+    }));
+  } catch (error) {
+    if (isMissingRelation(error)) return [];
+    throw error;
+  }
+}
+
+export interface TermMonth {
+  term: string;
+  label: string;
+  family: string;
+  month: string;
+  mentions: number;
+  outlets: number;
+  alarma: number;
+  deterioro: number;
+  conflicto: number;
+  incertidumbre: number;
+  mejora: number;
+  medida: number;
+  neutro: number;
+  adverseShare: number | null;
+}
+
+export interface TermTotal {
+  term: string;
+  label: string;
+  family: string;
+  mentions: number;
+  months: number;
+  outlets: number;
+  firstMonth: string;
+  lastMonth: string;
+  peakMonth: string;
+  peakMentions: number;
+  adverseShare: number | null;
+}
+
+/**
+ * Every watched subject, month by month, since the corpus begins.
+ *
+ * The whole series is read in one query rather than one per subject. Two
+ * hundred subjects across eighty months is a few thousand rows — smaller than
+ * one page of articles — and a reader who clicks between subjects expects the
+ * next chart immediately, not a round trip. The panel slices what it needs.
+ *
+ * An absent model is reported as an empty section: the report is deployed from
+ * a different repository than the one that migrates, and between the two
+ * deploys this view does not exist. Throwing would take every tab down, because
+ * the page loads its sections in one `Promise.all`.
+ */
+export async function readTermMonths(): Promise<TermMonth[]> {
+  try {
+    const { rows } = await pool().query<{
+      term: string;
+      label: string;
+      family: string;
+      month: string;
+      mentions: string;
+      outlets: string;
+      alarma: string;
+      deterioro: string;
+      conflicto: string;
+      incertidumbre: string;
+      mejora: string;
+      medida: string;
+      neutro: string;
+      adverse_share: string | null;
+    }>(
+      `SELECT term, label, family, month, mentions::text, outlets::text,
+              alarma::text, deterioro::text, conflicto::text, incertidumbre::text,
+              mejora::text, medida::text, neutro::text, adverse_share::text
+       FROM read_models.press_term_month
+       ORDER BY term, month`,
+    );
+
+    return rows.map((row) => ({
+      term: row.term,
+      label: row.label,
+      family: row.family,
+      month: row.month,
+      mentions: Number(row.mentions),
+      outlets: Number(row.outlets),
+      alarma: Number(row.alarma),
+      deterioro: Number(row.deterioro),
+      conflicto: Number(row.conflicto),
+      incertidumbre: Number(row.incertidumbre),
+      mejora: Number(row.mejora),
+      medida: Number(row.medida),
+      neutro: Number(row.neutro),
+      adverseShare: row.adverse_share === null ? null : Number(row.adverse_share),
+    }));
+  } catch (error) {
+    if (isMissingRelation(error)) return [];
+    throw error;
+  }
+}
+
+/**
+ * The same subjects as one row each, with the month each one peaked in.
+ *
+ * Computed in the database rather than folded from the monthly rows in the
+ * browser: the peak needs an ordering over every month of every subject, and
+ * doing that client-side on each render is work the database already did once.
+ */
+export async function readTermTotals(): Promise<TermTotal[]> {
+  try {
+    const { rows } = await pool().query<{
+      term: string;
+      label: string;
+      family: string;
+      mentions: string;
+      months: string;
+      outlets: string;
+      first_month: string;
+      last_month: string;
+      peak_month: string;
+      peak_mentions: string;
+      adverse_share: string | null;
+    }>(
+      `WITH ranked AS (
+         SELECT term, month, mentions,
+                row_number() OVER (PARTITION BY term ORDER BY mentions DESC, month DESC) AS place
+         FROM read_models.press_term_month
+       )
+       SELECT month.term,
+              max(month.label)                    AS label,
+              max(month.family)                   AS family,
+              sum(month.mentions)::text           AS mentions,
+              count(*)::text                      AS months,
+              max(month.outlets)::text            AS outlets,
+              min(month.month)                    AS first_month,
+              max(month.month)                    AS last_month,
+              max(ranked.month) FILTER (WHERE ranked.place = 1)    AS peak_month,
+              max(ranked.mentions) FILTER (WHERE ranked.place = 1)::text AS peak_mentions,
+              round(
+                100.0 * sum(month.alarma + month.deterioro + month.conflicto + month.incertidumbre)
+                  / nullif(sum(month.mentions), 0), 1)::text       AS adverse_share
+       FROM read_models.press_term_month AS month
+       JOIN ranked ON ranked.term = month.term AND ranked.month = month.month
+       GROUP BY month.term
+       ORDER BY sum(month.mentions) DESC`,
+    );
+
+    return rows.map((row) => ({
+      term: row.term,
+      label: row.label,
+      family: row.family,
+      mentions: Number(row.mentions),
+      months: Number(row.months),
+      outlets: Number(row.outlets),
+      firstMonth: row.first_month,
+      lastMonth: row.last_month,
+      peakMonth: row.peak_month,
+      peakMentions: Number(row.peak_mentions),
+      adverseShare: row.adverse_share === null ? null : Number(row.adverse_share),
+    }));
+  } catch (error) {
+    if (isMissingRelation(error)) return [];
+    throw error;
+  }
+}
+
+export interface PanelIndicator {
+  code: string;
+  name: string;
+  observations: number;
+  countries: number;
+  boliviaYears: number;
+  firstYear: number;
+  lastYear: number;
+}
+
+export interface PanelPoint {
+  country: string;
+  year: number;
+  value: number;
+}
+
+/**
+ * The catalogue of indicators the panel holds, as the chooser needs it.
+ *
+ * Only the series that actually say something about Bolivia. The corpus carries
+ * every country the World Bank publishes for, and an indicator with sixty years
+ * of Peruvian data and none for Bolivia belongs in the corpus but not in a
+ * chooser on a Bolivian observatory: it would be a row a reader opens once,
+ * finds empty, and learns to distrust the list for.
+ *
+ * Read from the materialised catalogue rather than grouped on demand. Grouping
+ * a million observations per page view is the failure the press models already
+ * learned; the catalogue is fifteen hundred rows and is rebuilt by the load.
+ */
+export async function readPanelCatalogue(): Promise<PanelIndicator[]> {
+  try {
+    const { rows } = await pool().query<{
+      indicator_code: string;
+      indicator_name: string;
+      observations: string;
+      countries: string;
+      bolivia_years: string;
+      first_year: string;
+      last_year: string;
+    }>(
+      `SELECT indicator_code, indicator_name, observations::text, countries::text,
+              bolivia_years::text, first_year::text, last_year::text
+       FROM read_models.world_panel_catalogue
+       WHERE bolivia_years > 0
+       ORDER BY bolivia_years DESC, indicator_name`,
+    );
+
+    return rows.map((row) => ({
+      code: row.indicator_code,
+      name: row.indicator_name,
+      observations: Number(row.observations),
+      countries: Number(row.countries),
+      boliviaYears: Number(row.bolivia_years),
+      firstYear: Number(row.first_year),
+      lastYear: Number(row.last_year),
+    }));
+  } catch (error) {
+    if (isMissingRelation(error)) return [];
+    throw error;
+  }
+}
+
+/**
+ * One indicator's whole history, for every country the panel holds it for.
+ *
+ * Fetched per indicator rather than shipped with the page: fifteen hundred
+ * series at sixty years apiece is a million points, and a reader looks at one
+ * of them at a time.
+ */
+export async function readPanelSeries(indicatorCode: string): Promise<PanelPoint[]> {
+  try {
+    const { rows } = await pool().query<{ country: string; period: string; value: string }>(
+      `SELECT country, period::text, value::text
+       FROM read_models.world_panel_reading
+       WHERE indicator_code = $1 AND status = 'PUBLISHED' AND NOT superseded
+       ORDER BY period, country`,
+      [indicatorCode.slice(0, 60)],
+    );
+
+    return rows.map((row) => ({
+      country: row.country,
+      year: Number(row.period),
+      value: Number(row.value),
+    }));
+  } catch (error) {
+    if (isMissingRelation(error)) return [];
+    throw error;
+  }
+}

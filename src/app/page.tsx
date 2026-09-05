@@ -5,8 +5,12 @@ import { FilingExplorer } from '@/components/filing-explorer';
 import { FxExplorer } from '@/components/fx-explorer';
 import { MacroExplorer } from '@/components/macro-explorer';
 import { MarketCards } from '@/components/market-cards';
+
+import { PanelExplorer } from '@/components/panel-explorer';
 import { PressExplorer } from '@/components/press-explorer';
 import { SourcesExplorer } from '@/components/sources-explorer';
+import { SubjectsExplorer } from '@/components/subjects-explorer';
+import { SubTabs } from '@/components/tabs';
 import { Icon } from '@/components/icons';
 import { SummaryExplorer } from '@/components/summary-explorer';
 import type { SummaryFigure } from '@/components/summary-explorer';
@@ -24,6 +28,9 @@ import {
   readMacroAnnual,
   readObservatory,
   readSources,
+  readTermMonths,
+  readTermTotals,
+  readPanelCatalogue,
 } from '@/lib/series';
 import type {
   CompanyFiling,
@@ -36,6 +43,9 @@ import type {
   MacroPoint,
   Observatory,
   SourceNote,
+  TermMonth,
+  TermTotal,
+  PanelIndicator,
 } from '@/lib/series';
 
 /**
@@ -209,19 +219,37 @@ export default async function Page() {
   let markets: MarketSeries[];
   let pressCube: PressCube;
   let pressPulse: PressPulseData;
+  let termMonths: TermMonth[];
+  let termTotals: TermTotal[];
+  let panelCatalogue: PanelIndicator[];
   try {
-    [observatory, gap, sources, macro, filings, press, markets, pressCube, pressPulse] =
-      await Promise.all([
-        readObservatory(),
-        readGap(),
-        readSources(),
-        readMacroAnnual(),
-        readCompanyFilings(),
-        readPressPage({ topic: 'ECONOMICOS' }, 60).then((page) => page.articles),
-        readMarkets(),
-        readPressCube(),
-        readPressPulse(),
-      ]);
+    [
+      observatory,
+      gap,
+      sources,
+      macro,
+      filings,
+      press,
+      markets,
+      pressCube,
+      pressPulse,
+      termMonths,
+      termTotals,
+      panelCatalogue,
+    ] = await Promise.all([
+      readObservatory(),
+      readGap(),
+      readSources(),
+      readMacroAnnual(),
+      readCompanyFilings(),
+      readPressPage({ topic: 'ECONOMICOS' }, 60).then((page) => page.articles),
+      readMarkets(),
+      readPressCube(),
+      readPressPulse(),
+      readTermMonths(),
+      readTermTotals(),
+      readPanelCatalogue(),
+    ]);
   } catch (error) {
     // The message can carry the host, the user and the port. It belongs in the
     // log, not in a page served to the public.
@@ -409,7 +437,10 @@ export default async function Page() {
         </section>
 
         <section className="stack">
-          <MacroExplorer points={macro} />
+          <SubTabs labels={['Series de Bolivia', 'Panel mundial']} icons={['linea', 'globo']}>
+            <MacroExplorer points={macro} />
+            <PanelExplorer catalogue={panelCatalogue} />
+          </SubTabs>
         </section>
 
         <section className="stack">
@@ -422,17 +453,22 @@ export default async function Page() {
 
         <section className="stack">
           {press.length ? (
-            <PressExplorer
-              cube={pressCube}
-              initialArticles={press}
-              span={{
-                total: pressPulse.total,
-                outlets: pressPulse.outlets,
-                firstDay: pressPulse.firstDay,
-                lastDay: pressPulse.lastDay,
-                unmarked: pressPulse.unmarked,
-              }}
-            />
+            // Two readings of one archive: the notes themselves, and what the
+            // country talked about in them, month by month.
+            <SubTabs labels={['Cobertura', 'Temas']} icons={['ventana', 'etiqueta']}>
+              <PressExplorer
+                cube={pressCube}
+                initialArticles={press}
+                span={{
+                  total: pressPulse.total,
+                  outlets: pressPulse.outlets,
+                  firstDay: pressPulse.firstDay,
+                  lastDay: pressPulse.lastDay,
+                  unmarked: pressPulse.unmarked,
+                }}
+              />
+              <SubjectsExplorer months={termMonths} totals={termTotals} />
+            </SubTabs>
           ) : (
             <div className="callout">Todavía no hay cobertura de prensa cargada.</div>
           )}

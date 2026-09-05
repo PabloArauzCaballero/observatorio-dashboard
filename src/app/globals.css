@@ -2761,6 +2761,228 @@ button.term-chip:hover {
   flex-basis: 100%;
 }
 
+/* The key beneath a composition ring: colour, name, and the share stated. */
+/* Search field ------------------------------------------------------------ */
+
+/*
+ * Fifteen hundred indicators cannot be browsed as chips. The field is the
+ * chooser; the chips below it are what the field found.
+ */
+.search-field {
+  width: 100%;
+  max-width: 34rem;
+  margin-top: var(--s2);
+  padding: 0.5rem 0.85rem;
+  border: 1px solid var(--rule-soft);
+  border-radius: 8px;
+  background: var(--panel);
+  color: var(--ink);
+  font: inherit;
+  font-size: 0.9rem;
+}
+
+.search-field:focus-visible {
+  outline: 2px solid var(--official);
+  outline-offset: 1px;
+}
+
+/* Chips ------------------------------------------------------------------- */
+
+/*
+ * Two hundred subjects cannot be a flat list of buttons, and a <select> hides
+ * the sizes that make the list worth reading. Chips carry the count beside the
+ * name, so choosing what to open is itself a reading of what the press covered.
+ */
+.chip-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  margin-top: var(--s2);
+}
+
+.chip-row-soft {
+  margin-top: var(--s1);
+  padding-top: var(--s2);
+  border-top: 1px solid var(--rule-soft);
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  border: 1px solid var(--rule-soft);
+  background: transparent;
+  color: var(--ink-soft);
+  font: inherit;
+  font-size: 0.8rem;
+  padding: 0.28rem 0.7rem;
+  border-radius: 999px;
+  cursor: pointer;
+  transition:
+    background 140ms ease,
+    color 140ms ease,
+    border-color 140ms ease;
+}
+
+.chip:hover {
+  color: var(--ink);
+  border-color: var(--official);
+}
+
+.chip-active,
+.chip-active:hover {
+  background: var(--official);
+  border-color: var(--official);
+  color: #fff;
+}
+
+.chip-count {
+  font-family: var(--mono);
+  font-size: 0.72rem;
+  font-variant-numeric: tabular-nums;
+  opacity: 0.75;
+}
+
+/* Sub-tabs ---------------------------------------------------------------- */
+
+/*
+ * Second-level navigation. Deliberately quieter than the tab strip above it:
+ * pills on a rail rather than an underline, one step smaller, so a reader can
+ * tell at a glance which of the two levels they are moving inside.
+ */
+.subtabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem;
+  padding: 0.25rem;
+  border: 1px solid var(--rule-soft);
+  border-radius: 999px;
+  width: fit-content;
+  max-width: 100%;
+  margin-bottom: var(--s1);
+}
+
+.subtab {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  border: 0;
+  background: transparent;
+  color: var(--ink-soft);
+  font: inherit;
+  font-size: 0.84rem;
+  padding: 0.35rem 0.85rem;
+  border-radius: 999px;
+  cursor: pointer;
+  transition:
+    background 140ms ease,
+    color 140ms ease;
+}
+
+.subtab:hover {
+  color: var(--ink);
+  background: var(--rule-soft);
+}
+
+.subtab-active,
+.subtab-active:hover {
+  background: var(--official);
+  color: #fff;
+}
+
+.subtab:focus-visible {
+  outline: 2px solid var(--official);
+  outline-offset: 2px;
+}
+
+/* Note list --------------------------------------------------------------- */
+
+/*
+ * The readings a chart cannot hold: a figure whose base differs from its
+ * neighbours, or a group the model refuses to add up. Prose rather than bars,
+ * because the reason is the content.
+ */
+.note-list {
+  list-style: none;
+  margin: var(--s2) 0 0;
+  padding: 0;
+  display: grid;
+  gap: var(--s2);
+}
+
+.note-list li {
+  font-size: 0.86rem;
+  line-height: 1.5;
+  color: var(--ink-soft);
+  padding-left: var(--s2);
+  border-left: 3px solid var(--rule-soft);
+}
+
+.note-list strong {
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Heat grid --------------------------------------------------------------- */
+
+/*
+ * Coverage as a matrix. The ink is the count, and an empty cell is left empty
+ * rather than printed as a zero: a form of trade nobody measured is a hole in
+ * the register, and a zero would read as a measurement that came out empty.
+ */
+.heat-scroll {
+  overflow-x: auto;
+  margin-top: var(--s2);
+}
+
+.heat-grid {
+  display: grid;
+  gap: 2px;
+  min-width: 32rem;
+  align-items: stretch;
+}
+
+.heat-head,
+.heat-row {
+  font-size: 0.72rem;
+  color: var(--ink-soft);
+  letter-spacing: 0.02em;
+  display: flex;
+  align-items: center;
+}
+
+.heat-head {
+  justify-content: center;
+  text-align: center;
+  padding-bottom: 0.2rem;
+}
+
+.heat-row {
+  padding-right: 0.5rem;
+}
+
+.heat-cell {
+  min-height: 1.9rem;
+  border-radius: 3px;
+  border: 1px solid var(--rule-soft);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--mono);
+  font-size: 0.76rem;
+  font-variant-numeric: tabular-nums;
+  color: var(--ink-soft);
+}
+
+.heat-cell-filled {
+  border-color: transparent;
+  color: var(--ink);
+}
+
+.heat-corner {
+  display: block;
+}
+
 /* Donation --------------------------------------------------------------- */
 
 /*
