@@ -11,6 +11,12 @@ name: inspect-coolify
 # la cadena de conexion de la base no pertenece ahi.
 
 on:
+  # Se ejecuta al tocar este archivo. `workflow_dispatch` a secas exigiria
+  # tenerlo en la rama por defecto, y este trabajo pertenece a `dev`, que es la
+  # rama que Coolify despliega y por tanto la que hay que diagnosticar.
+  push:
+    branches: [dev]
+    paths: ['.github/workflows/inspect-coolify.yml']
   workflow_dispatch:
 
 permissions:
