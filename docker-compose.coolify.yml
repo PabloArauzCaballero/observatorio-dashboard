@@ -24,6 +24,10 @@ services:
       # Unica variable que el codigo lee. Apunta a `economic_observatory`, no a
       # la base `postgres` del mismo servidor, que conserva una copia antigua.
       DASHBOARD_DATABASE_URL: ${DASHBOARD_DATABASE_URL:?requerida}
+      # Fijo, no heredado de la UI: este PostgreSQL corre con `ssl = off` y
+      # rechaza el handshake, asi que exigir TLS deja todos los paneles vacios.
+      # El trafico no sale de la red Docker del servidor.
+      DASHBOARD_DATABASE_SSL: 'false'
     expose: ['3000']
     # Publicado solo sobre la interfaz de Tailscale, igual que la API. El 3000 y
     # el 3002 del servidor ya estan tomados, de ahi el 3003.

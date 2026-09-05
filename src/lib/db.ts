@@ -27,9 +27,15 @@ function createPool(): Pool {
   }
   return new Pool({
     connectionString,
-    // TLS is demanded by the connection string; the certificate is verified
-    // rather than trusted blindly.
-    ssl: { rejectUnauthorized: true },
+    // TLS stays on unless the deployment says otherwise, and when on the
+    // certificate is verified rather than trusted blindly. It is turned off
+    // only where the database is reached over a private Docker network that
+    // serves no TLS: there the handshake is refused and every read fails, so
+    // demanding TLS buys nothing and costs the whole page.
+    ssl:
+      process.env.DASHBOARD_DATABASE_SSL === 'false'
+        ? false
+        : { rejectUnauthorized: true },
     max: 4,
     idleTimeoutMillis: 30_000,
     connectionTimeoutMillis: 10_000,
