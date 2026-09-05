@@ -56,19 +56,17 @@ jobs:
           echo "no hay ruta al servidor por la tailnet" >&2
           exit 1
 
-      - name: Note which build is serving now
+      - name: Note the moment before deploying
         id: before
         run: |
-          # Next nombra su hoja de estilos por el contenido, asi que la ruta
-          # cambia con cada compilacion. Guardarla antes de desplegar es lo que
-          # permite despues distinguir «el tablero nuevo ya responde» de «el viejo
-          # sigue en pie». La alternativa —el estado del despliegue en la API de
-          # Coolify— exige un token con permiso de lectura, y el que hay aqui solo
-          # puede disparar webhooks.
-          id=$(curl --silent --max-time 60 "$DASHBOARD_URL" \
-               | grep -oE '/_next/static/css/[a-z0-9]+[.]css' | head -n 1 || true)
-          echo "hoja en servicio: ${id:-ninguna, el tablero no responde}"
-          echo "build=$id" >> "$GITHUB_OUTPUT"
+          # Un despliegue que no cambia ninguna pagina produce un HTML identico,
+          # asi que nada en la respuesta distingue el contenedor nuevo del que
+          # reemplazo. Lo que si los distingue es que el proceso rearranca: una
+          # hora de arranque posterior a este instante solo puede pertenecer al
+          # contenedor que este despliegue creo. Preguntarle a Coolify seria mas
+          # directo, pero exige un token con permiso de lectura y el que hay aqui
+          # solo puede disparar webhooks.
+          echo "t0=$(date -u +%s)" >> "$GITHUB_OUTPUT"
 
       - name: Trigger the deployment
         env:
@@ -82,55 +80,53 @@ jobs:
           # POST, no GET: Coolify movio este endpoint y responde 405 a un GET.
           # --fail-with-body para que un rechazo suyo se vea en el log en vez de
           # morir con un codigo de salida mudo.
-          curl --fail-with-body --silent --show-error --max-time 60 \
-               --request POST \
-               --header "Authorization: Bearer $TOKEN" \
-               --header "Accept: application/json" \
-               --header "Content-Length: 0" \
-               "$WEBHOOK"
+          curl --fail-with-body --silent --show-error --max-time 60                --request POST                --header "Authorization: Bearer $TOKEN"                --header "Accept: application/json"                --header "Content-Length: 0"                "$WEBHOOK"
           echo
           echo "despliegue solicitado a Coolify"
 
-      - name: Wait for the new build to serve, and to read the database
+      - name: Wait for the new container to serve, and to read the database
         env:
-          BEFORE: ${{ steps.before.outputs.build }}
+          T0: ${{ steps.before.outputs.t0 }}
         run: |
-          # Un contenedor que arranca no es un tablero que funciona: el recurso
-          # ha estado «running» y verde sirviendo la pagina de error de lectura.
-          # Asi que no se da por bueno un despliegue hasta que la compilacion
-          # nueva responde Y trae cifras.
-          #
           # Veinte minutos de margen: Coolify construye la imagen de Next en el
           # servidor, y la primera peticion despues arma la tabulacion completa
           # del corpus, que es lenta una vez por diseno.
           deadline=$(( $(date +%s) + 1200 ))
-          served=""
+          arrived=""
 
           while [ "$(date +%s)" -lt "$deadline" ]; do
-            body=$(curl --silent --max-time 150 "$DASHBOARD_URL" || true)
-            id=$(printf '%s' "$body" | grep -oE '/_next/static/css/[a-z0-9]+\.css' | head -n 1 || true)
+            started=$(curl --silent --max-time 30 "${DASHBOARD_URL}api/version"                       | jq -r '.startedAt // empty' 2>/dev/null || true)
 
-            if [ -n "$id" ] && [ "$id" != "$BEFORE" ]; then
-              served="$body"
-              echo "la compilacion nueva ya responde"
-              break
-            fi
-
-            if [ -z "$id" ]; then
-              echo "el tablero no responde todavia"
+            if [ -z "$started" ]; then
+              # Hasta que este despliegue llegue, `/api/version` puede no existir:
+              # el contenedor en pie fue construido antes de que la ruta existiera.
+              echo "el tablero no reporta su arranque todavia"
             else
-              echo "sigue en servicio la compilacion anterior"
+              startedEpoch=$(date -u -d "$started" +%s 2>/dev/null || echo 0)
+              if [ "$startedEpoch" -gt "$T0" ]; then
+                arrived="si"
+                echo "contenedor nuevo en servicio (arranco $started)"
+                break
+              fi
+              echo "sigue en pie el contenedor anterior (arranco $started)"
             fi
             sleep 15
           done
 
-          if [ -z "$served" ]; then
-            echo "la compilacion nueva no llego a servir en veinte minutos." >&2
+          if [ -z "$arrived" ]; then
+            echo "el contenedor nuevo no llego a servir en veinte minutos." >&2
             echo "Revisa el log del despliegue en Coolify." >&2
             exit 1
           fi
 
-          if printf '%s' "$served" | grep -q 'No fue posible leer la base de datos'; then
+          # Un contenedor que arranca no es un tablero que funciona: el recurso ha
+          # estado «running» y verde sirviendo la pagina de error de lectura.
+          body=$(curl --silent --max-time 150 "$DASHBOARD_URL" || true)
+          if [ -z "$body" ]; then
+            echo "la portada no respondio" >&2
+            exit 1
+          fi
+          if printf '%s' "$body" | grep -q 'No fue posible leer la base de datos'; then
             echo "el tablero responde pero no pudo leer la base." >&2
             echo "Revisa DASHBOARD_DATABASE_URL en el recurso de Coolify y que" >&2
             echo "'Connect To Predefined Network' este activado." >&2
