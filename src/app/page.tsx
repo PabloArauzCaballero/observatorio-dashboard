@@ -7,9 +7,12 @@ import { MacroExplorer } from '@/components/macro-explorer';
 import { MarketCards } from '@/components/market-cards';
 
 import { PanelExplorer } from '@/components/panel-explorer';
+import { PlacesExplorer } from '@/components/places-explorer';
 import { PressExplorer } from '@/components/press-explorer';
+import { SocialExplorer } from '@/components/social-explorer';
 import { SourcesExplorer } from '@/components/sources-explorer';
 import { SubjectsExplorer } from '@/components/subjects-explorer';
+import { TradeExplorer } from '@/components/trade-explorer';
 import { SubTabs } from '@/components/tabs';
 import { Icon } from '@/components/icons';
 import { SummaryExplorer } from '@/components/summary-explorer';
@@ -31,6 +34,12 @@ import {
   readTermMonths,
   readTermTotals,
   readPanelCatalogue,
+  readChannelMix,
+  readSocialAudience,
+  readSocialReadings,
+  readTradeCoverage,
+  readTradeGap,
+  readTradeReadings,
 } from '@/lib/series';
 import type {
   CompanyFiling,
@@ -46,6 +55,12 @@ import type {
   TermMonth,
   TermTotal,
   PanelIndicator,
+  ChannelMix,
+  SocialAudience,
+  SocialReading,
+  TradeCoverage,
+  TradeGap,
+  TradeReading,
 } from '@/lib/series';
 
 /**
@@ -222,6 +237,12 @@ export default async function Page() {
   let termMonths: TermMonth[];
   let termTotals: TermTotal[];
   let panelCatalogue: PanelIndicator[];
+  let tradeCoverage: TradeCoverage[];
+  let channelMix: ChannelMix[];
+  let tradeReadings: TradeReading[];
+  let tradeGap: TradeGap[];
+  let socialReadings: SocialReading[];
+  let socialAudience: SocialAudience[];
   try {
     [
       observatory,
@@ -236,6 +257,12 @@ export default async function Page() {
       termMonths,
       termTotals,
       panelCatalogue,
+      tradeCoverage,
+      channelMix,
+      tradeReadings,
+      tradeGap,
+      socialReadings,
+      socialAudience,
     ] = await Promise.all([
       readObservatory(),
       readGap(),
@@ -249,6 +276,12 @@ export default async function Page() {
       readTermMonths(),
       readTermTotals(),
       readPanelCatalogue(),
+      readTradeCoverage(),
+      readChannelMix(),
+      readTradeReadings(),
+      readTradeGap(),
+      readSocialReadings(),
+      readSocialAudience(),
     ]);
   } catch (error) {
     // The message can carry the host, the user and the port. It belongs in the
@@ -393,8 +426,28 @@ export default async function Page() {
       </header>
 
       <Tabs
-        labels={['Resumen', 'Tipo de cambio', 'Macroeconomía', 'Empresas', 'Prensa', 'Método']}
-        icons={['diana', 'linea', 'globo', 'edificio', 'ventana', 'info']}
+        labels={[
+          'Resumen',
+          'Tipo de cambio',
+          'Macroeconomía',
+          'Empresas',
+          'Comercio',
+          'Lugares',
+          'Prensa',
+          'Redes',
+          'Método',
+        ]}
+        icons={[
+          'diana',
+          'linea',
+          'globo',
+          'edificio',
+          'tienda',
+          'mapa',
+          'ventana',
+          'personas',
+          'info',
+        ]}
       >
         <section className="stack">
           <SummaryExplorer
@@ -452,6 +505,28 @@ export default async function Page() {
         </section>
 
         <section className="stack">
+          {tradeReadings.length ? (
+            <TradeExplorer
+              coverage={tradeCoverage}
+              mix={channelMix}
+              readings={tradeReadings}
+              gap={tradeGap}
+            />
+          ) : (
+            <div className="callout">Todavía no hay lecturas de comercio cargadas.</div>
+          )}
+        </section>
+
+        <section className="stack">
+          <PlacesExplorer
+            regions={pressPulse.regions}
+            readings={tradeReadings}
+            mix={channelMix}
+            gaps={tradeGap}
+          />
+        </section>
+
+        <section className="stack">
           {press.length ? (
             // Two readings of one archive: the notes themselves, and what the
             // country talked about in them, month by month.
@@ -471,6 +546,14 @@ export default async function Page() {
             </SubTabs>
           ) : (
             <div className="callout">Todavía no hay cobertura de prensa cargada.</div>
+          )}
+        </section>
+
+        <section className="stack">
+          {socialReadings.length ? (
+            <SocialExplorer readings={socialReadings} audience={socialAudience} />
+          ) : (
+            <div className="callout">Todavía no hay lecturas de redes cargadas.</div>
           )}
         </section>
 

@@ -55,6 +55,10 @@ export const TERRITORY_LABEL: Record<string, string> = {
   POTOSI: 'Potosí',
   TARIJA: 'Tarija',
   CHUQUISACA: 'Chuquisaca',
+  // The press register files by department and reaches two the trade readings
+  // never do. They are here so the map can spell a place the archive names.
+  BENI: 'Beni',
+  PANDO: 'Pando',
 };
 
 export const GOODS_LABEL: Record<string, string> = {
