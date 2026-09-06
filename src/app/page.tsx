@@ -9,7 +9,6 @@ import { MarketCards } from '@/components/market-cards';
 import { PanelExplorer } from '@/components/panel-explorer';
 import { PlacesExplorer } from '@/components/places-explorer';
 import { PressExplorer } from '@/components/press-explorer';
-import { SocialExplorer } from '@/components/social-explorer';
 import { SourcesExplorer } from '@/components/sources-explorer';
 import { SubjectsExplorer } from '@/components/subjects-explorer';
 import { TradeExplorer } from '@/components/trade-explorer';
@@ -35,8 +34,6 @@ import {
   readTermTotals,
   readPanelCatalogue,
   readChannelMix,
-  readSocialAudience,
-  readSocialReadings,
   readTradeCoverage,
   readTradeGap,
   readTradeReadings,
@@ -56,8 +53,6 @@ import type {
   TermTotal,
   PanelIndicator,
   ChannelMix,
-  SocialAudience,
-  SocialReading,
   TradeCoverage,
   TradeGap,
   TradeReading,
@@ -241,8 +236,6 @@ export default async function Page() {
   let channelMix: ChannelMix[];
   let tradeReadings: TradeReading[];
   let tradeGap: TradeGap[];
-  let socialReadings: SocialReading[];
-  let socialAudience: SocialAudience[];
   try {
     [
       observatory,
@@ -261,8 +254,6 @@ export default async function Page() {
       channelMix,
       tradeReadings,
       tradeGap,
-      socialReadings,
-      socialAudience,
     ] = await Promise.all([
       readObservatory(),
       readGap(),
@@ -280,8 +271,6 @@ export default async function Page() {
       readChannelMix(),
       readTradeReadings(),
       readTradeGap(),
-      readSocialReadings(),
-      readSocialAudience(),
     ]);
   } catch (error) {
     // The message can carry the host, the user and the port. It belongs in the
@@ -546,14 +535,6 @@ export default async function Page() {
             </SubTabs>
           ) : (
             <div className="callout">Todavía no hay cobertura de prensa cargada.</div>
-          )}
-        </section>
-
-        <section className="stack">
-          {socialReadings.length ? (
-            <SocialExplorer readings={socialReadings} audience={socialAudience} />
-          ) : (
-            <div className="callout">Todavía no hay lecturas de redes cargadas.</div>
           )}
         </section>
 
