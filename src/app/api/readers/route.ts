@@ -9,8 +9,6 @@ import {
   readPressCube,
   readPressPage,
   readPressPulse,
-  readSocialAudience,
-  readSocialReadings,
   readSources,
   readTermMonths,
   readTermTotals,
@@ -27,6 +25,12 @@ import {
  * not shown — and useless for whoever has to repair it: the whole diagnosis is
  * one line in a container log, on a machine behind a tailnet, naming a failure
  * among eighteen. This runs them apart and says which ones fell.
+ *
+ * The two retired social readers are not on the list. ADR 0025 and migration
+ * 0069 narrowed the register to commerce and dropped the audience model, so
+ * they fail by design and nothing on the report calls them; counting them as
+ * failures would leave this route permanently crying wolf about a decision
+ * somebody already made.
  *
  * It reports PostgreSQL's error code and never its message. The codes are a
  * closed set that names the fault — a column that is not there, a relation that
@@ -53,8 +57,6 @@ const READERS: ReadonlyArray<readonly [string, () => Promise<unknown>]> = [
   ['channelMix', readChannelMix],
   ['tradeReadings', readTradeReadings],
   ['tradeGap', readTradeGap],
-  ['socialReadings', readSocialReadings],
-  ['socialAudience', readSocialAudience],
 ];
 
 /** El nombre que PostgreSQL da a cada codigo, para no tener que buscarlo. */
