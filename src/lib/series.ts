@@ -1215,19 +1215,54 @@ export interface TradeGap {
 }
 
 /**
- * True when the database has no such relation yet.
+ * The read models this report opens, so a check can name them.
  *
- * The trade models arrive with a migration, and this report is deployed from a
- * different repository than the one that migrates. Between the two deploys the
- * views do not exist, and a reader that threw would take the whole briefing
- * down — every tab, not only its own — because the page loads its sections in
- * one `Promise.all`. An absent model is reported as an empty section instead,
- * which is what it is.
+ * Exported for `/api/version`, which reports which of them the deployed
+ * container can actually read. A section that comes back empty is either an
+ * empty section or an unreadable model, and from the page alone the two look
+ * identical — this is how they are told apart without shell access to a
+ * machine that lives behind a tailnet.
  */
-function isMissingRelation(error: unknown): boolean {
-  return (
-    typeof error === 'object' && error !== null && (error as { code?: string }).code === '42P01'
-  );
+export const READ_MODELS = [
+  'read_models.informal_trade_coverage',
+  'read_models.informal_trade_channel_mix',
+  'read_models.social_commerce',
+  'read_models.informal_trade_gap',
+  'read_models.press_term_month',
+  'read_models.world_panel_catalogue',
+  'read_models.world_panel_reading',
+] as const;
+
+/**
+ * True when the model is there in the schema but not readable from here.
+ *
+ * Three SQLSTATEs, one situation. `42P01` is the model not existing yet: this
+ * report is deployed from a different repository than the one that migrates, so
+ * between the two deploys the views are simply absent. `42501` is the model
+ * existing while this role was never granted it, which is what a restore taken
+ * as the wrong user leaves behind. `42703` is a column the migration renamed
+ * under a reader that has not been redeployed.
+ *
+ * All three mean the same thing to a reader: it cannot report that section. And
+ * none of them may take the briefing down — every tab, not only its own —
+ * which is what happens when one reader throws inside the page's `Promise.all`.
+ */
+function isUnreadableModel(error: unknown): boolean {
+  if (typeof error !== 'object' || error === null) return false;
+  const code = (error as { code?: string }).code;
+  return code === '42P01' || code === '42501' || code === '42703';
+}
+
+/**
+ * An unreadable section, named in the server log and silent on the page.
+ *
+ * The log gets the model and the SQLSTATE because that is what a fix needs. The
+ * page gets nothing: it is public, and a database error can carry the host, the
+ * role and the port.
+ */
+function unreadable<T>(model: string, error: unknown): T[] {
+  console.warn(`[observatorio] modelo ilegible: ${model} (${(error as { code?: string }).code})`);
+  return [];
 }
 
 /** What the register can and cannot say about each form of doing business. */
@@ -1264,7 +1299,7 @@ export async function readTradeCoverage(): Promise<TradeCoverage[]> {
       unread: row.unread,
     }));
   } catch (error) {
-    if (isMissingRelation(error)) return [];
+    if (isUnreadableModel(error)) return unreadable<TradeCoverage>('read_models.informal_trade_coverage', error);
     throw error;
   }
 }
@@ -1321,7 +1356,7 @@ export async function readChannelMix(): Promise<ChannelMix[]> {
       forms: row.forms,
     }));
   } catch (error) {
-    if (isMissingRelation(error)) return [];
+    if (isUnreadableModel(error)) return unreadable<ChannelMix>('read_models.informal_trade_channel_mix', error);
     throw error;
   }
 }
@@ -1376,7 +1411,7 @@ export async function readTradeReadings(): Promise<TradeReading[]> {
       url: row.reading_url,
     }));
   } catch (error) {
-    if (isMissingRelation(error)) return [];
+    if (isUnreadableModel(error)) return unreadable<TradeReading>('read_models.social_commerce', error);
     throw error;
   }
 }
@@ -1425,7 +1460,7 @@ export async function readTradeGap(): Promise<TradeGap[]> {
       distancePoints: row.distance_points === null ? null : Number(row.distance_points),
     }));
   } catch (error) {
-    if (isMissingRelation(error)) return [];
+    if (isUnreadableModel(error)) return unreadable<TradeGap>('read_models.informal_trade_gap', error);
     throw error;
   }
 }
@@ -1516,7 +1551,7 @@ export async function readTermMonths(): Promise<TermMonth[]> {
       adverseShare: row.adverse_share === null ? null : Number(row.adverse_share),
     }));
   } catch (error) {
-    if (isMissingRelation(error)) return [];
+    if (isUnreadableModel(error)) return unreadable<TermMonth>('read_models.press_term_month', error);
     throw error;
   }
 }
@@ -1581,7 +1616,7 @@ export async function readTermTotals(): Promise<TermTotal[]> {
       adverseShare: row.adverse_share === null ? null : Number(row.adverse_share),
     }));
   } catch (error) {
-    if (isMissingRelation(error)) return [];
+    if (isUnreadableModel(error)) return unreadable<TermTotal>('read_models.press_term_month', error);
     throw error;
   }
 }
@@ -1643,7 +1678,7 @@ export async function readPanelCatalogue(): Promise<PanelIndicator[]> {
       lastYear: Number(row.last_year),
     }));
   } catch (error) {
-    if (isMissingRelation(error)) return [];
+    if (isUnreadableModel(error)) return unreadable<PanelIndicator>('read_models.world_panel_catalogue', error);
     throw error;
   }
 }
@@ -1671,7 +1706,7 @@ export async function readPanelSeries(indicatorCode: string): Promise<PanelPoint
       value: Number(row.value),
     }));
   } catch (error) {
-    if (isMissingRelation(error)) return [];
+    if (isUnreadableModel(error)) return unreadable<PanelPoint>('read_models.world_panel_reading', error);
     throw error;
   }
 }
