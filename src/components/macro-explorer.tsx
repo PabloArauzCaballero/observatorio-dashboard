@@ -6,6 +6,8 @@ import type { CandlePoint } from './charts';
 import { Icon } from './icons';
 import type { IconName } from './icons';
 import { DEFINITION_AUTHOR, GLOSSARY, UNIT_MEANING } from '@/lib/indicator-glossary';
+import { unpackMacro } from '@/lib/macro-transport';
+import type { MacroBundle } from '@/lib/macro-transport';
 import type { MacroPoint } from '@/lib/series';
 
 /**
@@ -91,7 +93,7 @@ function headline(point: MacroPoint): string {
   return number(point.value, 2);
 }
 
-export function MacroExplorer({ points }: { points: MacroPoint[] }) {
+export function MacroExplorer({ bundle }: { bundle: MacroBundle }) {
   /**
    * Cards or table.
    *
@@ -100,6 +102,16 @@ export function MacroExplorer({ points }: { points: MacroPoint[] }) {
    * from eighty little charts, and the answer is not to hide the filters to
    * make room — it is to lay the same selection out as rows.
    */
+  /**
+   * Las lecturas, rearmadas a partir del catalogo que viajo aparte.
+   *
+   * De este punto hacia abajo el panel trabaja con los mismos
+   * `MacroPoint` de siempre: el empaquetado existe para que la portada no
+   * repita el nombre de cada indicador en sus treinta y seis lecturas, y
+   * termina aqui.
+   */
+  const points = useMemo(() => unpackMacro(bundle), [bundle]);
+
   const [asTable, setAsTable] = useState(false);
   const [sector, setSector] = useState<string>('TODOS');
   const [search, setSearch] = useState('');

@@ -17,6 +17,7 @@ import { Icon } from '@/components/icons';
 import { SummaryExplorer } from '@/components/summary-explorer';
 import type { SummaryFigure } from '@/components/summary-explorer';
 import { Tabs } from '@/components/tabs';
+import { packMacro } from '@/lib/macro-transport';
 import { dailyAnalysis } from '@/lib/daily-analysis';
 import type { Observation } from '@/lib/econometrics';
 import {
@@ -480,7 +481,7 @@ export default async function Page() {
 
         <section className="stack">
           <SubTabs labels={['Series de Bolivia', 'Panel mundial']} icons={['linea', 'globo']}>
-            <MacroExplorer points={macro} />
+            <MacroExplorer bundle={packMacro(macro)} />
             <PanelExplorer catalogue={panelCatalogue} />
           </SubTabs>
         </section>
