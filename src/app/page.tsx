@@ -7,7 +7,6 @@ import { MacroExplorer } from '@/components/macro-explorer';
 import { MarketCards } from '@/components/market-cards';
 
 import { PanelExplorer } from '@/components/panel-explorer';
-import { PlacesExplorer } from '@/components/places-explorer';
 import { PressExplorer } from '@/components/press-explorer';
 import { SourcesExplorer } from '@/components/sources-explorer';
 import { SubjectsExplorer } from '@/components/subjects-explorer';
@@ -422,22 +421,10 @@ export default async function Page() {
           'Macroeconomía',
           'Empresas',
           'Comercio',
-          'Lugares',
           'Prensa',
-          'Redes',
           'Método',
         ]}
-        icons={[
-          'diana',
-          'linea',
-          'globo',
-          'edificio',
-          'tienda',
-          'mapa',
-          'ventana',
-          'personas',
-          'info',
-        ]}
+        icons={['diana', 'linea', 'globo', 'edificio', 'tienda', 'ventana', 'info']}
       >
         <section className="stack">
           <SummaryExplorer
@@ -505,15 +492,6 @@ export default async function Page() {
           ) : (
             <div className="callout">Todavía no hay lecturas de comercio cargadas.</div>
           )}
-        </section>
-
-        <section className="stack">
-          <PlacesExplorer
-            regions={pressPulse.regions}
-            readings={tradeReadings}
-            mix={channelMix}
-            gaps={tradeGap}
-          />
         </section>
 
         <section className="stack">
