@@ -506,6 +506,17 @@ export function PressExplorer({
             {total.toLocaleString('es-BO')} de {span.total.toLocaleString('es-BO')} nota
             {span.total === 1 ? '' : 's'}
           </span>
+          {/*
+            Atenuar las tarjetas decia que algo pasaba solo a quien ya estaba
+            mirandolas. La espera se nombra donde esta el recuento que va a
+            cambiar, que es lo que el lector acaba de tocar.
+          */}
+          {loading ? (
+            <span className="strap-loading" role="status">
+              <span className="loading-spin" aria-hidden="true" />
+              buscando…
+            </span>
+          ) : null}
           <div className="download">
             <a className="download-btn" href={`/api/export?dataset=prensa&${address}&format=csv`}>
               CSV

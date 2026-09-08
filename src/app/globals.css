@@ -3349,3 +3349,118 @@ button.term-chip:hover {
   font-size: 0.86rem;
   min-height: 1.4em;
 }
+
+/* Mientras se arma el tablero --------------------------------------------- */
+
+/*
+ * La primera lectura despues de un despliegue tarda minutos por diseno, y hasta
+ * que existio `app/loading.tsx` eso era una pagina en blanco: sin titulo, sin
+ * explicacion y sin senal de que algo estuviera pasando, que se lee como un
+ * sitio caido y no como uno trabajando.
+ *
+ * Ninguna caja de estas lleva una cifra dentro. Un rectangulo gris con forma de
+ * numero se lee como un dato que ya cargo.
+ */
+
+.loading-note {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.7rem;
+  background: var(--panel-tint);
+  border: 1px solid var(--rule);
+  border-radius: var(--radius);
+  padding: var(--s2) var(--s3);
+  margin-bottom: var(--s2);
+}
+
+.loading-note b {
+  display: block;
+  font-size: 0.95rem;
+}
+
+.loading-note span {
+  color: var(--ink-soft);
+  font-size: 0.88rem;
+}
+
+.loading-note .loading-spin {
+  margin-top: 0.2rem;
+}
+
+/*
+ * Gira mientras haya espera. Bajo `prefers-reduced-motion` la regla global de
+ * mas arriba lo deja quieto, y entonces sigue siendo un anillo con un cuarto de
+ * otro color: quieto tambien dice «todavia no».
+ */
+.loading-spin {
+  flex: none;
+  width: 14px;
+  height: 14px;
+  border: 2px solid var(--rule);
+  border-top-color: var(--official);
+  border-radius: 50%;
+  animation: spin 850ms linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes sheen {
+  from {
+    background-position: -180% 0;
+  }
+  to {
+    background-position: 180% 0;
+  }
+}
+
+.skeleton {
+  border-radius: 8px;
+  background-color: var(--rule-soft);
+  background-image: linear-gradient(90deg, transparent 20%, var(--panel) 50%, transparent 80%);
+  background-size: 180% 100%;
+  animation: sheen 1.4s ease-in-out infinite;
+}
+
+.skeleton-head {
+  height: 18px;
+  width: 38%;
+  margin-bottom: var(--s2);
+}
+
+.skeleton-strip {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: var(--s2);
+}
+
+.skeleton-stat {
+  height: 66px;
+}
+
+.skeleton-chart {
+  height: 230px;
+}
+
+.skeleton-line {
+  height: 12px;
+  margin-top: 0.6rem;
+}
+
+.skeleton-line-short {
+  width: 62%;
+}
+
+/* La espera de una seleccion, dicha en la misma franja que lleva su recuento. */
+.strap-loading {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-family: var(--mono);
+  font-size: 0.7rem;
+  letter-spacing: 0.05em;
+  color: var(--ink-soft);
+}
