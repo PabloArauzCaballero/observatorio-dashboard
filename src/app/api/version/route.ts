@@ -64,10 +64,11 @@ const REMEDY: Record<Verdict, string> = {
     'puerto es la base del observatorio: el 5433 de este servidor pertenece a ' +
     'otro proyecto, y un tablero que lo lea sirve cifras que nadie actualiza',
   'otra-base':
-    'la conexion funciona pero esa base no es la del observatorio: no tiene ' +
-    'read_models.economic_indicator_daily. DASHBOARD_DATABASE_URL apunta a otro ' +
-    'PostgreSQL, o al mismo servidor y a otra base. El destino es la base que ' +
-    'migra y siembra el nucleo',
+    'la conexion funciona pero no es la base que el nucleo migra y siembra. ' +
+    'Compara «base» con «baseEsperada»: si dice postgres, DASHBOARD_DATABASE_URL ' +
+    'apunta a la base de mantenimiento del servidor, que guarda una copia vieja ' +
+    'del esquema y por eso sirve cifras creibles que nadie actualiza. Cambia el ' +
+    'nombre de la base al final de la cadena de conexion en Coolify',
   'conexion-rechazada':
     'nadie escucha en ese host y puerto: revisa el puerto de DASHBOARD_DATABASE_URL',
   'tiempo-agotado': 'el host no contesta: el contenedor no comparte red con la base',
@@ -94,12 +95,29 @@ const REMEDY: Record<Verdict, string> = {
  * con lo que dice Coolify; el host y el usuario no, que es lo que no debe salir
  * de una direccion publica.
  */
+/**
+ * La base que el nucleo migra y siembra.
+ *
+ * No es una preferencia: el `postgres` del mismo servidor tiene una copia vieja
+ * del esquema del observatorio, con los modelos y con cifras, y por eso una
+ * conexion equivocada pasa por buena. La unica diferencia visible es el nombre.
+ */
+const EXPECTED = 'economic_observatory';
+
 interface Identity {
   base: string | null;
   /** El modelo que existe desde el principio: si falta, no es esta base. */
   nucleo: boolean;
   /** Los de ciudades, que llegan con la migracion 0070. */
   ciudades: boolean;
+  /**
+   * La ultima migracion aplicada EN ESTA base.
+   *
+   * Es el reloj que delata una copia: el nucleo anota aqui cada migracion que
+   * corre, asi que una base que se quedo atras lo dice con su propio numero sin
+   * que haya que comparar cifras a ojo.
+   */
+  migracion: string | null;
 }
 
 async function identify(): Promise<Identity> {
@@ -107,27 +125,36 @@ async function identify(): Promise<Identity> {
     base: string;
     nucleo: string | null;
     ciudades: string | null;
+    migracion: string | null;
   }>(
     `SELECT current_database() AS base,
             to_regclass('read_models.economic_indicator_daily')::text AS nucleo,
-            to_regclass('read_models.city_place')::text AS ciudades`,
+            to_regclass('read_models.city_place')::text AS ciudades,
+            (SELECT max(name) FROM infrastructure.migration_history) AS migracion`,
   );
   const row = rows[0];
   return {
     base: row?.base ?? null,
     nucleo: Boolean(row?.nucleo),
     ciudades: Boolean(row?.ciudades),
+    migracion: row?.migracion ?? null,
   };
 }
 
 export async function GET(): Promise<Response> {
   let database: Verdict = 'ok';
-  let identity: Identity = { base: null, nucleo: false, ciudades: false };
+  let identity: Identity = { base: null, nucleo: false, ciudades: false, migracion: null };
   try {
     identity = await identify();
-    // Una base que contesta y no tiene el modelo mas viejo del observatorio no
-    // es un esquema a medias: es otra base.
-    if (!identity.nucleo) database = 'otra-base';
+    /*
+     * Dos formas de estar en el sitio equivocado, y la segunda es la que
+     * engana. Una base sin el modelo mas viejo del observatorio no es un
+     * esquema a medias: es otra base. Y una base que SI lo tiene puede seguir
+     * siendo la equivocada, porque el `postgres` de este mismo servidor guarda
+     * una copia vieja del esquema completo — con cifras coherentes, que es lo
+     * que la hizo pasar por buena durante tres dias.
+     */
+    if (!identity.nucleo || identity.base !== EXPECTED) database = 'otra-base';
   } catch (error) {
     database = classify(error);
   }
@@ -138,6 +165,8 @@ export async function GET(): Promise<Response> {
       uptimeSeconds: Math.round(process.uptime()),
       database,
       base: identity.base,
+      baseEsperada: EXPECTED,
+      ultimaMigracion: identity.migracion,
       modelos: { nucleo: identity.nucleo, ciudades: identity.ciudades },
       queHacer: REMEDY[database],
     },
