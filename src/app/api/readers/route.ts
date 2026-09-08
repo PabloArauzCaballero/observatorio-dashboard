@@ -13,6 +13,7 @@ import {
   readTermTotals,
 } from '@/lib/series';
 import { countPlaceRows } from '@/lib/places';
+import { pool } from '@/lib/db';
 
 /**
  * Which of the report's reads work, one at a time.
@@ -71,6 +72,58 @@ const SQLSTATE: Record<string, string> = {
   '28P01': 'credenciales',
 };
 
+/**
+ * Which database answered, and how far its migration history goes.
+ *
+ * A reader that fails with 42P01 says a relation is not there; it cannot say
+ * whether the migration that creates it never ran or ran somewhere else. This
+ * server hosts more than one database — the deployment notes say `postgres`
+ * keeps an older copy of everything `economic_observatory` holds — so «the
+ * migration is green and the model is missing» has two explanations and they
+ * need opposite repairs.
+ *
+ * The name of a database and the name of the last migration applied to it are
+ * the two facts that tell them apart. Neither is a credential: they are the
+ * same identifiers the deployment file and the repository already carry, and
+ * the rule this route keeps — codes, never messages — still holds, because a
+ * message is what can carry the host and the user.
+ */
+interface DatabaseNote {
+  readonly nombre: string | null;
+  readonly migraciones?: number;
+  readonly ultimaMigracion?: string | null;
+  readonly code?: string;
+  readonly que?: string;
+}
+
+async function describeDatabase(): Promise<DatabaseNote> {
+  let nombre: string | null = null;
+  try {
+    const { rows } = await pool().query<{ base: string }>('SELECT current_database() AS base');
+    nombre = rows[0]?.base ?? null;
+  } catch (error) {
+    const code = String((error as { code?: unknown })?.code ?? '');
+    return { nombre: null, code: code || 'sin codigo', que: SQLSTATE[code] ?? 'no clasificado' };
+  }
+
+  try {
+    const { rows } = await pool().query<{ total: string; ultima: string | null }>(
+      `SELECT count(*)::text AS total, max(name) AS ultima
+         FROM infrastructure.migration_history`,
+    );
+    return {
+      nombre,
+      migraciones: Number(rows[0]?.total ?? 0),
+      ultimaMigracion: rows[0]?.ultima ?? null,
+    };
+  } catch (error) {
+    // Una base sin historia de migraciones es justamente el hallazgo, no un
+    // fallo del diagnostico: se reporta con su codigo y el nombre se conserva.
+    const code = String((error as { code?: unknown })?.code ?? '');
+    return { nombre, code: code || 'sin codigo', que: SQLSTATE[code] ?? 'no clasificado' };
+  }
+}
+
 interface Verdict {
   readonly name: string;
   readonly ok: boolean;
@@ -80,6 +133,7 @@ interface Verdict {
 }
 
 export async function GET(): Promise<Response> {
+  const base = await describeDatabase();
   const lectores: Verdict[] = await Promise.all(
     READERS.map(async ([name, read]): Promise<Verdict> => {
       try {
@@ -99,7 +153,7 @@ export async function GET(): Promise<Response> {
 
   const fallidos = lectores.filter((verdict) => !verdict.ok);
   return Response.json(
-    { total: lectores.length, fallidos: fallidos.length, lectores },
+    { base, total: lectores.length, fallidos: fallidos.length, lectores },
     { headers: { 'cache-control': 'no-store' } },
   );
 }
