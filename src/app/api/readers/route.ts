@@ -82,14 +82,25 @@ const SQLSTATE: Record<string, string> = {
  * migration is green and the model is missing» has two explanations and they
  * need opposite repairs.
  *
- * The name of a database and the name of the last migration applied to it are
- * the two facts that tell them apart. Neither is a credential: they are the
- * same identifiers the deployment file and the repository already carry, and
- * the rule this route keeps — codes, never messages — still holds, because a
- * message is what can carry the host and the user.
+ * The name alone is not enough to say which one answered. This machine runs
+ * eight PostgreSQL containers, several of them stock images whose default
+ * database is also called `postgres`, so `current_database()` returns the same
+ * word from servers belonging to different projects. What separates them is the
+ * address the server itself answers on, which is why `inet_server_addr()` is
+ * asked for beside the name: it is the server's own view of where it is, not a
+ * copy of what this process dialled.
+ *
+ * With the last migration applied, those three facts say which database is
+ * being read and how far its schema goes. None is a credential — they are the
+ * identifiers the deployment file and the migrations directory already carry —
+ * and the rule this route keeps holds untouched: codes, never messages, because
+ * a message is what can carry the user and the password.
  */
 interface DatabaseNote {
   readonly nombre: string | null;
+  /** La direccion en que el propio servidor dice estar, no la que se marco. */
+  readonly servidor?: string | null;
+  readonly version?: string | null;
   readonly migraciones?: number;
   readonly ultimaMigracion?: string | null;
   readonly code?: string;
@@ -98,9 +109,23 @@ interface DatabaseNote {
 
 async function describeDatabase(): Promise<DatabaseNote> {
   let nombre: string | null = null;
+  let servidor: string | null = null;
+  let version: string | null = null;
   try {
-    const { rows } = await pool().query<{ base: string }>('SELECT current_database() AS base');
+    const { rows } = await pool().query<{
+      base: string;
+      servidor: string | null;
+      version: string | null;
+    }>(
+      `SELECT current_database()            AS base,
+              host(inet_server_addr())      AS servidor,
+              current_setting('server_version') AS version`,
+    );
     nombre = rows[0]?.base ?? null;
+    // Nulo cuando se entra por socket local, que es en si mismo la respuesta:
+    // el servidor corre en este contenedor y no en otro del servidor.
+    servidor = rows[0]?.servidor ?? null;
+    version = rows[0]?.version ?? null;
   } catch (error) {
     const code = String((error as { code?: unknown })?.code ?? '');
     return { nombre: null, code: code || 'sin codigo', que: SQLSTATE[code] ?? 'no clasificado' };
@@ -113,6 +138,8 @@ async function describeDatabase(): Promise<DatabaseNote> {
     );
     return {
       nombre,
+      servidor,
+      version,
       migraciones: Number(rows[0]?.total ?? 0),
       ultimaMigracion: rows[0]?.ultima ?? null,
     };
@@ -120,7 +147,13 @@ async function describeDatabase(): Promise<DatabaseNote> {
     // Una base sin historia de migraciones es justamente el hallazgo, no un
     // fallo del diagnostico: se reporta con su codigo y el nombre se conserva.
     const code = String((error as { code?: unknown })?.code ?? '');
-    return { nombre, code: code || 'sin codigo', que: SQLSTATE[code] ?? 'no clasificado' };
+    return {
+      nombre,
+      servidor,
+      version,
+      code: code || 'sin codigo',
+      que: SQLSTATE[code] ?? 'no clasificado',
+    };
   }
 }
 
