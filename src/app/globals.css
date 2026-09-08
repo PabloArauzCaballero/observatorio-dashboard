@@ -3441,8 +3441,17 @@ button.term-chip:hover {
   height: 66px;
 }
 
+/*
+ * El hueco de un grafico mide lo que va a medir el grafico.
+ *
+ * La cifra estaba fija cuando los marcos tambien lo estaban. Ahora el marco
+ * sigue a la pantalla, asi que un placeholder fijo se queda corto justo donde
+ * mas se nota — en un monitor grande abria 230 px y cerraba 475, y la pagina
+ * daba un salto al terminar de cargar. Es la misma regla que `.chart-frame`,
+ * y tiene que seguir siendola.
+ */
 .skeleton-chart {
-  height: 230px;
+  height: clamp(300px, 33vh, 520px);
 }
 
 .skeleton-line {
