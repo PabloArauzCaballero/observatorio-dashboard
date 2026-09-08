@@ -172,3 +172,22 @@ export async function readPlaces(
     return { places: unreadable<Place>('read_models.city_place', error), total: 0 };
   }
 }
+
+/**
+ * How many rows a place model holds, with the error left to travel.
+ *
+ * The readers above swallow «relation does not exist» and answer with an empty
+ * section, which is right for a public page and useless for repairing one: an
+ * empty section and an absent model look identical from outside. This does not
+ * swallow it, so `/api/readers` can tell a corpus nobody has loaded yet from a
+ * migration that never ran.
+ *
+ * The model is a closed union rather than a string: the name is interpolated
+ * into the statement, and only these two spellings can reach it.
+ */
+export async function countPlaceRows(model: 'city_place' | 'city_place_family'): Promise<number> {
+  const { rows } = await pool().query<{ total: string }>(
+    `SELECT count(*)::text AS total FROM read_models.${model}`,
+  );
+  return Number(rows[0]?.total ?? 0);
+}

@@ -20,6 +20,14 @@ import type { TermMonth, TermTotal } from '@/lib/series';
  * reads. And every panel is dated: a subject with four hundred mentions spread
  * over six years and one with four hundred in a single month are different
  * events, and no total tells them apart.
+ *
+ * Every choice made here can be unmade here. A chip that only ever switches the
+ * selection to something else is a filter a reader cannot get out of, so the
+ * chosen family and the chosen subject are listed back as removable pills and
+ * both chips turn themselves off when they are clicked a second time. And the
+ * numbers behind the charts are one click away in both formats, like in every
+ * other section of the report: the subject's own monthly series beside its
+ * chart, and the whole dated table under the calendar it is drawn from.
  */
 
 const FAMILY_LABEL: Record<string, string> = {
@@ -82,6 +90,17 @@ export function SubjectsExplorer({ months, totals }: { months: TermMonth[]; tota
 
   const [family, setFamily] = useState<string>('');
   const [term, setTerm] = useState<string>('');
+
+  /**
+   * Whether the reader chose any of this, as opposed to being shown the first
+   * family and its first subject because a panel has to open on something.
+   * Only a choice can be removed, and only a choice is offered for removal.
+   */
+  const chosen = family !== '' || term !== '';
+  const clear = (): void => {
+    setFamily('');
+    setTerm('');
+  };
 
   const shownFamily = family || families[0]?.[0] || '';
   const inFamily = useMemo(
@@ -209,6 +228,35 @@ export function SubjectsExplorer({ months, totals }: { months: TermMonth[]; tota
           <h2>Elegir un tema</h2>
           <span className="tile-hint">familia, luego tema</span>
         </div>
+        {chosen ? (
+          <div className="chip-row" role="group" aria-label="Selección activa">
+            {family ? (
+              <button
+                type="button"
+                className="chip chip-active"
+                title="Quitar esta familia"
+                onClick={clear}
+              >
+                <Icon name="capas" size={12} />
+                {FAMILY_LABEL[family] ?? family} ×
+              </button>
+            ) : null}
+            {term ? (
+              <button
+                type="button"
+                className="chip chip-active"
+                title="Quitar este tema"
+                onClick={() => setTerm('')}
+              >
+                <Icon name="etiqueta" size={12} />
+                {totals.find((total) => total.term === term)?.label ?? term} ×
+              </button>
+            ) : null}
+            <button type="button" className="chip" onClick={clear}>
+              Limpiar todo
+            </button>
+          </div>
+        ) : null}
         <nav className="chip-row" aria-label="Familias de temas">
           {families.map(([name, mentions]) => (
             <button
@@ -216,8 +264,14 @@ export function SubjectsExplorer({ months, totals }: { months: TermMonth[]; tota
               type="button"
               className={name === shownFamily ? 'chip chip-active' : 'chip'}
               onClick={() => {
-                setFamily(name);
-                setTerm('');
+                // A second click on the family already open puts the section
+                // back where it started, instead of leaving the reader inside a
+                // selection with no way out of it.
+                if (family === name) clear();
+                else {
+                  setFamily(name);
+                  setTerm('');
+                }
               }}
             >
               {FAMILY_LABEL[name] ?? name}
@@ -231,7 +285,7 @@ export function SubjectsExplorer({ months, totals }: { months: TermMonth[]; tota
               key={total.term}
               type="button"
               className={total.term === shownTerm ? 'chip chip-active' : 'chip'}
-              onClick={() => setTerm(total.term)}
+              onClick={() => setTerm(term === total.term ? '' : total.term)}
             >
               {total.label}
               <span className="chip-count">{count(total.mentions)}</span>
@@ -239,6 +293,31 @@ export function SubjectsExplorer({ months, totals }: { months: TermMonth[]; tota
           ))}
         </nav>
       </div>
+
+      {subject ? (
+        <div className="strap">
+          <Icon name="etiqueta" size={17} />
+          <h2>{subject.label}</h2>
+          <span className="tile-hint">
+            {count(subject.mentions)} menciones · {subject.months} meses
+          </span>
+          <div className="download">
+            <span className="download-label">Serie mensual del tema</span>
+            <a
+              className="download-btn"
+              href={`/api/export?dataset=temas&termino=${encodeURIComponent(subject.term)}&format=csv`}
+            >
+              CSV
+            </a>
+            <a
+              className="download-btn"
+              href={`/api/export?dataset=temas&termino=${encodeURIComponent(subject.term)}&format=json`}
+            >
+              JSON
+            </a>
+          </div>
+        </div>
+      ) : null}
 
       {subject ? (
         <div className="panel">
@@ -296,6 +375,15 @@ export function SubjectsExplorer({ months, totals }: { months: TermMonth[]; tota
           años sin ninguna mención del asunto, no años con cero cobertura económica: el archivo es
           más delgado en los años que se reconstruyeron desde los mapas de sitio de cada medio.
         </p>
+        <div className="download" style={{ marginTop: 'var(--s2)' }}>
+          <span className="download-label">Todos los temas, mes a mes</span>
+          <a className="download-btn" href="/api/export?dataset=temas&format=csv">
+            CSV
+          </a>
+          <a className="download-btn" href="/api/export?dataset=temas&format=json">
+            JSON
+          </a>
+        </div>
       </div>
     </>
   );

@@ -1,4 +1,10 @@
-import { readCompanyFilings, readMacroAnnual, readObservatory, readPressPage } from '@/lib/series';
+import {
+  readCompanyFilings,
+  readMacroAnnual,
+  readObservatory,
+  readPressPage,
+  readTermMonths,
+} from '@/lib/series';
 
 /**
  * Every dataset the report draws, in either format.
@@ -13,7 +19,7 @@ export const dynamic = 'force-dynamic';
 
 type Row = Record<string, string | number | boolean | null>;
 
-const DATASETS = ['series', 'macro', 'filings', 'prensa'] as const;
+const DATASETS = ['series', 'macro', 'filings', 'prensa', 'temas'] as const;
 type Dataset = (typeof DATASETS)[number];
 
 const UNITS: Record<string, string> = {
@@ -41,6 +47,8 @@ interface Selection {
   /** Press only: the year and the watched term the panel was slicing by. */
   year?: string | undefined;
   term?: string | undefined;
+  /** Subjects only: the family of watched terms the panel was slicing by. */
+  family?: string | undefined;
   /** A year on the macro panel, a calendar date on the exchange-rate one. */
   from?: string | undefined;
   search?: string | undefined;
@@ -69,6 +77,42 @@ async function collect(dataset: Dataset, selection: Selection): Promise<Row[]> {
         variacion_pct: point.changePercent,
         editor: point.publisher,
         fuente: point.sourceUrl,
+      }));
+  }
+
+  if (dataset === 'temas') {
+    // The dated table the subjects panel draws every one of its charts from:
+    // one row per watched subject per month, with the tone counts that make up
+    // the adverse share. Taking the same selection the panel was showing means
+    // the file and the chart above it cannot disagree.
+    const search = selection.search?.trim().toLocaleLowerCase('es');
+    // A year is a legal «desde» here and a month is what the rows are dated by.
+    const since = selection.from?.slice(0, 7);
+    return (await readTermMonths())
+      .filter(
+        (row) =>
+          (!selection.family || row.family === selection.family) &&
+          (!selection.term || row.term === selection.term) &&
+          (since === undefined || row.month >= since) &&
+          (!search ||
+            row.label.toLocaleLowerCase('es').includes(search) ||
+            row.term.toLocaleLowerCase('es').includes(search)),
+      )
+      .map((row) => ({
+        tema: row.term,
+        nombre: row.label,
+        familia: row.family,
+        mes: row.month,
+        menciones: row.mentions,
+        medios: row.outlets,
+        alarma: row.alarma,
+        deterioro: row.deterioro,
+        conflicto: row.conflicto,
+        incertidumbre: row.incertidumbre,
+        mejora: row.mejora,
+        medida: row.medida,
+        sin_marca: row.neutro,
+        cobertura_adversa_pct: row.adverseShare,
       }));
   }
 
@@ -195,6 +239,7 @@ export async function GET(request: Request): Promise<Response> {
       category: url.searchParams.get('categoria') ?? undefined,
       year: url.searchParams.get('anio') ?? undefined,
       term: url.searchParams.get('termino') ?? undefined,
+      family: url.searchParams.get('familia') ?? undefined,
       from: from && /^\d{4}(-\d{2}-\d{2})?$/u.test(from) ? from : undefined,
       search: url.searchParams.get('buscar') ?? undefined,
     });

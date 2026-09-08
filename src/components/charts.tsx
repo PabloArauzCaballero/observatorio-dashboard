@@ -49,6 +49,24 @@ const AXIS = {
 } as const;
 const GRID = { stroke: 'var(--rule-soft)', vertical: false } as const;
 
+/**
+ * A frame height that follows the screen instead of the figure it was written
+ * with.
+ *
+ * The callers of these bar charts pass pixels, and they have to: a list of
+ * fourteen rows needs more box than a list of four, and only the caller knows
+ * how many rows it has. But the figure was chosen against a laptop, so on a
+ * desktop the chart drew itself exactly as small as it always had and left the
+ * bottom of the screen empty.
+ *
+ * The caller's number becomes the floor — nothing gets shorter than it was, on
+ * any display — and above it the frame takes the same share of the viewport
+ * that number was of a 900-pixel one. The cap keeps a six-bar chart from
+ * stretching its bars into bands.
+ */
+const framed = (base: number): string =>
+  `clamp(${base}px, ${((base / 900) * 100).toFixed(1)}vh, ${Math.round(base * 1.55)}px)`;
+
 export interface RatePoint {
   date: string;
   parallelBuy?: number | null;
@@ -1122,7 +1140,7 @@ export function ShareBars({
   };
 
   return (
-    <div className="chart-frame" style={{ height }}>
+    <div className="chart-frame" style={{ height: framed(height) }}>
       <ResponsiveContainer width="100%" height="100%">
         <BarChart data={rows} layout="vertical" margin={{ top: 4, right: 30, bottom: 0, left: 4 }}>
           <CartesianGrid {...GRID} horizontal={false} vertical />
@@ -1183,7 +1201,7 @@ export function ReachChart({
   };
 
   return (
-    <div className="chart-frame" style={{ height }}>
+    <div className="chart-frame" style={{ height: framed(height) }}>
       <ResponsiveContainer width="100%" height="100%">
         <BarChart data={data} layout="vertical" margin={{ top: 4, right: 46, bottom: 0, left: 4 }}>
           <CartesianGrid {...GRID} horizontal={false} vertical />
@@ -1262,7 +1280,7 @@ export function StackedBars({ data, height = 200 }: { data: StackedRow[]; height
   };
 
   return (
-    <div className="chart-frame" style={{ height }}>
+    <div className="chart-frame" style={{ height: framed(height) }}>
       <ResponsiveContainer width="100%" height="100%">
         <BarChart data={data} layout="vertical" margin={{ top: 4, right: 24, bottom: 0, left: 4 }}>
           <CartesianGrid {...GRID} horizontal={false} vertical />
@@ -1334,7 +1352,7 @@ export function DivergingBars({
   };
 
   return (
-    <div className="chart-frame" style={{ height }}>
+    <div className="chart-frame" style={{ height: framed(height) }}>
       <ResponsiveContainer width="100%" height="100%">
         <BarChart data={rows} layout="vertical" margin={{ top: 4, right: 24, bottom: 0, left: 4 }}>
           <CartesianGrid {...GRID} horizontal={false} vertical />
@@ -1478,7 +1496,7 @@ export function MonthlyBars({ data, height = 220 }: { data: MonthBar[]; height?:
   };
 
   return (
-    <div className="chart-frame" style={{ height }}>
+    <div className="chart-frame" style={{ height: framed(height) }}>
       <ResponsiveContainer width="100%" height="100%">
         <BarChart data={rows} margin={{ top: 4, right: 8, bottom: 0, left: 0 }}>
           <CartesianGrid {...GRID} />
@@ -1550,7 +1568,7 @@ export function YearSeriesBars({
   };
 
   return (
-    <div className="chart-frame" style={{ height }}>
+    <div className="chart-frame" style={{ height: framed(height) }}>
       <ResponsiveContainer width="100%" height="100%">
         <BarChart data={data} margin={{ top: 4, right: 8, bottom: 0, left: 0 }}>
           <CartesianGrid {...GRID} />

@@ -1,5 +1,4 @@
 import {
-  readChannelMix,
   readCompanyFilings,
   readGap,
   readMacroAnnual,
@@ -12,19 +11,17 @@ import {
   readSources,
   readTermMonths,
   readTermTotals,
-  readTradeCoverage,
-  readTradeGap,
-  readTradeReadings,
 } from '@/lib/series';
+import { countPlaceRows } from '@/lib/places';
 
 /**
  * Which of the report's reads work, one at a time.
  *
- * The page fetches all eighteen together and shows nothing if any one of them
+ * The page fetches its reads together and shows nothing if any one of them
  * throws. That is right for a reader — a figure that could not be verified is
  * not shown — and useless for whoever has to repair it: the whole diagnosis is
- * one line in a container log, on a machine behind a tailnet, naming a failure
- * among eighteen. This runs them apart and says which ones fell.
+ * one line in a container log, on a machine behind a tailnet, naming one
+ * failure among many. This runs them apart and says which ones fell.
  *
  * The two retired social readers are not on the list. ADR 0025 and migration
  * 0069 narrowed the register to commerce and dropped the audience model, so
@@ -53,10 +50,10 @@ const READERS: ReadonlyArray<readonly [string, () => Promise<unknown>]> = [
   ['termMonths', readTermMonths],
   ['termTotals', readTermTotals],
   ['panelCatalogue', readPanelCatalogue],
-  ['tradeCoverage', readTradeCoverage],
-  ['channelMix', readChannelMix],
-  ['tradeReadings', readTradeReadings],
-  ['tradeGap', readTradeGap],
+  // Sondas, no lecturas: cuentan filas y dejan viajar el error, que es lo
+  // unico que distingue un corpus sin cargar de una migracion sin correr.
+  ['cityPlace', () => countPlaceRows('city_place')],
+  ['cityPlaceFamily', () => countPlaceRows('city_place_family')],
 ];
 
 /** El nombre que PostgreSQL da a cada codigo, para no tener que buscarlo. */
