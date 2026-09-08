@@ -1,0 +1,244 @@
+'use client';
+
+import { useEffect, useMemo, useState } from 'react';
+import { Icon } from './icons';
+import { PlacesMap } from './places-map';
+import type { Place, PlaceFamily } from '@/lib/places';
+
+/**
+ * What is in the three cities, and where.
+ *
+ * Every other chapter answers «how much, and when». This one answers «what is
+ * there», which is a different question and needs a different control: not a
+ * period and a series, but a city and a kind of place.
+ *
+ * The counts travel with the page and the places do not. A reader arrives
+ * wanting to choose, and cannot choose without the list; the twenty-six
+ * thousand places behind it are fetched for the city and family actually
+ * picked. The same reason the world panel ships its catalogue and asks for the
+ * numbers.
+ */
+
+/**
+ * The three cities, in the order the report shows them.
+ *
+ * Fixed rather than derived from the rows: the corpus covers exactly these
+ * three, and an order that came out of a sort would rearrange itself the day
+ * a fourth arrived. It lives here and not beside the reader because the
+ * reader module is `server-only`, and a value imported from it would drag the
+ * database connection into the browser bundle.
+ */
+const CITIES = ['Santa Cruz de la Sierra', 'La Paz', 'Cochabamba'] as const;
+
+const NUMBER = new Intl.NumberFormat('es-BO');
+/** Enough to see the shape of a chapter's rail without scrolling past it. */
+const SHOWN = 16;
+
+/** A family name as the catalogue writes it, in the case a sentence wants. */
+function label(family: string): string {
+  const words = family.toLowerCase().replaceAll('_', ' ');
+  return words.charAt(0).toUpperCase() + words.slice(1);
+}
+
+export function CityPlacesExplorer({ families }: { families: PlaceFamily[] }) {
+  const [city, setCity] = useState<string>(CITIES[0]);
+  const [family, setFamily] = useState<string | null>(null);
+  const [search, setSearch] = useState('');
+  const [places, setPlaces] = useState<Place[]>([]);
+  const [total, setTotal] = useState(0);
+  const [loading, setLoading] = useState(false);
+
+  /** The families this city actually holds, largest first. */
+  const inCity = useMemo(
+    () =>
+      families.filter((row) => row.city === city).sort((left, right) => right.places - left.places),
+    [families, city],
+  );
+
+  const matches = useMemo(() => {
+    const needle = search.trim().toLocaleLowerCase('es');
+    if (!needle) return inCity.slice(0, SHOWN);
+    return inCity
+      .filter((row) => row.entityFamily.toLocaleLowerCase('es').includes(needle))
+      .slice(0, SHOWN);
+  }, [inCity, search]);
+
+  const cityTotals = useMemo(() => {
+    const places_ = inCity.reduce((sum, row) => sum + row.places, 0);
+    const regulated = inCity.reduce((sum, row) => sum + row.regulated, 0);
+    const inZone = inCity.reduce((sum, row) => sum + row.locatedInZone, 0);
+    return { places: places_, regulated, inZone, families: inCity.length };
+  }, [inCity]);
+
+  useEffect(() => {
+    let live = true;
+    setLoading(true);
+    const query = new URLSearchParams({ ciudad: city });
+    if (family) query.set('familia', family);
+    fetch(`/api/lugares?${query.toString()}`)
+      .then((response) => (response.ok ? response.json() : { places: [], total: 0 }))
+      .then((body: { places?: Place[]; total?: number }) => {
+        if (!live) return;
+        setPlaces(body.places ?? []);
+        setTotal(body.total ?? 0);
+      })
+      .catch(() => {
+        if (live) {
+          setPlaces([]);
+          setTotal(0);
+        }
+      })
+      .finally(() => {
+        if (live) setLoading(false);
+      });
+    return () => {
+      live = false;
+    };
+  }, [city, family]);
+
+  if (families.length === 0) {
+    return <div className="callout">Todavía no hay lugares cargados.</div>;
+  }
+
+  const chosen = family ? inCity.find((row) => row.entityFamily === family) : undefined;
+  // El lector tiene que poder distinguir «esto es la ciudad entera» de «esto es
+  // lo que cabe en el mapa». Un mapa recortado sin decirlo es un mapa que miente.
+  const truncated = total > places.length;
+
+  return (
+    <>
+      <div className="rail-pills">
+        {CITIES.map((name) => (
+          <button
+            key={name}
+            type="button"
+            className={city === name ? 'chip chip-on' : 'chip'}
+            onClick={() => {
+              setCity(name);
+              setFamily(null);
+            }}
+          >
+            <Icon name="mapa" size={14} />
+            {name}
+          </button>
+        ))}
+      </div>
+
+      <div className="card-grid" style={{ marginTop: '0.9rem' }}>
+        <Figure label="Lugares" value={NUMBER.format(cityTotals.places)} note="en el municipio" />
+        <Figure
+          label="De actividad regulada"
+          value={NUMBER.format(cityTotals.regulated)}
+          note="por verificar con su regulador"
+        />
+        <Figure
+          label="Familias"
+          value={NUMBER.format(cityTotals.families)}
+          note="de 201 del catálogo"
+        />
+        <Figure
+          label="Con barrio resuelto"
+          value={NUMBER.format(cityTotals.inZone)}
+          note="el resto no tiene polígono publicado"
+        />
+      </div>
+
+      <div className="workspace">
+        <aside className="rail">
+          <div className="rail-sec">
+            <div className="rail-head">
+              <Icon name="buscar" size={13} />
+              Familia
+            </div>
+            <div className="rail-field">
+              <input
+                type="search"
+                aria-label="Buscar una familia de entidad"
+                placeholder="farmacia, colegio, ferretería…"
+                value={search}
+                onChange={(event) => setSearch(event.target.value)}
+                style={{ width: '100%' }}
+              />
+            </div>
+          </div>
+
+          <div className="rail-sec">
+            <button
+              type="button"
+              className={family === null ? 'rail-item rail-item-on' : 'rail-item'}
+              onClick={() => setFamily(null)}
+            >
+              <Icon name="cajas" size={16} />
+              <span className="rail-name">Todas las familias</span>
+              <span className="rail-n">{NUMBER.format(cityTotals.places)}</span>
+            </button>
+            {matches.map((row) => (
+              <button
+                key={row.entityFamily}
+                type="button"
+                className={family === row.entityFamily ? 'rail-item rail-item-on' : 'rail-item'}
+                onClick={() => setFamily(family === row.entityFamily ? null : row.entityFamily)}
+              >
+                <Icon name={row.regulated > 0 ? 'escudo' : 'tienda'} size={16} />
+                <span className="rail-name">{label(row.entityFamily)}</span>
+                <span className="rail-n">{NUMBER.format(row.places)}</span>
+              </button>
+            ))}
+            {inCity.length > matches.length ? (
+              <div className="rail-foot">
+                {NUMBER.format(inCity.length - matches.length)} familias más: búscalas por nombre.
+              </div>
+            ) : null}
+          </div>
+        </aside>
+
+        <div className="workspace-main stack">
+          {loading ? (
+            <div className="callout">Leyendo los lugares…</div>
+          ) : (
+            <PlacesMap places={places} />
+          )}
+          <p className="card-note">
+            {chosen ? (
+              <>
+                <b>{label(chosen.entityFamily)}</b> en {city}: {NUMBER.format(chosen.places)}{' '}
+                lugares, {NUMBER.format(chosen.regulated)} de actividad regulada.
+              </>
+            ) : (
+              <>Todas las familias de {city}.</>
+            )}{' '}
+            {truncated ? (
+              <>
+                El mapa dibuja {NUMBER.format(places.length)} de {NUMBER.format(total)}, los de
+                mayor confianza: dibujarlos todos deja una mancha, no un mapa. Elige una familia
+                para verla completa.
+              </>
+            ) : (
+              <>Se dibujan los {NUMBER.format(places.length)}.</>
+            )}
+          </p>
+          <p className="card-note card-note-source">
+            Overture Maps Foundation, entrega 2026-08-19.0, filtrada a confianza ≥ 0,60 y acotada a
+            los polígonos municipales que la propia fuente publica. La marca de actividad regulada
+            señala qué debe verificarse con su regulador boliviano; no es una verificación.
+          </p>
+        </div>
+      </div>
+    </>
+  );
+}
+
+/** One count, stated with what it counts. */
+function Figure({ label: name, value, note }: { label: string; value: string; note: string }) {
+  return (
+    <div className="card">
+      <div className="card-head">
+        <span className="card-sector">{name}</span>
+      </div>
+      <div className="card-figure">
+        <span className="card-value">{value}</span>
+      </div>
+      <div className="card-meta">{note}</div>
+    </div>
+  );
+}

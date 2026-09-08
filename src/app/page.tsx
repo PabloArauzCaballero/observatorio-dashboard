@@ -7,6 +7,7 @@ import { MacroExplorer } from '@/components/macro-explorer';
 import { MarketCards } from '@/components/market-cards';
 
 import { PanelExplorer } from '@/components/panel-explorer';
+import { CityPlacesExplorer } from '@/components/city-places-explorer';
 import { PressExplorer } from '@/components/press-explorer';
 import { SourcesExplorer } from '@/components/sources-explorer';
 import { SubjectsExplorer } from '@/components/subjects-explorer';
@@ -15,6 +16,8 @@ import { Icon } from '@/components/icons';
 import { SummaryExplorer } from '@/components/summary-explorer';
 import type { SummaryFigure } from '@/components/summary-explorer';
 import { Tabs } from '@/components/tabs';
+import { readPlaceFamilies } from '@/lib/places';
+import type { PlaceFamily } from '@/lib/places';
 import { packMacro } from '@/lib/macro-transport';
 import { dailyAnalysis } from '@/lib/daily-analysis';
 import type { Observation } from '@/lib/econometrics';
@@ -231,6 +234,7 @@ export default async function Page() {
   let termMonths: TermMonth[];
   let termTotals: TermTotal[];
   let panelCatalogue: PanelIndicator[];
+  let placeFamilies: PlaceFamily[];
   try {
     [
       observatory,
@@ -245,6 +249,7 @@ export default async function Page() {
       termMonths,
       termTotals,
       panelCatalogue,
+      placeFamilies,
     ] = await Promise.all([
       readObservatory(),
       readGap(),
@@ -258,6 +263,7 @@ export default async function Page() {
       readTermMonths(),
       readTermTotals(),
       readPanelCatalogue(),
+      readPlaceFamilies(),
     ]);
   } catch (error) {
     // The message can carry the host, the user and the port. It belongs in the
@@ -407,10 +413,11 @@ export default async function Page() {
           'Tipo de cambio',
           'Macroeconomía',
           'Empresas',
+          'Ciudades',
           'Prensa',
           'Método',
         ]}
-        icons={['diana', 'linea', 'globo', 'edificio', 'ventana', 'info']}
+        icons={['diana', 'linea', 'globo', 'edificio', 'mapa', 'ventana', 'info']}
       >
         <section className="stack">
           <SummaryExplorer
@@ -465,6 +472,10 @@ export default async function Page() {
           ) : (
             <div className="callout">Todavía no hay hechos relevantes cargados.</div>
           )}
+        </section>
+
+        <section className="stack">
+          <CityPlacesExplorer families={placeFamilies} />
         </section>
 
         <section className="stack">

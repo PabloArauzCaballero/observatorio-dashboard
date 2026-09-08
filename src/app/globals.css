@@ -3287,3 +3287,51 @@ button.term-chip:hover {
   line-height: 1.5;
   color: var(--ink-faint);
 }
+
+/*
+ * The places chapter.
+ *
+ * A scatter of premises with no basemap under it: tiles would call a third
+ * party on every pan and hand it the reader's address, and several thousand
+ * shops already draw the avenues on their own.
+ */
+.places-map {
+  margin: 0;
+  background: var(--panel);
+  border: 1px solid var(--rule);
+  border-radius: var(--radius);
+  padding: var(--s2);
+}
+
+.places-map svg {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+
+.poi {
+  fill: var(--official);
+  /*
+   * Semi-transparent on purpose: where two premises sit on the same block the
+   * overlap darkens, so density reads off the page without a heat map that
+   * would invent a surface the data does not have.
+   */
+  fill-opacity: 0.55;
+  transition: r 120ms ease;
+}
+
+.poi-regulated {
+  fill: var(--parallel);
+  fill-opacity: 0.75;
+}
+
+.poi:hover {
+  fill-opacity: 1;
+}
+
+.places-map-foot {
+  margin-top: var(--s2);
+  color: var(--ink-soft);
+  font-size: 0.86rem;
+  min-height: 1.4em;
+}
