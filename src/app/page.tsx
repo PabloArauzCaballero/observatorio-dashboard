@@ -10,7 +10,6 @@ import { PanelExplorer } from '@/components/panel-explorer';
 import { PressExplorer } from '@/components/press-explorer';
 import { SourcesExplorer } from '@/components/sources-explorer';
 import { SubjectsExplorer } from '@/components/subjects-explorer';
-import { TradeExplorer } from '@/components/trade-explorer';
 import { SubTabs } from '@/components/tabs';
 import { Icon } from '@/components/icons';
 import { SummaryExplorer } from '@/components/summary-explorer';
@@ -232,10 +231,6 @@ export default async function Page() {
   let termMonths: TermMonth[];
   let termTotals: TermTotal[];
   let panelCatalogue: PanelIndicator[];
-  let tradeCoverage: TradeCoverage[];
-  let channelMix: ChannelMix[];
-  let tradeReadings: TradeReading[];
-  let tradeGap: TradeGap[];
   try {
     [
       observatory,
@@ -250,10 +245,6 @@ export default async function Page() {
       termMonths,
       termTotals,
       panelCatalogue,
-      tradeCoverage,
-      channelMix,
-      tradeReadings,
-      tradeGap,
     ] = await Promise.all([
       readObservatory(),
       readGap(),
@@ -267,10 +258,6 @@ export default async function Page() {
       readTermMonths(),
       readTermTotals(),
       readPanelCatalogue(),
-      readTradeCoverage(),
-      readChannelMix(),
-      readTradeReadings(),
-      readTradeGap(),
     ]);
   } catch (error) {
     // The message can carry the host, the user and the port. It belongs in the
@@ -420,11 +407,10 @@ export default async function Page() {
           'Tipo de cambio',
           'Macroeconomía',
           'Empresas',
-          'Comercio',
           'Prensa',
           'Método',
         ]}
-        icons={['diana', 'linea', 'globo', 'edificio', 'tienda', 'ventana', 'info']}
+        icons={['diana', 'linea', 'globo', 'edificio', 'ventana', 'info']}
       >
         <section className="stack">
           <SummaryExplorer
@@ -478,19 +464,6 @@ export default async function Page() {
             <FilingExplorer filings={filings} />
           ) : (
             <div className="callout">Todavía no hay hechos relevantes cargados.</div>
-          )}
-        </section>
-
-        <section className="stack">
-          {tradeReadings.length ? (
-            <TradeExplorer
-              coverage={tradeCoverage}
-              mix={channelMix}
-              readings={tradeReadings}
-              gap={tradeGap}
-            />
-          ) : (
-            <div className="callout">Todavía no hay lecturas de comercio cargadas.</div>
           )}
         </section>
 
