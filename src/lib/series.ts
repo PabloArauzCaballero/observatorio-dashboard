@@ -1223,6 +1223,30 @@ export interface TradeGap {
  * identical — this is how they are told apart without shell access to a
  * machine that lives behind a tailnet.
  */
+/**
+ * True when the server was willing to read the section and did not finish it.
+ *
+ * The other way a section is lost, and the one this report only met once it
+ * started reading the database the core actually writes instead of the small
+ * frozen copy it had been served for weeks. `57014` is the statement ceiling
+ * cancelling a view that reassembles every claim from its evidence; `53100` and
+ * `53200` are that same view spilling more sort than a shared server has room
+ * for, which four of them at once can reach; `53400` is a configured limit
+ * saying so in advance.
+ *
+ * Deliberately NOT swallowed inside the readers, the way an absent model is.
+ * An absent model is a fact about the schema and every caller wants the same
+ * empty answer; a read the server would not finish is a fact about this
+ * machine, and `/api/readers` exists precisely to name it. So the readers keep
+ * throwing and the page decides — which is where «no puede caerse el informe
+ * entero» belongs anyway.
+ */
+export function isUnaffordableRead(error: unknown): boolean {
+  if (typeof error !== 'object' || error === null) return false;
+  const code = (error as { code?: string }).code;
+  return code === '57014' || code === '53100' || code === '53200' || code === '53400';
+}
+
 export const READ_MODELS = [
   'read_models.informal_trade_coverage',
   'read_models.informal_trade_channel_mix',

@@ -22,6 +22,7 @@ import { packMacro } from '@/lib/macro-transport';
 import { dailyAnalysis } from '@/lib/daily-analysis';
 import type { Observation } from '@/lib/econometrics';
 import {
+  isUnaffordableRead,
   officialSeries,
   readCompanyFilings,
   readMarkets,
@@ -221,6 +222,56 @@ function Unreadable() {
   );
 }
 
+/**
+ * Un archivo de prensa vacio, para cuando el servidor no termino de leerlo.
+ *
+ * Solo se usa como relleno de tipo: la portada mira `press.length` antes de
+ * dibujar nada de prensa, asi que estas dos constantes no llegan a pintarse.
+ * Existen para que la seccion que falta sea una seccion que falta y no un
+ * `undefined` suelto recorriendo el resto del informe.
+ */
+const EMPTY_PRESS_CUBE: PressCube = {
+  years: [],
+  tones: [],
+  topics: [],
+  regions: [],
+  outlets: [],
+  terms: [],
+  cells: [],
+  termCells: [],
+};
+
+const EMPTY_PRESS_PULSE: PressPulseData = {
+  total: 0,
+  outlets: 0,
+  firstDay: null,
+  lastDay: null,
+  toneByYear: [],
+  regions: [],
+  unmarked: { archive: 0, live: 0, archiveLength: 0, liveLength: 0 },
+};
+
+/** El nombre que un lector reconoce, para cada lectura que puede faltar. */
+const NOMBRE_DE_SECCION: Record<string, string> = {
+  sources: 'fuentes',
+  macro: 'macroeconomía anual',
+  filings: 'hechos relevantes',
+  press: 'prensa',
+  markets: 'mercados',
+  pressCube: 'prensa',
+  pressPulse: 'prensa',
+  termMonths: 'temas de prensa',
+  termTotals: 'temas de prensa',
+  panelCatalogue: 'panel mundial',
+  placeFamilies: 'lugares de las ciudades',
+};
+
+/** Las secciones perdidas en castellano, sin repetir las que comparten nombre. */
+function SECCIONES_PERDIDAS(perdidas: ReadonlySet<string>): string {
+  const nombres = [...new Set([...perdidas].map((clave) => NOMBRE_DE_SECCION[clave] ?? clave))];
+  return nombres.sort((left, right) => left.localeCompare(right, 'es')).join(', ');
+}
+
 export default async function Page() {
   let observatory: Observatory;
   let gap: GapPoint[];
@@ -235,10 +286,44 @@ export default async function Page() {
   let termTotals: TermTotal[];
   let panelCatalogue: PanelIndicator[];
   let placeFamilies: PlaceFamily[];
+  /*
+   * Las secciones que no llegan se cuentan, para no publicar su ausencia como
+   * un cero. «Macro anuales: 0» y «Macro anuales: no se pudo leer» dicen cosas
+   * opuestas, y la primera es falsa: hay cincuenta y nueve mil filas ahi.
+   */
+  const perdidas = new Set<string>();
+
+  /**
+   * Una lectura que puede faltar sin llevarse el informe.
+   *
+   * Solo se perdona lo que el servidor no termino de leer — el plazo agotado,
+   * el sitio que la ordenacion necesitaba. Cualquier otro fallo sigue tumbando
+   * la pagina entera, que es lo correcto cuando lo que falla es la conexion y
+   * no una vista cara: un informe que se dibuja a medias sin saber por que no
+   * es un informe degradado, es uno que miente.
+   */
+  async function seccion<T>(nombre: string, read: () => Promise<T>, vacio: T): Promise<T> {
+    try {
+      return await read();
+    } catch (error) {
+      if (!isUnaffordableRead(error)) throw error;
+      // El codigo va al registro; el mensaje puede llevar el host y el rol.
+      console.warn(`[observatorio] seccion sin leer: ${nombre} (${(error as { code?: string }).code})`);
+      perdidas.add(nombre);
+      return vacio;
+    }
+  }
+
   try {
+    /*
+     * El tipo de cambio y la brecha son la espina del informe — la portada se
+     * construye sobre su ultima fecha — asi que no se perdonan: si esos dos no
+     * se leen no hay pagina que servir. Las demas secciones son tabs, y una
+     * pestaña que falta no es razon para no publicar las otras once.
+     */
+    [observatory, gap] = await Promise.all([readObservatory(), readGap()]);
+
     [
-      observatory,
-      gap,
       sources,
       macro,
       filings,
@@ -251,19 +336,17 @@ export default async function Page() {
       panelCatalogue,
       placeFamilies,
     ] = await Promise.all([
-      readObservatory(),
-      readGap(),
-      readSources(),
-      readMacroAnnual(),
-      readCompanyFilings(),
-      readPressPage({ topic: 'ECONOMICOS' }, 60).then((page) => page.articles),
-      readMarkets(),
-      readPressCube(),
-      readPressPulse(),
-      readTermMonths(),
-      readTermTotals(),
-      readPanelCatalogue(),
-      readPlaceFamilies(),
+      seccion('sources', readSources, []),
+      seccion('macro', readMacroAnnual, []),
+      seccion('filings', () => readCompanyFilings(), []),
+      seccion('press', () => readPressPage({ topic: 'ECONOMICOS' }, 60).then((page) => page.articles), []),
+      seccion('markets', readMarkets, []),
+      seccion('pressCube', readPressCube, EMPTY_PRESS_CUBE),
+      seccion('pressPulse', readPressPulse, EMPTY_PRESS_PULSE),
+      seccion('termMonths', readTermMonths, []),
+      seccion('termTotals', readTermTotals, []),
+      seccion('panelCatalogue', readPanelCatalogue, []),
+      seccion('placeFamilies', readPlaceFamilies, []),
     ]);
   } catch (error) {
     // The message can carry the host, the user and the port. It belongs in the
@@ -271,6 +354,10 @@ export default async function Page() {
     console.error('[observatorio] lectura fallida', error);
     return <Unreadable />;
   }
+
+  /** Un recuento, o el hecho de que no se pudo contar. Nunca un cero prestado. */
+  const contar = (nombre: string, valores: readonly unknown[]): string =>
+    perdidas.has(nombre) ? 'sin leer' : valores.length.toLocaleString('es-BO');
 
   const buy = observatory.series.get(PARALLEL_BUY) ?? [];
   const sell = observatory.series.get(PARALLEL_SELL) ?? [];
@@ -407,6 +494,21 @@ export default async function Page() {
         <Donate />
       </header>
 
+      {/*
+        Una seccion que falta se dice, no se disimula. Sin este aviso un
+        explorador vacio se lee como «no hay nada cargado», que es justo lo
+        contrario de lo que pasa: hay datos y el servidor no termino de leerlos.
+        Van los nombres de las secciones y nada mas — ni el codigo, ni el host,
+        ni el rol —, que es lo que puede publicarse en una direccion abierta.
+      */}
+      {perdidas.size > 0 ? (
+        <div className="callout">
+          No se pudieron leer a tiempo estas secciones: {SECCIONES_PERDIDAS(perdidas)}. El resto del
+          informe es correcto y esta al dia; lo que falta volvera cuando la consulta que lo arma deje
+          de agotar su plazo.
+        </div>
+      ) : null}
+
       <Tabs
         labels={[
           'Resumen',
@@ -431,12 +533,12 @@ export default async function Page() {
               },
               {
                 label: 'Macro anuales',
-                count: macro.length.toLocaleString('es-BO'),
+                count: contar('macro', macro),
                 icon: 'globo',
               },
               {
                 label: 'Hechos relevantes',
-                count: filings.length.toLocaleString('es-BO'),
+                count: contar('filings', filings),
                 icon: 'edificio',
               },
               {
