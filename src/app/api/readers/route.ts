@@ -157,6 +157,33 @@ async function describeDatabase(): Promise<DatabaseNote> {
   }
 }
 
+/**
+ * Which stored copies exist and whether anybody has filled them.
+ *
+ * Migration 0072 creates them empty on purpose, so a deploy is never held
+ * behind minutes of sorting. That makes «built» a real question with three
+ * answers — the model is not there, it is there and empty, it is there and
+ * filled — and only the last one means the report is being served the cheap
+ * path. Reading it from `pg_class.relispopulated` is the server's own answer;
+ * counting rows cannot tell an unfilled copy from an empty corpus.
+ */
+async function describeSnapshots(): Promise<
+  { estado: 'sin-modelo' | 'leido'; copias?: Array<{ nombre: string; construida: boolean }> }
+> {
+  try {
+    const { rows } = await pool().query<{ snapshot: string; built: boolean }>(
+      `SELECT snapshot, built FROM read_models.snapshot_state ORDER BY snapshot`,
+    );
+    return {
+      estado: 'leido',
+      copias: rows.map((row) => ({ nombre: row.snapshot, construida: row.built })),
+    };
+  } catch {
+    // La vista llega con la 0072; antes de esa migracion no hay nada que decir.
+    return { estado: 'sin-modelo' };
+  }
+}
+
 interface Verdict {
   readonly name: string;
   readonly ok: boolean;
@@ -167,6 +194,7 @@ interface Verdict {
 
 export async function GET(): Promise<Response> {
   const base = await describeDatabase();
+  const copias = await describeSnapshots();
   const lectores: Verdict[] = await Promise.all(
     READERS.map(async ([name, read]): Promise<Verdict> => {
       try {
@@ -186,7 +214,7 @@ export async function GET(): Promise<Response> {
 
   const fallidos = lectores.filter((verdict) => !verdict.ok);
   return Response.json(
-    { base, total: lectores.length, fallidos: fallidos.length, lectores },
+    { base, copias, total: lectores.length, fallidos: fallidos.length, lectores },
     { headers: { 'cache-control': 'no-store' } },
   );
 }

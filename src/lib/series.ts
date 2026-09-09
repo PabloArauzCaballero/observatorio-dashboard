@@ -219,19 +219,36 @@ export interface SourceNote {
  * documents a series was assembled from is a fact about how much it can be
  * trusted, and the row still links to one of them.
  */
-export async function readSources(): Promise<SourceNote[]> {
-  const { rows } = await pool().query<{
-    publisher: string;
-    source_url: string;
-    indicator_code: string;
-    indicator_name: string | null;
-    unit: string | null;
-    frequency: string | null;
-    readings: string;
-    documents: string;
-    first_day: string;
-    last_day: string;
-  }>(
+interface SourceRow {
+  publisher: string;
+  source_url: string;
+  indicator_code: string;
+  indicator_name: string | null;
+  unit: string | null;
+  frequency: string | null;
+  readings: string;
+  documents: string;
+  first_day: string;
+  last_day: string;
+}
+
+const SOURCE_COLUMNS = `publisher, indicator_code, indicator_name, unit, frequency,
+       readings::text AS readings, documents::text AS documents, source_url,
+       first_day::text AS first_day, last_day::text AS last_day`;
+
+/**
+ * The register is grouped in the database now, not here.
+ *
+ * The GROUP BY below used to be this file's, sent over the whole reading view on
+ * every page load. Migration 0072 made it `read_models.indicator_source_note`,
+ * for the reason every other figure lives there: a model that exists only as a
+ * query inside one reader cannot be snapshotted, indexed or granted, and two
+ * consumers must not be able to disagree about how many readings a publisher
+ * has. It stays here as the last resort, for the window in which this report is
+ * deployed and the migration has not landed yet.
+ */
+async function readSourcesFromReadings(): Promise<SourceRow[]> {
+  const { rows } = await pool().query<SourceRow>(
     `SELECT publisher, indicator_code,
             max(indicator_name) AS indicator_name,
             max(unit) AS unit,
@@ -246,6 +263,24 @@ export async function readSources(): Promise<SourceNote[]> {
      GROUP BY publisher, indicator_code
      ORDER BY indicator_code, publisher`,
   );
+  return rows;
+}
+
+async function readSourcesFrom(relation: string): Promise<SourceRow[]> {
+  const { rows } = await pool().query<SourceRow>(
+    `SELECT ${SOURCE_COLUMNS}
+     FROM ${relation}
+     ORDER BY indicator_code, publisher`,
+  );
+  return rows;
+}
+
+export async function readSources(): Promise<SourceNote[]> {
+  const rows = await firstThatAnswers([
+    () => readSourcesFrom('read_models.indicator_source_note_snapshot'),
+    () => readSourcesFrom('read_models.indicator_source_note'),
+    readSourcesFromReadings,
+  ]);
 
   return rows.map((row) => ({
     publisher: row.publisher,
@@ -308,25 +343,35 @@ export interface MacroPoint {
  * figure and a quoted price are different frequencies, and the database keeps
  * them apart so no consumer has to remember to.
  */
-export async function readMacroAnnual(): Promise<MacroPoint[]> {
-  const { rows } = await pool().query<{
-    indicator_code: string;
-    indicator_name: string | null;
-    sector: string;
-    period: string;
-    unit: string;
-    value: string;
-    previous_value: string | null;
-    change_percent: string | null;
-    publisher: string | null;
-    source_url: string | null;
-  }>(
+interface MacroRow {
+  indicator_code: string;
+  indicator_name: string | null;
+  sector: string;
+  period: string;
+  unit: string;
+  value: string;
+  previous_value: string | null;
+  change_percent: string | null;
+  publisher: string | null;
+  source_url: string | null;
+}
+
+async function readMacroAnnualFrom(relation: string): Promise<MacroRow[]> {
+  const { rows } = await pool().query<MacroRow>(
     `SELECT indicator_code, indicator_name, sector, period, unit,
             value::text AS value, previous_value::text AS previous_value,
             change_percent::text AS change_percent, publisher, source_url
-     FROM read_models.macro_indicator_annual
+     FROM ${relation}
      ORDER BY indicator_code, period`,
   );
+  return rows;
+}
+
+export async function readMacroAnnual(): Promise<MacroPoint[]> {
+  const rows = await firstThatAnswers([
+    () => readMacroAnnualFrom('read_models.macro_indicator_annual_snapshot'),
+    () => readMacroAnnualFrom('read_models.macro_indicator_annual'),
+  ]);
 
   return rows.map((row) => ({
     indicatorCode: row.indicator_code,
@@ -417,32 +462,42 @@ function filingSummary(excerpt: string | null): string | null {
  * Read from their own model: a filing has no value, no unit and no series, so
  * it never belonged with the indicators even though it shares their provenance.
  */
-export async function readCompanyFilings(limit = 1_000): Promise<CompanyFiling[]> {
-  const { rows } = await pool().query<{
-    fact_claim_id: string;
-    event_date: string;
-    published_at: Date | null;
-    filer: string;
-    filer_code: string | null;
-    sector: string;
-    category: string;
-    document_text: string | null;
-    subject: string;
-    stated_instant: string | null;
-    instant_stated_in_document: boolean | null;
-    source_url: string | null;
-    evidence_sha256: string | null;
-    excerpt: string | null;
-  }>(
+interface FilingRow {
+  fact_claim_id: string;
+  event_date: string;
+  published_at: Date | null;
+  filer: string;
+  filer_code: string | null;
+  sector: string;
+  category: string;
+  document_text: string | null;
+  subject: string;
+  stated_instant: string | null;
+  instant_stated_in_document: boolean | null;
+  source_url: string | null;
+  evidence_sha256: string | null;
+  excerpt: string | null;
+}
+
+async function readFilingsFrom(relation: string, limit: number): Promise<FilingRow[]> {
+  const { rows } = await pool().query<FilingRow>(
     `SELECT fact_claim_id, event_date::text AS event_date, published_at, filer, filer_code,
             sector, category, subject, stated_instant, instant_stated_in_document, source_url,
             evidence_sha256, excerpt, document_text
-     FROM read_models.company_filing
+     FROM ${relation}
      WHERE status = 'PUBLISHED' AND NOT superseded
      ORDER BY published_at DESC NULLS LAST, event_date DESC
      LIMIT $1`,
     [limit],
   );
+  return rows;
+}
+
+export async function readCompanyFilings(limit = 1_000): Promise<CompanyFiling[]> {
+  const rows = await firstThatAnswers([
+    () => readFilingsFrom('read_models.company_filing_snapshot', limit),
+    () => readFilingsFrom('read_models.company_filing', limit),
+  ]);
 
   return rows.map((row) => ({
     factClaimId: row.fact_claim_id,
@@ -1241,6 +1296,52 @@ export interface TradeGap {
  * throwing and the page decides — which is where «no puede caerse el informe
  * entero» belongs anyway.
  */
+/**
+ * True when a relation cannot serve this read and another one might.
+ *
+ * `42P01` is the stored copy not existing — the report deploys from a different
+ * repository than the one that migrates, so between the two deploys it is
+ * simply absent. `55000` is it existing and never having been filled, which is
+ * exactly how migration 0072 leaves it: created empty on purpose, so a deploy
+ * is never held behind minutes of sorting. `42501` is it existing and this role
+ * never having been granted it.
+ *
+ * All three say «ask the view instead», and none of them says «this section is
+ * lost»: the view is still there and still correct, only slower.
+ */
+function relationUnusable(error: unknown): boolean {
+  if (typeof error !== 'object' || error === null) return false;
+  const code = (error as { code?: string }).code;
+  return code === '42P01' || code === '55000' || code === '42501';
+}
+
+/**
+ * The first reading that answers, from the cheapest source to the truest one.
+ *
+ * The stored copy first, then the view it copies. Only «that relation cannot
+ * serve this» falls through — a timeout does not, because a view that just
+ * exceeded its ceiling will not do better on a second try and the reader is
+ * owed the error rather than another minute of waiting.
+ *
+ * The last attempt is never guarded: whatever it throws is what the caller
+ * sees, so a section that is genuinely lost is reported as lost and not as an
+ * empty one.
+ */
+async function firstThatAnswers<T>(attempts: ReadonlyArray<() => Promise<T>>): Promise<T> {
+  for (let index = 0; index < attempts.length - 1; index += 1) {
+    const attempt = attempts[index];
+    if (attempt === undefined) continue;
+    try {
+      return await attempt();
+    } catch (error) {
+      if (!relationUnusable(error)) throw error;
+    }
+  }
+  const last = attempts[attempts.length - 1];
+  if (last === undefined) throw new Error('firstThatAnswers necesita al menos una lectura');
+  return last();
+}
+
 export function isUnaffordableRead(error: unknown): boolean {
   if (typeof error !== 'object' || error === null) return false;
   const code = (error as { code?: string }).code;
@@ -1674,23 +1775,33 @@ export interface PanelPoint {
  * a million observations per page view is the failure the press models already
  * learned; the catalogue is fifteen hundred rows and is rebuilt by the load.
  */
+interface PanelCatalogueRow {
+  indicator_code: string;
+  indicator_name: string;
+  observations: string;
+  countries: string;
+  bolivia_years: string;
+  first_year: string;
+  last_year: string;
+}
+
+async function readPanelCatalogueFrom(relation: string): Promise<PanelCatalogueRow[]> {
+  const { rows } = await pool().query<PanelCatalogueRow>(
+    `SELECT indicator_code, indicator_name, observations::text, countries::text,
+            bolivia_years::text, first_year::text, last_year::text
+     FROM ${relation}
+     WHERE bolivia_years > 0
+     ORDER BY bolivia_years DESC, indicator_name`,
+  );
+  return rows;
+}
+
 export async function readPanelCatalogue(): Promise<PanelIndicator[]> {
   try {
-    const { rows } = await pool().query<{
-      indicator_code: string;
-      indicator_name: string;
-      observations: string;
-      countries: string;
-      bolivia_years: string;
-      first_year: string;
-      last_year: string;
-    }>(
-      `SELECT indicator_code, indicator_name, observations::text, countries::text,
-              bolivia_years::text, first_year::text, last_year::text
-       FROM read_models.world_panel_catalogue
-       WHERE bolivia_years > 0
-       ORDER BY bolivia_years DESC, indicator_name`,
-    );
+    const rows = await firstThatAnswers([
+      () => readPanelCatalogueFrom('read_models.world_panel_catalogue_snapshot'),
+      () => readPanelCatalogueFrom('read_models.world_panel_catalogue'),
+    ]);
 
     return rows.map((row) => ({
       code: row.indicator_code,
