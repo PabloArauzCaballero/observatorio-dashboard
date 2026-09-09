@@ -135,20 +135,26 @@ function createPool(connectionString: string): Pool {
     connectionString,
     ssl: tlsFor(connectionString),
     /*
-     * La portada pide trece lecturas a la vez y algunas de ellas abren varias
-     * consultas por su cuenta, asi que una visita arranca cerca de veinte a la
-     * vez. Con cuatro conexiones eso no es un pool, es una cola: las que no
-     * entran esperan, agotan el plazo de espera y la portada entera se rinde
-     * — «no fue posible leer la base de datos» — sin que ninguna consulta haya
-     * fallado. Costo verlo que hasta ahora leia una copia pequeña y congelada,
-     * donde las cuatro se turnaban lo bastante rapido como para que la falta
-     * de sitio no se notara.
+     * La portada pide trece lecturas a la vez y algunas abren varias consultas
+     * por su cuenta. Con cuatro conexiones eso no era un pool, era una cola:
+     * las que no entraban agotaban el plazo de espera y la portada entera se
+     * rendia — «no fue posible leer la base de datos» — sin que ninguna
+     * consulta hubiera fallado. Costo verlo que hasta ahora leia una copia
+     * pequeña y congelada, donde cuatro se turnaban lo bastante rapido como
+     * para que la falta de sitio no se notara.
      *
-     * Veinte es lo que cabe pedir sin ser mal vecino: este servidor hospeda
-     * ocho PostgreSQL de proyectos distintos, y el nucleo tiene ademas sus
-     * propios pools contra esta misma base.
+     * Diez, y no mas, porque el techo no es de este proceso. Estas conexiones
+     * salen del mismo `max_connections` que usa el nucleo, que abre hasta
+     * quince de escritura y treinta de lectura, y durante un despliegue viven
+     * dos contenedores suyos a la vez. Un tablero que se lleva veinte deja al
+     * nucleo sin sitio justo cuando esta arrancando, y una API que no alcanza
+     * su base es peor que una portada que tarda un segundo mas: la primera deja
+     * de recibir lo que se recolecta, la segunda solo hace esperar.
+     *
+     * Diez bastan porque ninguna lectura tiene ya prisa: el plazo de abajo deja
+     * treinta segundos para conseguir sitio, y hacer cola no es un fallo.
      */
-    max: tuned('DASHBOARD_DATABASE_POOL_MAX', 20),
+    max: tuned('DASHBOARD_DATABASE_POOL_MAX', 10),
     idleTimeoutMillis: 30_000,
     /*
      * Esperar sitio no es un fallo, y treinta segundos es lo que tarda la
