@@ -122,13 +122,40 @@ function declaredConnectionString(): string {
   return connectionString;
 }
 
+/** Un entero de entorno, o el de fabrica si no viene o no es un numero. */
+function tuned(name: string, fallback: number): number {
+  const raw = process.env[name];
+  if (!raw) return fallback;
+  const value = Number.parseInt(raw, 10);
+  return Number.isFinite(value) && value > 0 ? value : fallback;
+}
+
 function createPool(connectionString: string): Pool {
   return new Pool({
     connectionString,
     ssl: tlsFor(connectionString),
-    max: 4,
+    /*
+     * La portada pide trece lecturas a la vez y algunas de ellas abren varias
+     * consultas por su cuenta, asi que una visita arranca cerca de veinte a la
+     * vez. Con cuatro conexiones eso no es un pool, es una cola: las que no
+     * entran esperan, agotan el plazo de espera y la portada entera se rinde
+     * — «no fue posible leer la base de datos» — sin que ninguna consulta haya
+     * fallado. Costo verlo que hasta ahora leia una copia pequeña y congelada,
+     * donde las cuatro se turnaban lo bastante rapido como para que la falta
+     * de sitio no se notara.
+     *
+     * Veinte es lo que cabe pedir sin ser mal vecino: este servidor hospeda
+     * ocho PostgreSQL de proyectos distintos, y el nucleo tiene ademas sus
+     * propios pools contra esta misma base.
+     */
+    max: tuned('DASHBOARD_DATABASE_POOL_MAX', 20),
     idleTimeoutMillis: 30_000,
-    connectionTimeoutMillis: 10_000,
+    /*
+     * Esperar sitio no es un fallo, y treinta segundos es lo que tarda la
+     * primera oleada despues de un arranque en frio. Rendirse antes convierte
+     * una espera en una pagina de error.
+     */
+    connectionTimeoutMillis: tuned('DASHBOARD_DATABASE_ACQUIRE_MS', 30_000),
     // A page that hangs is worse than a page that says it could not read.
     /*
      * The corpus-wide cross-tabulation reads thirty-eight thousand claims out
@@ -136,7 +163,7 @@ function createPool(connectionString: string): Pool {
      * memory once computed, so this ceiling is reached by the first request
      * after a restart and by nothing else.
      */
-    statement_timeout: 45_000,
+    statement_timeout: tuned('DASHBOARD_DATABASE_STATEMENT_MS', 90_000),
   });
 }
 
