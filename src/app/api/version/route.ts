@@ -1,4 +1,4 @@
-import { pool } from '@/lib/db';
+import { correctionApplied, EXPECTED_DATABASE, pool, type Correction } from '@/lib/db';
 
 /**
  * When this process started, and whether it can reach the database.
@@ -65,10 +65,12 @@ const REMEDY: Record<Verdict, string> = {
     'otro proyecto, y un tablero que lo lea sirve cifras que nadie actualiza',
   'otra-base':
     'la conexion funciona pero no es la base que el nucleo migra y siembra. ' +
-    'Compara «base» con «baseEsperada»: si dice postgres, DASHBOARD_DATABASE_URL ' +
-    'apunta a la base de mantenimiento del servidor, que guarda una copia vieja ' +
-    'del esquema y por eso sirve cifras creibles que nadie actualiza. Cambia el ' +
-    'nombre de la base al final de la cadena de conexion en Coolify',
+    'Mira «correccion»: si dice «rechazada», la cadena nombraba la base de ' +
+    'mantenimiento, el tablero apunto solo a economic_observatory y ese ' +
+    'servidor la nego — o no existe ahi, o este usuario no entra, asi que la ' +
+    'cadena apunta al PostgreSQL equivocado y hay que cambiarle el host en ' +
+    'Coolify, no el nombre. Si dice «no-hizo-falta», DASHBOARD_DATABASE_URL ' +
+    'nombra una tercera base y hay que cambiarle el nombre en Coolify',
   'conexion-rechazada':
     'nadie escucha en ese host y puerto: revisa el puerto de DASHBOARD_DATABASE_URL',
   'tiempo-agotado': 'el host no contesta: el contenedor no comparte red con la base',
@@ -96,13 +98,13 @@ const REMEDY: Record<Verdict, string> = {
  * de una direccion publica.
  */
 /**
- * La base que el nucleo migra y siembra.
+ * La base que el nucleo migra y siembra, declarada donde se abre la conexion.
  *
- * No es una preferencia: el `postgres` del mismo servidor tiene una copia vieja
- * del esquema del observatorio, con los modelos y con cifras, y por eso una
- * conexion equivocada pasa por buena. La unica diferencia visible es el nombre.
+ * Vive en `@/lib/db` porque alli es donde se usa para algo mas que informar:
+ * una cadena que apunta a la base de mantenimiento se corrige antes de abrir
+ * el pool. Aqui solo se compara con lo que el servidor acabo contestando.
  */
-const EXPECTED = 'economic_observatory';
+const EXPECTED = EXPECTED_DATABASE;
 
 interface Identity {
   base: string | null;
@@ -143,9 +145,11 @@ async function identify(): Promise<Identity> {
 
 export async function GET(): Promise<Response> {
   let database: Verdict = 'ok';
+  let correccion: Correction = 'no-hizo-falta';
   let identity: Identity = { base: null, nucleo: false, ciudades: false, migracion: null };
   try {
     identity = await identify();
+    correccion = correctionApplied();
     /*
      * Dos formas de estar en el sitio equivocado, y la segunda es la que
      * engana. Una base sin el modelo mas viejo del observatorio no es un
@@ -157,6 +161,7 @@ export async function GET(): Promise<Response> {
     if (!identity.nucleo || identity.base !== EXPECTED) database = 'otra-base';
   } catch (error) {
     database = classify(error);
+    correccion = correctionApplied();
   }
 
   return Response.json(
@@ -166,6 +171,7 @@ export async function GET(): Promise<Response> {
       database,
       base: identity.base,
       baseEsperada: EXPECTED,
+      correccion,
       ultimaMigracion: identity.migracion,
       modelos: { nucleo: identity.nucleo, ciudades: identity.ciudades },
       queHacer: REMEDY[database],

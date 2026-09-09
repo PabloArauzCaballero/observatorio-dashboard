@@ -133,4 +133,20 @@ jobs:
             exit 1
           fi
 
-          echo "el tablero desplegado responde y leyo la base"
+          # Leer no es leer lo correcto. El `postgres` de este mismo servidor
+          # guarda una copia vieja del esquema del observatorio, con cifras
+          # dentro, asi que un tablero apuntado ahi responde, pinta y pasa
+          # todas las comprobaciones de arriba mientras sirve numeros que nadie
+          # actualiza. El propio tablero corrige ya ese nombre al abrir la
+          # conexion; si aun asi dice que no es la base esperada, es que el
+          # servidor de la cadena no es el del observatorio, y eso no lo
+          # arregla el codigo.
+          verdict=$(curl --silent --max-time 30 "${DASHBOARD_URL}api/version" | jq -r '.database // empty' 2>/dev/null || true)
+          if [ "$verdict" != "ok" ]; then
+            base=$(curl --silent --max-time 30 "${DASHBOARD_URL}api/version" | jq -r '.base // "?"' 2>/dev/null || echo "?")
+            echo "el tablero leyo la base «$base», que no es la del observatorio (veredicto: ${verdict:-sin respuesta})." >&2
+            echo "Pide el detalle a ${DASHBOARD_URL}api/version: el campo «queHacer» dice que cambiar." >&2
+            exit 1
+          fi
+
+          echo "el tablero desplegado responde y leyo la base del observatorio"
