@@ -1598,3 +1598,153 @@ export function YearSeriesBars({
     </div>
   );
 }
+
+export interface CloudWord {
+  term: string;
+  label: string;
+  value: number;
+  /** Share of the subject's mentions the press covered adversely, 0–100. */
+  adverse: number | null;
+}
+
+/**
+ * The whole watchlist at once, every subject at the size of its coverage.
+ *
+ * Two hundred subjects ranked down a bar chart is a chart nobody reads to the
+ * bottom: the reader learns the first eight and stops. A cloud states the same
+ * two hundred in one glance and answers the question this section opens with —
+ * what does the country talk about — before any subject has been chosen.
+ *
+ * Three rules keep it a measurement rather than a decoration. Size is the
+ * square root of the count, not the count, because area is what the eye reads
+ * and a linear scale makes the leader forty times a word it is only six times.
+ * Colour is the adverse share of that subject's own coverage, so the cloud
+ * shows what is talked about and how at the same time. And the order is
+ * alphabetical rather than scattered: a random layout looks more like a cloud
+ * and makes a named subject impossible to find, which is the one thing a reader
+ * standing in front of two hundred words actually needs to do.
+ *
+ * Every word is a button. The cloud is the section's coarse filter, so what it
+ * shows can be opened without going back to the rail to find it.
+ */
+export function TermCloud({
+  data,
+  selected = '',
+  onPick,
+  limit = 120,
+}: {
+  data: readonly CloudWord[];
+  selected?: string;
+  onPick?: (term: string) => void;
+  limit?: number;
+}) {
+  const strongest = [...data]
+    .filter((word) => word.value > 0)
+    .sort((left, right) => right.value - left.value)
+    .slice(0, limit);
+  const peak = strongest.reduce((highest, word) => Math.max(highest, word.value), 0);
+  const floor = strongest.reduce((lowest, word) => Math.min(lowest, word.value), peak);
+  const words = [...strongest].sort((left, right) => left.label.localeCompare(right.label, 'es'));
+
+  if (!words.length) {
+    return <p className="panel-sub">Ningún tema quedó dentro de esta selección.</p>;
+  }
+
+  /** Area, not height, carries the count — so the scale is the square root. */
+  const sizeOf = (value: number): string => {
+    const span = peak - floor;
+    const share = span > 0 ? Math.sqrt((value - floor) / span) : 1;
+    return `${(0.76 + share * 1.5).toFixed(3)}rem`;
+  };
+
+  return (
+    <div className="cloud">
+      {words.map((word) => {
+        const heat = word.adverse === null ? null : Math.max(0, Math.min(100, word.adverse));
+        return (
+          <button
+            key={word.term}
+            type="button"
+            className={word.term === selected ? 'cloud-word cloud-word-on' : 'cloud-word'}
+            style={{
+              fontSize: sizeOf(word.value),
+              color:
+                heat === null
+                  ? 'var(--ink-soft)'
+                  : `color-mix(in srgb, var(--up) ${Math.round(heat)}%, var(--official))`,
+              fontWeight: word.value >= floor + (peak - floor) * 0.55 ? 600 : 500,
+            }}
+            title={`${word.label}: ${number(word.value, 0)} menciones${
+              heat === null ? '' : ` · ${number(heat, 1)} % de cobertura adversa`
+            }`}
+            onClick={() => onPick?.(word.term)}
+            aria-pressed={word.term === selected}
+          >
+            {word.label}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+export interface YearBar {
+  year: string;
+  mentions: number;
+  adverse: number;
+}
+
+/**
+ * The same stacked reading as the monthly bars, one bar per year.
+ *
+ * Eighty months of a single subject is a shape; seven years of it is a
+ * comparison, and the two answer different questions. Kept chronological rather
+ * than ranked, because a year out of order stops being a year.
+ */
+export function YearlyBars({ data, height = 200 }: { data: YearBar[]; height?: number }) {
+  const rows = [...data]
+    .sort((left, right) => left.year.localeCompare(right.year))
+    .map((row) => ({ ...row, calm: Math.max(0, row.mentions - row.adverse) }));
+  const renderTooltip = ({ active, payload }: TooltipRender) => {
+    if (!active || !payload?.length) return null;
+    const point = payload[0]?.payload as (YearBar & { calm: number }) | undefined;
+    if (!point) return null;
+    return (
+      <TooltipShell
+        label={point.year}
+        rows={[
+          { name: 'Menciones', value: number(point.mentions, 0) },
+          { name: 'Tono adverso', value: number(point.adverse, 0) },
+          { name: 'Resto', value: number(point.calm, 0) },
+        ]}
+      />
+    );
+  };
+
+  return (
+    <div className="chart-frame" style={{ height: framed(height) }}>
+      <ResponsiveContainer width="100%" height="100%">
+        <BarChart data={rows} margin={{ top: 4, right: 8, bottom: 0, left: 0 }}>
+          <CartesianGrid {...GRID} />
+          <XAxis dataKey="year" interval={0} {...AXIS} />
+          <YAxis tickFormatter={(value: number) => number(value, 0)} width={40} {...AXIS} />
+          <Tooltip content={renderTooltip} cursor={{ fill: 'var(--rule-soft)' }} />
+          <Bar
+            dataKey="adverse"
+            stackId="anio"
+            fill="var(--up)"
+            animationDuration={MOTION.duration}
+            animationEasing={MOTION.easing}
+          />
+          <Bar
+            dataKey="calm"
+            stackId="anio"
+            fill="var(--official)"
+            radius={[3, 3, 0, 0]}
+            animationDuration={0}
+          />
+        </BarChart>
+      </ResponsiveContainer>
+    </div>
+  );
+}

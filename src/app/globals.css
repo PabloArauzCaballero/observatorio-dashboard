@@ -3473,3 +3473,92 @@ button.term-chip:hover {
   letter-spacing: 0.05em;
   color: var(--ink-soft);
 }
+
+/* Nube de temas ---------------------------------------------------------- */
+
+/*
+ * The watchlist as a cloud rather than as a ranking.
+ *
+ * Not a canvas and not a library: words are text, so they wrap with the column,
+ * survive a zoom, can be selected and read by a screen reader, and print. The
+ * layout is the browser's own line breaking — which is what makes the block
+ * reflow correctly at 400 px, where every scattered-layout cloud collapses into
+ * a pile.
+ *
+ * Size is the square root of the count and colour is the adverse share of that
+ * subject's own coverage; both are set inline by the component, because both
+ * are data and not style.
+ */
+
+.cloud {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: center;
+  gap: 0.1rem 0.55rem;
+  padding: var(--s2) 0 var(--s1);
+  line-height: 1.7;
+}
+
+.cloud-word {
+  font-family: var(--serif);
+  letter-spacing: -0.01em;
+  border: 1px solid transparent;
+  background: none;
+  padding: 0.05rem 0.3rem;
+  border-radius: 7px;
+  cursor: pointer;
+  transition:
+    background var(--fast) var(--ease),
+    border-color var(--fast) var(--ease),
+    transform var(--fast) var(--ease);
+}
+
+.cloud-word:hover {
+  background: var(--rule-soft);
+  border-color: var(--rule);
+  transform: translateY(-1px);
+}
+
+.cloud-word:focus-visible {
+  outline: 2px solid var(--official);
+  outline-offset: 1px;
+}
+
+/*
+ * The chosen word keeps its own colour and gains a frame.
+ *
+ * Repainting it would cost the one thing the colour is there to say — how
+ * adversely that subject is covered — so selection is carried by the box.
+ */
+.cloud-word-on {
+  background: var(--panel-tint);
+  border-color: currentColor;
+}
+
+/* Rail downloads --------------------------------------------------------- */
+
+/*
+ * The two buttons, on a 264-pixel rail.
+ *
+ * `.download` lays its label and buttons on one line, which is right beside a
+ * chart and impossible in the pane: the label wraps to two lines and shoves the
+ * CSV button off the edge. Here the label takes its own row and the two formats
+ * share the one under it.
+ */
+.rail-download {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.4rem;
+}
+
+.rail-download .download-btn {
+  text-align: center;
+}
+
+.rail-hint {
+  font-size: 0.72rem;
+  color: var(--ink-faint);
+  line-height: 1.4;
+  margin: 0.45rem 0 0;
+}
