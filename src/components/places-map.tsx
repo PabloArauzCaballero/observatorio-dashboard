@@ -2,76 +2,69 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Icon } from './icons';
-import { downloadSvgAsPng } from './map-download';
 import type { Place } from '@/lib/places';
 
 /**
- * The places of one city, drawn where they are.
+ * The places of one city, on the city.
  *
- * There is no basemap under them, and that is a decision rather than an
- * omission. Tiles would mean calling a third party on every pan, handing that
- * third party the reader's address and this page a dependency it cannot serve
- * from its own container. Several thousand shops, clinics and schools already
- * draw the shape of a city on their own — the avenues appear as lines of dots
- * because that is where the premises are.
+ * This drawing spent three versions without a basemap, on the argument that
+ * several thousand shops draw the avenues on their own and that tiles mean
+ * calling a third party on every pan. The first half of that was wrong. A
+ * scatter of premises is a picture of where premises are dense, and a reader
+ * who does not already carry Santa Cruz in their head cannot tell a ring road
+ * from an edge of the data, cannot say which of two clusters is the centre, and
+ * cannot find their own street. «No se ve la ciudad, porque no es un mapa» —
+ * and it was not one.
  *
- * Two things were wrong with the first version and both are fixed here.
+ * So there are tiles under the points now, from OpenStreetMap, which is what
+ * makes the drawing legible as a place: streets, names, the river, the ring
+ * roads the premises actually sit along. The cost is honest and stated — the
+ * reader's browser asks openstreetmap.org for the squares of ground it is
+ * looking at, and the attribution the licence requires is under the map.
  *
- * The frame was the extent of every point, so a single mis-geocoded pharmacy
- * forty kilometres out of town set the scale for the whole city: the fourteen
- * thousand premises that matter collapsed into a blot in the middle of an empty
- * rectangle. The frame is now the extent of the *bulk* of the points — the
- * middle 96% on each axis — and the stragglers are counted out loud in the
- * caption instead of silently deciding the zoom.
- *
- * And a map you cannot get closer to is a picture. This one zooms and pans, so
- * the blot of a whole city opens into blocks and avenues, and it carries a
- * scale bar because a scatter with no distance on it cannot be read.
+ * Everything else the map learned it keeps: the frame is the bulk of the
+ * points rather than the extent of every one, so a mis-geocoded pharmacy forty
+ * kilometres out cannot set the scale; it zooms, pans and says how far a
+ * centimetre is; and it fits the screen it is read on.
  */
-
-/** How wide the drawing is in its own units. Height follows the data. */
-const WORLD_WIDTH = 1000;
 
 /**
- * How square or how flat the frame is allowed to get.
+ * Coordinates are Web Mercator, in the pixels of a world 256 wide.
  *
- * The shape is the box's, and these only stop the two silly ends of it. A
- * drawing flatter than the floor is a stripe of ink nobody can read, and one
- * taller than the phone it is on is the bug this whole file was rewritten for:
- * the first version came out 1.250 pixels tall and the reader never saw the
- * city and the caption that explains it at the same time.
- *
- * The ceiling can sit above one because the measured height of the box binds
- * first — on a tall phone that is what lets the map use the room it has.
+ * Not a choice of taste: raster tiles are cut on this grid, so drawing in any
+ * other projection means the points and the streets under them disagree. One
+ * unit here is one pixel at zoom 0; a tile at zoom z spans 256/2^z of them.
  */
+const WORLD = 256;
+
+/** The furthest in the tile pyramid goes, and the flattest a frame may be. */
+const MAX_TILE_ZOOM = 19;
 const MIN_ASPECT = 0.5;
 const MAX_ASPECT = 1.25;
 
 /**
  * How much wider than the city its frame may be.
  *
- * The frame wants the shape of the screen and the city has a shape of its own,
- * and neither can simply win. Santa Cruz's premises sit in a patch slightly
- * taller than it is wide; a landscape monitor asked for a frame three times
- * wider than tall, which put the city in a band down the middle of a mostly
- * empty rectangle. Obeying the city instead gave a portrait strip 516 pixels
- * wide stranded in a panel three times that.
- *
- * So the frame moves towards the screen's shape and stops here: at most three
- * fifths again of the city's own width in surrounding ground, which is enough
- * to fill a wide panel and not enough to lose the city inside it.
+ * The frame wants the shape of the screen and the city has one of its own, and
+ * neither can simply win: a landscape monitor asked for a frame three times
+ * wider than tall and put the city in a band down the middle of nothing,
+ * while obeying the city gave a portrait strip stranded in a panel three times
+ * its width. It moves towards the screen and stops here.
  */
 const MOST_SPREAD = 1.6;
 
-/** A degree of latitude, and of cosine-corrected longitude, in kilometres. */
-const KM_PER_DEGREE = 111.32;
+/** Metres across one pixel of a zoom-0 world, at the equator. */
+const METRES_PER_UNIT = 156543.03392;
 
-/** How far in and out the reader may go, as a multiple of the whole frame. */
-const MAX_ZOOM = 60;
+/** How far in and out the reader may go, against the city's own frame. */
+const MAX_ZOOM = 250;
 const MIN_ZOOM = 0.9;
 
 /** The distances a scale bar is allowed to state, in kilometres. */
 const SCALE_STEPS = [0.05, 0.1, 0.2, 0.5, 1, 2, 5, 10, 20, 50, 100] as const;
+
+/** Enough squares for any frame; past this something has gone wrong. */
+const MOST_TILES = 80;
 
 interface Rect {
   x: number;
@@ -88,6 +81,22 @@ interface Dot {
 
 function clamp(value: number, low: number, high: number): number {
   return Math.min(Math.max(value, low), high);
+}
+
+/** Longitude and latitude into the tile grid's own pixels. */
+function project(longitude: number, latitude: number): { x: number; y: number } {
+  const lat = clamp(latitude, -85.05112878, 85.05112878);
+  const sin = Math.sin((lat * Math.PI) / 180);
+  return {
+    x: ((longitude + 180) / 360) * WORLD,
+    y: (0.5 - Math.log((1 + sin) / (1 - sin)) / (4 * Math.PI)) * WORLD,
+  };
+}
+
+/** Back again, for the scale bar, which needs to know where it is standing. */
+function latitudeAt(y: number): number {
+  const n = Math.PI - (2 * Math.PI * y) / WORLD;
+  return (180 / Math.PI) * Math.atan(Math.sinh(n));
 }
 
 /**
@@ -127,15 +136,11 @@ export function PlacesMap({
   const plotRef = useRef<HTMLDivElement | null>(null);
 
   /**
-   * How much height the screen can spare for a map.
+   * The room the map is offered, and the height the screen can spare for it.
    *
-   * This is the only thing the box decides. Letting it decide the *shape* as
-   * well was the second wrong answer: on a wide monitor the frame came out
-   * three times wider than tall, so the city sat in a band down the middle
-   * with a third of the municipality's empty ground on either side of it —
-   * the reader saw a map that was mostly nothing. The frame takes the
-   * proportions of the city again, and this number decides how large it is
-   * drawn: as tall as the screen allows, as wide as that shape then needs.
+   * Measured rather than guessed, and read from the figure around the plot:
+   * the plot's own width is capped further down from this very number, so
+   * measuring that would be a loop feeding on its own output.
    */
   const [box, setBox] = useState<{ width: number; cap: number }>({ width: 0, cap: 0 });
 
@@ -143,18 +148,12 @@ export function PlacesMap({
     const plot = plotRef.current;
     if (!plot) return;
     const measure = () => {
-      // The room the map is offered, read from the figure around it: the plot's
-      // own width is capped further down from this very number, and measuring
-      // that would be a loop feeding on its own output.
       const room = plot.parentElement ?? plot;
       const padding = plot.parentElement
         ? Number.parseFloat(getComputedStyle(room).paddingLeft) * 2 || 0
         : 0;
       setBox({
         width: Math.max(room.clientWidth - padding, 1),
-        // Room for the caption and the strip of controls to stay on screen
-        // with it: a map you have to scroll away from to read its legend is
-        // still a map you cannot see.
         cap: Math.min(window.innerHeight * 0.7, 680),
       });
     };
@@ -171,112 +170,88 @@ export function PlacesMap({
   /** The shape the screen would like, before the city has a say. */
   const boxAspect = box.width > 0 && box.cap > 0 ? box.cap / box.width : 0.7;
 
-  /**
-   * Longitude is compressed by the cosine of the latitude before anything is
-   * scaled. Without it a city seventeen degrees south comes out stretched
-   * sideways by about a twentieth, which is enough to bend a straight avenue.
-   */
   const layout = useMemo(() => {
     if (places.length === 0) return null;
 
-    const middle = places.reduce((sum, place) => sum + place.latitude, 0) / places.length;
-    const squeeze = Math.cos((middle * Math.PI) / 180);
-    const points = places.map((place) => ({
+    const points: Dot[] = places.map((place) => ({
       place,
-      east: place.longitude * squeeze,
-      north: place.latitude,
+      ...project(place.longitude, place.latitude),
     }));
 
-    const easts = points.map((point) => point.east).sort((left, right) => left - right);
-    const norths = points.map((point) => point.north).sort((left, right) => left - right);
+    const xs = points.map((point) => point.x).sort((left, right) => left - right);
+    const ys = points.map((point) => point.y).sort((left, right) => left - right);
 
     // Under a few dozen places every one of them is the map; trimming there
     // would throw away a quarter of the evidence to tidy the frame.
     const trim = points.length >= 40 ? 0.02 : 0;
-    let west = at(easts, trim);
-    let east = at(easts, 1 - trim);
-    let south = at(norths, trim);
-    let north = at(norths, 1 - trim);
+    let west = at(xs, trim);
+    let east = at(xs, 1 - trim);
+    let north = at(ys, trim);
+    let south = at(ys, 1 - trim);
 
-    // A single place, or a family that sits on one block, still needs a frame
-    // with a size: about a kilometre and a half across.
-    const FLOOR = 0.014;
-    if (east - west < FLOOR) {
+    // A family that sits on one block still needs a frame with a size: about a
+    // kilometre and a half across, whatever the zoom.
+    const floor =
+      (1.5 / (METRES_PER_UNIT / 1000)) *
+      Math.cosh((latitudeAt((north + south) / 2) * Math.PI) / 180);
+    if (east - west < floor) {
       const centre = (east + west) / 2;
-      west = centre - FLOOR / 2;
-      east = centre + FLOOR / 2;
+      west = centre - floor / 2;
+      east = centre + floor / 2;
     }
-    if (north - south < FLOOR) {
-      const centre = (north + south) / 2;
-      south = centre - FLOOR / 2;
-      north = centre + FLOOR / 2;
+    if (south - north < floor) {
+      const centre = (south + north) / 2;
+      north = centre - floor / 2;
+      south = centre + floor / 2;
     }
 
     // A margin, so the outermost premises are not welded to the border.
-    const margin = 0.045;
+    const margin = 0.05;
     const padX = (east - west) * margin;
-    const padY = (north - south) * margin;
+    const padY = (south - north) * margin;
     west -= padX;
     east += padX;
-    south -= padY;
-    north += padY;
+    north -= padY;
+    south += padY;
 
     let span = east - west;
-    let rise = north - south;
+    let rise = south - north;
 
-    /**
-     * Widen the short side rather than stretch either one: the scale has to
-     * stay the same on both axes or the city changes shape. The proportion is
-     * the box's, not the city's — see `boxAspect` above.
-     *
-     * The extra ground is hung around the median place and not around the
-     * middle of the bounding box. On a wide monitor the frame gains a lot of
-     * width, and centring it on the box put the mass of the city off to one
-     * side with the empty half of the municipality beside it; the median sits
-     * where the premises are. It is pulled back far enough to keep the whole
-     * extent inside, so centring never crops anything.
-     */
     // The city's own proportions, then as much of the screen's as may be had
     // without hanging more than `MOST_SPREAD` of empty ground around it.
     const city = clamp(rise / span, MIN_ASPECT, MAX_ASPECT);
     const aspect = clamp(clamp(boxAspect, city / MOST_SPREAD, city), MIN_ASPECT, MAX_ASPECT);
+
+    // Widen the short side rather than stretch either one: a tile grid has one
+    // scale, and a frame that stretched would slide the streets off the points.
+    // The extra ground hangs around the median place, so the premises stay in
+    // the middle of the drawing and the empty outskirts fall to the edges.
     const middleOf = (value: number, low: number, high: number, wanted: number): number =>
       clamp(value, high - wanted / 2, low + wanted / 2);
 
     if (rise / span < aspect) {
       const wanted = span * aspect;
-      const centre = middleOf(at(norths, 0.5), south, north, wanted);
-      south = centre - wanted / 2;
-      north = centre + wanted / 2;
+      const centre = middleOf(at(ys, 0.5), north, south, wanted);
+      north = centre - wanted / 2;
+      south = centre + wanted / 2;
       rise = wanted;
     } else if (rise / span > aspect) {
       const wanted = rise / aspect;
-      const centre = middleOf(at(easts, 0.5), west, east, wanted);
+      const centre = middleOf(at(xs, 0.5), west, east, wanted);
       west = centre - wanted / 2;
       east = centre + wanted / 2;
       span = wanted;
     }
 
-    const height = WORLD_WIDTH * aspect;
-    const scale = WORLD_WIDTH / span;
+    const frame: Rect = { x: west, y: north, width: span, height: rise };
 
-    const dots: Dot[] = points.map(({ place, east: pointEast, north: pointNorth }) => ({
-      place,
-      x: (pointEast - west) * scale,
-      // North is up on the page and down in SVG coordinates.
-      y: height - (pointNorth - south) * scale,
-    }));
-
-    // The frame itself is the floor of «everything»: a whole-extent view that
-    // did not contain the city would be a stranger view than the one it fixes.
     let outside = 0;
-    let farLeft = 0;
-    let farRight = WORLD_WIDTH;
-    let farTop = 0;
-    let farBottom = height;
-    for (const dot of dots) {
-      const off = dot.x < 0 || dot.x > WORLD_WIDTH || dot.y < 0 || dot.y > height;
-      if (off) outside += 1;
+    let farLeft = west;
+    let farRight = east;
+    let farTop = north;
+    let farBottom = south;
+    for (const dot of points) {
+      if (dot.x < west || dot.x > east || dot.y < north || dot.y > south) outside += 1;
       farLeft = Math.min(farLeft, dot.x);
       farRight = Math.max(farRight, dot.x);
       farTop = Math.min(farTop, dot.y);
@@ -284,7 +259,7 @@ export function PlacesMap({
     }
 
     /** Everything, stragglers included, in the same proportions as the frame. */
-    const wholeWidth = Math.max(farRight - farLeft, WORLD_WIDTH) * 1.04;
+    const wholeWidth = Math.max(farRight - farLeft, span) * 1.05;
     const whole: Rect = {
       x: (farLeft + farRight) / 2 - wholeWidth / 2,
       y: (farTop + farBottom) / 2 - (wholeWidth * aspect) / 2,
@@ -296,9 +271,9 @@ export function PlacesMap({
      * A grid over the frame, so telling which place the pointer is near costs a
      * glance at nine cells instead of a walk over four thousand points.
      */
-    const cell = WORLD_WIDTH / 48;
+    const cell = span / 48;
     const buckets = new Map<string, Dot[]>();
-    for (const dot of dots) {
+    for (const dot of points) {
       const key = `${Math.floor(dot.x / cell)}:${Math.floor(dot.y / cell)}`;
       const bucket = buckets.get(key);
       if (bucket) bucket.push(dot);
@@ -306,30 +281,34 @@ export function PlacesMap({
     }
 
     return {
-      dots,
-      height,
+      dots: points,
+      frame,
       whole,
       outside,
       cell,
       buckets,
-      /** One world unit, in kilometres. */
-      kmPerUnit: (1 / scale) * KM_PER_DEGREE,
+      aspect,
+      /** One world unit in kilometres, at this city's latitude. */
+      kmPerUnit:
+        (METRES_PER_UNIT / 1000) * Math.cos((latitudeAt((north + south) / 2) * Math.PI) / 180),
     };
   }, [places, boxAspect]);
 
   /**
    * The width that keeps the drawing inside the height the screen has.
    *
-   * The shape is the city's, so the only lever left is size: at this width the
-   * frame is exactly as tall as `box.cap` allows, and on a narrower column the
-   * column binds first and the map is shorter than it could be.
+   * The shape is settled above, so the only lever left is size: at this width
+   * the frame is exactly as tall as the screen allows, and on a narrower column
+   * the column binds first and the map is simply shorter.
    */
-  const plotWidthCap =
-    layout && box.cap > 0 ? Math.round((box.cap * WORLD_WIDTH) / layout.height) : null;
+  const plotWidthCap = layout && box.cap > 0 ? Math.round(box.cap / layout.aspect) : null;
+
+  /** How wide the drawing actually comes out, in screen pixels. */
+  const plotPixels = plotWidthCap && box.width > 0 ? Math.min(box.width, plotWidthCap) : box.width;
 
   const home: Rect = useMemo(
-    () => ({ x: 0, y: 0, width: WORLD_WIDTH, height: layout?.height ?? 720 }),
-    [layout?.height],
+    () => layout?.frame ?? { x: 0, y: 0, width: WORLD, height: WORLD },
+    [layout?.frame],
   );
 
   const [view, setView] = useState<Rect>(home);
@@ -338,10 +317,8 @@ export function PlacesMap({
 
   // A new selection is a new city: the old window would be pointing at ground
   // this family does not stand on. A new frame shape counts as new too — the
-  // first paint happens before the box has been measured, and a window kept
-  // from that guess would be a viewBox that no longer matches the drawing it
-  // is placed in, which puts the scale bar and the hover a few pixels out.
-  const signature = `${places.length}:${places[0]?.placeId ?? ''}:${home.height}`;
+  // first paint happens before the box has been measured.
+  const signature = `${places.length}:${places[0]?.placeId ?? ''}:${home.width}:${home.height}`;
   const lastSignature = useRef(signature);
   if (lastSignature.current !== signature) {
     lastSignature.current = signature;
@@ -349,27 +326,69 @@ export function PlacesMap({
     if (framed !== 'ciudad') setFramed('ciudad');
   }
 
-  /** How far in the reader is, as a multiple of the whole frame. */
-  const zoom = WORLD_WIDTH / view.width;
+  /** How far in the reader is, as a multiple of the city's own frame. */
+  const zoom = home.width / view.width;
 
   /**
-   * Ink per point, thinned as the crowd grows and kept roughly the same size on
-   * screen as the reader closes in. Quantised so that panning — which does not
-   * change it — never rebuilds the drawing.
+   * Which level of the tile pyramid matches the scale on screen.
+   *
+   * A tile is 256 pixels of its own zoom; picking the level where that lands
+   * closest to 256 pixels on this screen is what keeps the lettering sharp
+   * instead of smeared or shrunk to nothing.
+   */
+  const tiles = useMemo(() => {
+    if (plotPixels <= 0 || view.width <= 0) return null;
+    const scale = plotPixels / view.width;
+    // Biased a third of a level towards the sharper side: a square drawn
+    // smaller than it was cut stays crisp, one blown up past its own size goes
+    // soft, and street names are the first thing to go with it.
+    const level = clamp(Math.round(Math.log2(scale) + 0.34), 0, MAX_TILE_ZOOM);
+    const span = WORLD / 2 ** level;
+    const count = 2 ** level;
+    const first = { x: Math.floor(view.x / span), y: Math.floor(view.y / span) };
+    const last = {
+      x: Math.floor((view.x + view.width) / span),
+      y: Math.floor((view.y + view.height) / span),
+    };
+    const list: Array<{ key: string; href: string; x: number; y: number }> = [];
+    for (let ty = first.y; ty <= last.y; ty += 1) {
+      if (ty < 0 || ty >= count) continue;
+      for (let tx = first.x; tx <= last.x; tx += 1) {
+        // The world wraps east to west; a city never needs it, but a stray
+        // negative index would ask the tile server for a square that is not
+        // there and draw a hole.
+        const wrapped = ((tx % count) + count) % count;
+        list.push({
+          key: `${level}/${tx}/${ty}`,
+          href: `https://tile.openstreetmap.org/${level}/${wrapped}/${ty}.png`,
+          x: tx * span,
+          y: ty * span,
+        });
+        if (list.length >= MOST_TILES) return { level, span, list };
+      }
+    }
+    return { level, span, list };
+  }, [view, plotPixels]);
+
+  /**
+   * Ink per point, kept the same size on screen at every zoom.
+   *
+   * With streets underneath, a dot that grew as the reader closed in would
+   * cover the corner it is meant to be standing on.
    */
   const radius = useMemo(() => {
     const count = places.length;
-    const base = count > 3000 ? 2.7 : count > 1200 ? 3.3 : count > 400 ? 4.2 : 5.4;
-    return Math.round((base / Math.pow(zoom, 0.68)) * 20) / 20;
-  }, [places.length, zoom]);
+    const base = count > 3000 ? 3 : count > 1200 ? 3.6 : count > 400 ? 4.4 : 5.6;
+    const perPixel = plotPixels > 0 ? view.width / plotPixels : view.width / 800;
+    return base * perPixel;
+  }, [places.length, view.width, plotPixels]);
 
   /**
-   * Every dot in two strings, one per kind.
+   * Every dot in two paths, one per kind.
    *
    * Four thousand `<circle>` elements is four thousand nodes the browser lays
    * out, hit-tests and repaints on every pan; two paths is two. The hover is
-   * answered from the grid above instead of from the DOM, which is also what
-   * removed the flickering native tooltip.
+   * answered from the grid above instead of from the DOM.
    */
   const paths = useMemo(() => {
     if (!layout) return { plain: '', regulated: '' };
@@ -377,10 +396,9 @@ export function PlacesMap({
     const regulated: string[] = [];
     const r = radius;
     const d = r * 2;
+    const round = (value: number) => value.toFixed(7);
     for (const dot of layout.dots) {
-      const x = Math.round(dot.x * 10) / 10;
-      const y = Math.round(dot.y * 10) / 10;
-      const arc = `M${x} ${y}m-${r} 0a${r} ${r} 0 1 0 ${d} 0a${r} ${r} 0 1 0 -${d} 0`;
+      const arc = `M${round(dot.x)} ${round(dot.y)}m${round(-r)} 0a${round(r)} ${round(r)} 0 1 0 ${round(d)} 0a${round(r)} ${round(r)} 0 1 0 ${round(-d)} 0`;
       (dot.place.isRegulated ? regulated : plain).push(arc);
     }
     return { plain: plain.join(''), regulated: regulated.join('') };
@@ -396,11 +414,11 @@ export function PlacesMap({
     (clientX: number, clientY: number): { x: number; y: number } | null => {
       const svg = svgRef.current;
       if (!svg) return null;
-      const box = svg.getBoundingClientRect();
-      if (box.width === 0 || box.height === 0) return null;
+      const rect = svg.getBoundingClientRect();
+      if (rect.width === 0 || rect.height === 0) return null;
       return {
-        x: view.x + ((clientX - box.left) / box.width) * view.width,
-        y: view.y + ((clientY - box.top) / box.height) * view.height,
+        x: view.x + ((clientX - rect.left) / rect.width) * view.width,
+        y: view.y + ((clientY - rect.top) / rect.height) * view.height,
       };
     },
     [view],
@@ -425,12 +443,8 @@ export function PlacesMap({
   const zoomBy = useCallback(
     (factor: number, anchor?: { x: number; y: number }) => {
       setView((current) => {
-        const wanted = current.width / factor;
-        // Far enough out to hold everything there is, even when a straggler
-        // puts «everything» well outside the city's own frame: a reader who
-        // pressed «Todo» and then «−» must not be thrown back into town.
-        const widest = Math.max(WORLD_WIDTH / MIN_ZOOM, layout?.whole.width ?? 0);
-        const width = clamp(wanted, WORLD_WIDTH / MAX_ZOOM, widest);
+        const widest = Math.max(home.width / MIN_ZOOM, layout?.whole.width ?? 0);
+        const width = clamp(current.width / factor, home.width / MAX_ZOOM, widest);
         const ratio = width / current.width;
         const point = anchor ?? {
           x: current.x + current.width / 2,
@@ -445,7 +459,7 @@ export function PlacesMap({
       });
       setFramed('ciudad');
     },
-    [keepInside, layout?.whole.width],
+    [keepInside, home.width, layout?.whole.width],
   );
 
   /** The drag, held in a ref: a pan must not re-render on every pixel. */
@@ -464,9 +478,9 @@ export function PlacesMap({
       if (!svg) return;
 
       if (held && held.id === event.pointerId) {
-        const box = svg.getBoundingClientRect();
-        const dx = ((event.clientX - held.x) / box.width) * view.width;
-        const dy = ((event.clientY - held.y) / box.height) * view.height;
+        const rect = svg.getBoundingClientRect();
+        const dx = ((event.clientX - held.x) / rect.width) * view.width;
+        const dy = ((event.clientY - held.y) / rect.height) * view.height;
         if (Math.abs(event.clientX - held.x) + Math.abs(event.clientY - held.y) > 3) {
           held.moved = true;
         }
@@ -525,7 +539,7 @@ export function PlacesMap({
     const onWheel = (event: WheelEvent) => {
       event.preventDefault();
       const anchor = toWorld(event.clientX, event.clientY) ?? undefined;
-      zoomBy(event.deltaY < 0 ? 1.22 : 1 / 1.22, anchor);
+      zoomBy(event.deltaY < 0 ? 1.3 : 1 / 1.3, anchor);
     };
     svg.addEventListener('wheel', onWheel, { passive: false });
     return () => svg.removeEventListener('wheel', onWheel);
@@ -538,17 +552,95 @@ export function PlacesMap({
     const wanted = kmAcross * 0.24;
     const step = SCALE_STEPS.find((candidate) => candidate >= wanted) ?? SCALE_STEPS.at(-1) ?? 1;
     return {
-      km: step,
       units: step / layout.kmPerUnit,
       label: step >= 1 ? `${step} km` : `${Math.round(step * 1000)} m`,
     };
   }, [layout, view.width]);
 
-  /** The drawing as a file, at the frame the reader is looking at. */
-  const savePng = useCallback(() => {
-    const svg = svgRef.current;
-    if (svg) downloadSvgAsPng(svg, { fileName });
-  }, [fileName]);
+  /**
+   * The map as a file, drawn again on a canvas rather than photographed.
+   *
+   * An SVG serialised into a `data:` URL is not allowed to fetch anything, so
+   * the tiles would come out blank and the file would be the scatter this map
+   * stopped being. The squares are fetched with CORS and painted, then the
+   * points on top of them.
+   */
+  const savePng = useCallback(async () => {
+    if (!layout || !tiles) return;
+    const width = 1800;
+    const height = Math.max(Math.round((width * view.height) / view.width), 1);
+    const canvas = document.createElement('canvas');
+    canvas.width = width;
+    canvas.height = height;
+    const context = canvas.getContext('2d');
+    if (!context) return;
+
+    const style = getComputedStyle(document.documentElement);
+    const read = (name: string, fallback: string) =>
+      style.getPropertyValue(name).trim() || fallback;
+    context.fillStyle = read('--panel-tint', '#f6f8fa');
+    context.fillRect(0, 0, width, height);
+
+    const scale = width / view.width;
+    await Promise.all(
+      tiles.list.map(
+        (tile) =>
+          new Promise<void>((done) => {
+            const image = new Image();
+            image.crossOrigin = 'anonymous';
+            image.onload = () => {
+              context.drawImage(
+                image,
+                (tile.x - view.x) * scale,
+                (tile.y - view.y) * scale,
+                tiles.span * scale,
+                tiles.span * scale,
+              );
+              done();
+            };
+            // A square that will not come is a square left as background.
+            image.onerror = () => done();
+            image.src = tile.href;
+          }),
+      ),
+    );
+
+    const draw = (only: boolean, colour: string, alpha: number) => {
+      context.fillStyle = colour;
+      context.globalAlpha = alpha;
+      context.beginPath();
+      for (const dot of layout.dots) {
+        if (dot.place.isRegulated !== only) continue;
+        const x = (dot.x - view.x) * scale;
+        const y = (dot.y - view.y) * scale;
+        if (x < -20 || y < -20 || x > width + 20 || y > height + 20) continue;
+        context.moveTo(x + radius * scale, y);
+        context.arc(x, y, radius * scale, 0, Math.PI * 2);
+      }
+      context.fill();
+      context.globalAlpha = 1;
+    };
+    draw(false, read('--official', '#1b4f9c'), 0.75);
+    draw(true, read('--parallel', '#c2551f'), 0.9);
+
+    context.font = '20px ui-sans-serif, system-ui, sans-serif';
+    context.fillStyle = 'rgba(255,255,255,0.85)';
+    context.fillRect(0, height - 30, 330, 30);
+    context.fillStyle = '#333';
+    context.fillText('© OpenStreetMap contributors', 8, height - 9);
+
+    canvas.toBlob((blob) => {
+      if (!blob) return;
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `${fileName}.png`;
+      document.body.append(link);
+      link.click();
+      link.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 4000);
+    }, 'image/png');
+  }, [layout, tiles, view, radius, fileName]);
 
   if (!layout) {
     return <div className="callout">No hay lugares que dibujar con esta selección.</div>;
@@ -567,7 +659,7 @@ export function PlacesMap({
             <i className="places-map-swatch places-map-swatch-reg" /> actividad regulada
           </span>
           <span className="places-map-zoom-read">
-            {zoom < 1.05 ? 'todo el encuadre' : `×${zoom.toFixed(1)}`}
+            {zoom < 1.05 ? 'toda la ciudad' : `×${zoom.toFixed(1)}`}
           </span>
         </div>
 
@@ -575,7 +667,7 @@ export function PlacesMap({
           <button
             type="button"
             className="map-tool"
-            onClick={() => zoomBy(1 / 1.5)}
+            onClick={() => zoomBy(1 / 1.6)}
             aria-label="Alejar el mapa"
             title="Alejar"
           >
@@ -584,7 +676,7 @@ export function PlacesMap({
           <button
             type="button"
             className="map-tool"
-            onClick={() => zoomBy(1.5)}
+            onClick={() => zoomBy(1.6)}
             aria-label="Acercar el mapa"
             title="Acercar"
           >
@@ -618,7 +710,7 @@ export function PlacesMap({
 
           <span className="places-map-sep" aria-hidden="true" />
 
-          <button type="button" className="download-btn" onClick={savePng}>
+          <button type="button" className="download-btn" onClick={() => void savePng()}>
             <Icon name="descarga" size={13} />
             PNG
           </button>
@@ -635,13 +727,6 @@ export function PlacesMap({
         </div>
       </div>
 
-      {/*
-        The plot, and not the figure, carries the cap on height.
-        `max-height` on an SVG letterboxes it instead of shortening it, and the
-        scale bar is a percentage of this box, so box and drawing have to stay
-        the same rectangle. Capping the width by the height the screen has
-        keeps both true.
-      */}
       <div
         className="places-map-plot"
         ref={plotRef}
@@ -650,9 +735,9 @@ export function PlacesMap({
         <svg
           ref={svgRef}
           viewBox={`${view.x} ${view.y} ${view.width} ${view.height}`}
-          style={{ aspectRatio: `${WORLD_WIDTH} / ${layout.height}` }}
+          style={{ aspectRatio: `${home.width} / ${home.height}` }}
           role="img"
-          aria-label={`Mapa de ${places.length.toLocaleString('es-BO')} lugares. Se puede acercar con la rueda y desplazar arrastrando.`}
+          aria-label={`Mapa de ${places.length.toLocaleString('es-BO')} lugares sobre las calles de la ciudad. Se puede acercar con la rueda y desplazar arrastrando.`}
           className="places-map-svg"
           onPointerDown={onPointerDown}
           onPointerMove={onPointerMove}
@@ -660,19 +745,30 @@ export function PlacesMap({
           onPointerCancel={endDrag}
           onMouseLeave={() => setHovered(null)}
         >
+          <g className="places-map-tiles">
+            {tiles?.list.map((tile) => (
+              <image
+                key={tile.key}
+                href={tile.href}
+                x={tile.x}
+                y={tile.y}
+                width={tiles.span}
+                height={tiles.span}
+                preserveAspectRatio="none"
+              />
+            ))}
+          </g>
           <path className="poi-layer" d={paths.plain} />
           <path className="poi-layer poi-layer-regulated" d={paths.regulated} />
           {found ? (
             <g className="poi-found" pointerEvents="none" data-export="skip">
-              <circle cx={found.x} cy={found.y} r={radius * 3.4} className="poi-halo" />
+              <circle cx={found.x} cy={found.y} r={radius * 3.2} className="poi-halo" />
               <circle cx={found.x} cy={found.y} r={radius * 1.5} className="poi-core" />
             </g>
           ) : null}
         </svg>
 
         {scaleBar ? (
-          // The bar is a percentage of the plot, and the plot is exactly as wide
-          // as the drawing, so the percentage is the distance it claims to be.
           <div className="places-map-scale" aria-hidden="true">
             <span
               className="places-map-scale-bar"
@@ -681,6 +777,17 @@ export function PlacesMap({
             <span className="places-map-scale-text">{scaleBar.label}</span>
           </div>
         ) : null}
+
+        {/* The licence asks for this, and a reader deserves to know whose
+            streets these are. */}
+        <a
+          className="places-map-credit"
+          href="https://www.openstreetmap.org/copyright"
+          target="_blank"
+          rel="noreferrer noopener"
+        >
+          © OpenStreetMap
+        </a>
       </div>
 
       <figcaption className="places-map-foot">
@@ -693,7 +800,7 @@ export function PlacesMap({
           </>
         ) : (
           <>
-            {places.length.toLocaleString('es-BO')} lugares dibujados,{' '}
+            {places.length.toLocaleString('es-BO')} lugares sobre el callejero,{' '}
             {regulated.toLocaleString('es-BO')} de actividad regulada: deben verificarse con su
             regulador, no están verificados. Rueda para acercar, arrastra para moverte.
             {layout.outside > 0 ? (

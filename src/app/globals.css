@@ -3499,8 +3499,9 @@ button.download-btn {
   height: auto;
   display: block;
   background: var(--panel-tint);
-  border: 1px solid var(--rule-soft);
+  border: 1px solid var(--rule);
   border-radius: calc(var(--radius) - 4px);
+  overflow: hidden;
   /* A map you drag has to say so before it is dragged. */
   cursor: grab;
   /*
@@ -3525,14 +3526,60 @@ button.download-btn {
  * overlap darkens, so density reads off the page without a heat map that would
  * invent a surface the data does not have.
  */
+/*
+ * The streets under the points.
+ *
+ * Raster squares from OpenStreetMap, which is what turns a scatter into a map:
+ * without them a reader who does not already carry the city in their head
+ * cannot tell a ring road from an edge of the data. They are dimmed a little
+ * so the premises stay the subject and the streets stay the reference.
+ */
+.places-map-tiles image {
+  opacity: 0.85;
+}
+
+@media (prefers-color-scheme: dark) {
+  /*
+   * There is no dark tile set to fetch, so the light one is turned over: the
+   * hue rotation puts the greens and blues back the right way round after the
+   * inversion, and the map sits on a dark page without glaring off it.
+   */
+  .places-map-tiles image {
+    filter: invert(1) hue-rotate(180deg) brightness(0.92) contrast(0.88) saturate(0.75);
+    opacity: 0.75;
+  }
+}
+
+/* The licence asks for the credit; it sits where it cannot cover a premise. */
+.places-map-credit {
+  position: absolute;
+  right: 0.35rem;
+  bottom: 0.35rem;
+  font-size: 0.62rem;
+  font-family: var(--sans);
+  color: var(--ink-soft);
+  text-decoration: none;
+  background: color-mix(in srgb, var(--panel) 78%, transparent);
+  border-radius: 3px;
+  padding: 0.05rem 0.3rem;
+}
+
+.places-map-credit:hover {
+  color: var(--ink);
+}
+
 .poi-layer {
   fill: var(--official);
-  fill-opacity: 0.6;
+  fill-opacity: 0.75;
+  /* A ring of paper around each dot, so a cluster over a street stays legible. */
+  stroke: var(--panel);
+  stroke-width: 0.35;
+  paint-order: stroke fill;
 }
 
 .poi-layer-regulated {
   fill: var(--parallel);
-  fill-opacity: 0.85;
+  fill-opacity: 0.92;
 }
 
 .poi-halo {

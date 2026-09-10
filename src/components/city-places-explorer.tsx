@@ -48,12 +48,34 @@ export function CityPlacesExplorer({ families }: { families: PlaceFamily[] }) {
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(false);
 
-  /** The families this city actually holds, largest first. */
-  const inCity = useMemo(
-    () =>
-      families.filter((row) => row.city === city).sort((left, right) => right.places - left.places),
-    [families, city],
-  );
+  /**
+   * The families this city actually holds, one row each, largest first.
+   *
+   * The read model files a row per group *and* family, and several groups own
+   * the catalogue's catch-all: health, retail and the rest each have an «otra
+   * entidad». Listed raw, the rail printed «Otra entidad» a dozen times over
+   * with a dozen different counts, and clicking the one that said 413 drew the
+   * 1.837 of every group at once — because the only thing the reader can
+   * filter by, here and in the file, is the family. Summed, the number beside
+   * a row is the number the map then draws.
+   */
+  const inCity = useMemo(() => {
+    const held = new Map<string, PlaceFamily>();
+    for (const row of families) {
+      if (row.city !== city) continue;
+      const already = held.get(row.entityFamily);
+      if (!already) {
+        held.set(row.entityFamily, { ...row });
+        continue;
+      }
+      already.places += row.places;
+      already.regulated += row.regulated;
+      already.locatedInZone += row.locatedInZone;
+      // The group stops being one group the moment two of them are added up.
+      if (already.entityGroup !== row.entityGroup) already.entityGroup = 'VARIOS';
+    }
+    return [...held.values()].sort((left, right) => right.places - left.places);
+  }, [families, city]);
 
   const matches = useMemo(() => {
     const needle = search.trim().toLocaleLowerCase('es');
