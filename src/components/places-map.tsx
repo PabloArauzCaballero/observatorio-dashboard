@@ -26,6 +26,14 @@ import type { Place } from '@/lib/places';
  * points rather than the extent of every one, so a mis-geocoded pharmacy forty
  * kilometres out cannot set the scale; it zooms, pans and says how far a
  * centimetre is; and it fits the screen it is read on.
+ *
+ * Two things it learned late. It draws in its own units rather than in
+ * Mercator, because a browser holds path coordinates in a 32-bit float and a
+ * city sits far enough from that float's origin that a dot at deep zoom was
+ * smaller than the smallest number the float could tell apart — the streets
+ * stayed and the premises went. And the place under the pointer gets a card on
+ * the spot with the whole of its record, not the line of it that fits in the
+ * caption.
  */
 
 /**
@@ -36,6 +44,25 @@ import type { Place } from '@/lib/places';
  * unit here is one pixel at zoom 0; a tile at zoom z spans 256/2^z of them.
  */
 const WORLD = 256;
+
+/**
+ * The units the drawing is painted in, across the width of the city's frame.
+ *
+ * Mercator is the right coordinate to think in and the wrong one to draw in. A
+ * browser keeps path coordinates as 32-bit floats, and a Bolivian city sits
+ * around x=83, y=141 of a world 256 wide: one step of that float is about a
+ * hundred-thousandth of a unit, which is a metre and a half of ground. Past
+ * about ×30 a dot's own radius is smaller than one step, so the circles first
+ * snap to a lattice and then collapse to nothing — the map kept its streets and
+ * lost its premises exactly when the reader had closed in far enough to want
+ * them. «Al acercarnos demasiado se pierden los datos», and they did.
+ *
+ * So the geometry is moved once, on the way out: the city's frame is a thousand
+ * units wide and centred on nought, where the same float resolves a hundredth
+ * of a unit. Everything else — the window, the hit test, the scale bar, the
+ * file — stays in Mercator, which is where it belongs.
+ */
+const DRAW = 1024;
 
 /** The furthest in the tile pyramid goes, and the flattest a frame may be. */
 const MAX_TILE_ZOOM = 19;
@@ -78,10 +105,17 @@ interface Rect {
   height: number;
 }
 
-interface Dot {
+interface Point {
   place: Place;
+  /** Mercator, which the window, the hit test and the file are all in. */
   x: number;
   y: number;
+}
+
+interface Dot extends Point {
+  /** The same place in `DRAW` units, which is what actually gets painted. */
+  lx: number;
+  ly: number;
 }
 
 function clamp(value: number, low: number, high: number): number {
@@ -178,7 +212,7 @@ export function PlacesMap({
   const layout = useMemo(() => {
     if (places.length === 0) return null;
 
-    const points: Dot[] = places.map((place) => ({
+    const points: Point[] = places.map((place) => ({
       place,
       ...project(place.longitude, place.latitude),
     }));
@@ -276,12 +310,29 @@ export function PlacesMap({
     };
 
     /**
+     * Out of Mercator and into the units the browser can actually hold.
+     *
+     * Anchored on the middle of the frame rather than a corner, so the city's
+     * own coordinates run from −512 to 512 and a mis-geocoded pharmacy forty
+     * kilometres out is a few thousand rather than a few tens of thousands:
+     * the further from nought a coordinate sits, the coarser the float holding
+     * it, and the frame is where the reading happens.
+     */
+    const unit = DRAW / span;
+    const origin = { x: frame.x + frame.width / 2, y: frame.y + frame.height / 2 };
+    const dots: Dot[] = points.map((point) => ({
+      ...point,
+      lx: (point.x - origin.x) * unit,
+      ly: (point.y - origin.y) * unit,
+    }));
+
+    /**
      * A grid over the frame, so telling which place the pointer is near costs a
      * glance at nine cells instead of a walk over four thousand points.
      */
     const cell = span / 48;
     const buckets = new Map<string, Dot[]>();
-    for (const dot of points) {
+    for (const dot of dots) {
       const key = `${Math.floor(dot.x / cell)}:${Math.floor(dot.y / cell)}`;
       const bucket = buckets.get(key);
       if (bucket) bucket.push(dot);
@@ -289,13 +340,16 @@ export function PlacesMap({
     }
 
     return {
-      dots: points,
+      dots,
       frame,
       whole,
       outside,
       cell,
       buckets,
       aspect,
+      /** Mercator units into drawing units, and where the drawing's nought is. */
+      unit,
+      origin,
       /** One world unit in kilometres, at this city's latitude. */
       kmPerUnit:
         (METRES_PER_UNIT / 1000) * Math.cos((latitudeAt((north + south) / 2) * Math.PI) / 180),
@@ -345,7 +399,8 @@ export function PlacesMap({
    * instead of smeared or shrunk to nothing.
    */
   const tiles = useMemo(() => {
-    if (plotPixels <= 0 || view.width <= 0) return null;
+    if (!layout || plotPixels <= 0 || view.width <= 0) return null;
+    const { unit, origin } = layout;
     const scale = plotPixels / view.width;
     // Biased a third of a level towards the sharper side: a square drawn
     // smaller than it was cut stays crisp, one blown up past its own size goes
@@ -358,7 +413,15 @@ export function PlacesMap({
       x: Math.floor((view.x + view.width) / span),
       y: Math.floor((view.y + view.height) / span),
     };
-    const list: Array<{ key: string; href: string; x: number; y: number }> = [];
+    const list: Array<{
+      key: string;
+      href: string;
+      x: number;
+      y: number;
+      lx: number;
+      ly: number;
+    }> = [];
+    const done = () => ({ level, span, lspan: span * unit, list });
     for (let ty = first.y; ty <= last.y; ty += 1) {
       if (ty < 0 || ty >= count) continue;
       for (let tx = first.x; tx <= last.x; tx += 1) {
@@ -371,25 +434,34 @@ export function PlacesMap({
           href: `https://tile.openstreetmap.org/${level}/${wrapped}/${ty}.png`,
           x: tx * span,
           y: ty * span,
+          lx: (tx * span - origin.x) * unit,
+          ly: (ty * span - origin.y) * unit,
         });
-        if (list.length >= MOST_TILES) return { level, span, list };
+        if (list.length >= MOST_TILES) return done();
       }
     }
-    return { level, span, list };
-  }, [view, plotPixels]);
+    return done();
+  }, [layout, view, plotPixels]);
 
   /**
-   * Ink per point, kept the same size on screen at every zoom.
+   * Ink per point: a size in screen pixels, and a little more of it up close.
    *
-   * With streets underneath, a dot that grew as the reader closed in would
-   * cover the corner it is meant to be standing on.
+   * Screen pixels rather than ground, because with streets underneath a dot
+   * that grew with the zoom would end up covering the corner it is meant to be
+   * standing on. But it does not stay put either. Three pixels is the size that
+   * suits four thousand premises spread over a whole city — any more and the
+   * map is a blot — and it is a speck once the reader has closed in on six
+   * blocks and the crowding that justified it is gone. It grows by half again
+   * for every four times in, to a little over twice: the difference between a
+   * mark you can see and one you have to look for.
    */
   const radius = useMemo(() => {
     const count = places.length;
     const base = count > 3000 ? 3 : count > 1200 ? 3.6 : count > 400 ? 4.4 : 5.6;
+    const closeness = clamp(1 + Math.log2(Math.max(zoom, 1)) / 4, 1, 2.2);
     const perPixel = plotPixels > 0 ? view.width / plotPixels : view.width / 800;
-    return base * perPixel;
-  }, [places.length, view.width, plotPixels]);
+    return base * closeness * perPixel;
+  }, [places.length, zoom, view.width, plotPixels]);
 
   /**
    * Every dot in two paths, one per kind.
@@ -402,11 +474,13 @@ export function PlacesMap({
     if (!layout) return { plain: '', regulated: '' };
     const plain: string[] = [];
     const regulated: string[] = [];
-    const r = radius;
+    const r = radius * layout.unit;
     const d = r * 2;
-    const round = (value: number) => value.toFixed(7);
+    // Four decimals of a unit a thousand across: a hundredth of a screen pixel
+    // at the deepest zoom the map allows, and half the bytes of seven.
+    const round = (value: number) => value.toFixed(4);
     for (const dot of layout.dots) {
-      const arc = `M${round(dot.x)} ${round(dot.y)}m${round(-r)} 0a${round(r)} ${round(r)} 0 1 0 ${round(d)} 0a${round(r)} ${round(r)} 0 1 0 ${round(-d)} 0`;
+      const arc = `M${round(dot.lx)} ${round(dot.ly)}m${round(-r)} 0a${round(r)} ${round(r)} 0 1 0 ${round(d)} 0a${round(r)} ${round(r)} 0 1 0 ${round(-d)} 0`;
       (dot.place.isRegulated ? regulated : plain).push(arc);
     }
     return { plain: plain.join(''), regulated: regulated.join('') };
@@ -416,6 +490,43 @@ export function PlacesMap({
     () => (hovered ? layout?.dots.find((dot) => dot.place.placeId === hovered) : undefined),
     [layout, hovered],
   );
+
+  /**
+   * The whole of the record, for the card, and not a line of it.
+   *
+   * The caption below the map has said the name, the family and the address
+   * since the first version, and a line of prose is the wrong shape for the
+   * rest: the register also holds the brand, the zone, how well the place is
+   * measured, which Bolivian register would confirm it if the activity is
+   * regulated, and the coordinate it was filed at. A reader asking «what is
+   * this dot» wants all of that where the dot is, not a sentence under it.
+   *
+   * Empty fields are dropped rather than shown blank: half the corpus has no
+   * brand, and a card of «—» reads as a broken card, not as a place with no
+   * brand.
+   */
+  const detail = useMemo(() => {
+    const place = found?.place;
+    if (!place) return [];
+    const rows: Array<[string, string]> = [];
+    if (place.brand) rows.push(['Marca', place.brand]);
+    if (place.address) rows.push(['Dirección', place.address]);
+    if (place.zone) rows.push(['Zona', place.zone]);
+    rows.push(['Ciudad', place.city]);
+    if (place.confidence !== null) {
+      rows.push([
+        'Confianza',
+        `${(place.confidence * 100).toFixed(0)}%${place.qualityGrade ? ` · ${place.qualityGrade}` : ''}`,
+      ]);
+    } else if (place.qualityGrade) {
+      rows.push(['Calidad', place.qualityGrade]);
+    }
+    if (place.officialValidationSource) {
+      rows.push(['Verificar en', place.officialValidationSource]);
+    }
+    rows.push(['Coordenadas', `${place.latitude.toFixed(5)}, ${place.longitude.toFixed(5)}`]);
+    return rows;
+  }, [found]);
 
   /** Where a client point falls in the drawing's own coordinates. */
   const toWorld = useCallback(
@@ -656,6 +767,30 @@ export function PlacesMap({
 
   const regulated = places.reduce((sum, place) => sum + (place.isRegulated ? 1 : 0), 0);
 
+  /** The same window as `view`, in the units the drawing is painted in. */
+  const drawView: Rect = {
+    x: (view.x - layout.origin.x) * layout.unit,
+    y: (view.y - layout.origin.y) * layout.unit,
+    width: view.width * layout.unit,
+    height: view.height * layout.unit,
+  };
+
+  /**
+   * Where the card sits: on the place, as a share of the plot.
+   *
+   * Read off the view rather than off the pointer, so the card is anchored to
+   * the premise and not to the mouse — it stops shivering as the hand moves
+   * inside the same dot, and there is no second piece of state re-rendering the
+   * figure on every pixel of travel. It hangs above the point unless the point
+   * is near the top, and pulls sideways when it would otherwise leave the plot.
+   */
+  const card = found
+    ? {
+        left: clamp(((found.lx - drawView.x) / drawView.width) * 100, 0, 100),
+        top: clamp(((found.ly - drawView.y) / drawView.height) * 100, 0, 100),
+      }
+    : null;
+
   return (
     <figure className="places-map">
       <div className="places-map-bar">
@@ -742,7 +877,7 @@ export function PlacesMap({
       >
         <svg
           ref={svgRef}
-          viewBox={`${view.x} ${view.y} ${view.width} ${view.height}`}
+          viewBox={`${drawView.x} ${drawView.y} ${drawView.width} ${drawView.height}`}
           style={{ aspectRatio: `${home.width} / ${home.height}` }}
           role="img"
           aria-label={`Mapa de ${places.length.toLocaleString('es-BO')} lugares sobre las calles de la ciudad. Se puede acercar con la rueda y desplazar arrastrando.`}
@@ -758,10 +893,10 @@ export function PlacesMap({
               <image
                 key={tile.key}
                 href={tile.href}
-                x={tile.x}
-                y={tile.y}
-                width={tiles.span}
-                height={tiles.span}
+                x={tile.lx}
+                y={tile.ly}
+                width={tiles.lspan}
+                height={tiles.lspan}
                 preserveAspectRatio="none"
               />
             ))}
@@ -770,11 +905,62 @@ export function PlacesMap({
           <path className="poi-layer poi-layer-regulated" d={paths.regulated} />
           {found ? (
             <g className="poi-found" pointerEvents="none" data-export="skip">
-              <circle cx={found.x} cy={found.y} r={radius * 3.2} className="poi-halo" />
-              <circle cx={found.x} cy={found.y} r={radius * 1.5} className="poi-core" />
+              <circle
+                cx={found.lx}
+                cy={found.ly}
+                r={radius * layout.unit * 2.9}
+                className="poi-halo"
+              />
+              <circle
+                cx={found.lx}
+                cy={found.ly}
+                r={radius * layout.unit * 1.6}
+                className="poi-core"
+              />
             </g>
           ) : null}
         </svg>
+
+        {found && card ? (
+          <div
+            className={card.top < 40 ? 'map-tip places-map-tip-under' : 'map-tip places-map-tip'}
+            style={
+              {
+                left: `${card.left}%`,
+                top: `${card.top}%`,
+                '--card-pull': card.left < 24 ? '-6%' : card.left > 76 ? '-94%' : '-50%',
+              } as React.CSSProperties
+            }
+            role="status"
+            aria-live="polite"
+          >
+            <div className="tooltip">
+              <div className="t-date">
+                {found.place.entityFamily}
+                {found.place.entityGroup !== found.place.entityFamily
+                  ? ` · ${found.place.entityGroup}`
+                  : ''}
+              </div>
+              <strong className="map-card-name">{found.place.name}</strong>
+              {found.place.isRegulated ? (
+                <span className="places-map-flag">actividad regulada</span>
+              ) : null}
+              <dl className="places-map-fields">
+                {detail.map(([term, value]) => (
+                  <div key={term} className="places-map-field">
+                    <dt>{term}</dt>
+                    <dd>{value}</dd>
+                  </div>
+                ))}
+              </dl>
+              <div className="t-note">
+                {found.place.isRegulated
+                  ? 'Debe verificarse con su regulador; no está verificado.'
+                  : `Ficha ${found.place.placeId}`}
+              </div>
+            </div>
+          </div>
+        ) : null}
 
         {scaleBar ? (
           <div className="places-map-scale" aria-hidden="true">

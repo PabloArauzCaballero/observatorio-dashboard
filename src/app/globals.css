@@ -3592,14 +3592,104 @@ button.download-btn {
   fill-opacity: 0.92;
 }
 
+/*
+ * La marca del punto senalado: un aro, no un tapon.
+ *
+ * Era un disco lleno de tinta sobre el punto, y funcionaba mientras el punto
+ * media tres pixeles siempre. Ahora crece al acercarse, y un disco de ese
+ * tamano tapa justo lo que la ficha esta describiendo, empezando por el color
+ * que dice si la actividad es regulada. El aro rodea el punto y lo deja verse.
+ */
 .poi-halo {
   fill: var(--ink);
-  fill-opacity: 0.12;
+  fill-opacity: 0.1;
 }
 
 .poi-core {
-  fill: var(--ink);
-  fill-opacity: 0.95;
+  fill: none;
+  stroke: var(--ink);
+  stroke-opacity: 0.9;
+  /* En pixeles de pantalla, como el filo de los puntos: el dibujo trabaja en
+     unidades donde una ciudad mide mil, y un grosor en unidades seria una
+     mancha. */
+  stroke-width: 1.6;
+  vector-effect: non-scaling-stroke;
+}
+
+/*
+ * La ficha del lugar bajo el puntero.
+ *
+ * Misma caja que la del mapa de Bolivia —`.tooltip` dentro de `.map-tip`—
+ * porque son dos mapas del mismo tablero y una ficha que se lee distinta en
+ * cada uno es una ficha que hay que aprender dos veces. Lo unico propio es
+ * donde se cuelga: alli el punto es un boton del DOM y basta con posicionarse
+ * sobre el; aqui los lugares son un solo `path` y la posicion se calcula
+ * contra la ventana del dibujo.
+ *
+ * El pie del mapa dice una linea —nombre, familia, direccion— y esa linea
+ * esta lejos del punto y no le cabe el resto: la marca, la zona, con cuanta
+ * confianza esta medido, que registro boliviano lo confirmaria y en que
+ * coordenada se archivo.
+ *
+ * No recibe puntero: si lo recibiera taparia el punto que la abrio, el mapa
+ * perderia el hover debajo y la tarjeta parpadearia; ademas un arrastre que
+ * empezara encima de ella no llegaria al mapa.
+ */
+.places-map-tip {
+  transform: translate(var(--card-pull, -50%), calc(-100% - 18px));
+}
+
+/* Cerca del borde de arriba no hay sitio encima: cuelga debajo del punto. */
+.places-map-tip-under {
+  transform: translate(var(--card-pull, -50%), 18px);
+}
+
+.places-map-flag {
+  display: inline-block;
+  margin-bottom: 0.15rem;
+  font-size: 0.68rem;
+  color: var(--parallel);
+  border: 1px solid color-mix(in srgb, var(--parallel) 45%, transparent);
+  background: color-mix(in srgb, var(--parallel) 12%, transparent);
+  border-radius: 999px;
+  padding: 0.02rem 0.45rem;
+  white-space: nowrap;
+}
+
+/*
+ * Los campos, en dos columnas que cuadran entre filas.
+ *
+ * No sirve aqui el `.t-row` del resto de las fichas, que separa etiqueta y
+ * valor a los extremos: eso vale para una cifra corta y deja una direccion de
+ * cuarenta caracteres pegada al margen derecho y partida donde toque. La
+ * rejilla vive en la lista y cada fila se disuelve en ella con
+ * `display: contents`, que es lo que deja envolver cada par en su `div` sin
+ * romper el cuadre.
+ */
+.places-map-fields {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 0.16rem 0.7rem;
+  margin: 0.4rem 0 0;
+  padding-top: 0.4rem;
+  border-top: 1px solid var(--rule-soft);
+  font-size: 0.78rem;
+}
+
+.places-map-field {
+  display: contents;
+}
+
+.places-map-fields dt {
+  font-size: 0.72rem;
+  color: var(--ink-faint);
+  white-space: nowrap;
+}
+
+.places-map-fields dd {
+  margin: 0;
+  color: var(--ink);
+  overflow-wrap: anywhere;
 }
 
 /*
