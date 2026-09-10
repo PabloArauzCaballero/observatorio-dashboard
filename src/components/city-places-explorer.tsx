@@ -194,7 +194,15 @@ export function CityPlacesExplorer({ families }: { families: PlaceFamily[] }) {
 
         <div className="workspace-main stack">
           {loading ? (
-            <div className="callout">Leyendo los lugares…</div>
+            // El mismo anillo que la portada mientras arma el tablero: un
+            // aviso de texto solo no distingue «esperando» de «no hay nada».
+            <div className="loading-note" role="status" aria-live="polite">
+              <span className="loading-spin" aria-hidden="true" />
+              <div>
+                <b>Leyendo los lugares…</b>
+                <span>Se dibujan en el mapa en cuanto lleguen.</span>
+              </div>
+            </div>
           ) : (
             <PlacesMap places={places} />
           )}

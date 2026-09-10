@@ -219,7 +219,16 @@ export function PanelExplorer({ catalogue }: { catalogue: PanelIndicator[] }) {
             </span>
           </div>
           {loading ? (
-            <p className="panel-sub">Leyendo la serie…</p>
+            // El mismo anillo que la portada mientras arma el tablero: una
+            // linea de texto sola se lee como un dato que no llego, no como
+            // una espera.
+            <div className="loading-note" role="status" aria-live="polite">
+              <span className="loading-spin" aria-hidden="true" />
+              <div>
+                <b>Leyendo la serie…</b>
+                <span>Todos los años de {indicator.name}, para cada país que la reporta.</span>
+              </div>
+            </div>
           ) : series.length ? (
             <>
               <YearSeriesBars data={series} countries={named} height={280} />
