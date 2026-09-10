@@ -162,14 +162,23 @@ function createPool(connectionString: string): Pool {
      * una espera en una pagina de error.
      */
     connectionTimeoutMillis: tuned('DASHBOARD_DATABASE_ACQUIRE_MS', 30_000),
-    // A page that hangs is worse than a page that says it could not read.
     /*
-     * The corpus-wide cross-tabulation reads thirty-eight thousand claims out
-     * of a view that reassembles each one from its evidence. It is held in
-     * memory once computed, so this ceiling is reached by the first request
-     * after a restart and by nothing else.
+     * Quince segundos, no noventa.
+     *
+     * Una pagina que cuelga es peor que una que dice que no pudo leer, y el
+     * techo es lo unico que decide cual de las dos es. A noventa segundos, una
+     * lectura cara no es una lectura lenta: es minuto y medio de PostgreSQL
+     * volcando ordenaciones a disco, y el 2026-09-09 varias de esas a la vez
+     * dejaron al servidor en carga 95 sobre seis nucleos y mataron los
+     * despliegues durante seis horas — incluido el que trae este arreglo.
+     *
+     * Quince segundos son de sobra para cualquier lectura que valga la pena
+     * servir. Lo que no entre ahi es justamente lo que no debe intentarse en
+     * cada visita: esa seccion se declara «sin leer» y su copia guardada la
+     * repara, que es para lo que existe la migracion 0072. El techo protege al
+     * servidor de la pagina, no al reves.
      */
-    statement_timeout: tuned('DASHBOARD_DATABASE_STATEMENT_MS', 90_000),
+    statement_timeout: tuned('DASHBOARD_DATABASE_STATEMENT_MS', 15_000),
   });
 }
 

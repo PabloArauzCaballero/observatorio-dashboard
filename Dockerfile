@@ -27,6 +27,16 @@ COPY --from=build --chown=dashboard:dashboard /app/.next/static ./.next/static
 COPY --from=build --chown=dashboard:dashboard /app/public ./public
 USER dashboard
 EXPOSE 3000
-HEALTHCHECK --interval=30s --timeout=5s --start-period=25s --retries=3 \
-  CMD ["node", "-e", "fetch('http://127.0.0.1:3000/').then(r=>{if(!r.ok)process.exit(1)}).catch(()=>process.exit(1))"]
+# Late contra `/api/version`, nunca contra la portada.
+#
+# La portada es `force-dynamic` y arma trece lecturas en cada peticion, cuatro
+# de ellas rearmando sus cifras desde la evidencia de un millon y medio de
+# observaciones. Sondearla cada treinta segundos son casi tres mil renders al
+# dia sin que nadie mire la pagina, y el 2026-09-09 eso mantuvo a PostgreSQL
+# volcando ordenaciones a disco hasta llevar al servidor a carga 95 sobre seis
+# nucleos: los despliegues pasaron de dieciseis minutos a dos horas y murieron,
+# incluido el que traia el arreglo. `/api/version` hace un SELECT de una fila y
+# dice lo mismo que importa — el proceso vive y alcanza la base — sin cobrarlo.
+HEALTHCHECK --interval=60s --timeout=10s --start-period=25s --retries=3 \
+  CMD ["node", "-e", "fetch('http://127.0.0.1:3000/api/version').then(r=>{if(!r.ok)process.exit(1)}).catch(()=>process.exit(1))"]
 CMD ["node", "server.js"]

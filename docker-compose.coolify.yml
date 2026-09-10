@@ -54,21 +54,29 @@ services:
       - /app/.next/cache
     cap_drop: [ALL]
     security_opt: ['no-new-privileges:true']
+    # Late contra `/api/version`, nunca contra la portada. La portada es
+    # `force-dynamic`: cada sonda armaba sus trece lecturas, cuatro de ellas
+    # rearmando cifras desde la evidencia de un millon y medio de observaciones.
+    # A veinte segundos son cuatro mil trescientos renders al dia sin que nadie
+    # mire la pagina — y el 2026-09-09 esto, sumado al latido del Dockerfile,
+    # dejo al servidor en carga 95 sobre seis nucleos y mato los despliegues
+    # durante seis horas. Un latido dice «el proceso vive y alcanza la base»;
+    # no tiene por que construir un informe para decirlo.
     healthcheck:
       test:
         [
           'CMD',
           'node',
           '-e',
-          "fetch('http://127.0.0.1:3000/').then(r=>{if(!r.ok)process.exit(1)}).catch(()=>process.exit(1))",
+          "fetch('http://127.0.0.1:3000/api/version').then(r=>{if(!r.ok)process.exit(1)}).catch(()=>process.exit(1))",
         ]
-      interval: 20s
-      timeout: 5s
+      interval: 60s
+      timeout: 10s
       retries: 5
-      # La portada arma la tabulacion completa del corpus en la primera peticion
-      # tras un arranque; darle menos margen que eso marca el contenedor como
-      # enfermo justo cuando esta haciendo su trabajo mas caro.
-      start_period: 90s
+      # Ya no hace falta el margen que pedia la portada en frio: esta ruta
+      # responde en cuanto el proceso escucha. Se deja holgado igualmente
+      # porque el arranque compite con lo que el servidor tenga entre manos.
+      start_period: 60s
     stop_grace_period: 30s
     networks: [coolify]
     restart: unless-stopped
