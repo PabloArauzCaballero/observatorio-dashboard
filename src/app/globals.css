@@ -3490,6 +3490,8 @@ button.download-btn {
  */
 .places-map-plot {
   position: relative;
+  /* Centred for the wide screens where the component caps its width. */
+  margin-inline: auto;
 }
 
 .places-map-svg {

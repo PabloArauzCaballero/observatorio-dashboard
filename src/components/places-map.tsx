@@ -44,7 +44,7 @@ const WORLD_WIDTH = 1000;
  * The ceiling can sit above one because the measured height of the box binds
  * first — on a tall phone that is what lets the map use the room it has.
  */
-const MIN_ASPECT = 0.42;
+const MIN_ASPECT = 0.3;
 const MAX_ASPECT = 1.25;
 
 /** A degree of latitude, and of cosine-corrected longitude, in kilometres. */
@@ -150,6 +150,21 @@ export function PlacesMap({
   /** The proportion the frame is built to, bounded so it is never a sliver. */
   const boxAspect =
     box.width > 0 && box.cap > 0 ? clamp(box.cap / box.width, MIN_ASPECT, MAX_ASPECT) : 0.62;
+
+  /**
+   * The last word on height, for the screens where the shape floor wins.
+   *
+   * On a very wide monitor the height the screen can spare divided by the width
+   * of the column falls under the flattest shape allowed, so the floor takes
+   * over and the drawing grows past the cap again — which is exactly the bug
+   * this was meant to end, reappearing at 2.000 pixels of width. Where that
+   * happens the map stops widening instead of growing taller, and sits in the
+   * middle of its panel.
+   */
+  const plotWidthCap =
+    box.cap > 0 && box.width > 0 && box.cap / box.width < MIN_ASPECT
+      ? Math.round(box.cap / MIN_ASPECT)
+      : null;
 
   /**
    * Longitude is compressed by the cosine of the latitude before anything is
@@ -597,7 +612,11 @@ export function PlacesMap({
         the same rectangle. Capping the width by the height the screen has
         keeps both true.
       */}
-      <div className="places-map-plot" ref={plotRef}>
+      <div
+        className="places-map-plot"
+        ref={plotRef}
+        style={plotWidthCap ? { maxWidth: `${plotWidthCap}px` } : undefined}
+      >
         <svg
           ref={svgRef}
           viewBox={`${view.x} ${view.y} ${view.width} ${view.height}`}
