@@ -3479,6 +3479,15 @@ button.download-btn {
   color: var(--panel);
 }
 
+/* Al tope del zoom el boton se apaga, en vez de aceptar el clic y no hacer nada. */
+.map-tool:disabled,
+.map-tool:disabled:hover {
+  opacity: 0.4;
+  cursor: default;
+  border-color: var(--rule);
+  color: var(--ink-soft);
+}
+
 /*
  * A map has to fit on the screen it is read on.
  *
@@ -3636,12 +3645,18 @@ button.download-btn {
  * empezara encima de ella no llegaria al mapa.
  */
 .places-map-tip {
-  transform: translate(var(--card-pull, -50%), calc(-100% - 18px));
+  /* Nunca mas ancha que el plano: el componente la sostiene dentro por los
+     lados, y no puede con una ficha que ya no cabe. */
+  max-width: min(19rem, 100%);
 }
 
-/* Cerca del borde de arriba no hay sitio encima: cuelga debajo del punto. */
-.places-map-tip-under {
-  transform: translate(var(--card-pull, -50%), 18px);
+/*
+ * En un telefono la ficha no flota: va debajo del mapa, en lugar del pie de una
+ * linea. Sobre un plano de trescientos pixeles no hay lado del punto donde
+ * quepa sin tapar el terreno que describe.
+ */
+.places-map-docked .tooltip {
+  box-shadow: none;
 }
 
 .places-map-flag {

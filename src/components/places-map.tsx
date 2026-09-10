@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { Icon } from './icons';
 import type { Place } from '@/lib/places';
 
@@ -68,6 +68,18 @@ const DRAW = 1024;
 const MAX_TILE_ZOOM = 19;
 const MIN_ASPECT = 0.5;
 const MAX_ASPECT = 1.25;
+
+/**
+ * How far the deepest squares may be blown up before the zoom stops.
+ *
+ * OpenStreetMap cuts its tiles down to level 19 and no further, so past it the
+ * only way in is to stretch the last level, and a stretched square goes soft —
+ * street names first. The map used to let the reader reach ×250 of the city
+ * whatever the screen, which on a wide monitor is three and a half times the
+ * size the squares were cut at, and it read as a broken map. Half again is the
+ * most the lettering stands, and it is still closer than six blocks across.
+ */
+const MOST_STRETCH = 1.5;
 
 /**
  * How much wider than the city its frame may be.
@@ -542,6 +554,33 @@ export function PlacesMap({
     return rows;
   }, [found]);
 
+  /**
+   * The card's own size, read once it is on the page.
+   *
+   * Its height depends on how many fields the place has and how long its
+   * address runs, and where it can go depends on its height. Read in a layout
+   * effect, so the corrected position is painted in the same frame as the
+   * first and the card never visibly jumps. It only sets state when the size
+   * changed, so running after every render cannot loop.
+   */
+  const tipRef = useRef<HTMLDivElement | null>(null);
+  const [tipSize, setTipSize] = useState<{ id: string; width: number; height: number } | null>(
+    null,
+  );
+  useLayoutEffect(() => {
+    const tip = tipRef.current;
+    if (!tip || !found) return;
+    const size = { id: found.place.placeId, width: tip.offsetWidth, height: tip.offsetHeight };
+    if (
+      !tipSize ||
+      tipSize.id !== size.id ||
+      tipSize.width !== size.width ||
+      tipSize.height !== size.height
+    ) {
+      setTipSize(size);
+    }
+  });
+
   /** Where a client point falls in the drawing's own coordinates. */
   const toWorld = useCallback(
     (clientX: number, clientY: number): { x: number; y: number } | null => {
@@ -572,12 +611,31 @@ export function PlacesMap({
     [layout?.whole, home],
   );
 
+  /**
+   * The narrowest and widest window the reader may have, in world units.
+   *
+   * The near limit is whichever binds first: the multiple of the city's frame,
+   * or the width at which the deepest tiles would be stretched past
+   * `MOST_STRETCH` on this plot. On a phone the first one binds; on a wide
+   * monitor the second does, well before ×250, because the same window spread
+   * over more pixels is a bigger stretch.
+   */
+  const limits = useMemo(
+    () => ({
+      narrowest: Math.max(
+        home.width / MAX_ZOOM,
+        plotPixels > 0 ? plotPixels / (2 ** MAX_TILE_ZOOM * MOST_STRETCH) : 0,
+      ),
+      widest: Math.max(home.width / MIN_ZOOM, layout?.whole.width ?? 0),
+    }),
+    [home.width, plotPixels, layout?.whole.width],
+  );
+
   /** Zoom about a fixed point, so the ground under the cursor stays put. */
   const zoomBy = useCallback(
     (factor: number, anchor?: { x: number; y: number }) => {
       setView((current) => {
-        const widest = Math.max(home.width / MIN_ZOOM, layout?.whole.width ?? 0);
-        const width = clamp(current.width / factor, home.width / MAX_ZOOM, widest);
+        const width = clamp(current.width / factor, limits.narrowest, limits.widest);
         const ratio = width / current.width;
         const point = anchor ?? {
           x: current.x + current.width / 2,
@@ -592,15 +650,68 @@ export function PlacesMap({
       });
       setFramed('ciudad');
     },
-    [keepInside, home.width, layout?.whole.width],
+    [keepInside, limits],
   );
 
   /** The drag, held in a ref: a pan must not re-render on every pixel. */
-  const drag = useRef<{ id: number; x: number; y: number; moved: boolean } | null>(null);
+  const drag = useRef<{
+    id: number;
+    x: number;
+    y: number;
+    moved: boolean;
+    /** `mouse`, `pen` or `touch`: a finger has no hover, so for it a tap is the question. */
+    kind: string;
+  } | null>(null);
+
+  /**
+   * The place nearest a point on the screen, if one is within reach.
+   *
+   * Answered from the grid, since the DOM holds the points as two paths and
+   * cannot say which circle was hit. The reach is in screen pixels — about
+   * eleven for a mouse, twice that for a finger — and the search widens to as
+   * many cells as that reach covers: zoomed out on a phone a cell is a few
+   * pixels, and looking at the neighbouring cells only would miss the dot the
+   * finger is plainly on.
+   */
+  const nearest = useCallback(
+    (clientX: number, clientY: number, pixels: number): Dot | null => {
+      const svg = svgRef.current;
+      if (!layout || !svg) return null;
+      const world = toWorld(clientX, clientY);
+      if (!world) return null;
+      const reach = (view.width / svg.getBoundingClientRect().width) * pixels;
+      const cells = Math.max(1, Math.ceil(reach / layout.cell));
+      const column = Math.floor(world.x / layout.cell);
+      const row = Math.floor(world.y / layout.cell);
+      let best: Dot | null = null;
+      let bestDistance = reach * reach;
+      for (let dc = -cells; dc <= cells; dc += 1) {
+        for (let dr = -cells; dr <= cells; dr += 1) {
+          const bucket = layout.buckets.get(`${column + dc}:${row + dr}`);
+          if (!bucket) continue;
+          for (const dot of bucket) {
+            const distance = (dot.x - world.x) ** 2 + (dot.y - world.y) ** 2;
+            if (distance < bestDistance) {
+              bestDistance = distance;
+              best = dot;
+            }
+          }
+        }
+      }
+      return best;
+    },
+    [layout, view.width, toWorld],
+  );
 
   const onPointerDown = useCallback((event: React.PointerEvent<SVGSVGElement>) => {
     if (event.button !== 0) return;
-    drag.current = { id: event.pointerId, x: event.clientX, y: event.clientY, moved: false };
+    drag.current = {
+      id: event.pointerId,
+      x: event.clientX,
+      y: event.clientY,
+      moved: false,
+      kind: event.pointerType,
+    };
     event.currentTarget.setPointerCapture(event.pointerId);
   }, []);
 
@@ -626,33 +737,30 @@ export function PlacesMap({
         return;
       }
 
-      if (!layout) return;
-      const world = toWorld(event.clientX, event.clientY);
-      if (!world) return;
-
-      // Within about ten screen pixels of a point, that point is the answer.
-      const reach = (view.width / svg.getBoundingClientRect().width) * 11;
-      const column = Math.floor(world.x / layout.cell);
-      const row = Math.floor(world.y / layout.cell);
-      let best: Dot | null = null;
-      let bestDistance = reach * reach;
-      for (let dc = -1; dc <= 1; dc += 1) {
-        for (let dr = -1; dr <= 1; dr += 1) {
-          const bucket = layout.buckets.get(`${column + dc}:${row + dr}`);
-          if (!bucket) continue;
-          for (const dot of bucket) {
-            const distance = (dot.x - world.x) ** 2 + (dot.y - world.y) ** 2;
-            if (distance < bestDistance) {
-              bestDistance = distance;
-              best = dot;
-            }
-          }
-        }
-      }
-      const next = best?.place.placeId ?? null;
+      const next = nearest(event.clientX, event.clientY, 11)?.place.placeId ?? null;
       if (next !== hovered) setHovered(next);
     },
-    [layout, view, hovered, keepInside, toWorld],
+    [view, hovered, keepInside, nearest],
+  );
+
+  /**
+   * The end of a press: the end of a drag, or a tap.
+   *
+   * With a mouse the card has already followed the pointer, so a click adds
+   * nothing. A finger never hovers, and without this the card could not be
+   * opened on a phone at all: a tap that did not drag opens the place under
+   * it, and a tap on the same place or on bare ground closes it again.
+   */
+  const onPointerUp = useCallback(
+    (event: React.PointerEvent<SVGSVGElement>) => {
+      const held = drag.current;
+      if (!held || held.id !== event.pointerId) return;
+      drag.current = null;
+      if (held.moved || held.kind !== 'touch') return;
+      const next = nearest(event.clientX, event.clientY, 22)?.place.placeId ?? null;
+      setHovered((current) => (next === current ? null : next));
+    },
+    [nearest],
   );
 
   const endDrag = useCallback((event: React.PointerEvent<SVGSVGElement>) => {
@@ -790,20 +898,45 @@ export function PlacesMap({
   };
 
   /**
-   * Where the card sits: on the place, as a share of the plot.
+   * Where the card sits, and whether it floats at all.
    *
-   * Read off the view rather than off the pointer, so the card is anchored to
-   * the premise and not to the mouse — it stops shivering as the hand moves
-   * inside the same dot, and there is no second piece of state re-rendering the
-   * figure on every pixel of travel. It hangs above the point unless the point
-   * is near the top, and pulls sideways when it would otherwise leave the plot.
+   * Anchored to the place rather than to the pointer, so it does not shiver as
+   * the hand moves inside the same dot. It hangs above the point when its
+   * measured height fits there, below when it fits there instead, and beside
+   * the point when neither does; sideways it is held inside the plot, so a
+   * place near an edge pulls the card in rather than hanging it off the page.
+   *
+   * On a plot narrower than a card and a half there is no side of the point
+   * where the card fits without covering the ground it describes, and a phone
+   * is where that happens: there it stops floating and sits under the map, in
+   * place of the one-line caption.
    */
-  const card = found
-    ? {
-        left: clamp(((found.lx - drawView.x) / drawView.width) * 100, 0, 100),
-        top: clamp(((found.ly - drawView.y) / drawView.height) * 100, 0, 100),
-      }
-    : null;
+  const docked = plotPixels > 0 && plotPixels < 560;
+  const plotHeight = plotPixels * (home.height / home.width);
+  const card = (() => {
+    if (!found || docked || plotPixels <= 0 || plotHeight <= 0) return null;
+    const measured = tipSize?.id === found.place.placeId ? tipSize : null;
+    const width = Math.min(measured?.width ?? 300, plotPixels);
+    const height = measured?.height ?? 220;
+    const x = ((found.lx - drawView.x) / drawView.width) * plotPixels;
+    const y = ((found.ly - drawView.y) / drawView.height) * plotHeight;
+    const gap = 16;
+    let left = clamp(x - width / 2, 0, Math.max(plotPixels - width, 0));
+    let top: number;
+    if (y - gap - height >= 0) {
+      top = y - gap - height;
+    } else if (y + gap + height <= plotHeight) {
+      top = y + gap;
+    } else {
+      top = clamp(y - height / 2, 0, Math.max(plotHeight - height, 0));
+      left = x + gap + width <= plotPixels ? x + gap : Math.max(x - gap - width, 0);
+    }
+    return { left: (left / plotPixels) * 100, top: (top / plotHeight) * 100 };
+  })();
+
+  /** Whether the buttons have anywhere left to go. */
+  const atClosest = view.width <= limits.narrowest * 1.001;
+  const atWidest = view.width >= limits.widest * 0.999;
 
   return (
     <figure className="places-map">
@@ -825,6 +958,7 @@ export function PlacesMap({
             type="button"
             className="map-tool"
             onClick={() => zoomBy(1 / 1.6)}
+            disabled={atWidest}
             aria-label="Alejar el mapa"
             title="Alejar"
           >
@@ -834,8 +968,9 @@ export function PlacesMap({
             type="button"
             className="map-tool"
             onClick={() => zoomBy(1.6)}
+            disabled={atClosest}
             aria-label="Acercar el mapa"
-            title="Acercar"
+            title={atClosest ? 'El callejero no tiene más detalle que este' : 'Acercar'}
           >
             +
           </button>
@@ -894,11 +1029,11 @@ export function PlacesMap({
           viewBox={`${drawView.x} ${drawView.y} ${drawView.width} ${drawView.height}`}
           style={{ aspectRatio: `${home.width} / ${home.height}` }}
           role="img"
-          aria-label={`Mapa de ${places.length.toLocaleString('es-BO')} lugares sobre las calles de la ciudad. Se puede acercar con la rueda y desplazar arrastrando.`}
+          aria-label={`Mapa de ${places.length.toLocaleString('es-BO')} lugares sobre las calles de la ciudad. Se puede acercar con la rueda y desplazar arrastrando; tocar un punto o pasar el cursor por él abre su ficha.`}
           className="places-map-svg"
           onPointerDown={onPointerDown}
           onPointerMove={onPointerMove}
-          onPointerUp={endDrag}
+          onPointerUp={onPointerUp}
           onPointerCancel={endDrag}
           onMouseLeave={() => setHovered(null)}
         >
@@ -937,42 +1072,13 @@ export function PlacesMap({
 
         {found && card ? (
           <div
-            className={card.top < 40 ? 'map-tip places-map-tip-under' : 'map-tip places-map-tip'}
-            style={
-              {
-                left: `${card.left}%`,
-                top: `${card.top}%`,
-                '--card-pull': card.left < 24 ? '-6%' : card.left > 76 ? '-94%' : '-50%',
-              } as React.CSSProperties
-            }
+            ref={tipRef}
+            className="map-tip places-map-tip"
+            style={{ left: `${card.left}%`, top: `${card.top}%` }}
             role="status"
             aria-live="polite"
           >
-            <div className="tooltip">
-              <div className="t-date">
-                {readable(found.place.entityFamily)}
-                {found.place.entityGroup !== found.place.entityFamily
-                  ? ` · ${readable(found.place.entityGroup)}`
-                  : ''}
-              </div>
-              <strong className="map-card-name">{found.place.name}</strong>
-              {found.place.isRegulated ? (
-                <span className="places-map-flag">actividad regulada</span>
-              ) : null}
-              <dl className="places-map-fields">
-                {detail.map(([term, value]) => (
-                  <div key={term} className="places-map-field">
-                    <dt>{term}</dt>
-                    <dd>{value}</dd>
-                  </div>
-                ))}
-              </dl>
-              <div className="t-note">
-                {found.place.isRegulated
-                  ? 'Debe verificarse con su regulador; no está verificado.'
-                  : `Ficha ${found.place.placeId}`}
-              </div>
-            </div>
+            <PlaceRecord place={found.place} fields={detail} />
           </div>
         ) : null}
 
@@ -999,7 +1105,11 @@ export function PlacesMap({
       </div>
 
       <figcaption className="places-map-foot">
-        {found ? (
+        {found && docked ? (
+          <div className="places-map-docked" role="status" aria-live="polite">
+            <PlaceRecord place={found.place} fields={detail} />
+          </div>
+        ) : found ? (
           <>
             <b>{found.place.name}</b> · {readable(found.place.entityFamily)}
             {found.place.zone ? ` · ${found.place.zone}` : ''}
@@ -1010,7 +1120,8 @@ export function PlacesMap({
           <>
             {places.length.toLocaleString('es-BO')} lugares sobre el callejero,{' '}
             {regulated.toLocaleString('es-BO')} de actividad regulada: deben verificarse con su
-            regulador, no están verificados. Rueda para acercar, arrastra para moverte.
+            regulador, no están verificados. Rueda para acercar, arrastra para moverte; pasa el
+            cursor por un punto, o tócalo, para ver su ficha.
             {layout.outside > 0 ? (
               <>
                 {' '}
@@ -1025,5 +1136,32 @@ export function PlacesMap({
         )}
       </figcaption>
     </figure>
+  );
+}
+
+/** The record of one place, the same whether the card floats or sits under the map. */
+function PlaceRecord({ place, fields }: { place: Place; fields: Array<[string, string]> }) {
+  return (
+    <div className="tooltip">
+      <div className="t-date">
+        {readable(place.entityFamily)}
+        {place.entityGroup !== place.entityFamily ? ` · ${readable(place.entityGroup)}` : ''}
+      </div>
+      <strong className="map-card-name">{place.name}</strong>
+      {place.isRegulated ? <span className="places-map-flag">actividad regulada</span> : null}
+      <dl className="places-map-fields">
+        {fields.map(([term, value]) => (
+          <div key={term} className="places-map-field">
+            <dt>{term}</dt>
+            <dd>{value}</dd>
+          </div>
+        ))}
+      </dl>
+      <div className="t-note">
+        {place.isRegulated
+          ? 'Debe verificarse con su regulador; no está verificado.'
+          : `Ficha ${place.placeId}`}
+      </div>
+    </div>
   );
 }
