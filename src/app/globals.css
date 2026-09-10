@@ -2974,9 +2974,22 @@ button.download-btn {
  * rather than printed as a zero: a form of trade nobody measured is a hole in
  * the register, and a zero would read as a measurement that came out empty.
  */
+/*
+ * The labels never leave.
+ *
+ * A matrix of twenty-four families over seven years is taller than a phone and
+ * wider than one too, and both headings used to scroll away: the reader was
+ * left with a field of numbers and no way to tell which year a column was, or
+ * which family a row. The box scrolls in both directions now and the two
+ * headings are pinned to its edges, so a cell can always be read as what it is.
+ */
 .heat-scroll {
-  overflow-x: auto;
+  overflow: auto;
   margin-top: var(--s2);
+  /* Only bites when the matrix is taller than the room it has. */
+  max-height: min(70vh, 34rem);
+  /* The pinned row would otherwise sit on the panel's own rounded corner. */
+  border-radius: 4px;
 }
 
 .heat-grid {
@@ -2993,16 +3006,32 @@ button.download-btn {
   letter-spacing: 0.02em;
   display: flex;
   align-items: center;
+  /* Pinned, so the cells cannot show through from underneath. */
+  background: var(--panel);
+  position: sticky;
 }
 
 .heat-head {
   justify-content: center;
   text-align: center;
   padding-bottom: 0.2rem;
+  top: 0;
+  z-index: 2;
 }
 
 .heat-row {
   padding-right: 0.5rem;
+  left: 0;
+  z-index: 1;
+}
+
+/* Where the two pinned edges cross, and so above both. */
+.heat-corner {
+  position: sticky;
+  top: 0;
+  left: 0;
+  z-index: 3;
+  background: var(--panel);
 }
 
 .heat-cell {
@@ -3021,10 +3050,6 @@ button.download-btn {
 .heat-cell-filled {
   border-color: transparent;
   color: var(--ink);
-}
-
-.heat-corner {
-  display: block;
 }
 
 /* Donation --------------------------------------------------------------- */
@@ -3454,6 +3479,15 @@ button.download-btn {
   color: var(--panel);
 }
 
+/*
+ * A map has to fit on the screen it is read on.
+ *
+ * Nothing here caps it, and that is deliberate. `max-height` on an SVG
+ * letterboxes rather than shortens — the box would stay wide while the drawing
+ * shrank inside it, and the scale bar, which is a percentage of this box, would
+ * start stating a distance it is not. The height is decided in the component
+ * instead: the frame is built to the shape of this box, measured.
+ */
 .places-map-plot {
   position: relative;
 }

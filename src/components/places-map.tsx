@@ -33,15 +33,19 @@ import type { Place } from '@/lib/places';
 const WORLD_WIDTH = 1000;
 
 /**
- * The shape of the box, bounded.
+ * How square or how flat the frame is allowed to get.
  *
- * The frame takes the proportions of the city so the drawing is not a stripe of
- * ink in an empty field, but a municipality that is eight times longer than it
- * is wide would still give a sliver nobody can read. Past these bounds the
- * short side is widened — extra ground around the city, never a stretched city.
+ * The shape is the box's, and these only stop the two silly ends of it. A
+ * drawing flatter than the floor is a stripe of ink nobody can read, and one
+ * taller than the phone it is on is the bug this whole file was rewritten for:
+ * the first version came out 1.250 pixels tall and the reader never saw the
+ * city and the caption that explains it at the same time.
+ *
+ * The ceiling can sit above one because the measured height of the box binds
+ * first — on a tall phone that is what lets the map use the room it has.
  */
-const MIN_ASPECT = 0.55;
-const MAX_ASPECT = 1.15;
+const MIN_ASPECT = 0.42;
+const MAX_ASPECT = 1.25;
 
 /** A degree of latitude, and of cosine-corrected longitude, in kilometres. */
 const KM_PER_DEGREE = 111.32;
@@ -104,6 +108,48 @@ export function PlacesMap({
   const [hovered, setHovered] = useState<string | null>(null);
 
   const svgRef = useRef<SVGSVGElement | null>(null);
+  const plotRef = useRef<HTMLDivElement | null>(null);
+
+  /**
+   * The shape of the hole the map has to fill.
+   *
+   * The frame used to take the proportions of the city, which is right for the
+   * city and wrong for the screen: a tall municipality came out taller than any
+   * laptop and the reader never saw the whole map. Capping the height instead
+   * left a narrow drawing stranded between two empty margins.
+   *
+   * So the box decides. The map is given the full width of its column and the
+   * height the screen can spare, and shows whatever ground fits in that
+   * rectangle. The scale stays equal on both axes — what changes is how much
+   * country is around the city, never the city's shape.
+   */
+  const [box, setBox] = useState<{ width: number; cap: number }>({ width: 0, cap: 0 });
+
+  useEffect(() => {
+    const plot = plotRef.current;
+    if (!plot) return;
+    const measure = () => {
+      setBox({
+        width: plot.clientWidth,
+        // Room for the caption and the strip of controls to stay on screen
+        // with it: a map you have to scroll away from to read its legend is
+        // still a map you cannot see.
+        cap: Math.min(window.innerHeight * 0.62, 680),
+      });
+    };
+    measure();
+    const observer = new ResizeObserver(measure);
+    observer.observe(plot);
+    window.addEventListener('resize', measure);
+    return () => {
+      observer.disconnect();
+      window.removeEventListener('resize', measure);
+    };
+  }, []);
+
+  /** The proportion the frame is built to, bounded so it is never a sliver. */
+  const boxAspect =
+    box.width > 0 && box.cap > 0 ? clamp(box.cap / box.width, MIN_ASPECT, MAX_ASPECT) : 0.62;
 
   /**
    * Longitude is compressed by the cosine of the latitude before anything is
@@ -159,8 +205,9 @@ export function PlacesMap({
     let rise = north - south;
 
     // Widen the short side rather than stretch either one: the scale has to
-    // stay the same on both axes or the city changes shape.
-    const aspect = clamp(rise / span, MIN_ASPECT, MAX_ASPECT);
+    // stay the same on both axes or the city changes shape. The proportion is
+    // the box's, not the city's — see `boxAspect` above.
+    const aspect = boxAspect;
     if (rise / span < aspect) {
       const wanted = span * aspect;
       const centre = (north + south) / 2;
@@ -233,7 +280,7 @@ export function PlacesMap({
       /** One world unit, in kilometres. */
       kmPerUnit: (1 / scale) * KM_PER_DEGREE,
     };
-  }, [places]);
+  }, [places, boxAspect]);
 
   const home: Rect = useMemo(
     () => ({ x: 0, y: 0, width: WORLD_WIDTH, height: layout?.height ?? 720 }),
@@ -245,8 +292,11 @@ export function PlacesMap({
   const [framed, setFramed] = useState<'ciudad' | 'todo'>('ciudad');
 
   // A new selection is a new city: the old window would be pointing at ground
-  // this family does not stand on.
-  const signature = `${places.length}:${places[0]?.placeId ?? ''}`;
+  // this family does not stand on. A new frame shape counts as new too — the
+  // first paint happens before the box has been measured, and a window kept
+  // from that guess would be a viewBox that no longer matches the drawing it
+  // is placed in, which puts the scale bar and the hover a few pixels out.
+  const signature = `${places.length}:${places[0]?.placeId ?? ''}:${home.height}`;
   const lastSignature = useRef(signature);
   if (lastSignature.current !== signature) {
     lastSignature.current = signature;
@@ -540,7 +590,14 @@ export function PlacesMap({
         </div>
       </div>
 
-      <div className="places-map-plot">
+      {/*
+        The plot, and not the figure, carries the cap on height.
+        `max-height` on an SVG letterboxes it instead of shortening it, and the
+        scale bar is a percentage of this box, so box and drawing have to stay
+        the same rectangle. Capping the width by the height the screen has
+        keeps both true.
+      */}
+      <div className="places-map-plot" ref={plotRef}>
         <svg
           ref={svgRef}
           viewBox={`${view.x} ${view.y} ${view.width} ${view.height}`}

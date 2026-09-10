@@ -63,6 +63,20 @@ export function CityPlacesExplorer({ families }: { families: PlaceFamily[] }) {
       .slice(0, SHOWN);
   }, [inCity, search]);
 
+  /**
+   * How many places each city holds, so the chooser carries its own weight.
+   *
+   * A rail item without a number beside it is the only one on the page, and a
+   * reader comparing three cities should not have to click each to find out
+   * which is the large one.
+   */
+  const perCity = useMemo(() => {
+    const held = new Map<string, number>();
+    for (const row of families) held.set(row.city, (held.get(row.city) ?? 0) + row.places);
+    return held;
+  }, [families]);
+  const placesIn = (name: string): number => perCity.get(name) ?? 0;
+
   const cityTotals = useMemo(() => {
     const places_ = inCity.reduce((sum, row) => sum + row.places, 0);
     const regulated = inCity.reduce((sum, row) => sum + row.regulated, 0);
@@ -120,24 +134,7 @@ export function CityPlacesExplorer({ families }: { families: PlaceFamily[] }) {
 
   return (
     <>
-      <div className="rail-pills">
-        {CITIES.map((name) => (
-          <button
-            key={name}
-            type="button"
-            className={city === name ? 'chip chip-on' : 'chip'}
-            onClick={() => {
-              setCity(name);
-              setFamily(null);
-            }}
-          >
-            <Icon name="mapa" size={14} />
-            {name}
-          </button>
-        ))}
-      </div>
-
-      <div className="card-grid" style={{ marginTop: '0.9rem' }}>
+      <div className="card-grid">
         <Figure label="Lugares" value={NUMBER.format(cityTotals.places)} note="en el municipio" />
         <Figure
           label="De actividad regulada"
@@ -158,6 +155,35 @@ export function CityPlacesExplorer({ families }: { families: PlaceFamily[] }) {
 
       <div className="workspace">
         <aside className="rail">
+          {/*
+            The city is a filter, so it lives where every other filter in this
+            report lives: at the top of the rail, above the thing it narrows.
+            It used to be a row of pills over the whole width, which read as a
+            heading rather than as a control and left the reader looking for
+            the chooser in the one place it was not.
+          */}
+          <div className="rail-sec">
+            <div className="rail-head">
+              <Icon name="mapa" size={13} />
+              Ciudad
+            </div>
+            {CITIES.map((name) => (
+              <button
+                key={name}
+                type="button"
+                className={city === name ? 'rail-item rail-item-on' : 'rail-item'}
+                onClick={() => {
+                  setCity(name);
+                  setFamily(null);
+                }}
+              >
+                <Icon name="mapa" size={16} />
+                <span className="rail-name">{name}</span>
+                <span className="rail-n">{NUMBER.format(placesIn(name))}</span>
+              </button>
+            ))}
+          </div>
+
           <div className="rail-sec">
             <div className="rail-head">
               <Icon name="buscar" size={13} />
