@@ -163,7 +163,7 @@ function createPool(connectionString: string): Pool {
      */
     connectionTimeoutMillis: tuned('DASHBOARD_DATABASE_ACQUIRE_MS', 30_000),
     /*
-     * Quince segundos, no noventa.
+     * Treinta segundos, no noventa.
      *
      * Una pagina que cuelga es peor que una que dice que no pudo leer, y el
      * techo es lo unico que decide cual de las dos es. A noventa segundos, una
@@ -172,13 +172,20 @@ function createPool(connectionString: string): Pool {
      * dejaron al servidor en carga 95 sobre seis nucleos y mataron los
      * despliegues durante seis horas — incluido el que trae este arreglo.
      *
-     * Quince segundos son de sobra para cualquier lectura que valga la pena
-     * servir. Lo que no entre ahi es justamente lo que no debe intentarse en
-     * cada visita: esa seccion se declara «sin leer» y su copia guardada la
-     * repara, que es para lo que existe la migracion 0072. El techo protege al
-     * servidor de la pagina, no al reves.
+     * Lo que no entre en treinta segundos es justamente lo que no debe
+     * intentarse en cada visita: esa seccion se declara «sin leer» y su copia
+     * guardada la repara, que es para lo que existe la migracion 0072. El techo
+     * protege al servidor de la pagina, no al reves.
+     *
+     * No es mas bajo porque las dos lecturas que la portada no perdona — el
+     * tipo de cambio y la brecha — siguen siendo vistas apiladas sobre la
+     * evidencia cruda, y nadie las ha cronometrado en esta maquina sin la
+     * carga de las sondas encima. Un techo por debajo de lo que tardan seria
+     * la pagina de error en cada visita, que es exactamente el sintoma que
+     * se esta reparando. Cuando esas dos tengan copia guardada, bajarlo a
+     * quince es un cambio de una cifra.
      */
-    statement_timeout: tuned('DASHBOARD_DATABASE_STATEMENT_MS', 15_000),
+    statement_timeout: tuned('DASHBOARD_DATABASE_STATEMENT_MS', 30_000),
   });
 }
 

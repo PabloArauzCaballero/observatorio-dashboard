@@ -113,7 +113,24 @@ function preferObserved(points: DailyPoint[]): DailyPoint[] {
   return [...byDate.values()].sort((left, right) => left.date.localeCompare(right.date));
 }
 
-export async function readObservatory(): Promise<Observatory> {
+/**
+ * The daily series, held in memory for five minutes.
+ *
+ * These two reads — this one and the gap — are the only ones the front page
+ * does not forgive, and both are stacked views over the raw evidence: a
+ * percentile over an explosion of a million and a half observations, and the
+ * gap over that. Read from the database on every visit, a hundred visitors in
+ * a minute are two hundred of those sorts at once, and on 2026-09-09 far fewer
+ * than that put the server at load 95 on six cores.
+ *
+ * Five minutes of staleness costs nothing: the collector publishes three times
+ * a day. A failed read is not held, so an outage never becomes the answer.
+ */
+export function readObservatory(): Promise<Observatory> {
+  return held('observatory', buildObservatory);
+}
+
+async function buildObservatory(): Promise<Observatory> {
   const { rows } = await pool().query<DailyRow>(
     `SELECT indicator_code, price_side, aggregation, event_date::text AS event_date,
             value_median::text AS value_median, value_spread::text AS value_spread,
@@ -173,7 +190,12 @@ interface GapRow {
 }
 
 /** The gap the core computes, read rather than recalculated. */
-export async function readGap(): Promise<GapPoint[]> {
+/** The gap series, held in memory for five minutes for the same reason as above. */
+export function readGap(): Promise<GapPoint[]> {
+  return held('gap', buildGap);
+}
+
+async function buildGap(): Promise<GapPoint[]> {
   const { rows } = await pool().query<GapRow>(
     `SELECT event_date::text AS event_date, official_rate::text AS official_rate,
             parallel_mid::text AS parallel_mid, gap_mid_percent::text AS gap_mid_percent,
