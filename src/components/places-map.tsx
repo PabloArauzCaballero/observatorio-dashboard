@@ -44,7 +44,7 @@ const WORLD_WIDTH = 1000;
  * The ceiling can sit above one because the measured height of the box binds
  * first — on a tall phone that is what lets the map use the room it has.
  */
-const MIN_ASPECT = 0.3;
+const MIN_ASPECT = 0.5;
 const MAX_ASPECT = 1.25;
 
 /** A degree of latitude, and of cosine-corrected longitude, in kilometres. */
@@ -111,17 +111,15 @@ export function PlacesMap({
   const plotRef = useRef<HTMLDivElement | null>(null);
 
   /**
-   * The shape of the hole the map has to fill.
+   * How much height the screen can spare for a map.
    *
-   * The frame used to take the proportions of the city, which is right for the
-   * city and wrong for the screen: a tall municipality came out taller than any
-   * laptop and the reader never saw the whole map. Capping the height instead
-   * left a narrow drawing stranded between two empty margins.
-   *
-   * So the box decides. The map is given the full width of its column and the
-   * height the screen can spare, and shows whatever ground fits in that
-   * rectangle. The scale stays equal on both axes — what changes is how much
-   * country is around the city, never the city's shape.
+   * This is the only thing the box decides. Letting it decide the *shape* as
+   * well was the second wrong answer: on a wide monitor the frame came out
+   * three times wider than tall, so the city sat in a band down the middle
+   * with a third of the municipality's empty ground on either side of it —
+   * the reader saw a map that was mostly nothing. The frame takes the
+   * proportions of the city again, and this number decides how large it is
+   * drawn: as tall as the screen allows, as wide as that shape then needs.
    */
   const [box, setBox] = useState<{ width: number; cap: number }>({ width: 0, cap: 0 });
 
@@ -146,25 +144,6 @@ export function PlacesMap({
       window.removeEventListener('resize', measure);
     };
   }, []);
-
-  /** The proportion the frame is built to, bounded so it is never a sliver. */
-  const boxAspect =
-    box.width > 0 && box.cap > 0 ? clamp(box.cap / box.width, MIN_ASPECT, MAX_ASPECT) : 0.62;
-
-  /**
-   * The last word on height, for the screens where the shape floor wins.
-   *
-   * On a very wide monitor the height the screen can spare divided by the width
-   * of the column falls under the flattest shape allowed, so the floor takes
-   * over and the drawing grows past the cap again — which is exactly the bug
-   * this was meant to end, reappearing at 2.000 pixels of width. Where that
-   * happens the map stops widening instead of growing taller, and sits in the
-   * middle of its panel.
-   */
-  const plotWidthCap =
-    box.cap > 0 && box.width > 0 && box.cap / box.width < MIN_ASPECT
-      ? Math.round(box.cap / MIN_ASPECT)
-      : null;
 
   /**
    * Longitude is compressed by the cosine of the latitude before anything is
@@ -219,19 +198,31 @@ export function PlacesMap({
     let span = east - west;
     let rise = north - south;
 
-    // Widen the short side rather than stretch either one: the scale has to
-    // stay the same on both axes or the city changes shape. The proportion is
-    // the box's, not the city's — see `boxAspect` above.
-    const aspect = boxAspect;
+    /**
+     * Widen the short side rather than stretch either one: the scale has to
+     * stay the same on both axes or the city changes shape. The proportion is
+     * the box's, not the city's — see `boxAspect` above.
+     *
+     * The extra ground is hung around the median place and not around the
+     * middle of the bounding box. On a wide monitor the frame gains a lot of
+     * width, and centring it on the box put the mass of the city off to one
+     * side with the empty half of the municipality beside it; the median sits
+     * where the premises are. It is pulled back far enough to keep the whole
+     * extent inside, so centring never crops anything.
+     */
+    const aspect = clamp(rise / span, MIN_ASPECT, MAX_ASPECT);
+    const middleOf = (value: number, low: number, high: number, wanted: number): number =>
+      clamp(value, high - wanted / 2, low + wanted / 2);
+
     if (rise / span < aspect) {
       const wanted = span * aspect;
-      const centre = (north + south) / 2;
+      const centre = middleOf(at(norths, 0.5), south, north, wanted);
       south = centre - wanted / 2;
       north = centre + wanted / 2;
       rise = wanted;
     } else if (rise / span > aspect) {
       const wanted = rise / aspect;
-      const centre = (east + west) / 2;
+      const centre = middleOf(at(easts, 0.5), west, east, wanted);
       west = centre - wanted / 2;
       east = centre + wanted / 2;
       span = wanted;
@@ -295,7 +286,17 @@ export function PlacesMap({
       /** One world unit, in kilometres. */
       kmPerUnit: (1 / scale) * KM_PER_DEGREE,
     };
-  }, [places, boxAspect]);
+  }, [places]);
+
+  /**
+   * The width that keeps the drawing inside the height the screen has.
+   *
+   * The shape is the city's, so the only lever left is size: at this width the
+   * frame is exactly as tall as `box.cap` allows, and on a narrower column the
+   * column binds first and the map is shorter than it could be.
+   */
+  const plotWidthCap =
+    layout && box.cap > 0 ? Math.round((box.cap * WORLD_WIDTH) / layout.height) : null;
 
   const home: Rect = useMemo(
     () => ({ x: 0, y: 0, width: WORLD_WIDTH, height: layout?.height ?? 720 }),
