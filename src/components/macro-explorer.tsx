@@ -76,6 +76,20 @@ const UNIT_LABEL: Record<string, string> = {
   YEARS: 'años',
 };
 
+/**
+ * How many indicator cards one page carries.
+ *
+ * Every card mounts its own chart, and the panel opens on eighty-six of them:
+ * eighty-six plots laid out at once is a second of frozen scrolling on a laptop
+ * and considerably worse on a phone, for a page nobody reads past the first
+ * screenful of anyway. Twenty is the most that still draws at once without the
+ * wait being felt, and it keeps a page short enough to scan whole.
+ *
+ * The table is deliberately not paged: its rows carry no chart, and comparing
+ * eighty series down a column is the one thing it exists to do.
+ */
+const PAGE_SIZE = 20;
+
 const number = (value: number, decimals = 2): string =>
   value.toLocaleString('es-BO', {
     minimumFractionDigits: decimals,
@@ -116,6 +130,14 @@ export function MacroExplorer({ bundle }: { bundle: MacroBundle }) {
   const [sector, setSector] = useState<string>('TODOS');
   const [search, setSearch] = useState('');
   const [from, setFrom] = useState<number>(1990);
+  /**
+   * Which page of cards is on screen, counted in indicators rather than pages.
+   *
+   * Every slicer resets it. A reader on page four who narrows to eight
+   * indicators would otherwise land on a page that no longer exists and be told
+   * their filter matched nothing.
+   */
+  const [offset, setOffset] = useState(0);
 
   const years = useMemo(() => points.map((point) => Number(point.period)), [points]);
   const minYear = years.length ? Math.min(...years) : 1960;
@@ -183,6 +205,12 @@ export function MacroExplorer({ bundle }: { bundle: MacroBundle }) {
     );
   }, [selected]);
 
+  const pages = Math.max(1, Math.ceil(cards.length / PAGE_SIZE));
+  const page = Math.min(pages, Math.floor(offset / PAGE_SIZE) + 1);
+  const shown = cards.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+  const first = cards.length ? (page - 1) * PAGE_SIZE + 1 : 0;
+  const last = (page - 1) * PAGE_SIZE + shown.length;
+
   const active = (sector === 'TODOS' ? 0 : 1) + (search.trim() ? 1 : 0) + (from > minYear ? 1 : 0);
   const query = new URLSearchParams({
     dataset: 'macro',
@@ -210,7 +238,10 @@ export function MacroExplorer({ bundle }: { bundle: MacroBundle }) {
           <button
             type="button"
             className={sector === 'TODOS' ? 'rail-item rail-item-on' : 'rail-item'}
-            onClick={() => setSector('TODOS')}
+            onClick={() => {
+              setOffset(0);
+              setSector('TODOS');
+            }}
           >
             <Icon name="cajas" size={16} />
             <span className="rail-name">Todos los rubros</span>
@@ -221,7 +252,10 @@ export function MacroExplorer({ bundle }: { bundle: MacroBundle }) {
               key={key}
               type="button"
               className={sector === key ? 'rail-item rail-item-on' : 'rail-item'}
-              onClick={() => setSector(sector === key ? 'TODOS' : key)}
+              onClick={() => {
+                setOffset(0);
+                setSector(sector === key ? 'TODOS' : key);
+              }}
             >
               <Icon name={SECTOR_ICON[key] ?? 'cajas'} size={16} />
               <span className="rail-name">{SECTOR_LABEL[key] ?? key}</span>
@@ -242,7 +276,10 @@ export function MacroExplorer({ bundle }: { bundle: MacroBundle }) {
               min={minYear}
               max={maxYear - 1}
               value={from}
-              onChange={(event) => setFrom(Number(event.target.value))}
+              onChange={(event) => {
+                setOffset(0);
+                setFrom(Number(event.target.value));
+              }}
               style={{ width: '100%' }}
             />
           </div>
@@ -252,7 +289,10 @@ export function MacroExplorer({ bundle }: { bundle: MacroBundle }) {
                 key={year}
                 type="button"
                 className={from === year ? 'chip chip-on' : 'chip'}
-                onClick={() => setFrom(year)}
+                onClick={() => {
+                  setOffset(0);
+                  setFrom(year);
+                }}
               >
                 {year}
               </button>
@@ -271,7 +311,10 @@ export function MacroExplorer({ bundle }: { bundle: MacroBundle }) {
               value={search}
               aria-label="Buscar un indicador por nombre o código"
               placeholder="inflación, reservas, gas…"
-              onChange={(event) => setSearch(event.target.value)}
+              onChange={(event) => {
+                setOffset(0);
+                setSearch(event.target.value);
+              }}
             />
           </div>
         </div>
@@ -335,6 +378,7 @@ export function MacroExplorer({ bundle }: { bundle: MacroBundle }) {
           <h2>{sector === 'TODOS' ? 'Todos los rubros' : (SECTOR_LABEL[sector] ?? sector)}</h2>
           <span className="tile-hint">
             {cards.length} indicador{cards.length === 1 ? '' : 'es'}
+            {asTable || pages === 1 ? '' : ` · ${first}–${last} en pantalla`}
           </span>
           <div className="download">
             <button
@@ -365,15 +409,41 @@ export function MacroExplorer({ bundle }: { bundle: MacroBundle }) {
         {cards.length && asTable ? <MacroTable rows={cards} series={selected} /> : null}
 
         {cards.length && !asTable ? (
-          <div className="card-grid">
-            {cards.map((point) => (
-              <MacroCard
-                key={point.indicatorCode}
-                point={point}
-                series={selected.filter((row) => row.indicatorCode === point.indicatorCode)}
-              />
-            ))}
-          </div>
+          <>
+            {/*
+              A pager above the cards as well as below them.
+              Twenty charts is six thousand pixels of scrolling, so a control
+              only at the bottom means the reader who wants the next page has to
+              travel the whole page they already decided against to reach it.
+            */}
+            <Pager
+              page={page}
+              pages={pages}
+              first={first}
+              last={last}
+              total={cards.length}
+              onGo={setOffset}
+              where="arriba"
+            />
+            <div className="card-grid">
+              {shown.map((point) => (
+                <MacroCard
+                  key={point.indicatorCode}
+                  point={point}
+                  series={selected.filter((row) => row.indicatorCode === point.indicatorCode)}
+                />
+              ))}
+            </div>
+            <Pager
+              page={page}
+              pages={pages}
+              first={first}
+              last={last}
+              total={cards.length}
+              onGo={setOffset}
+              where="abajo"
+            />
+          </>
         ) : null}
 
         {cards.length ? null : (
@@ -381,6 +451,63 @@ export function MacroExplorer({ bundle }: { bundle: MacroBundle }) {
         )}
       </div>
     </div>
+  );
+}
+
+/**
+ * Which page of the cards is on screen, and the way to another.
+ *
+ * It states the range and the total rather than only the page number: "21–40 de
+ * 86" tells a reader both where they are and how much is left, which "página 2
+ * de 5" does on its own only after they have worked out the page size.
+ *
+ * It draws nothing when the whole selection fits on one page — a pager that
+ * can only ever say "página 1 de 1" is a control that does nothing, and the
+ * reader has to read it to find that out.
+ */
+function Pager({
+  page,
+  pages,
+  first,
+  last,
+  total,
+  onGo,
+  where,
+}: {
+  page: number;
+  pages: number;
+  first: number;
+  last: number;
+  total: number;
+  onGo: (offset: number) => void;
+  where: string;
+}) {
+  if (pages <= 1) return null;
+  return (
+    <nav className="pager" aria-label={`Páginas de indicadores (${where})`}>
+      <button
+        type="button"
+        className="pager-step"
+        onClick={() => onGo(Math.max(0, (page - 2) * PAGE_SIZE))}
+        disabled={page <= 1}
+      >
+        <Icon name="plegar" size={14} /> Anteriores
+      </button>
+      <span className="pager-where">
+        <b>
+          {first}–{last}
+        </b>{' '}
+        de <b>{total}</b> · página <b>{page}</b> de <b>{pages}</b>
+      </span>
+      <button
+        type="button"
+        className="pager-step"
+        onClick={() => onGo(page * PAGE_SIZE)}
+        disabled={page >= pages}
+      >
+        Siguientes <Icon name="desplegar" size={14} />
+      </button>
+    </nav>
   );
 }
 
