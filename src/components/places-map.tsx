@@ -47,6 +47,22 @@ const WORLD_WIDTH = 1000;
 const MIN_ASPECT = 0.5;
 const MAX_ASPECT = 1.25;
 
+/**
+ * How much wider than the city its frame may be.
+ *
+ * The frame wants the shape of the screen and the city has a shape of its own,
+ * and neither can simply win. Santa Cruz's premises sit in a patch slightly
+ * taller than it is wide; a landscape monitor asked for a frame three times
+ * wider than tall, which put the city in a band down the middle of a mostly
+ * empty rectangle. Obeying the city instead gave a portrait strip 516 pixels
+ * wide stranded in a panel three times that.
+ *
+ * So the frame moves towards the screen's shape and stops here: at most three
+ * fifths again of the city's own width in surrounding ground, which is enough
+ * to fill a wide panel and not enough to lose the city inside it.
+ */
+const MOST_SPREAD = 1.6;
+
 /** A degree of latitude, and of cosine-corrected longitude, in kilometres. */
 const KM_PER_DEGREE = 111.32;
 
@@ -127,12 +143,19 @@ export function PlacesMap({
     const plot = plotRef.current;
     if (!plot) return;
     const measure = () => {
+      // The room the map is offered, read from the figure around it: the plot's
+      // own width is capped further down from this very number, and measuring
+      // that would be a loop feeding on its own output.
+      const room = plot.parentElement ?? plot;
+      const padding = plot.parentElement
+        ? Number.parseFloat(getComputedStyle(room).paddingLeft) * 2 || 0
+        : 0;
       setBox({
-        width: plot.clientWidth,
+        width: Math.max(room.clientWidth - padding, 1),
         // Room for the caption and the strip of controls to stay on screen
         // with it: a map you have to scroll away from to read its legend is
         // still a map you cannot see.
-        cap: Math.min(window.innerHeight * 0.62, 680),
+        cap: Math.min(window.innerHeight * 0.7, 680),
       });
     };
     measure();
@@ -144,6 +167,9 @@ export function PlacesMap({
       window.removeEventListener('resize', measure);
     };
   }, []);
+
+  /** The shape the screen would like, before the city has a say. */
+  const boxAspect = box.width > 0 && box.cap > 0 ? box.cap / box.width : 0.7;
 
   /**
    * Longitude is compressed by the cosine of the latitude before anything is
@@ -210,7 +236,10 @@ export function PlacesMap({
      * where the premises are. It is pulled back far enough to keep the whole
      * extent inside, so centring never crops anything.
      */
-    const aspect = clamp(rise / span, MIN_ASPECT, MAX_ASPECT);
+    // The city's own proportions, then as much of the screen's as may be had
+    // without hanging more than `MOST_SPREAD` of empty ground around it.
+    const city = clamp(rise / span, MIN_ASPECT, MAX_ASPECT);
+    const aspect = clamp(clamp(boxAspect, city / MOST_SPREAD, city), MIN_ASPECT, MAX_ASPECT);
     const middleOf = (value: number, low: number, high: number, wanted: number): number =>
       clamp(value, high - wanted / 2, low + wanted / 2);
 
@@ -286,7 +315,7 @@ export function PlacesMap({
       /** One world unit, in kilometres. */
       kmPerUnit: (1 / scale) * KM_PER_DEGREE,
     };
-  }, [places]);
+  }, [places, boxAspect]);
 
   /**
    * The width that keeps the drawing inside the height the screen has.
