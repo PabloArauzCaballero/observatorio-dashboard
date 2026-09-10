@@ -47,11 +47,16 @@ const MAX_ASPECT = 1.25;
  *
  * The frame wants the shape of the screen and the city has one of its own, and
  * neither can simply win: a landscape monitor asked for a frame three times
- * wider than tall and put the city in a band down the middle of nothing,
- * while obeying the city gave a portrait strip stranded in a panel three times
- * its width. It moves towards the screen and stops here.
+ * wider than tall, while obeying the city gave a portrait strip stranded in a
+ * panel three times its width. It moves towards the screen and stops here.
+ *
+ * The bound is generous now, and it is the basemap that earned it. Before
+ * there were streets underneath, ground with no premises on it was blank paper
+ * and every extra centimetre of frame was a centimetre of nothing; now it is
+ * the rest of the city — the road the shops are strung along, the river they
+ * stop at — which is worth showing and is why anyone came to a map.
  */
-const MOST_SPREAD = 1.6;
+const MOST_SPREAD = 2.6;
 
 /** Metres across one pixel of a zoom-0 world, at the equator. */
 const METRES_PER_UNIT = 156543.03392;
