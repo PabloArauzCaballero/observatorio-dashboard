@@ -191,9 +191,12 @@ export function PlacesMap({
 
     // A family that sits on one block still needs a frame with a size: about a
     // kilometre and a half across, whatever the zoom.
+    // A kilometre and a half of ground, in units: the width of a unit shrinks
+    // with the cosine of the latitude, so the number of units in a kilometre
+    // grows with its reciprocal.
     const floor =
-      (1.5 / (METRES_PER_UNIT / 1000)) *
-      Math.cosh((latitudeAt((north + south) / 2) * Math.PI) / 180);
+      1.5 /
+      ((METRES_PER_UNIT / 1000) * Math.cos((latitudeAt((north + south) / 2) * Math.PI) / 180));
     if (east - west < floor) {
       const centre = (east + west) / 2;
       west = centre - floor / 2;

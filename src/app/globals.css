@@ -3571,9 +3571,19 @@ button.download-btn {
 .poi-layer {
   fill: var(--official);
   fill-opacity: 0.75;
-  /* A ring of paper around each dot, so a cluster over a street stays legible. */
+  /*
+   * A hairline of paper around each dot, so a cluster over a street stays
+   * legible.
+   *
+   * `vector-effect` is not decoration here. The drawing works in Mercator
+   * units, where a whole city is a fifth of a unit across, so a stroke width
+   * given in user units would be painted thousands of times wider than the map
+   * and cover it end to end. This keeps the line at six tenths of a screen
+   * pixel whatever the zoom.
+   */
   stroke: var(--panel);
-  stroke-width: 0.35;
+  stroke-width: 0.6;
+  vector-effect: non-scaling-stroke;
   paint-order: stroke fill;
 }
 
