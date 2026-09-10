@@ -118,6 +118,20 @@ interface Dot extends Point {
   ly: number;
 }
 
+/**
+ * A catalogue code as a reader would say it.
+ *
+ * The corpus files families and groups in the shouting case Overture uses —
+ * `OTRA_ENTIDAD`, `CULTURAL_AND_HISTORIC` — and the rail beside this map has
+ * always softened them before printing. The card was showing them raw, which
+ * reads as a database leaking through the page rather than as an answer to
+ * «what is this dot».
+ */
+function readable(code: string): string {
+  const words = code.toLowerCase().replaceAll('_', ' ');
+  return words.charAt(0).toUpperCase() + words.slice(1);
+}
+
 function clamp(value: number, low: number, high: number): number {
   return Math.min(Math.max(value, low), high);
 }
@@ -936,9 +950,9 @@ export function PlacesMap({
           >
             <div className="tooltip">
               <div className="t-date">
-                {found.place.entityFamily}
+                {readable(found.place.entityFamily)}
                 {found.place.entityGroup !== found.place.entityFamily
-                  ? ` · ${found.place.entityGroup}`
+                  ? ` · ${readable(found.place.entityGroup)}`
                   : ''}
               </div>
               <strong className="map-card-name">{found.place.name}</strong>
@@ -987,7 +1001,7 @@ export function PlacesMap({
       <figcaption className="places-map-foot">
         {found ? (
           <>
-            <b>{found.place.name}</b> · {found.place.entityFamily}
+            <b>{found.place.name}</b> · {readable(found.place.entityFamily)}
             {found.place.zone ? ` · ${found.place.zone}` : ''}
             {found.place.address ? ` · ${found.place.address}` : ''}
             {found.place.isRegulated ? ' · actividad regulada' : ''}
