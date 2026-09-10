@@ -85,8 +85,10 @@ const UNIT_LABEL: Record<string, string> = {
  * screenful of anyway. Twenty is the most that still draws at once without the
  * wait being felt, and it keeps a page short enough to scan whole.
  *
- * The table is deliberately not paged: its rows carry no chart, and comparing
- * eighty series down a column is the one thing it exists to do.
+ * The table is paged by the same figure. Its rows carry no chart, so weight was
+ * never the reason there — but a table 1.654 rows long is not read either, and
+ * a reader who switches between the two views expects to be looking at the same
+ * twenty indicators, not at twenty in one and every one of them in the other.
  */
 const PAGE_SIZE = 20;
 
@@ -378,7 +380,7 @@ export function MacroExplorer({ bundle }: { bundle: MacroBundle }) {
           <h2>{sector === 'TODOS' ? 'Todos los rubros' : (SECTOR_LABEL[sector] ?? sector)}</h2>
           <span className="tile-hint">
             {cards.length} indicador{cards.length === 1 ? '' : 'es'}
-            {asTable || pages === 1 ? '' : ` · ${first}–${last} en pantalla`}
+            {pages === 1 ? '' : ` · ${first}–${last} en pantalla`}
           </span>
           <div className="download">
             <button
@@ -406,7 +408,29 @@ export function MacroExplorer({ bundle }: { bundle: MacroBundle }) {
           </div>
         </div>
 
-        {cards.length && asTable ? <MacroTable rows={cards} series={selected} /> : null}
+        {cards.length && asTable ? (
+          <>
+            <Pager
+              page={page}
+              pages={pages}
+              first={first}
+              last={last}
+              total={cards.length}
+              onGo={setOffset}
+              where="arriba"
+            />
+            <MacroTable rows={shown} series={selected} total={cards.length} />
+            <Pager
+              page={page}
+              pages={pages}
+              first={first}
+              last={last}
+              total={cards.length}
+              onGo={setOffset}
+              where="abajo"
+            />
+          </>
+        ) : null}
 
         {cards.length && !asTable ? (
           <>
@@ -673,7 +697,16 @@ function MacroCard({ point, series }: { point: MacroPoint; series: MacroPoint[] 
  * filter pane stays where it is — a reader comparing rows still needs to be
  * able to change what is in them.
  */
-function MacroTable({ rows, series }: { rows: MacroPoint[]; series: MacroPoint[] }) {
+function MacroTable({
+  rows,
+  series,
+  total,
+}: {
+  rows: MacroPoint[];
+  series: MacroPoint[];
+  /** The whole selection, of which `rows` is the page on screen. */
+  total: number;
+}) {
   const history = new Map<string, { first: string; last: string; count: number }>();
   for (const point of series) {
     const held = history.get(point.indicatorCode);
@@ -733,7 +766,9 @@ function MacroTable({ rows, series }: { rows: MacroPoint[]; series: MacroPoint[]
         <tfoot>
           <tr>
             <td colSpan={3}>
-              {rows.length} indicador{rows.length === 1 ? '' : 'es'}
+              {rows.length === total
+                ? `${total} indicador${total === 1 ? '' : 'es'}`
+                : `${rows.length} de ${total} indicadores en esta página`}
             </td>
             <td colSpan={5} className="num">
               {series.length.toLocaleString('es-BO')} observaciones anuales en la selección
