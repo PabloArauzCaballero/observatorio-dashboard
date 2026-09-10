@@ -2624,6 +2624,22 @@ button.term-chip:hover {
 }
 
 /*
+ * Some of these takes are a button and not a link.
+ *
+ * A PNG of the map, and the rows the browser already holds, have no address to
+ * point at: they are made where the reader is standing. They have to look like
+ * the takes beside them all the same, so the element's own chrome is removed.
+ */
+button.download-btn {
+  cursor: pointer;
+  font: inherit;
+  font-family: var(--mono);
+  font-size: 0.75rem;
+  letter-spacing: 0.06em;
+  appearance: none;
+}
+
+/*
  * Four controls on a strap that was built for two.
  *
  * Adding the view switch beside the downloads pushed the row past a phone's
@@ -2652,6 +2668,20 @@ button.term-chip:hover {
     justify-content: center;
     /* A control a thumb has to hit, like every other one on a phone. */
     padding-block: 0.45rem;
+  }
+
+  /*
+   * Except on the map's own strap, where they share the row with the zoom.
+   * Stretched to fill, a lone «PNG» becomes a banner across the map and reads
+   * as the section's main action rather than one take among three.
+   */
+  .places-map-tools .download-btn {
+    flex: 0 1 auto;
+  }
+
+  /* A divider between two groups means nothing once the groups are stacked. */
+  .places-map-sep {
+    display: none;
   }
 }
 
@@ -3145,10 +3175,20 @@ button.term-chip:hover {
   }
 }
 
+/*
+ * The frame is the drawing, exactly.
+ *
+ * It used to be capped with `max-height`, which does not shorten an SVG: it
+ * letterboxes it. The box stayed as wide as its column while the country inside
+ * shrank to fit the height, and the hover card — placed as a percentage of the
+ * box — ended up as much as eighty pixels away from the mark it belonged to.
+ * Capping the width instead keeps box and drawing the same rectangle, so the
+ * card lands on its point at every size.
+ */
 .map-frame {
   position: relative;
   width: 100%;
-  max-height: 74vh;
+  max-width: calc(74vh * var(--map-aspect, 0.884));
   margin-inline: auto;
 }
 
@@ -3308,6 +3348,10 @@ button.term-chip:hover {
  * A scatter of premises with no basemap under it: tiles would call a third
  * party on every pan and hand it the reader's address, and several thousand
  * shops already draw the avenues on their own.
+ *
+ * What the scatter needed was not a basemap but a way in. It zooms, it pans and
+ * it says how far a centimetre is, because a city drawn at municipal scale is
+ * one dark patch and nothing else.
  */
 .places-map {
   margin: 0;
@@ -3317,37 +3361,198 @@ button.term-chip:hover {
   padding: var(--s2);
 }
 
-.places-map svg {
+.places-map-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s1) var(--s2);
+  margin-bottom: var(--s2);
+}
+
+.places-map-keys {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.9rem;
+  font-size: 0.76rem;
+  color: var(--ink-faint);
+}
+
+.places-map-key {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.places-map-swatch {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--official);
+  opacity: 0.75;
+}
+
+.places-map-swatch-reg {
+  background: var(--parallel);
+  opacity: 0.9;
+}
+
+.places-map-zoom-read {
+  font-family: var(--mono);
+  font-size: 0.7rem;
+  letter-spacing: 0.04em;
+}
+
+.places-map-tools {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.places-map-sep {
+  width: 1px;
+  height: 1.1rem;
+  background: var(--rule);
+  margin: 0 0.25rem;
+}
+
+/* The zoom controls: the same pill as a download, doing a different job. */
+.map-tool {
+  font-family: var(--mono);
+  font-size: 0.78rem;
+  line-height: 1;
+  min-width: 1.9rem;
+  padding: 0.38rem 0.5rem;
+  border: 1px solid var(--rule);
+  border-radius: 999px;
+  background: var(--panel);
+  color: var(--ink-soft);
+  cursor: pointer;
+  transition:
+    border-color var(--fast) var(--ease),
+    color var(--fast) var(--ease),
+    background var(--fast) var(--ease);
+}
+
+.map-tool-wide {
+  min-width: 0;
+  padding: 0.38rem 0.75rem;
+  font-family: var(--sans);
+  font-size: 0.72rem;
+}
+
+.map-tool:hover {
+  border-color: var(--ink-soft);
+  color: var(--ink);
+}
+
+.map-tool-on {
+  background: var(--ink);
+  border-color: var(--ink);
+  color: var(--panel);
+}
+
+.places-map-plot {
+  position: relative;
+}
+
+.places-map-svg {
   width: 100%;
   height: auto;
   display: block;
-}
-
-.poi {
-  fill: var(--official);
+  background: var(--panel-tint);
+  border: 1px solid var(--rule-soft);
+  border-radius: calc(var(--radius) - 4px);
+  /* A map you drag has to say so before it is dragged. */
+  cursor: grab;
   /*
-   * Semi-transparent on purpose: where two premises sit on the same block the
-   * overlap darkens, so density reads off the page without a heat map that
-   * would invent a surface the data does not have.
+   * A finger moving down the screen scrolls the article, and does not pan.
+   *
+   * `touch-action: none` would give the map every gesture inside it, which on a
+   * phone means a reader who puts a thumb on a figure half the height of the
+   * screen cannot get past it. Sideways drags still pan, the buttons still
+   * frame, and the page keeps moving.
    */
-  fill-opacity: 0.55;
-  transition: r 120ms ease;
+  touch-action: pan-y pinch-zoom;
 }
 
-.poi-regulated {
+.places-map-svg:active {
+  cursor: grabbing;
+}
+
+/*
+ * Every dot of one kind in a single path.
+ *
+ * Semi-transparent on purpose: where two premises sit on the same block the
+ * overlap darkens, so density reads off the page without a heat map that would
+ * invent a surface the data does not have.
+ */
+.poi-layer {
+  fill: var(--official);
+  fill-opacity: 0.6;
+}
+
+.poi-layer-regulated {
   fill: var(--parallel);
-  fill-opacity: 0.75;
+  fill-opacity: 0.85;
 }
 
-.poi:hover {
-  fill-opacity: 1;
+.poi-halo {
+  fill: var(--ink);
+  fill-opacity: 0.12;
+}
+
+.poi-core {
+  fill: var(--ink);
+  fill-opacity: 0.95;
+}
+
+/*
+ * The scale bar: a scatter with no distance on it cannot be read.
+ *
+ * It spans the plot edge to edge and carries no padding of its own, because the
+ * bar's width is a percentage of its parent and the parent has to be exactly as
+ * wide as the drawing. A bar sized against a padded box would be a scale bar
+ * that states a distance it is not.
+ */
+.places-map-scale {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0.7rem;
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  pointer-events: none;
+  font-size: 0.68rem;
+  font-family: var(--mono);
+  color: var(--ink-soft);
+}
+
+.places-map-scale-bar {
+  display: block;
+  height: 6px;
+  min-width: 10px;
+  margin-left: 0.85rem;
+  border: 1px solid var(--ink-soft);
+  border-top: 0;
+  background: color-mix(in srgb, var(--ink-soft) 22%, transparent);
+}
+
+.places-map-scale-text {
+  background: color-mix(in srgb, var(--panel) 82%, transparent);
+  border-radius: 999px;
+  padding: 0.05rem 0.4rem;
 }
 
 .places-map-foot {
   margin-top: var(--s2);
   color: var(--ink-soft);
   font-size: 0.86rem;
-  min-height: 1.4em;
+  min-height: 2.6em;
+  line-height: 1.5;
 }
 
 /* Mientras se arma el tablero --------------------------------------------- */

@@ -1,8 +1,9 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useCallback, useMemo, useRef, useState } from 'react';
 import { DEPARTMENTS, MAP_BOX, PLACE_POINTS } from '@/lib/bolivia-map';
 import { Icon } from './icons';
+import { downloadRows, downloadSvgAsPng } from './map-download';
 import {
   FORM_LABEL,
   GOODS_LABEL,
@@ -141,6 +142,37 @@ export function PlacesExplorer({
   // is never an empty box waiting to be told what to say.
   const [selected, setSelected] = useState<string>(() => places[0]?.code ?? '');
   const [hovered, setHovered] = useState<string | null>(null);
+  const svgRef = useRef<SVGSVGElement | null>(null);
+
+  /**
+   * What the map is drawn from, as a table.
+   *
+   * Every other section offers its numbers as a file and this one did not, so a
+   * reader who wanted the counts behind the marks had to read them off the
+   * drawing one at a time. The rows are the ones already on the page — the
+   * places without a point included, because leaving them out of the file would
+   * make the national figures vanish rather than be filed as what they are.
+   */
+  const rows = useMemo(
+    () =>
+      places.map((place) => ({
+        codigo: place.code,
+        lugar: place.label,
+        clase: place.kind,
+        en_el_mapa: place.x !== null,
+        anotaciones: place.records,
+        notas_de_prensa: place.articles,
+        lecturas_de_comercio: place.readings.length,
+        mezclas_de_canal: place.mix.length,
+        brechas: place.gaps.length,
+      })),
+    [places],
+  );
+
+  const savePng = useCallback(() => {
+    const svg = svgRef.current;
+    if (svg) downloadSvgAsPng(svg, { fileName: 'observatorio-mapa-bolivia' });
+  }, []);
 
   const shown = places.find((place) => place.code === (hovered ?? selected)) ?? places[0];
   const detail = places.find((place) => place.code === selected) ?? places[0];
@@ -178,10 +210,16 @@ export function PlacesExplorer({
         <div className="map-layout">
           <div
             className="map-frame"
-            style={{ aspectRatio: `${MAP_BOX.width} / ${MAP_BOX.height}` }}
+            style={{
+              aspectRatio: `${MAP_BOX.width} / ${MAP_BOX.height}`,
+              // The width cap needs the same proportion the box has, or the
+              // drawing and the box stop being the same rectangle.
+              ['--map-aspect' as string]: String(MAP_BOX.width / MAP_BOX.height),
+            }}
             onMouseLeave={() => setHovered(null)}
           >
             <svg
+              ref={svgRef}
               viewBox={`0 0 ${MAP_BOX.width} ${MAP_BOX.height}`}
               className="map-svg"
               role="img"
@@ -291,6 +329,34 @@ export function PlacesExplorer({
               </>
             ) : null}
           </div>
+        </div>
+
+        <div className="download" style={{ marginTop: 'var(--s3)' }}>
+          <span className="download-label">
+            El mapa, y las {count(places.length)} filas que lo dibujan.
+          </span>
+          <button type="button" className="download-btn" onClick={savePng}>
+            <Icon name="descarga" size={13} />
+            PNG
+          </button>
+          <button
+            type="button"
+            className="download-btn"
+            onClick={() =>
+              downloadRows(rows, { fileName: 'observatorio-mapa-bolivia', format: 'csv' })
+            }
+          >
+            CSV
+          </button>
+          <button
+            type="button"
+            className="download-btn"
+            onClick={() =>
+              downloadRows(rows, { fileName: 'observatorio-mapa-bolivia', format: 'json' })
+            }
+          >
+            JSON
+          </button>
         </div>
       </div>
 

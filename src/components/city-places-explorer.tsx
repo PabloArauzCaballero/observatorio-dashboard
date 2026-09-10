@@ -101,6 +101,19 @@ export function CityPlacesExplorer({ families }: { families: PlaceFamily[] }) {
   }
 
   const chosen = family ? inCity.find((row) => row.entityFamily === family) : undefined;
+
+  /**
+   * The file follows the selection, and carries the whole of it.
+   *
+   * The map stops at four thousand premises because past that it is a blot; the
+   * file does not, so the note under it says which of the two the reader has.
+   */
+  const fileQuery = new URLSearchParams({ dataset: 'lugares', ciudad: city });
+  if (family) fileQuery.set('familia', family);
+  const slug = `lugares-${city
+    .toLocaleLowerCase('es')
+    .replaceAll(/[^a-z0-9]+/gu, '-')
+    .replace(/^-|-$/gu, '')}${family ? `-${family.toLocaleLowerCase('es')}` : ''}`;
   // El lector tiene que poder distinguir «esto es la ciudad entera» de «esto es
   // lo que cabe en el mapa». Un mapa recortado sin decirlo es un mapa que miente.
   const truncated = total > places.length;
@@ -204,7 +217,12 @@ export function CityPlacesExplorer({ families }: { families: PlaceFamily[] }) {
               </div>
             </div>
           ) : (
-            <PlacesMap places={places} />
+            <PlacesMap
+              places={places}
+              csvHref={`/api/export?${fileQuery.toString()}&format=csv`}
+              jsonHref={`/api/export?${fileQuery.toString()}&format=json`}
+              fileName={slug}
+            />
           )}
           <p className="card-note">
             {chosen ? (
@@ -218,8 +236,8 @@ export function CityPlacesExplorer({ families }: { families: PlaceFamily[] }) {
             {truncated ? (
               <>
                 El mapa dibuja {NUMBER.format(places.length)} de {NUMBER.format(total)}, los de
-                mayor confianza: dibujarlos todos deja una mancha, no un mapa. Elige una familia
-                para verla completa.
+                mayor confianza: dibujarlos todos deja una mancha, no un mapa. Elegí una familia
+                para verla completa, o descargá el CSV, que trae los {NUMBER.format(total)}.
               </>
             ) : (
               <>Se dibujan los {NUMBER.format(places.length)}.</>

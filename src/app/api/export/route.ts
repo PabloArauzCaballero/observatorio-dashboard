@@ -1,3 +1,4 @@
+import { readPlacesForExport } from '@/lib/places';
 import {
   readCompanyFilings,
   readMacroAnnual,
@@ -19,7 +20,7 @@ export const dynamic = 'force-dynamic';
 
 type Row = Record<string, string | number | boolean | null>;
 
-const DATASETS = ['series', 'macro', 'filings', 'prensa', 'temas'] as const;
+const DATASETS = ['series', 'macro', 'filings', 'prensa', 'temas', 'lugares'] as const;
 type Dataset = (typeof DATASETS)[number];
 
 const UNITS: Record<string, string> = {
@@ -44,13 +45,23 @@ interface Selection {
   /** Filings only: the issuer and the kind of filing the panel was slicing by. */
   filer?: string | undefined;
   category?: string | undefined;
-  /** Press only: the year and the watched term the panel was slicing by. */
+  /**
+   * The calendar year the panel was slicing by, on press and on subjects.
+   *
+   * A single year is the filter a reader reaches for — "what was said in 2024" —
+   * and a «desde» alone cannot express it: that gives everything from 2024
+   * onwards. It stays its own field so the file and the panel agree exactly.
+   */
   year?: string | undefined;
   term?: string | undefined;
   /** Subjects only: the family of watched terms the panel was slicing by. */
   family?: string | undefined;
+  /** Places only: the city the map was showing. The family is `family` above. */
+  city?: string | undefined;
   /** A year on the macro panel, a calendar date on the exchange-rate one. */
   from?: string | undefined;
+  /** The far end of the same range, inclusive, where the panel offers one. */
+  until?: string | undefined;
   search?: string | undefined;
 }
 
@@ -80,6 +91,29 @@ async function collect(dataset: Dataset, selection: Selection): Promise<Row[]> {
       }));
   }
 
+  if (dataset === 'lugares') {
+    // The map draws at most four thousand premises because past that a drawing
+    // is a blot; the file has no such reason to stop, so it carries the whole
+    // selection. The panel says which of the two the reader is looking at.
+    if (!selection.city) return [];
+    return (await readPlacesForExport(selection.city, selection.family ?? null)).map((place) => ({
+      ciudad: place.city,
+      nombre: place.name,
+      grupo: place.entityGroup,
+      familia: place.entityFamily,
+      barrio: place.zone,
+      direccion: place.address,
+      marca: place.brand,
+      latitud: place.latitude,
+      longitud: place.longitude,
+      actividad_regulada: place.isRegulated,
+      registro_que_lo_confirmaria: place.officialValidationSource,
+      confianza: place.confidence,
+      grado_de_calidad: place.qualityGrade,
+      id_de_lugar: place.placeId,
+    }));
+  }
+
   if (dataset === 'temas') {
     // The dated table the subjects panel draws every one of its charts from:
     // one row per watched subject per month, with the tone counts that make up
@@ -88,12 +122,24 @@ async function collect(dataset: Dataset, selection: Selection): Promise<Row[]> {
     const search = selection.search?.trim().toLocaleLowerCase('es');
     // A year is a legal «desde» here and a month is what the rows are dated by.
     const since = selection.from?.slice(0, 7);
+    // «hasta» includes the month it names, so a bare year has to be widened to
+    // its December: «hasta=2024» means all of 2024, and '2024-07' <= '2024' is
+    // false.
+    const until =
+      selection.until === undefined
+        ? undefined
+        : selection.until.length === 4
+          ? `${selection.until}-12`
+          : selection.until.slice(0, 7);
+    const year = selection.year?.trim();
     return (await readTermMonths())
       .filter(
         (row) =>
           (!selection.family || row.family === selection.family) &&
           (!selection.term || row.term === selection.term) &&
+          (!year || row.month.slice(0, 4) === year) &&
           (since === undefined || row.month >= since) &&
+          (until === undefined || row.month <= until) &&
           (!search ||
             row.label.toLocaleLowerCase('es').includes(search) ||
             row.term.toLocaleLowerCase('es').includes(search)),
@@ -228,7 +274,11 @@ export async function GET(request: Request): Promise<Response> {
   }
 
   try {
+    // A month is a legal end of a range: the subjects panel is dated by month,
+    // and refusing «2024-07» would silently widen the file to the whole year.
+    const dated = /^\d{4}(-\d{2}(-\d{2})?)?$/u;
     const from = url.searchParams.get('desde')?.trim();
+    const until = url.searchParams.get('hasta')?.trim();
     const rows = await collect(dataset, {
       sector: url.searchParams.get('sector') ?? undefined,
       topic: url.searchParams.get('tema') ?? undefined,
@@ -240,7 +290,9 @@ export async function GET(request: Request): Promise<Response> {
       year: url.searchParams.get('anio') ?? undefined,
       term: url.searchParams.get('termino') ?? undefined,
       family: url.searchParams.get('familia') ?? undefined,
-      from: from && /^\d{4}(-\d{2}-\d{2})?$/u.test(from) ? from : undefined,
+      city: url.searchParams.get('ciudad') ?? undefined,
+      from: from && dated.test(from) ? from : undefined,
+      until: until && dated.test(until) ? until : undefined,
       search: url.searchParams.get('buscar') ?? undefined,
     });
     const body =

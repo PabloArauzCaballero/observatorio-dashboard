@@ -1,6 +1,8 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { Icon } from './icons';
+import { downloadSvgAsPng } from './map-download';
 import type { Place } from '@/lib/places';
 
 /**
@@ -13,15 +15,86 @@ import type { Place } from '@/lib/places';
  * draw the shape of a city on their own — the avenues appear as lines of dots
  * because that is where the premises are.
  *
- * The frame is the extent of what is being shown, recomputed per selection: a
- * fixed frame around the whole municipality would put twenty pharmacies in one
- * corner of an empty rectangle.
+ * Two things were wrong with the first version and both are fixed here.
+ *
+ * The frame was the extent of every point, so a single mis-geocoded pharmacy
+ * forty kilometres out of town set the scale for the whole city: the fourteen
+ * thousand premises that matter collapsed into a blot in the middle of an empty
+ * rectangle. The frame is now the extent of the *bulk* of the points — the
+ * middle 96% on each axis — and the stragglers are counted out loud in the
+ * caption instead of silently deciding the zoom.
+ *
+ * And a map you cannot get closer to is a picture. This one zooms and pans, so
+ * the blot of a whole city opens into blocks and avenues, and it carries a
+ * scale bar because a scatter with no distance on it cannot be read.
  */
 
-const BOX = { width: 1000, height: 720 } as const;
-const PAD = 26;
+/** How wide the drawing is in its own units. Height follows the data. */
+const WORLD_WIDTH = 1000;
 
-export function PlacesMap({ places }: { places: Place[] }) {
+/**
+ * The shape of the box, bounded.
+ *
+ * The frame takes the proportions of the city so the drawing is not a stripe of
+ * ink in an empty field, but a municipality that is eight times longer than it
+ * is wide would still give a sliver nobody can read. Past these bounds the
+ * short side is widened — extra ground around the city, never a stretched city.
+ */
+const MIN_ASPECT = 0.55;
+const MAX_ASPECT = 1.15;
+
+/** A degree of latitude, and of cosine-corrected longitude, in kilometres. */
+const KM_PER_DEGREE = 111.32;
+
+/** How far in and out the reader may go, as a multiple of the whole frame. */
+const MAX_ZOOM = 60;
+const MIN_ZOOM = 0.9;
+
+/** The distances a scale bar is allowed to state, in kilometres. */
+const SCALE_STEPS = [0.05, 0.1, 0.2, 0.5, 1, 2, 5, 10, 20, 50, 100] as const;
+
+interface Rect {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}
+
+interface Dot {
+  place: Place;
+  x: number;
+  y: number;
+}
+
+function clamp(value: number, low: number, high: number): number {
+  return Math.min(Math.max(value, low), high);
+}
+
+/**
+ * The value at a position in a sorted list, without sorting twice.
+ *
+ * Used to cut the extent at the 2nd and 98th percentile: enough to drop the
+ * handful of points that are somewhere else entirely, never enough to drop a
+ * real outskirt.
+ */
+function at(sorted: number[], fraction: number): number {
+  if (sorted.length === 0) return 0;
+  const index = clamp(Math.round((sorted.length - 1) * fraction), 0, sorted.length - 1);
+  return sorted[index] as number;
+}
+
+export function PlacesMap({
+  places,
+  csvHref,
+  jsonHref,
+  fileName = 'lugares',
+}: {
+  places: Place[];
+  /** Where the same selection can be had as a file, if the caller offers one. */
+  csvHref?: string;
+  jsonHref?: string;
+  fileName?: string;
+}) {
   /**
    * Which place the pointer is over, held here rather than lifted to the
    * chapter above. Nothing outside this figure reacts to a hover, and a
@@ -30,13 +103,16 @@ export function PlacesMap({ places }: { places: Place[] }) {
    */
   const [hovered, setHovered] = useState<string | null>(null);
 
+  const svgRef = useRef<SVGSVGElement | null>(null);
+
   /**
    * Longitude is compressed by the cosine of the latitude before anything is
    * scaled. Without it a city seventeen degrees south comes out stretched
    * sideways by about a twentieth, which is enough to bend a straight avenue.
    */
-  const projected = useMemo(() => {
-    if (places.length === 0) return [];
+  const layout = useMemo(() => {
+    if (places.length === 0) return null;
+
     const middle = places.reduce((sum, place) => sum + place.latitude, 0) / places.length;
     const squeeze = Math.cos((middle * Math.PI) / 180);
     const points = places.map((place) => ({
@@ -45,64 +121,485 @@ export function PlacesMap({ places }: { places: Place[] }) {
       north: place.latitude,
     }));
 
-    const easts = points.map((point) => point.east);
-    const norths = points.map((point) => point.north);
-    const west = Math.min(...easts);
-    const span = Math.max(Math.max(...easts) - west, 1e-6);
-    const south = Math.min(...norths);
-    const rise = Math.max(Math.max(...norths) - south, 1e-6);
-    // One scale for both axes, so the city keeps its proportions instead of
-    // being stretched to fill the frame.
-    const scale = Math.min((BOX.width - PAD * 2) / span, (BOX.height - PAD * 2) / rise);
-    const offsetX = (BOX.width - span * scale) / 2;
-    const offsetY = (BOX.height - rise * scale) / 2;
+    const easts = points.map((point) => point.east).sort((left, right) => left - right);
+    const norths = points.map((point) => point.north).sort((left, right) => left - right);
 
-    return points.map(({ place, east, north }) => ({
+    // Under a few dozen places every one of them is the map; trimming there
+    // would throw away a quarter of the evidence to tidy the frame.
+    const trim = points.length >= 40 ? 0.02 : 0;
+    let west = at(easts, trim);
+    let east = at(easts, 1 - trim);
+    let south = at(norths, trim);
+    let north = at(norths, 1 - trim);
+
+    // A single place, or a family that sits on one block, still needs a frame
+    // with a size: about a kilometre and a half across.
+    const FLOOR = 0.014;
+    if (east - west < FLOOR) {
+      const centre = (east + west) / 2;
+      west = centre - FLOOR / 2;
+      east = centre + FLOOR / 2;
+    }
+    if (north - south < FLOOR) {
+      const centre = (north + south) / 2;
+      south = centre - FLOOR / 2;
+      north = centre + FLOOR / 2;
+    }
+
+    // A margin, so the outermost premises are not welded to the border.
+    const margin = 0.045;
+    const padX = (east - west) * margin;
+    const padY = (north - south) * margin;
+    west -= padX;
+    east += padX;
+    south -= padY;
+    north += padY;
+
+    let span = east - west;
+    let rise = north - south;
+
+    // Widen the short side rather than stretch either one: the scale has to
+    // stay the same on both axes or the city changes shape.
+    const aspect = clamp(rise / span, MIN_ASPECT, MAX_ASPECT);
+    if (rise / span < aspect) {
+      const wanted = span * aspect;
+      const centre = (north + south) / 2;
+      south = centre - wanted / 2;
+      north = centre + wanted / 2;
+      rise = wanted;
+    } else if (rise / span > aspect) {
+      const wanted = rise / aspect;
+      const centre = (east + west) / 2;
+      west = centre - wanted / 2;
+      east = centre + wanted / 2;
+      span = wanted;
+    }
+
+    const height = WORLD_WIDTH * aspect;
+    const scale = WORLD_WIDTH / span;
+
+    const dots: Dot[] = points.map(({ place, east: pointEast, north: pointNorth }) => ({
       place,
-      x: offsetX + (east - west) * scale,
+      x: (pointEast - west) * scale,
       // North is up on the page and down in SVG coordinates.
-      y: BOX.height - offsetY - (north - south) * scale,
+      y: height - (pointNorth - south) * scale,
     }));
+
+    // The frame itself is the floor of «everything»: a whole-extent view that
+    // did not contain the city would be a stranger view than the one it fixes.
+    let outside = 0;
+    let farLeft = 0;
+    let farRight = WORLD_WIDTH;
+    let farTop = 0;
+    let farBottom = height;
+    for (const dot of dots) {
+      const off = dot.x < 0 || dot.x > WORLD_WIDTH || dot.y < 0 || dot.y > height;
+      if (off) outside += 1;
+      farLeft = Math.min(farLeft, dot.x);
+      farRight = Math.max(farRight, dot.x);
+      farTop = Math.min(farTop, dot.y);
+      farBottom = Math.max(farBottom, dot.y);
+    }
+
+    /** Everything, stragglers included, in the same proportions as the frame. */
+    const wholeWidth = Math.max(farRight - farLeft, WORLD_WIDTH) * 1.04;
+    const whole: Rect = {
+      x: (farLeft + farRight) / 2 - wholeWidth / 2,
+      y: (farTop + farBottom) / 2 - (wholeWidth * aspect) / 2,
+      width: wholeWidth,
+      height: wholeWidth * aspect,
+    };
+
+    /**
+     * A grid over the frame, so telling which place the pointer is near costs a
+     * glance at nine cells instead of a walk over four thousand points.
+     */
+    const cell = WORLD_WIDTH / 48;
+    const buckets = new Map<string, Dot[]>();
+    for (const dot of dots) {
+      const key = `${Math.floor(dot.x / cell)}:${Math.floor(dot.y / cell)}`;
+      const bucket = buckets.get(key);
+      if (bucket) bucket.push(dot);
+      else buckets.set(key, [dot]);
+    }
+
+    return {
+      dots,
+      height,
+      whole,
+      outside,
+      cell,
+      buckets,
+      /** One world unit, in kilometres. */
+      kmPerUnit: (1 / scale) * KM_PER_DEGREE,
+    };
   }, [places]);
 
-  if (projected.length === 0) {
+  const home: Rect = useMemo(
+    () => ({ x: 0, y: 0, width: WORLD_WIDTH, height: layout?.height ?? 720 }),
+    [layout?.height],
+  );
+
+  const [view, setView] = useState<Rect>(home);
+  /** The frame the reader is on, so «volver» is a state and not a guess. */
+  const [framed, setFramed] = useState<'ciudad' | 'todo'>('ciudad');
+
+  // A new selection is a new city: the old window would be pointing at ground
+  // this family does not stand on.
+  const signature = `${places.length}:${places[0]?.placeId ?? ''}`;
+  const lastSignature = useRef(signature);
+  if (lastSignature.current !== signature) {
+    lastSignature.current = signature;
+    if (view !== home) setView(home);
+    if (framed !== 'ciudad') setFramed('ciudad');
+  }
+
+  /** How far in the reader is, as a multiple of the whole frame. */
+  const zoom = WORLD_WIDTH / view.width;
+
+  /**
+   * Ink per point, thinned as the crowd grows and kept roughly the same size on
+   * screen as the reader closes in. Quantised so that panning — which does not
+   * change it — never rebuilds the drawing.
+   */
+  const radius = useMemo(() => {
+    const count = places.length;
+    const base = count > 3000 ? 2.7 : count > 1200 ? 3.3 : count > 400 ? 4.2 : 5.4;
+    return Math.round((base / Math.pow(zoom, 0.68)) * 20) / 20;
+  }, [places.length, zoom]);
+
+  /**
+   * Every dot in two strings, one per kind.
+   *
+   * Four thousand `<circle>` elements is four thousand nodes the browser lays
+   * out, hit-tests and repaints on every pan; two paths is two. The hover is
+   * answered from the grid above instead of from the DOM, which is also what
+   * removed the flickering native tooltip.
+   */
+  const paths = useMemo(() => {
+    if (!layout) return { plain: '', regulated: '' };
+    const plain: string[] = [];
+    const regulated: string[] = [];
+    const r = radius;
+    const d = r * 2;
+    for (const dot of layout.dots) {
+      const x = Math.round(dot.x * 10) / 10;
+      const y = Math.round(dot.y * 10) / 10;
+      const arc = `M${x} ${y}m-${r} 0a${r} ${r} 0 1 0 ${d} 0a${r} ${r} 0 1 0 -${d} 0`;
+      (dot.place.isRegulated ? regulated : plain).push(arc);
+    }
+    return { plain: plain.join(''), regulated: regulated.join('') };
+  }, [layout, radius]);
+
+  const found = useMemo(
+    () => (hovered ? layout?.dots.find((dot) => dot.place.placeId === hovered) : undefined),
+    [layout, hovered],
+  );
+
+  /** Where a client point falls in the drawing's own coordinates. */
+  const toWorld = useCallback(
+    (clientX: number, clientY: number): { x: number; y: number } | null => {
+      const svg = svgRef.current;
+      if (!svg) return null;
+      const box = svg.getBoundingClientRect();
+      if (box.width === 0 || box.height === 0) return null;
+      return {
+        x: view.x + ((clientX - box.left) / box.width) * view.width,
+        y: view.y + ((clientY - box.top) / box.height) * view.height,
+      };
+    },
+    [view],
+  );
+
+  const keepInside = useCallback(
+    (next: Rect): Rect => {
+      const bounds = layout?.whole ?? home;
+      // Room to breathe around the city, never a window adrift in empty space.
+      const slackX = bounds.width * 0.25;
+      const slackY = bounds.height * 0.25;
+      return {
+        ...next,
+        x: clamp(next.x, bounds.x - slackX, bounds.x + bounds.width + slackX - next.width),
+        y: clamp(next.y, bounds.y - slackY, bounds.y + bounds.height + slackY - next.height),
+      };
+    },
+    [layout?.whole, home],
+  );
+
+  /** Zoom about a fixed point, so the ground under the cursor stays put. */
+  const zoomBy = useCallback(
+    (factor: number, anchor?: { x: number; y: number }) => {
+      setView((current) => {
+        const wanted = current.width / factor;
+        // Far enough out to hold everything there is, even when a straggler
+        // puts «everything» well outside the city's own frame: a reader who
+        // pressed «Todo» and then «−» must not be thrown back into town.
+        const widest = Math.max(WORLD_WIDTH / MIN_ZOOM, layout?.whole.width ?? 0);
+        const width = clamp(wanted, WORLD_WIDTH / MAX_ZOOM, widest);
+        const ratio = width / current.width;
+        const point = anchor ?? {
+          x: current.x + current.width / 2,
+          y: current.y + current.height / 2,
+        };
+        return keepInside({
+          x: point.x - (point.x - current.x) * ratio,
+          y: point.y - (point.y - current.y) * ratio,
+          width,
+          height: current.height * ratio,
+        });
+      });
+      setFramed('ciudad');
+    },
+    [keepInside, layout?.whole.width],
+  );
+
+  /** The drag, held in a ref: a pan must not re-render on every pixel. */
+  const drag = useRef<{ id: number; x: number; y: number; moved: boolean } | null>(null);
+
+  const onPointerDown = useCallback((event: React.PointerEvent<SVGSVGElement>) => {
+    if (event.button !== 0) return;
+    drag.current = { id: event.pointerId, x: event.clientX, y: event.clientY, moved: false };
+    event.currentTarget.setPointerCapture(event.pointerId);
+  }, []);
+
+  const onPointerMove = useCallback(
+    (event: React.PointerEvent<SVGSVGElement>) => {
+      const held = drag.current;
+      const svg = svgRef.current;
+      if (!svg) return;
+
+      if (held && held.id === event.pointerId) {
+        const box = svg.getBoundingClientRect();
+        const dx = ((event.clientX - held.x) / box.width) * view.width;
+        const dy = ((event.clientY - held.y) / box.height) * view.height;
+        if (Math.abs(event.clientX - held.x) + Math.abs(event.clientY - held.y) > 3) {
+          held.moved = true;
+        }
+        held.x = event.clientX;
+        held.y = event.clientY;
+        if (held.moved) {
+          setView((current) => keepInside({ ...current, x: current.x - dx, y: current.y - dy }));
+          if (hovered) setHovered(null);
+        }
+        return;
+      }
+
+      if (!layout) return;
+      const world = toWorld(event.clientX, event.clientY);
+      if (!world) return;
+
+      // Within about ten screen pixels of a point, that point is the answer.
+      const reach = (view.width / svg.getBoundingClientRect().width) * 11;
+      const column = Math.floor(world.x / layout.cell);
+      const row = Math.floor(world.y / layout.cell);
+      let best: Dot | null = null;
+      let bestDistance = reach * reach;
+      for (let dc = -1; dc <= 1; dc += 1) {
+        for (let dr = -1; dr <= 1; dr += 1) {
+          const bucket = layout.buckets.get(`${column + dc}:${row + dr}`);
+          if (!bucket) continue;
+          for (const dot of bucket) {
+            const distance = (dot.x - world.x) ** 2 + (dot.y - world.y) ** 2;
+            if (distance < bestDistance) {
+              bestDistance = distance;
+              best = dot;
+            }
+          }
+        }
+      }
+      const next = best?.place.placeId ?? null;
+      if (next !== hovered) setHovered(next);
+    },
+    [layout, view, hovered, keepInside, toWorld],
+  );
+
+  const endDrag = useCallback((event: React.PointerEvent<SVGSVGElement>) => {
+    if (drag.current?.id === event.pointerId) drag.current = null;
+  }, []);
+
+  /**
+   * The wheel is bound by hand, and not through `onWheel`.
+   *
+   * React registers its own wheel listener as passive, which makes
+   * `preventDefault` a no-op: the reader would zoom the map and scroll the
+   * article at the same time. A listener attached here can refuse the scroll.
+   */
+  useEffect(() => {
+    const svg = svgRef.current;
+    if (!svg) return;
+    const onWheel = (event: WheelEvent) => {
+      event.preventDefault();
+      const anchor = toWorld(event.clientX, event.clientY) ?? undefined;
+      zoomBy(event.deltaY < 0 ? 1.22 : 1 / 1.22, anchor);
+    };
+    svg.addEventListener('wheel', onWheel, { passive: false });
+    return () => svg.removeEventListener('wheel', onWheel);
+  }, [toWorld, zoomBy]);
+
+  /** The bar, and the round number of kilometres it is worth right now. */
+  const scaleBar = useMemo(() => {
+    if (!layout) return null;
+    const kmAcross = view.width * layout.kmPerUnit;
+    const wanted = kmAcross * 0.24;
+    const step = SCALE_STEPS.find((candidate) => candidate >= wanted) ?? SCALE_STEPS.at(-1) ?? 1;
+    return {
+      km: step,
+      units: step / layout.kmPerUnit,
+      label: step >= 1 ? `${step} km` : `${Math.round(step * 1000)} m`,
+    };
+  }, [layout, view.width]);
+
+  /** The drawing as a file, at the frame the reader is looking at. */
+  const savePng = useCallback(() => {
+    const svg = svgRef.current;
+    if (svg) downloadSvgAsPng(svg, { fileName });
+  }, [fileName]);
+
+  if (!layout) {
     return <div className="callout">No hay lugares que dibujar con esta selección.</div>;
   }
 
-  const found = projected.find((point) => point.place.placeId === hovered);
+  const regulated = places.reduce((sum, place) => sum + (place.isRegulated ? 1 : 0), 0);
 
   return (
     <figure className="places-map">
-      <svg
-        viewBox={`0 0 ${BOX.width} ${BOX.height}`}
-        role="img"
-        aria-label={`Mapa de ${projected.length.toLocaleString('es-BO')} lugares`}
-        onMouseLeave={() => setHovered(null)}
-      >
-        {projected.map(({ place, x, y }) => (
-          <circle
-            key={place.placeId}
-            cx={x}
-            cy={y}
-            r={place.placeId === hovered ? 6 : 3}
-            className={place.isRegulated ? 'poi poi-regulated' : 'poi'}
-            onMouseEnter={() => setHovered(place.placeId)}
+      <div className="places-map-bar">
+        <div className="places-map-keys">
+          <span className="places-map-key">
+            <i className="places-map-swatch" /> lugar
+          </span>
+          <span className="places-map-key">
+            <i className="places-map-swatch places-map-swatch-reg" /> actividad regulada
+          </span>
+          <span className="places-map-zoom-read">
+            {zoom < 1.05 ? 'todo el encuadre' : `×${zoom.toFixed(1)}`}
+          </span>
+        </div>
+
+        <div className="places-map-tools">
+          <button
+            type="button"
+            className="map-tool"
+            onClick={() => zoomBy(1 / 1.5)}
+            aria-label="Alejar el mapa"
+            title="Alejar"
           >
-            <title>{`${place.name} — ${place.entityFamily}`}</title>
-          </circle>
-        ))}
-      </svg>
+            −
+          </button>
+          <button
+            type="button"
+            className="map-tool"
+            onClick={() => zoomBy(1.5)}
+            aria-label="Acercar el mapa"
+            title="Acercar"
+          >
+            +
+          </button>
+          <button
+            type="button"
+            className="map-tool map-tool-wide"
+            onClick={() => {
+              setView(home);
+              setFramed('ciudad');
+            }}
+          >
+            La ciudad
+          </button>
+          {layout.outside > 0 ? (
+            <button
+              type="button"
+              className={
+                framed === 'todo' ? 'map-tool map-tool-wide map-tool-on' : 'map-tool map-tool-wide'
+              }
+              onClick={() => {
+                setView(layout.whole);
+                setFramed('todo');
+              }}
+              title="Incluye los puntos que caen fuera del encuadre"
+            >
+              Todo
+            </button>
+          ) : null}
+
+          <span className="places-map-sep" aria-hidden="true" />
+
+          <button type="button" className="download-btn" onClick={savePng}>
+            <Icon name="descarga" size={13} />
+            PNG
+          </button>
+          {csvHref ? (
+            <a className="download-btn" href={csvHref}>
+              CSV
+            </a>
+          ) : null}
+          {jsonHref ? (
+            <a className="download-btn" href={jsonHref}>
+              JSON
+            </a>
+          ) : null}
+        </div>
+      </div>
+
+      <div className="places-map-plot">
+        <svg
+          ref={svgRef}
+          viewBox={`${view.x} ${view.y} ${view.width} ${view.height}`}
+          style={{ aspectRatio: `${WORLD_WIDTH} / ${layout.height}` }}
+          role="img"
+          aria-label={`Mapa de ${places.length.toLocaleString('es-BO')} lugares. Se puede acercar con la rueda y desplazar arrastrando.`}
+          className="places-map-svg"
+          onPointerDown={onPointerDown}
+          onPointerMove={onPointerMove}
+          onPointerUp={endDrag}
+          onPointerCancel={endDrag}
+          onMouseLeave={() => setHovered(null)}
+        >
+          <path className="poi-layer" d={paths.plain} />
+          <path className="poi-layer poi-layer-regulated" d={paths.regulated} />
+          {found ? (
+            <g className="poi-found" pointerEvents="none" data-export="skip">
+              <circle cx={found.x} cy={found.y} r={radius * 3.4} className="poi-halo" />
+              <circle cx={found.x} cy={found.y} r={radius * 1.5} className="poi-core" />
+            </g>
+          ) : null}
+        </svg>
+
+        {scaleBar ? (
+          // The bar is a percentage of the plot, and the plot is exactly as wide
+          // as the drawing, so the percentage is the distance it claims to be.
+          <div className="places-map-scale" aria-hidden="true">
+            <span
+              className="places-map-scale-bar"
+              style={{ width: `${(scaleBar.units / view.width) * 100}%` }}
+            />
+            <span className="places-map-scale-text">{scaleBar.label}</span>
+          </div>
+        ) : null}
+      </div>
+
       <figcaption className="places-map-foot">
         {found ? (
           <>
             <b>{found.place.name}</b> · {found.place.entityFamily}
             {found.place.zone ? ` · ${found.place.zone}` : ''}
+            {found.place.address ? ` · ${found.place.address}` : ''}
             {found.place.isRegulated ? ' · actividad regulada' : ''}
           </>
         ) : (
           <>
-            Cada punto es un lugar en su posición real. Los marcados son de actividad regulada:
-            deben verificarse con su regulador, no están verificados.
+            {places.length.toLocaleString('es-BO')} lugares dibujados,{' '}
+            {regulated.toLocaleString('es-BO')} de actividad regulada: deben verificarse con su
+            regulador, no están verificados. Rueda para acercar, arrastra para moverte.
+            {layout.outside > 0 ? (
+              <>
+                {' '}
+                {layout.outside.toLocaleString('es-BO')}{' '}
+                {layout.outside === 1
+                  ? 'lugar queda fuera del encuadre'
+                  : 'lugares quedan fuera del encuadre'}{' '}
+                y no decide la escala; «Todo» los incluye.
+              </>
+            ) : null}
           </>
         )}
       </figcaption>

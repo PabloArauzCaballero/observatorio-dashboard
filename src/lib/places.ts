@@ -174,6 +174,71 @@ export async function readPlaces(
 }
 
 /**
+ * The same selection the map is showing, whole, for a file.
+ *
+ * `readPlaces` stops at four thousand because that is where a drawing stops
+ * being a map, and a file has no such ceiling: an analyst who downloads the
+ * pharmacies of Santa Cruz wants the pharmacies of Santa Cruz, not the four
+ * thousand best-measured ones. The panel says which of the two it is showing,
+ * so the difference is stated rather than discovered.
+ */
+export async function readPlacesForExport(city: string, family: string | null): Promise<Place[]> {
+  try {
+    const conditions = ['city = $1'];
+    const values: unknown[] = [city.slice(0, 60)];
+    if (family) {
+      conditions.push(`entity_family = $${values.length + 1}`);
+      values.push(family.slice(0, 60));
+    }
+
+    const { rows } = await pool().query<{
+      place_id: string;
+      name: string;
+      city: string;
+      zone: string | null;
+      latitude: string;
+      longitude: string;
+      entity_group: string;
+      entity_family: string;
+      is_regulated: boolean;
+      address: string | null;
+      brand: string | null;
+      confidence: string | null;
+      quality_grade: string | null;
+      official_validation_source: string | null;
+    }>(
+      `SELECT place_id, name, city, zone, latitude::text, longitude::text,
+              entity_group, entity_family, is_regulated, address, brand,
+              confidence::text, quality_grade, official_validation_source
+       FROM read_models.city_place
+       WHERE ${conditions.join(' AND ')} AND status = 'PUBLISHED' AND NOT superseded
+       ORDER BY entity_family, name
+       LIMIT 60000`,
+      values,
+    );
+
+    return rows.map((row) => ({
+      placeId: row.place_id,
+      name: row.name,
+      city: row.city,
+      zone: row.zone,
+      latitude: Number(row.latitude),
+      longitude: Number(row.longitude),
+      entityGroup: row.entity_group,
+      entityFamily: row.entity_family,
+      isRegulated: row.is_regulated,
+      address: row.address,
+      brand: row.brand,
+      confidence: row.confidence === null ? null : Number(row.confidence),
+      qualityGrade: row.quality_grade,
+      officialValidationSource: row.official_validation_source,
+    }));
+  } catch (error) {
+    return unreadable<Place>('read_models.city_place', error);
+  }
+}
+
+/**
  * How many rows a place model holds, with the error left to travel.
  *
  * The readers above swallow «relation does not exist» and answer with an empty
