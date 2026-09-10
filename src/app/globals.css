@@ -3679,6 +3679,33 @@ button.download-btn {
   color: var(--ink-soft);
 }
 
+/* Rejilla de dos gráficos ------------------------------------------------ */
+
+/*
+ * Two charts to a row, and exactly two.
+ *
+ * `.grid-two` fits as many tracks as the width allows, which is right for cards
+ * of unknown number and wrong for a group of four charts: on a wide screen it
+ * takes three and leaves the fourth alone in a row with two thirds of it empty
+ * — the hole a reader points at and calls the page broken. Four charts want a
+ * two by two.
+ *
+ * `minmax(0, 1fr)` and not `1fr`: a grid track's default minimum is its
+ * content, and a chart's axis labels are content, so a plain `1fr` lets a long
+ * category name push its column past its share and out of the page.
+ */
+.grid-pair {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--s2);
+}
+
+@media (max-width: 1180px) {
+  .grid-pair {
+    grid-template-columns: 1fr;
+  }
+}
+
 /* Nube de temas ---------------------------------------------------------- */
 
 /*
