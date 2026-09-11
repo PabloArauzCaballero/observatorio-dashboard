@@ -5,7 +5,17 @@ import {
   readObservatory,
   readPressPage,
   readTermMonths,
+  readWorldBoard,
 } from '@/lib/series';
+import {
+  BOLIVIA,
+  PLACE_LABEL,
+  THEME_LABEL,
+  WORLD,
+  WORLD_INDICATORS,
+  WORLD_PLACES,
+  WORLD_PLACE_CODES,
+} from '@/lib/world-board';
 
 /**
  * Every dataset the report draws, in either format.
@@ -20,7 +30,7 @@ export const dynamic = 'force-dynamic';
 
 type Row = Record<string, string | number | boolean | null>;
 
-const DATASETS = ['series', 'macro', 'filings', 'prensa', 'temas', 'lugares'] as const;
+const DATASETS = ['series', 'macro', 'filings', 'prensa', 'temas', 'lugares', 'mundo'] as const;
 type Dataset = (typeof DATASETS)[number];
 
 const UNITS: Record<string, string> = {
@@ -112,6 +122,43 @@ async function collect(dataset: Dataset, selection: Selection): Promise<Row[]> {
       grado_de_calidad: place.qualityGrade,
       id_de_lugar: place.placeId,
     }));
+  }
+
+  if (dataset === 'mundo') {
+    // The world board's figures, carrying the selection the board was showing:
+    // its theme, the region it was comparing against, the first year it drew
+    // and the search. A region outside the board's own list is ignored rather
+    // than passed to the database, and the file then carries every region.
+    const term = selection.search?.trim().toLocaleLowerCase('es');
+    const wanted = WORLD_INDICATORS.filter(
+      (indicator) =>
+        (!selection.topic || indicator.theme === selection.topic) &&
+        (!term ||
+          indicator.label.toLocaleLowerCase('es').includes(term) ||
+          indicator.code.toLocaleLowerCase('es').includes(term)),
+    );
+    const byCode = new Map(wanted.map((indicator) => [indicator.code, indicator]));
+    const region = WORLD_PLACES.find((place) => place.code === selection.region)?.code;
+    const places = region ? [WORLD, region, BOLIVIA] : WORLD_PLACE_CODES;
+    const since = selection.from === undefined ? undefined : Number(selection.from.slice(0, 4));
+    if (byCode.size === 0) return [];
+    return (await readWorldBoard([...byCode.keys()], places)).flatMap((point) => {
+      const indicator = byCode.get(point.indicatorCode);
+      if (!indicator || (since !== undefined && point.year < since)) return [];
+      return [
+        {
+          indicador: indicator.code,
+          nombre: indicator.label,
+          tema: THEME_LABEL[indicator.theme],
+          unidad: indicator.unit,
+          lugar: point.place,
+          nombre_del_lugar: PLACE_LABEL[point.place] ?? point.place,
+          anio: point.year,
+          valor: point.value,
+          fuente: 'Banco Mundial, World Development Indicators',
+        },
+      ];
+    });
   }
 
   if (dataset === 'temas') {

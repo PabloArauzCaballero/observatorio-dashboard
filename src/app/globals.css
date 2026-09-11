@@ -3992,3 +3992,111 @@ button.download-btn {
   line-height: 1.4;
   margin: 0.45rem 0 0;
 }
+
+/* Economía mundial ------------------------------------------------------- */
+
+/*
+ * The world, the region and Bolivia, one row each.
+ *
+ * Side by side is what the eye compares best, and it is how this started, but a
+ * world GDP in dollars and a region's name do not fit a third of a card: the
+ * figure broke across three lines and «América Latina y el Caribe» was cut to
+ * «América Latin». A row gives the name and the figure the width they need, and
+ * the values still line up down the right edge. The swatch beside each name is
+ * the colour of its line in the chart underneath.
+ */
+.world-unit {
+  margin: 0.15rem 0 0;
+  font-size: 0.74rem;
+  color: var(--ink-faint);
+}
+
+.world-figures {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  margin: 0.7rem 0 0.35rem;
+}
+
+.world-figure {
+  display: flex;
+  align-items: baseline;
+  gap: 0.6rem;
+  min-width: 0;
+}
+
+.world-figure dt {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  flex: 1 1 auto;
+  min-width: 0;
+  font-size: 0.74rem;
+  color: var(--ink-soft);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.world-figure dt i,
+.world-legend i {
+  width: 9px;
+  height: 9px;
+  border-radius: 2px;
+  flex: none;
+  display: inline-block;
+}
+
+.world-figure dd {
+  margin: 0;
+  flex: none;
+  font-family: var(--mono);
+  font-size: 0.84rem;
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.world-figure dd span {
+  margin-left: 0.45rem;
+  font-size: 0.66rem;
+  color: var(--ink-faint);
+}
+
+/* Said under a chart drawn as an index, so it is not read as the totals. */
+.world-index-note {
+  margin: 0.35rem 0 0;
+  font-size: 0.72rem;
+  color: var(--ink-faint);
+}
+
+.world-gap {
+  margin: 0.2rem 0 0.5rem;
+  font-size: 0.78rem;
+  color: var(--ink-soft);
+}
+
+.world-legend {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.35rem 0.9rem;
+  margin-left: auto;
+  font-size: 0.76rem;
+  color: var(--ink-soft);
+}
+
+.world-legend span {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+/* The region is the dashed line in every chart, so its swatch is a dash too. */
+.world-legend .world-legend-dash {
+  width: 14px;
+  height: 0;
+  border-radius: 0;
+  border-top: 2px dashed;
+  background: none;
+}

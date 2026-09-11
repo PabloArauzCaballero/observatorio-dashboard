@@ -1867,3 +1867,63 @@ export async function readPanelSeries(indicatorCode: string): Promise<PanelPoint
     throw error;
   }
 }
+
+export interface WorldPoint {
+  /** The World Bank's code for the place: `WLD`, a region, or `BOL`. */
+  place: string;
+  indicatorCode: string;
+  year: number;
+  value: number;
+}
+
+/**
+ * Every year of the world board's indicators, for the world, each region and
+ * Bolivia.
+ *
+ * One query for the whole board rather than one per card. Twenty-six
+ * indicators across nine places and sixty-five years is at most fifteen
+ * thousand rows, and both filters land on the partial indexes migration 0067
+ * built on exactly these two fields of the panel.
+ *
+ * Asked for when the board is opened, never with the page. The briefing
+ * already waits on a dozen reads on a server that has been short of breath,
+ * and a tab most visitors never open should not add a thirteenth to every
+ * visit.
+ *
+ * Bolivia's rows come from the panel the core has always loaded; the world and
+ * the regions from the file the core collects for this board alone. Until that
+ * file has been loaded the query simply returns Bolivia, and the board says so.
+ */
+export async function readWorldBoard(
+  indicatorCodes: readonly string[],
+  places: readonly string[],
+): Promise<WorldPoint[]> {
+  try {
+    const { rows } = await pool().query<{
+      place: string;
+      indicator_code: string;
+      period: string;
+      value: string;
+    }>(
+      `SELECT country AS place, indicator_code, period::text, value::text
+       FROM read_models.world_panel_reading
+       WHERE indicator_code = ANY($1::text[])
+         AND country = ANY($2::text[])
+         AND status = 'PUBLISHED' AND NOT superseded
+       ORDER BY indicator_code, country, period`,
+      [indicatorCodes.map((code) => code.slice(0, 60)), places.map((place) => place.slice(0, 3))],
+    );
+
+    return rows.map((row) => ({
+      place: row.place,
+      indicatorCode: row.indicator_code,
+      year: Number(row.period),
+      value: Number(row.value),
+    }));
+  } catch (error) {
+    if (isUnreadableModel(error)) {
+      return unreadable<WorldPoint>('read_models.world_panel_reading', error);
+    }
+    throw error;
+  }
+}

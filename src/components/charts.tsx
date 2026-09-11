@@ -1748,3 +1748,97 @@ export function YearlyBars({ data, height = 200 }: { data: YearBar[]; height?: n
     </div>
   );
 }
+
+export interface WorldLinePoint {
+  year: string;
+  [place: string]: string | number | null;
+}
+
+export interface WorldLineSeries {
+  /** The key each point carries this series' value under. */
+  key: string;
+  label: string;
+  tone: string;
+  /** Drawn heavier: the figure the card is about. */
+  emphasis?: boolean;
+  /** Drawn dashed: the reference the others are read against. */
+  dashed?: boolean;
+}
+
+/**
+ * The world, a region and Bolivia on one axis of years.
+ *
+ * Lines, where the report's other annual panels draw bars, and the reason is
+ * how many series share the frame: three sets of bars across sixty years is a
+ * comb nobody reads. The objection to lines still holds — a line between two
+ * published years asserts the year between them — so a missing year is a break
+ * in the line and never a join. `connectNulls` is off on purpose.
+ */
+export function WorldLines({
+  data,
+  series,
+  format,
+  tick,
+}: {
+  data: WorldLinePoint[];
+  series: WorldLineSeries[];
+  format: (value: number) => string;
+  tick: (value: number) => string;
+}) {
+  const values = data.flatMap((row) =>
+    series.map((one) => row[one.key]).filter((value): value is number => typeof value === 'number'),
+  );
+  const domain = values.length ? fittedDomain(values) : undefined;
+
+  /**
+   * Wide enough for the longest label the axis will print. A fixed width fit the
+   * rates and cut «72 mM» in two on an axis of dollars.
+   */
+  const axisWidth = domain
+    ? Math.min(72, Math.max(34, Math.max(tick(domain[0]).length, tick(domain[1]).length) * 7 + 10))
+    : 40;
+
+  const renderTooltip = ({ active, payload, label }: TooltipRender) => {
+    if (!active || !payload?.length) return null;
+    const point = payload[0]?.payload as WorldLinePoint | undefined;
+    if (!point) return null;
+    const rows = series
+      .map((one) => ({ name: one.label, value: point[one.key] }))
+      .filter((row): row is { name: string; value: number } => typeof row.value === 'number')
+      .map((row) => ({ name: row.name, value: format(row.value) }));
+    return rows.length ? <TooltipShell label={String(label)} rows={rows} /> : null;
+  };
+
+  return (
+    <div className="chart-frame" style={{ height: framed(190) }}>
+      <ResponsiveContainer width="100%" height="100%">
+        <ComposedChart data={data} margin={{ top: 8, right: 10, bottom: 0, left: 0 }}>
+          <CartesianGrid {...GRID} />
+          <XAxis dataKey="year" minTickGap={26} {...AXIS} />
+          <YAxis
+            {...(domain ? { domain } : {})}
+            width={axisWidth}
+            tickFormatter={(value: number) => tick(value)}
+            {...AXIS}
+          />
+          <Tooltip content={renderTooltip} cursor={{ stroke: 'var(--rule)', strokeWidth: 1 }} />
+          {series.map((one, index) => (
+            <Line
+              key={one.key}
+              type="monotone"
+              dataKey={one.key}
+              name={one.label}
+              stroke={one.tone}
+              strokeWidth={one.emphasis ? 2.4 : 1.6}
+              {...(one.dashed ? { strokeDasharray: '4 3' } : {})}
+              dot={false}
+              connectNulls={false}
+              animationDuration={index === 0 ? MOTION.duration : 0}
+              animationEasing={MOTION.easing}
+            />
+          ))}
+        </ComposedChart>
+      </ResponsiveContainer>
+    </div>
+  );
+}

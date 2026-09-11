@@ -4,6 +4,7 @@ import { useMemo, useState } from 'react';
 import { MacroChart, YearCandles } from './charts';
 import type { CandlePoint } from './charts';
 import { Icon } from './icons';
+import { Pager } from './pager';
 import type { IconName } from './icons';
 import { DEFINITION_AUTHOR, GLOSSARY, UNIT_MEANING } from '@/lib/indicator-glossary';
 import { unpackMacro } from '@/lib/macro-transport';
@@ -417,6 +418,7 @@ export function MacroExplorer({ bundle }: { bundle: MacroBundle }) {
               last={last}
               total={cards.length}
               onGo={setOffset}
+              pageSize={PAGE_SIZE}
               where="arriba"
             />
             <MacroTable rows={shown} series={selected} total={cards.length} />
@@ -427,6 +429,7 @@ export function MacroExplorer({ bundle }: { bundle: MacroBundle }) {
               last={last}
               total={cards.length}
               onGo={setOffset}
+              pageSize={PAGE_SIZE}
               where="abajo"
             />
           </>
@@ -447,6 +450,7 @@ export function MacroExplorer({ bundle }: { bundle: MacroBundle }) {
               last={last}
               total={cards.length}
               onGo={setOffset}
+              pageSize={PAGE_SIZE}
               where="arriba"
             />
             <div className="card-grid">
@@ -465,6 +469,7 @@ export function MacroExplorer({ bundle }: { bundle: MacroBundle }) {
               last={last}
               total={cards.length}
               onGo={setOffset}
+              pageSize={PAGE_SIZE}
               where="abajo"
             />
           </>
@@ -475,63 +480,6 @@ export function MacroExplorer({ bundle }: { bundle: MacroBundle }) {
         )}
       </div>
     </div>
-  );
-}
-
-/**
- * Which page of the cards is on screen, and the way to another.
- *
- * It states the range and the total rather than only the page number: "21–40 de
- * 86" tells a reader both where they are and how much is left, which "página 2
- * de 5" does on its own only after they have worked out the page size.
- *
- * It draws nothing when the whole selection fits on one page — a pager that
- * can only ever say "página 1 de 1" is a control that does nothing, and the
- * reader has to read it to find that out.
- */
-function Pager({
-  page,
-  pages,
-  first,
-  last,
-  total,
-  onGo,
-  where,
-}: {
-  page: number;
-  pages: number;
-  first: number;
-  last: number;
-  total: number;
-  onGo: (offset: number) => void;
-  where: string;
-}) {
-  if (pages <= 1) return null;
-  return (
-    <nav className="pager" aria-label={`Páginas de indicadores (${where})`}>
-      <button
-        type="button"
-        className="pager-step"
-        onClick={() => onGo(Math.max(0, (page - 2) * PAGE_SIZE))}
-        disabled={page <= 1}
-      >
-        <Icon name="plegar" size={14} /> Anteriores
-      </button>
-      <span className="pager-where">
-        <b>
-          {first}–{last}
-        </b>{' '}
-        de <b>{total}</b> · página <b>{page}</b> de <b>{pages}</b>
-      </span>
-      <button
-        type="button"
-        className="pager-step"
-        onClick={() => onGo(page * PAGE_SIZE)}
-        disabled={page >= pages}
-      >
-        Siguientes <Icon name="desplegar" size={14} />
-      </button>
-    </nav>
   );
 }
 

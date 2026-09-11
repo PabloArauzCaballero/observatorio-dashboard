@@ -7,6 +7,7 @@ import { MacroExplorer } from '@/components/macro-explorer';
 import { MarketCards } from '@/components/market-cards';
 
 import { PanelExplorer } from '@/components/panel-explorer';
+import { WorldExplorer } from '@/components/world-explorer';
 import { CityPlacesExplorer } from '@/components/city-places-explorer';
 import { PressExplorer } from '@/components/press-explorer';
 import { SourcesExplorer } from '@/components/sources-explorer';
@@ -562,8 +563,12 @@ export default async function Page() {
         </section>
 
         <section className="stack">
-          <SubTabs labels={['Series de Bolivia', 'Panel mundial']} icons={['linea', 'globo']}>
+          <SubTabs
+            labels={['Series de Bolivia', 'Economía mundial', 'Buscar en el Banco Mundial']}
+            icons={['linea', 'globo', 'buscar']}
+          >
             <MacroExplorer bundle={packMacro(macro)} />
+            <WorldExplorer />
             <PanelExplorer catalogue={panelCatalogue} />
           </SubTabs>
         </section>
