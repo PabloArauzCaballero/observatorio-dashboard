@@ -250,7 +250,9 @@ export async function readPlacesForExport(city: string, family: string | null): 
  * The model is a closed union rather than a string: the name is interpolated
  * into the statement, and only these two spellings can reach it.
  */
-export async function countPlaceRows(model: 'city_place' | 'city_place_family'): Promise<number> {
+export async function countPlaceRows(
+  model: 'city_place' | 'city_place_family' | 'national_place' | 'national_place_family',
+): Promise<number> {
   const { rows } = await pool().query<{ total: string }>(
     `SELECT count(*)::text AS total FROM read_models.${model}`,
   );

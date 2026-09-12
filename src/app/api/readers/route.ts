@@ -55,6 +55,13 @@ const READERS: ReadonlyArray<readonly [string, () => Promise<unknown>]> = [
   // unico que distingue un corpus sin cargar de una migracion sin correr.
   ['cityPlace', () => countPlaceRows('city_place')],
   ['cityPlaceFamily', () => countPlaceRows('city_place_family')],
+  /*
+   * El corpus nacional, que la migracion 0073 abrio y la 0074 amplio. Estaba
+   * en el esquema y en ningun lector: nadie podia comprobar desde fuera si una
+   * carga habia entrado, que es justo lo que este endpoint existe para decir.
+   */
+  ['nationalPlace', () => countPlaceRows('national_place')],
+  ['nationalPlaceFamily', () => countPlaceRows('national_place_family')],
 ];
 
 /** El nombre que PostgreSQL da a cada codigo, para no tener que buscarlo. */
@@ -199,7 +206,15 @@ export async function GET(): Promise<Response> {
     READERS.map(async ([name, read]): Promise<Verdict> => {
       try {
         const value = await read();
-        return { name, ok: true, rows: Array.isArray(value) ? value.length : null };
+        /*
+         * Un lector que cuenta devuelve el numero; uno que trae filas devuelve
+         * el array. Antes solo se miraba el array, asi que los que contaban
+         * —los de lugares— salian con `rows: null` y no se podia distinguir
+         * «leible y vacio» de «leible y lleno».
+         */
+        const rows =
+          typeof value === 'number' ? value : Array.isArray(value) ? value.length : null;
+        return { name, ok: true, rows };
       } catch (error) {
         const code = String((error as { code?: unknown })?.code ?? '');
         return {
