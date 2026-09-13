@@ -20,7 +20,13 @@ export async function GET(request: Request): Promise<Response> {
 
   try {
     const family = parameters.get('familia');
-    const { places, total } = await readPlaces(city, family);
+    /*
+     * El mapa pide cuatro mil y el lector puede pedir el resto. No se sirve
+     * todo por defecto porque son varios megas en cada cambio de ciudad, y este
+     * tablero comparte servidor.
+     */
+    const all = parameters.get('todos') === '1';
+    const { places, total } = await readPlaces(city, family, all ? 20000 : 4000);
     return Response.json({ places, total });
   } catch (error) {
     // The message can carry the host, the user and the port. It belongs in the

@@ -15,6 +15,17 @@ import { pool } from './db';
  */
 
 /**
+ * Como se llama el grupo de los que no estan en ninguna poblacion.
+ *
+ * Es una etiqueta, no un municipio, y esta escrita para que nadie la lea como
+ * un municipio. Son 14.325 lugares con coordenadas y sin nombre de poblacion:
+ * mas de la mitad del corpus nacional, porque OpenStreetMap no publica una y la
+ * entrega no la deduce. Agruparlos asi es lo unico que los pone en el mapa sin
+ * inventarles un pueblo.
+ */
+export const WITHOUT_LOCALITY = 'Sin localidad declarada';
+
+/**
  * Los dos corpus de lugares, presentados con las mismas columnas.
  *
  * `city_place` son las tres ciudades que Overture cartografió dentro de sus
@@ -28,9 +39,12 @@ import { pool } from './db';
  * nombre de población que escribió en la dirección. Se unen bajo el nombre más
  * flojo de los dos, que es el único que las dos sostienen.
  *
- * Las filas del corpus nacional sin localidad quedan fuera de esta unión. No se
- * pierden —siguen en `national_place` y en su propio conteo— pero un explorador
- * que se recorre por ciudad no puede enseñar un lugar que no está en ninguna.
+ * Las 14.325 filas del corpus nacional que no traen localidad tampoco se
+ * esconden. Se agrupan bajo un nombre que dice justo lo que les pasa —«Sin
+ * localidad declarada»— en vez de quedarse fuera del explorador: no están en
+ * ninguna ciudad, pero sí tienen coordenadas, y en el mapa se ven igual que
+ * cualquier otra. El nombre no pretende ser un municipio y ningún lector puede
+ * confundirlo con uno.
  *
  * `corpus` viaja en cada fila porque las dos mitades no son intercambiables:
  * una trae confianza, zona y marca, y la otra no. Un lector que las suma sin
@@ -43,12 +57,13 @@ const PLACE_UNION = `(
          'ciudades' AS corpus, status, superseded
   FROM read_models.city_place
   UNION ALL
-  SELECT place_id, name, locality, NULL::text AS zone, latitude, longitude,
+  SELECT place_id, name,
+         COALESCE(locality, '${WITHOUT_LOCALITY}') AS locality,
+         NULL::text AS zone, latitude, longitude,
          entity_group, entity_family, is_regulated, address, NULL::text AS brand,
          confidence, NULL::text AS quality_grade, official_validation_source,
          'nacional' AS corpus, status, superseded
   FROM read_models.national_place
-  WHERE locality IS NOT NULL
 ) AS lugares`;
 
 export interface PlaceFamily {
@@ -138,11 +153,13 @@ export async function readPlaceFamilies(): Promise<PlaceFamily[]> {
 /**
  * The places of one city, optionally narrowed to one family.
  *
- * Bounded at four thousand rows, and the bound is not arbitrary: Santa Cruz
- * alone holds fourteen thousand places, and a map that plots them all hands the
- * reader a solid block of ink and the page a payload we just spent an afternoon
- * removing. The caller is told how many exist so it can say so plainly instead
- * of showing a truncated map as if it were the whole city.
+ * Cuatro mil por defecto, y el tope no es arbitrario: una pagina que sirve
+ * catorce mil lugares en cada cambio de ciudad son varios megas por clic, y el
+ * mapa queda como una mancha. Pero el techo duro es de veinte mil, porque el
+ * lector puede pedirlos todos y entonces hay que darselos: el mapa los dibuja
+ * en dos paths SVG, no en un nodo por punto, asi que el dibujo aguanta lo que
+ * la red aguante. Quien llama recibe cuantos existen, para poder decirlo en vez
+ * de enseñar un mapa recortado como si fuera la ciudad entera.
  */
 export async function readPlaces(
   city: string,
@@ -188,7 +205,7 @@ export async function readPlaces(
        -- y no una franja arbitraria de la ciudad.
        ORDER BY confidence DESC NULLS LAST, name
        LIMIT $${values.length + 1}`,
-      [...values, Math.min(Math.max(limit, 1), 4000)],
+      [...values, Math.min(Math.max(limit, 1), 20000)],
     );
 
     return {

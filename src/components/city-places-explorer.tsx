@@ -5,6 +5,12 @@ import { Icon } from './icons';
 import { PlacesMap } from './places-map';
 import type { Place, PlaceFamily } from '@/lib/places';
 
+/*
+ * El grupo de los que no estan en ninguna poblacion. Va al final de la lista:
+ * no es una ciudad y no debe competir por el sitio con las que si lo son.
+ */
+const WITHOUT_LOCALITY = 'Sin localidad declarada';
+
 /**
  * What is in the country's towns, and where.
  *
@@ -48,15 +54,18 @@ export function CityPlacesExplorer({ families }: { families: PlaceFamily[] }) {
     const held = new Map<string, number>();
     for (const row of families) held.set(row.city, (held.get(row.city) ?? 0) + row.places);
     const rest = [...held.keys()]
-      .filter((name) => !MAPPED_CITIES.includes(name))
+      .filter((name) => !MAPPED_CITIES.includes(name) && name !== WITHOUT_LOCALITY)
       .sort((one, other) => (held.get(other) ?? 0) - (held.get(one) ?? 0));
-    return [...MAPPED_CITIES.filter((name) => held.has(name)), ...rest];
+    const residual = held.has(WITHOUT_LOCALITY) ? [WITHOUT_LOCALITY] : [];
+    return [...MAPPED_CITIES.filter((name) => held.has(name)), ...rest, ...residual];
   }, [families]);
 
   const [city, setCity] = useState<string>(MAPPED_CITIES[0] as string);
   const [family, setFamily] = useState<string | null>(null);
   const [search, setSearch] = useState('');
   const [places, setPlaces] = useState<Place[]>([]);
+  /* Cuando el lector pide ver el recorte entero, y no los cuatro mil. */
+  const [showAll, setShowAll] = useState(false);
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(false);
 
@@ -123,6 +132,7 @@ export function CityPlacesExplorer({ families }: { families: PlaceFamily[] }) {
     setLoading(true);
     const query = new URLSearchParams({ ciudad: city });
     if (family) query.set('familia', family);
+    if (showAll) query.set('todos', '1');
     fetch(`/api/lugares?${query.toString()}`)
       .then((response) => (response.ok ? response.json() : { places: [], total: 0 }))
       .then((body: { places?: Place[]; total?: number }) => {
@@ -142,7 +152,7 @@ export function CityPlacesExplorer({ families }: { families: PlaceFamily[] }) {
     return () => {
       live = false;
     };
-  }, [city, family]);
+  }, [city, family, showAll]);
 
   if (families.length === 0) {
     return <div className="callout">Todavía no hay lugares cargados.</div>;
@@ -169,7 +179,11 @@ export function CityPlacesExplorer({ families }: { families: PlaceFamily[] }) {
   return (
     <>
       <div className="card-grid">
-        <Figure label="Lugares" value={NUMBER.format(cityTotals.places)} note="en el municipio" />
+        <Figure
+          label="Lugares"
+          value={NUMBER.format(cityTotals.places)}
+          note={city === WITHOUT_LOCALITY ? 'sin poblacion publicada' : 'en el municipio'}
+        />
         <Figure
           label="De actividad regulada"
           value={NUMBER.format(cityTotals.regulated)}
@@ -209,6 +223,7 @@ export function CityPlacesExplorer({ families }: { families: PlaceFamily[] }) {
                 onClick={() => {
                   setCity(name);
                   setFamily(null);
+                  setShowAll(false);
                 }}
               >
                 <Icon name="mapa" size={16} />
@@ -297,7 +312,11 @@ export function CityPlacesExplorer({ families }: { families: PlaceFamily[] }) {
               <>
                 El mapa dibuja {NUMBER.format(places.length)} de {NUMBER.format(total)}, los de
                 mayor confianza: dibujarlos todos deja una mancha, no un mapa. Elegí una familia
-                para verla completa, o descargá el CSV, que trae los {NUMBER.format(total)}.
+                para verla completa, descargá el CSV, que trae los {NUMBER.format(total)}, o{' '}
+                <button type="button" className="callout-link" onClick={() => setShowAll(true)}>
+                  dibujá los {NUMBER.format(total)} de una vez
+                </button>
+                .
               </>
             ) : (
               <>Se dibujan los {NUMBER.format(places.length)}.</>
