@@ -438,23 +438,31 @@ export function SubjectsExplorer({ months, totals }: { months: TermMonth[]; tota
     ...(one.term === subject?.term ? { emphasis: true } : {}),
   }));
 
-  /** The family's subjects, year by year, so a peak is read against its neighbours. */
+  /**
+   * The family's subjects, period by period, so a peak is read against its
+   * neighbours. Obeys the year and the same drill-down as the grid above it:
+   * two tables on one page that disagree about what a filter means is worse
+   * than either of them being wrong on its own.
+   */
   const familyCalendar = ((): { rows: string[]; columns: string[]; cells: HeatCell[] } => {
     if (!subject) return { rows: [], columns: [], cells: [] };
-    const inside = searched.filter((row) => row.family === subject.family);
+    const inside = searched.filter(inYear).filter((row) => row.family === subject.family);
+    const bucket = (row: TermMonth): string =>
+      grain === 'mes' ? row.month : row.month.slice(0, 4);
+    const head = (at: string): string => (grain === 'mes' ? shortMonth(at, !year) : at);
     const top = rollUp(inside).slice(0, 12);
     const keep = new Map(top.map((one) => [one.term, one.label]));
     const cells: HeatCell[] = [];
     for (const [key, fold] of foldBy(
       inside.filter((row) => keep.has(row.term)),
-      (row) => `${row.term}|${row.month.slice(0, 4)}`,
+      (row) => `${row.term}|${bucket(row)}`,
     )) {
       const [name = '', at = ''] = key.split('|');
-      cells.push({ row: keep.get(name) ?? name, column: at, value: fold.mentions });
+      cells.push({ row: keep.get(name) ?? name, column: head(at), value: fold.mentions });
     }
     return {
       rows: top.map((one) => one.label),
-      columns: [...new Set(inside.map((row) => row.month.slice(0, 4)))].sort(),
+      columns: [...new Set(inside.map(bucket))].sort().map(head),
       cells,
     };
   })();
@@ -1028,9 +1036,34 @@ export function SubjectsExplorer({ months, totals }: { months: TermMonth[]; tota
                 <div className="tile-head">
                   <Icon name="capas" size={17} />
                   <h2>
-                    {FAMILY_LABEL[subject.family] ?? subject.family}, tema por tema y año por año
+                    {FAMILY_LABEL[subject.family] ?? subject.family}, tema por tema y{' '}
+                    {grain === 'mes' ? 'mes por mes' : 'año por año'}
                   </h2>
-                  <span className="tile-hint">hasta 12 temas</span>
+                  <span className="tile-hint">
+                    hasta 12 temas · {year ? `año ${year}` : 'archivo completo'}
+                  </span>
+                  <div className="tile-tools" role="group" aria-label="Granularidad de la tabla">
+                    <button
+                      type="button"
+                      className={grain === 'anio' ? 'chip chip-on' : 'chip'}
+                      aria-pressed={grain === 'anio'}
+                      onClick={() => setGrain('anio')}
+                      title="Una columna por año"
+                    >
+                      <Icon name="calendario" size={12} />
+                      Por año
+                    </button>
+                    <button
+                      type="button"
+                      className={grain === 'mes' ? 'chip chip-on' : 'chip'}
+                      aria-pressed={grain === 'mes'}
+                      onClick={() => setGrain('mes')}
+                      title="Abrir cada año en sus meses"
+                    >
+                      <Icon name="barras" size={12} />
+                      Por mes
+                    </button>
+                  </div>
                 </div>
                 <HeatGrid
                   rows={familyCalendar.rows}
@@ -1039,9 +1072,10 @@ export function SubjectsExplorer({ months, totals }: { months: TermMonth[]; tota
                   unit="menciones"
                 />
                 <p className="panel-sub" style={{ marginTop: 'var(--s2)' }}>
-                  Un pico sólo significa algo contra los de al lado: esta rejilla dice si el año que
-                  disparó a este tema disparó también a los demás de su familia — un shock del
-                  sector — o sólo a él.
+                  Un pico sólo significa algo contra los de al lado: esta rejilla dice si el periodo
+                  que disparó a este tema disparó también a los demás de su familia — un shock del
+                  sector — o sólo a él. Lleva el mismo año y la misma granularidad que la rejilla de
+                  arriba.
                 </p>
               </div>
             ) : null}
