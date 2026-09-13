@@ -14,6 +14,43 @@ import { pool } from './db';
  * `series.ts`, and why nothing here can be plotted against time.
  */
 
+/**
+ * Los dos corpus de lugares, presentados con las mismas columnas.
+ *
+ * `city_place` son las tres ciudades que Overture cartografió dentro de sus
+ * polígonos municipales; `national_place` es el país entero leído de Overture y
+ * de OpenStreetMap. Hasta ahora el informe sólo enseñaba el primero, así que
+ * Sucre, Tarija, Oruro, Potosí, Trinidad y Cobija estaban en la base y en
+ * ninguna pantalla — que desde fuera se parece demasiado a no haberlas cargado.
+ *
+ * La clave territorial de uno es `city` y la del otro `locality`, y no son lo
+ * mismo: la primera es un municipio que el publicador delimitó, la segunda el
+ * nombre de población que escribió en la dirección. Se unen bajo el nombre más
+ * flojo de los dos, que es el único que las dos sostienen.
+ *
+ * Las filas del corpus nacional sin localidad quedan fuera de esta unión. No se
+ * pierden —siguen en `national_place` y en su propio conteo— pero un explorador
+ * que se recorre por ciudad no puede enseñar un lugar que no está en ninguna.
+ *
+ * `corpus` viaja en cada fila porque las dos mitades no son intercambiables:
+ * una trae confianza, zona y marca, y la otra no. Un lector que las suma sin
+ * ver cuál es cuál confunde un dato ausente con un dato malo.
+ */
+const PLACE_UNION = `(
+  SELECT place_id, name, city AS locality, zone, latitude, longitude,
+         entity_group, entity_family, is_regulated, address, brand,
+         confidence, quality_grade, official_validation_source,
+         'ciudades' AS corpus, status, superseded
+  FROM read_models.city_place
+  UNION ALL
+  SELECT place_id, name, locality, NULL::text AS zone, latitude, longitude,
+         entity_group, entity_family, is_regulated, address, NULL::text AS brand,
+         confidence, NULL::text AS quality_grade, official_validation_source,
+         'nacional' AS corpus, status, superseded
+  FROM read_models.national_place
+  WHERE locality IS NOT NULL
+) AS lugares`;
+
 export interface PlaceFamily {
   city: string;
   entityGroup: string;
@@ -73,10 +110,15 @@ export async function readPlaceFamilies(): Promise<PlaceFamily[]> {
       located_in_zone: string;
       mean_confidence: string | null;
     }>(
-      `SELECT city, entity_group, entity_family, places, regulated,
-              located_in_zone, mean_confidence::text
-       FROM read_models.city_place_family
-       ORDER BY city, places DESC`,
+      `SELECT locality AS city, entity_group, entity_family,
+              count(*)::text                                  AS places,
+              count(*) FILTER (WHERE is_regulated)::text      AS regulated,
+              count(*) FILTER (WHERE zone IS NOT NULL)::text  AS located_in_zone,
+              round(avg(confidence), 4)::text                 AS mean_confidence
+       FROM ${PLACE_UNION}
+       WHERE status = 'PUBLISHED' AND NOT superseded
+       GROUP BY locality, entity_group, entity_family
+       ORDER BY 1, places DESC`,
     );
 
     return rows.map((row) => ({
@@ -108,7 +150,7 @@ export async function readPlaces(
   limit = 4000,
 ): Promise<{ places: Place[]; total: number }> {
   try {
-    const conditions = ['city = $1'];
+    const conditions = ['locality = $1'];
     const values: unknown[] = [city.slice(0, 60)];
     if (family) {
       conditions.push(`entity_family = $${values.length + 1}`);
@@ -117,7 +159,7 @@ export async function readPlaces(
     const where = `WHERE ${conditions.join(' AND ')} AND status = 'PUBLISHED' AND NOT superseded`;
 
     const counted = await pool().query<{ total: string }>(
-      `SELECT count(*)::text AS total FROM read_models.city_place ${where}`,
+      `SELECT count(*)::text AS total FROM ${PLACE_UNION} ${where}`,
       values,
     );
 
@@ -137,10 +179,10 @@ export async function readPlaces(
       quality_grade: string | null;
       official_validation_source: string | null;
     }>(
-      `SELECT place_id, name, city, zone, latitude::text, longitude::text,
+      `SELECT place_id, name, locality AS city, zone, latitude::text, longitude::text,
               entity_group, entity_family, is_regulated, address, brand,
               confidence::text, quality_grade, official_validation_source
-       FROM read_models.city_place
+       FROM ${PLACE_UNION}
        ${where}
        -- Los mas fiables primero, para que un recorte deje fuera lo peor medido
        -- y no una franja arbitraria de la ciudad.
@@ -184,7 +226,7 @@ export async function readPlaces(
  */
 export async function readPlacesForExport(city: string, family: string | null): Promise<Place[]> {
   try {
-    const conditions = ['city = $1'];
+    const conditions = ['locality = $1'];
     const values: unknown[] = [city.slice(0, 60)];
     if (family) {
       conditions.push(`entity_family = $${values.length + 1}`);
@@ -207,10 +249,10 @@ export async function readPlacesForExport(city: string, family: string | null): 
       quality_grade: string | null;
       official_validation_source: string | null;
     }>(
-      `SELECT place_id, name, city, zone, latitude::text, longitude::text,
+      `SELECT place_id, name, locality AS city, zone, latitude::text, longitude::text,
               entity_group, entity_family, is_regulated, address, brand,
               confidence::text, quality_grade, official_validation_source
-       FROM read_models.city_place
+       FROM ${PLACE_UNION}
        WHERE ${conditions.join(' AND ')} AND status = 'PUBLISHED' AND NOT superseded
        ORDER BY entity_family, name
        LIMIT 60000`,

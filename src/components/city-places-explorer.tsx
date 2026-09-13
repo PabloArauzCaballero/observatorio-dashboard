@@ -6,7 +6,7 @@ import { PlacesMap } from './places-map';
 import type { Place, PlaceFamily } from '@/lib/places';
 
 /**
- * What is in the three cities, and where.
+ * What is in the country's towns, and where.
  *
  * Every other chapter answers «how much, and when». This one answers «what is
  * there», which is a different question and needs a different control: not a
@@ -19,16 +19,14 @@ import type { Place, PlaceFamily } from '@/lib/places';
  * numbers.
  */
 
-/**
- * The three cities, in the order the report shows them.
- *
- * Fixed rather than derived from the rows: the corpus covers exactly these
- * three, and an order that came out of a sort would rearrange itself the day
- * a fourth arrived. It lives here and not beside the reader because the
- * reader module is `server-only`, and a value imported from it would drag the
- * database connection into the browser bundle.
+/*
+ * Las tres que el corpus municipal cartografio, y que encabezan la lista por
+ * ser las unicas delimitadas por un poligono. El resto ya no se escribe aqui:
+ * sale del propio dato, porque el informe dejo de leer tres ciudades y pasó a
+ * leer el pais — y una constante de tres nombres dejaba Sucre, Tarija, Oruro,
+ * Potosi, Trinidad y Cobija cargadas en la base y fuera de toda pantalla.
  */
-const CITIES = ['Santa Cruz de la Sierra', 'La Paz', 'Cochabamba'] as const;
+const MAPPED_CITIES = ['Santa Cruz de la Sierra', 'La Paz', 'Cochabamba'];
 
 const NUMBER = new Intl.NumberFormat('es-BO');
 /** Enough to see the shape of a chapter's rail without scrolling past it. */
@@ -41,7 +39,21 @@ function label(family: string): string {
 }
 
 export function CityPlacesExplorer({ families }: { families: PlaceFamily[] }) {
-  const [city, setCity] = useState<string>(CITIES[0]);
+  /*
+   * Las ciudades que hay, ordenadas por cuantos lugares guarda cada una, con
+   * las tres cartografiadas delante. Sale del dato para que una entrega nueva
+   * aparezca sin tocar este archivo.
+   */
+  const cities = useMemo(() => {
+    const held = new Map<string, number>();
+    for (const row of families) held.set(row.city, (held.get(row.city) ?? 0) + row.places);
+    const rest = [...held.keys()]
+      .filter((name) => !MAPPED_CITIES.includes(name))
+      .sort((one, other) => (held.get(other) ?? 0) - (held.get(one) ?? 0));
+    return [...MAPPED_CITIES.filter((name) => held.has(name)), ...rest];
+  }, [families]);
+
+  const [city, setCity] = useState<string>(MAPPED_CITIES[0] as string);
   const [family, setFamily] = useState<string | null>(null);
   const [search, setSearch] = useState('');
   const [places, setPlaces] = useState<Place[]>([]);
@@ -189,7 +201,7 @@ export function CityPlacesExplorer({ families }: { families: PlaceFamily[] }) {
               <Icon name="mapa" size={13} />
               Ciudad
             </div>
-            {CITIES.map((name) => (
+            {cities.map((name) => (
               <button
                 key={name}
                 type="button"
