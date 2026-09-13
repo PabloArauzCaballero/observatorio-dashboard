@@ -67,6 +67,55 @@ const GRID = { stroke: 'var(--rule-soft)', vertical: false } as const;
 const framed = (base: number): string =>
   `clamp(${base}px, ${((base / 900) * 100).toFixed(1)}vh, ${Math.round(base * 1.55)}px)`;
 
+/**
+ * The step between two round ticks, chosen so an axis of `max` carries at most
+ * `count` of them: 1, 2, 2,5 or 5 times a power of ten, and nothing else.
+ */
+function niceStep(max: number, count: number): number {
+  if (!(max > 0)) return 1;
+  const magnitude = 10 ** Math.floor(Math.log10(max));
+  for (const scale of [magnitude / 100, magnitude / 10, magnitude, magnitude * 10]) {
+    for (const factor of [1, 2, 2.5, 5]) {
+      const step = scale * factor;
+      if (step > 0 && max / step <= count) return step;
+    }
+  }
+  return max;
+}
+
+/**
+ * Round ticks that stop before the data does, for an axis that ends at the data.
+ *
+ * Recharts picks its own top by rounding the largest value up to its next nice
+ * number, and on a ranking that is ink thrown away: 4.036 mentions became an
+ * axis that ran to 6.000, so the longest bar in the chart — the one the whole
+ * panel is about — filled two thirds of the width and the last third was empty
+ * on every ranking in the report. Here the axis ends exactly at the largest
+ * value and only the labelled ticks stay round, which is the same reading with
+ * the width put back.
+ */
+function niceTicks(max: number, count = 6): number[] {
+  if (!(max > 0)) return [0];
+  const step = niceStep(max, count);
+  const ticks: number[] = [];
+  for (let at = 0; at <= max + step / 1000; at += step) ticks.push(Number(at.toPrecision(12)));
+  return ticks;
+}
+
+/** The key that names each colour of a stacked chart, under the drawing. */
+function ChartLegend({ items }: { items: ReadonlyArray<{ color: string; label: string }> }) {
+  return (
+    <ul className="chart-legend">
+      {items.map((item) => (
+        <li key={item.label}>
+          <span className="chart-legend-mark" style={{ background: item.color }} />
+          {item.label}
+        </li>
+      ))}
+    </ul>
+  );
+}
+
 export interface RatePoint {
   date: string;
   parallelBuy?: number | null;
@@ -1106,6 +1155,18 @@ export interface ShareSlice {
   value: number;
   /** Set where one slice is the finding rather than one of several. */
   emphasis?: boolean;
+  /**
+   * The numbers `value` was computed from, named, for the hover.
+   *
+   * A percentage on its own is a claim the reader has to take on faith: «56,7 %
+   * de cobertura adversa» says nothing about whether it is 17 mentions out of
+   * 30 or 4.036 out of 7.118, and those are not the same finding. Where a bar
+   * is a division, its two sides travel with it and the tooltip spells the
+   * division out.
+   */
+  parts?: ReadonlyArray<{ name: string; value: number; unit?: string }>;
+  /** One line under the numbers saying what the bar means. */
+  note?: string;
 }
 
 /**
@@ -1127,6 +1188,7 @@ export function ShareBars({
   height?: number;
 }) {
   const rows = [...data].sort((left, right) => right.value - left.value);
+  const peak = rows.reduce((highest, row) => Math.max(highest, row.value), 0);
   const renderTooltip = ({ active, payload }: TooltipRender) => {
     if (!active || !payload?.length) return null;
     const point = payload[0]?.payload as ShareSlice | undefined;
@@ -1134,7 +1196,14 @@ export function ShareBars({
     return (
       <TooltipShell
         label={point.name}
-        rows={[{ name: 'Valor', value: `${number(point.value, 1)} ${unit}` }]}
+        rows={[
+          { name: 'Valor', value: `${number(point.value, 1)} ${unit}` },
+          ...(point.parts ?? []).map((part) => ({
+            name: part.name,
+            value: `${number(part.value, 0)}${part.unit ? ` ${part.unit}` : ''}`,
+          })),
+        ]}
+        {...(point.note ? { note: point.note } : {})}
       />
     );
   };
@@ -1142,10 +1211,24 @@ export function ShareBars({
   return (
     <div className="chart-frame" style={{ height: framed(height) }}>
       <ResponsiveContainer width="100%" height="100%">
-        <BarChart data={rows} layout="vertical" margin={{ top: 4, right: 30, bottom: 0, left: 4 }}>
+        <BarChart data={rows} layout="vertical" margin={{ top: 4, right: 18, bottom: 0, left: 4 }}>
           <CartesianGrid {...GRID} horizontal={false} vertical />
-          <XAxis type="number" tickFormatter={(value: number) => number(value, 0)} {...AXIS} />
-          <YAxis type="category" dataKey="name" width={172} {...AXIS} />
+          <XAxis
+            type="number"
+            domain={[0, peak > 0 ? peak : 1]}
+            ticks={niceTicks(peak)}
+            tickFormatter={(value: number) => number(value, 0)}
+            {...AXIS}
+          />
+          {/*
+           * `auto`, and not the 172 pixels this column used to be fixed at: a
+           * fixed column is wrong in both directions at once. «Actividad
+           * económica» left sixty pixels of padding the bars could have used,
+           * and a longer name was wrapped onto two lines or cut. Recharts
+           * measures the longest label it actually has to draw and gives the
+           * rest of the width to the bars.
+           */}
+          <YAxis type="category" dataKey="name" width="auto" {...AXIS} />
           <Tooltip content={renderTooltip} cursor={{ fill: 'var(--rule-soft)' }} />
           <Bar
             dataKey="value"
@@ -1411,7 +1494,15 @@ export function HeatGrid({
     <div className="heat-scroll">
       <div
         className="heat-grid"
-        style={{ gridTemplateColumns: `minmax(9rem, 1.4fr) repeat(${columns.length}, 1fr)` }}
+        /*
+         * A floor under the data columns, because the same grid now holds seven
+         * years or eighty-one months: with a bare `1fr` the months squeezed
+         * themselves into slivers too narrow for their own numbers instead of
+         * letting the box scroll, which is what the box is for.
+         */
+        style={{
+          gridTemplateColumns: `minmax(9rem, 1.4fr) repeat(${columns.length}, minmax(2.9rem, 1fr))`,
+        }}
       >
         <span className="heat-corner" />
         {columns.map((column) => (
@@ -1460,6 +1551,18 @@ export interface MonthBar {
 }
 
 /**
+ * What the two colours of a stacked month or year mean.
+ *
+ * Both charts stack the same division and neither said so: a reader met a red
+ * block and a blue one and had to guess which was which, or hover every bar to
+ * find out. The key is drawn under the chart, in the colours themselves.
+ */
+const TONE_KEY = [
+  { color: 'var(--up)', label: 'Tono adverso (alarma, deterioro, conflicto, incertidumbre)' },
+  { color: 'var(--official)', label: 'Resto de las menciones' },
+] as const;
+
+/**
  * A subject's coverage month by month, with the share that read badly inside
  * each bar.
  *
@@ -1496,33 +1599,36 @@ export function MonthlyBars({ data, height = 220 }: { data: MonthBar[]; height?:
   };
 
   return (
-    <div className="chart-frame" style={{ height: framed(height) }}>
-      <ResponsiveContainer width="100%" height="100%">
-        <BarChart data={rows} margin={{ top: 4, right: 8, bottom: 0, left: 0 }}>
-          <CartesianGrid {...GRID} />
-          <XAxis
-            dataKey="month"
-            interval={0}
-            tickFormatter={(value: string) => {
-              const year = value.slice(0, 4);
-              if (year === lastYear) return '';
-              lastYear = year;
-              return year;
-            }}
-            {...AXIS}
-          />
-          <YAxis tickFormatter={(value: number) => number(value, 0)} width={38} {...AXIS} />
-          <Tooltip content={renderTooltip} cursor={{ fill: 'var(--rule-soft)' }} />
-          <Bar
-            dataKey="adverse"
-            stackId="mes"
-            fill="var(--up)"
-            animationDuration={MOTION.duration}
-            animationEasing={MOTION.easing}
-          />
-          <Bar dataKey="calm" stackId="mes" fill="var(--official)" animationDuration={0} />
-        </BarChart>
-      </ResponsiveContainer>
+    <div className="chart-stack">
+      <div className="chart-frame" style={{ height: framed(height) }}>
+        <ResponsiveContainer width="100%" height="100%">
+          <BarChart data={rows} margin={{ top: 4, right: 8, bottom: 0, left: 0 }}>
+            <CartesianGrid {...GRID} />
+            <XAxis
+              dataKey="month"
+              interval={0}
+              tickFormatter={(value: string) => {
+                const year = value.slice(0, 4);
+                if (year === lastYear) return '';
+                lastYear = year;
+                return year;
+              }}
+              {...AXIS}
+            />
+            <YAxis tickFormatter={(value: number) => number(value, 0)} width={38} {...AXIS} />
+            <Tooltip content={renderTooltip} cursor={{ fill: 'var(--rule-soft)' }} />
+            <Bar
+              dataKey="adverse"
+              stackId="mes"
+              fill="var(--up)"
+              animationDuration={MOTION.duration}
+              animationEasing={MOTION.easing}
+            />
+            <Bar dataKey="calm" stackId="mes" fill="var(--official)" animationDuration={0} />
+          </BarChart>
+        </ResponsiveContainer>
+      </div>
+      <ChartLegend items={TONE_KEY} />
     </div>
   );
 }
@@ -1722,29 +1828,32 @@ export function YearlyBars({ data, height = 200 }: { data: YearBar[]; height?: n
   };
 
   return (
-    <div className="chart-frame" style={{ height: framed(height) }}>
-      <ResponsiveContainer width="100%" height="100%">
-        <BarChart data={rows} margin={{ top: 4, right: 8, bottom: 0, left: 0 }}>
-          <CartesianGrid {...GRID} />
-          <XAxis dataKey="year" interval={0} {...AXIS} />
-          <YAxis tickFormatter={(value: number) => number(value, 0)} width={40} {...AXIS} />
-          <Tooltip content={renderTooltip} cursor={{ fill: 'var(--rule-soft)' }} />
-          <Bar
-            dataKey="adverse"
-            stackId="anio"
-            fill="var(--up)"
-            animationDuration={MOTION.duration}
-            animationEasing={MOTION.easing}
-          />
-          <Bar
-            dataKey="calm"
-            stackId="anio"
-            fill="var(--official)"
-            radius={[3, 3, 0, 0]}
-            animationDuration={0}
-          />
-        </BarChart>
-      </ResponsiveContainer>
+    <div className="chart-stack">
+      <div className="chart-frame" style={{ height: framed(height) }}>
+        <ResponsiveContainer width="100%" height="100%">
+          <BarChart data={rows} margin={{ top: 4, right: 8, bottom: 0, left: 0 }}>
+            <CartesianGrid {...GRID} />
+            <XAxis dataKey="year" interval={0} {...AXIS} />
+            <YAxis tickFormatter={(value: number) => number(value, 0)} width={40} {...AXIS} />
+            <Tooltip content={renderTooltip} cursor={{ fill: 'var(--rule-soft)' }} />
+            <Bar
+              dataKey="adverse"
+              stackId="anio"
+              fill="var(--up)"
+              animationDuration={MOTION.duration}
+              animationEasing={MOTION.easing}
+            />
+            <Bar
+              dataKey="calm"
+              stackId="anio"
+              fill="var(--official)"
+              radius={[3, 3, 0, 0]}
+              animationDuration={0}
+            />
+          </BarChart>
+        </ResponsiveContainer>
+      </div>
+      <ChartLegend items={TONE_KEY} />
     </div>
   );
 }

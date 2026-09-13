@@ -125,6 +125,31 @@ function sayMonth(month: string): string {
   return `${names[Number(index) - 1] ?? index} de ${year}`;
 }
 
+/**
+ * A month as a table heading: three letters, and the year only when the table
+ * spans more than one — eighty-one columns reading «ene 2020» are wider than
+ * any screen, and twelve columns of a chosen year do not need repeating.
+ */
+function shortMonth(month: string, withYear: boolean): string {
+  const [year = '', index = ''] = month.split('-');
+  const names = [
+    'ene',
+    'feb',
+    'mar',
+    'abr',
+    'may',
+    'jun',
+    'jul',
+    'ago',
+    'sep',
+    'oct',
+    'nov',
+    'dic',
+  ];
+  const name = names[Number(index) - 1] ?? index;
+  return withYear ? `${name} ${year.slice(2)}` : name;
+}
+
 /** The adverse part of one month: the four tones that read badly. */
 const adverseOf = (row: TermMonth): number =>
   row.alarma + row.deterioro + row.conflicto + row.incertidumbre;
@@ -218,6 +243,8 @@ export function SubjectsExplorer({ months, totals }: { months: TermMonth[]; tota
   const [term, setTerm] = useState('');
   const [year, setYear] = useState('');
   const [search, setSearch] = useState('');
+  /** The rejilla's granularity, the way a pivot table drills down a date. */
+  const [grain, setGrain] = useState<'anio' | 'mes'>('anio');
 
   /*
    * Said before anything is folded, and after the hooks so the order of hooks
@@ -313,11 +340,24 @@ export function SubjectsExplorer({ months, totals }: { months: TermMonth[]; tota
     ...(name === family ? { emphasis: true } : {}),
   }));
 
+  /*
+   * The percentage, and the two numbers it divides.
+   *
+   * «56,7 % de cobertura adversa» is unreadable on its own: it is the same bar
+   * whether it stands on 17 mentions or on 4.036, and those are not the same
+   * finding. The hover spells out the division — adversas, totales, and what
+   * counts as adversa — so the bar can be believed or discounted on sight.
+   */
   const familyAdverse: ShareSlice[] = families
     .filter(([, fold]) => fold.mentions > 0)
     .map(([name, fold]) => ({
       name: FAMILY_LABEL[name] ?? name,
       value: (fold.adverse / fold.mentions) * 100,
+      parts: [
+        { name: 'Menciones adversas', value: fold.adverse },
+        { name: 'Menciones de la familia', value: fold.mentions },
+      ],
+      note: `${count(fold.adverse)} ÷ ${count(fold.mentions)} menciones con alarma, deterioro, conflicto o incertidumbre`,
       ...(name === family ? { emphasis: true } : {}),
     }));
 
@@ -332,24 +372,41 @@ export function SubjectsExplorer({ months, totals }: { months: TermMonth[]; tota
     .sort((left, right) => left.month.localeCompare(right.month));
 
   /**
-   * Coverage by family and year, over the whole archive.
+   * Coverage by family, year by year — or month by month, on request.
    *
-   * This is the one panel the year and the family do not narrow, and that is
-   * what it is for: it is the map a reader picks a year off, so cutting it down
-   * to the year already picked would leave a single column and nothing to
-   * compare it against.
+   * The family still does not narrow it, and for the old reason: the rows are
+   * the families, so keeping only the chosen one would leave a single row with
+   * nothing to read it against. The year does narrow it now, because a reader
+   * who picks 2024 and finds the table still showing every year has been told,
+   * by the page itself, that the filter does not mean what it says.
+   *
+   * What replaces the lost comparison is the drill-down: the same table opens
+   * from years to months, so choosing 2024 and opening the months gives the
+   * twelve columns of that year instead of the one column the year filter used
+   * to be accused of leaving behind.
    */
   const calendar = ((): { rows: string[]; columns: string[]; cells: HeatCell[] } => {
+    const source = searched.filter(inYear);
+    const bucket = (row: TermMonth): string =>
+      grain === 'mes' ? row.month : row.month.slice(0, 4);
     const cells: HeatCell[] = [];
-    for (const [key, fold] of foldBy(searched, (row) => `${row.family}|${row.month.slice(0, 4)}`)) {
+    for (const [key, fold] of foldBy(source, (row) => `${row.family}|${bucket(row)}`)) {
       const [name = '', at = ''] = key.split('|');
-      cells.push({ row: FAMILY_LABEL[name] ?? name, column: at, value: fold.mentions });
+      cells.push({
+        row: FAMILY_LABEL[name] ?? name,
+        column: grain === 'mes' ? shortMonth(at, !year) : at,
+        value: fold.mentions,
+      });
     }
-    const rows = [...foldBy(searched, (row) => row.family).entries()]
+    const rows = [...foldBy(source, (row) => row.family).entries()]
       .sort((left, right) => right[1].mentions - left[1].mentions)
       .map(([name]) => FAMILY_LABEL[name] ?? name);
-    const columns = [...new Set(searched.map((row) => row.month.slice(0, 4)))].sort();
-    return { rows, columns, cells };
+    const keys = [...new Set(source.map(bucket))].sort();
+    return {
+      rows,
+      columns: grain === 'mes' ? keys.map((at) => shortMonth(at, !year)) : keys,
+      cells,
+    };
   })();
 
   /* ------------------------------------------------------------------ *
@@ -678,13 +735,19 @@ export function SubjectsExplorer({ months, totals }: { months: TermMonth[]; tota
             <span className="stat-value">{count(selectedMentions)}</span>
             <span className="stat-hint">{year ? `sólo ${year}` : 'todo el archivo'}</span>
           </div>
-          <div className="stat">
+          <div
+            className="stat"
+            title={`${count(selectedAdverse)} menciones adversas ÷ ${count(selectedMentions)} menciones de la selección`}
+          >
             <span className="stat-label">
               <Icon name="pulso" size={12} />
               Cobertura adversa
             </span>
             <span className="stat-value">{selectedShare}</span>
-            <span className="stat-hint">alarma, deterioro, conflicto o incertidumbre</span>
+            <span className="stat-hint">
+              {count(selectedAdverse)} de {count(selectedMentions)} menciones, con alarma,
+              deterioro, conflicto o incertidumbre
+            </span>
           </div>
           <div className="stat">
             <span className="stat-label">
@@ -733,6 +796,25 @@ export function SubjectsExplorer({ months, totals }: { months: TermMonth[]; tota
         <div className="grid-pair">
           <div className="panel">
             <div className="tile-head">
+              <Icon name="etiqueta" size={17} />
+              <h2>Los quince más nombrados</h2>
+              <span className="tile-hint">
+                {family ? (FAMILY_LABEL[family] ?? family) : 'todas las familias'}
+              </span>
+            </div>
+            <ShareBars
+              data={topTerms}
+              unit="menciones"
+              height={Math.max(200, topTerms.length * 26)}
+            />
+            <p className="panel-sub" style={{ marginTop: 'var(--s1)' }}>
+              La altura es atención mediática y no tamaño económico: el contrabando ocupa más
+              titulares que la manufactura sin mover más dinero.
+            </p>
+          </div>
+
+          <div className="panel">
+            <div className="tile-head">
               <Icon name="capas" size={17} />
               <h2>Las familias, comparadas</h2>
               <span className="tile-hint">{families.length} familias</span>
@@ -761,27 +843,10 @@ export function SubjectsExplorer({ months, totals }: { months: TermMonth[]; tota
               height={Math.max(200, familyAdverse.length * 22)}
             />
             <p className="panel-sub" style={{ marginTop: 'var(--s1)' }}>
-              La parte de las menciones de cada familia que la prensa cubrió con alarma, deterioro,
-              conflicto o incertidumbre. Es tono de la cobertura, no estado de la economía.
-            </p>
-          </div>
-
-          <div className="panel">
-            <div className="tile-head">
-              <Icon name="etiqueta" size={17} />
-              <h2>Los quince más nombrados</h2>
-              <span className="tile-hint">
-                {family ? (FAMILY_LABEL[family] ?? family) : 'todas las familias'}
-              </span>
-            </div>
-            <ShareBars
-              data={topTerms}
-              unit="menciones"
-              height={Math.max(200, topTerms.length * 26)}
-            />
-            <p className="panel-sub" style={{ marginTop: 'var(--s1)' }}>
-              La altura es atención mediática y no tamaño económico: el contrabando ocupa más
-              titulares que la manufactura sin mover más dinero.
+              Cada barra es una división: las menciones que la prensa cubrió con alarma, deterioro,
+              conflicto o incertidumbre, <strong>divididas entre todas</strong> las menciones de esa
+              familia. Pasá el puntero por una barra y el globo muestra los dos números. Es tono de
+              la cobertura, no estado de la economía.
             </p>
           </div>
 
@@ -803,8 +868,33 @@ export function SubjectsExplorer({ months, totals }: { months: TermMonth[]; tota
         <div className="panel">
           <div className="tile-head">
             <Icon name="calendario" size={17} />
-            <h2>Qué se cubrió cada año</h2>
-            <span className="tile-hint">menciones por familia y año</span>
+            <h2>Qué se cubrió {grain === 'mes' ? 'cada mes' : 'cada año'}</h2>
+            <span className="tile-hint">
+              {year ? `año ${year}` : 'archivo completo'} · {calendar.columns.length}{' '}
+              {grain === 'mes' ? 'meses' : 'años'}
+            </span>
+            <div className="tile-tools" role="group" aria-label="Granularidad de la tabla">
+              <button
+                type="button"
+                className={grain === 'anio' ? 'chip chip-on' : 'chip'}
+                aria-pressed={grain === 'anio'}
+                onClick={() => setGrain('anio')}
+                title="Una columna por año"
+              >
+                <Icon name="calendario" size={12} />
+                Por año
+              </button>
+              <button
+                type="button"
+                className={grain === 'mes' ? 'chip chip-on' : 'chip'}
+                aria-pressed={grain === 'mes'}
+                onClick={() => setGrain('mes')}
+                title="Abrir cada año en sus meses"
+              >
+                <Icon name="barras" size={12} />
+                Por mes
+              </button>
+            </div>
           </div>
           <HeatGrid
             rows={calendar.rows}
@@ -813,10 +903,15 @@ export function SubjectsExplorer({ months, totals }: { months: TermMonth[]; tota
             unit="menciones"
           />
           <p className="panel-sub" style={{ marginTop: 'var(--s2)' }}>
-            Cuanto más oscura la celda, más se habló de esa familia ese año. Es el único panel que
-            el año y la familia elegidos no recortan: es el mapa contra el que se eligen, y
-            reducirlo a la casilla ya elegida no dejaría nada con qué compararla. Las celdas vacías
-            son años sin ninguna mención del asunto, no años con cero cobertura económica.
+            Cuanto más oscura la celda, más se habló de esa familia en esa columna.{' '}
+            <strong>Por mes</strong> abre cada año en sus doce meses, y el filtro del año de la
+            izquierda recorta la tabla igual que a los demás paneles:{' '}
+            {year
+              ? `ahora muestra sólo ${year}${grain === 'mes' ? ', mes por mes' : ''}.`
+              : 'sin año elegido está el archivo entero.'}{' '}
+            La familia elegida no la recorta, porque las familias son las filas y dejar una sola no
+            comparte nada con nada. Las celdas vacías son periodos sin ninguna mención del asunto,
+            no periodos con cero cobertura económica.
           </p>
         </div>
 

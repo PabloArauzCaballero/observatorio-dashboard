@@ -423,6 +423,62 @@ h2 {
   height: clamp(132px, 15vh, 224px);
 }
 
+/*
+ * A chart and the key that names its colours, as one block.
+ *
+ * The frame's height is fixed so the page does not jump while the data loads,
+ * so a legend put inside it would be drawn on top of the axis. It goes under
+ * the frame, and this is the box that holds the two together.
+ */
+.chart-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+}
+
+.chart-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem 1rem;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  font-size: 0.72rem;
+  color: var(--ink-soft);
+}
+
+.chart-legend li {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.chart-legend-mark {
+  width: 0.7rem;
+  height: 0.7rem;
+  border-radius: 2px;
+  flex: none;
+}
+
+/*
+ * Controls that belong to one panel, parked at the end of its heading.
+ *
+ * They sit after `.tile-hint`, which already takes the `margin-left: auto`, so
+ * the title stays left and the tools stay right without a second push fighting
+ * the first.
+ */
+.tile-tools {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  margin-left: 0.7rem;
+}
+
+.tile-tools .chip {
+  padding: 0.18rem 0.6rem;
+  font-size: 0.74rem;
+}
+
 .tooltip {
   background: var(--panel);
   border: 1px solid var(--rule);
@@ -1228,6 +1284,27 @@ code {
   letter-spacing: 0.05em;
   color: var(--ink-faint);
   text-transform: uppercase;
+}
+
+/*
+ * On a phone the heading, its stamp and its controls do not fit on one line,
+ * and a flex row that cannot wrap resolves that by squeezing the title until it
+ * breaks one word per line — «Qué / se / cubrió / cada / mes» down the left
+ * edge. They wrap instead: the title keeps its line, the rest drops to the next.
+ */
+@media (max-width: 720px) {
+  .tile-head {
+    flex-wrap: wrap;
+  }
+
+  .tile-head h2 {
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+
+  .tile-tools {
+    margin-left: 0;
+  }
 }
 
 .strap {
