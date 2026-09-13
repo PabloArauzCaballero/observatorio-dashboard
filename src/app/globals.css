@@ -4267,3 +4267,22 @@ button.download-btn {
     margin-left: 0;
   }
 }
+
+/*
+ * El identificador de un lugar es un UUID, y entero mide tres lineas de la
+ * celda mas estrecha de la tabla: le gana el sitio al nombre, que es lo que se
+ * viene a leer. Se corta a lo que cabe y el `title` conserva el que se cita.
+ */
+.grid-table-places .cell-id {
+  display: block;
+  max-width: 16ch;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* «Santa Cruz de la Sierra» partido en tres renglones alarga cada fila sin
+   decir nada mas; la tabla ya se desplaza de lado. */
+.grid-table-places .cell-tight {
+  white-space: nowrap;
+}

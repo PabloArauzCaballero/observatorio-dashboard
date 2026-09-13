@@ -456,7 +456,13 @@ function PlacesTable({ places, total }: { places: Place[]; total: number }) {
               <tr key={place.placeId}>
                 <td>
                   <span className="cell-name">{place.name}</span>
-                  <code className="cell-code">{place.placeId}</code>
+                  {/* El identificador es un UUID de treinta y seis caracteres: entero
+                      ocupa tres lineas y le gana la celda al nombre, que es lo que
+                      el lector esta buscando. Cortado cabe en una, y el `title`
+                      guarda el que se cita. */}
+                  <code className="cell-code cell-id" title={place.placeId}>
+                    {place.placeId}
+                  </code>
                 </td>
                 <td>
                   <span className="cell-name">{label(place.entityFamily)}</span>
@@ -467,7 +473,7 @@ function PlacesTable({ places, total }: { places: Place[]; total: number }) {
                 <td>{place.brand ?? '—'}</td>
                 <td>{place.address ?? '—'}</td>
                 <td>{place.zone ?? '—'}</td>
-                <td>{place.city}</td>
+                <td className="cell-tight">{place.city}</td>
                 <td className="num">
                   {place.confidence === null ? '—' : `${(place.confidence * 100).toFixed(0)}%`}
                   {place.qualityGrade ? (
