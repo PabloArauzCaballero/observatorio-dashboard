@@ -4286,3 +4286,394 @@ button.download-btn {
 .grid-table-places .cell-tight {
   white-space: nowrap;
 }
+
+/* Macro: tabla de estadísticos y vista de análisis ----------------------- */
+
+/*
+ * La tabla macro pasó de ocho columnas a dieciséis.
+ *
+ * El suelo sube en consecuencia: con el de 660 px que usan las demás, las
+ * columnas de cifras se comprimían hasta partir «1.234,56» en dos renglones, y
+ * una tabla que existe para alinear dígitos deja de servir en cuanto los parte.
+ * A este ancho todas caben enteras y la caja se desplaza de lado, que es para
+ * lo que está.
+ */
+.grid-table-macro {
+  min-width: 1320px;
+}
+
+/*
+ * Encabezado en dos pisos, los dos pegados arriba.
+ *
+ * `position: sticky` mide el desplazamiento contra el borde de la caja, así que
+ * el segundo piso pegado en `top: 0` se dibujaría encima del primero. Se lo
+ * baja la altura del primero —dos líneas de 0,68rem más su relleno— y los dos
+ * quedan uno debajo del otro mientras las filas pasan por debajo.
+ */
+.grid-table-macro thead th {
+  top: 1.85rem;
+}
+
+.grid-table-macro .grid-table-group th {
+  top: 0;
+  text-align: center;
+  background: var(--panel-tint);
+  border-bottom: 1px solid var(--rule-soft);
+  color: var(--ink-soft);
+}
+
+.grid-table-macro .grid-table-group th[rowspan] {
+  text-align: left;
+  vertical-align: bottom;
+  border-bottom: 1px solid var(--rule);
+}
+
+/* Una separación tenue entre grupos, para que quince cifras no sean un muro. */
+.grid-table-macro .grid-table-group th + th {
+  border-left: 1px solid var(--rule);
+}
+
+/*
+ * La fila entera es el control que abre el análisis.
+ *
+ * Se marca con el cursor y con el realce al pasar por encima, no con un botón
+ * en una columna extra: la tabla ya tiene dieciséis columnas y una
+ * decimoséptima que solo dijera «ver» le quitaría sitio a una que dice algo.
+ */
+.grid-table-macro .row-openable {
+  cursor: pointer;
+}
+
+.grid-table-macro .row-openable:hover td,
+.grid-table-macro .row-openable:focus-visible td {
+  background: var(--panel-tint);
+}
+
+.grid-table-macro .row-openable:focus-visible {
+  outline: 2px solid var(--official);
+  outline-offset: -2px;
+}
+
+/* El año del extremo, bajo su cifra: el tooltip lo repite entero. */
+.cell-extreme .cell-year {
+  display: block;
+  font-size: 0.68rem;
+  font-weight: 500;
+  color: var(--ink-faint);
+}
+
+.cell-figure {
+  /*
+   * Un ancho que el reparto de la tabla no pueda comerse.
+   *
+   * `table-layout` es automático y reparte el sitio según lo que pide el
+   * contenido; un SVG al 100 % no pide nada, así que estas dos columnas se
+   * quedaban en cuarenta píxeles y sus figuras salían aplastadas mientras los
+   * nombres de los indicadores se llevaban el ancho. Las medidas van en el
+   * propio dibujo, en píxeles, y la celda no se parte.
+   */
+  width: 1px;
+  white-space: nowrap;
+  vertical-align: middle;
+  padding-top: 0.35rem;
+  padding-bottom: 0.35rem;
+}
+
+.cell-figure .spark {
+  display: block;
+  width: 96px;
+  height: 26px;
+}
+
+.cell-figure .strip {
+  display: block;
+  width: 110px;
+  height: 26px;
+}
+
+.spark-empty {
+  color: var(--ink-faint);
+  font-family: var(--mono);
+}
+
+/*
+ * La invitación a abrir, escondida hasta que el puntero llega a la fila.
+ *
+ * Escrita siempre repetiría «analizar» veinte veces por página, que es ruido
+ * en una tabla de cifras. El espacio se reserva igual —`visibility` y no
+ * `display`— para que la fila no cambie de alto al pasar por encima.
+ */
+.cell-figure-open .cell-open {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.2rem;
+  margin-top: 0.15rem;
+  font-size: 0.66rem;
+  letter-spacing: 0.04em;
+  color: var(--official);
+  visibility: hidden;
+}
+
+.grid-table-macro .row-openable:hover .cell-open,
+.grid-table-macro .row-openable:focus-visible .cell-open {
+  visibility: visible;
+}
+
+/* La vista de análisis --------------------------------------------------- */
+
+.analysis {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s3);
+}
+
+/*
+ * La barra que vuelve a la tabla, pegada arriba.
+ *
+ * La vista mide varias pantallas de alto; un control de volver solo al
+ * principio obliga a subir la página entera para salir de ella. Pegado, está
+ * siempre donde el lector lo busca, y con él va el botón que descarga el
+ * informe, que es la otra cosa que se hace desde cualquier punto de la vista.
+ */
+.analysis-bar {
+  position: sticky;
+  top: 0;
+  z-index: 3;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  padding: 0.55rem 0;
+  background: var(--paper);
+  border-bottom: 1px solid var(--rule);
+}
+
+.analysis-bar .download {
+  margin-left: auto;
+}
+
+.analysis-crumb {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  font-size: 0.72rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+}
+
+.analysis-head h2 {
+  font-family: var(--serif);
+  font-size: clamp(1.3rem, 2.6vw, 1.85rem);
+  line-height: 1.2;
+  margin: 0.2rem 0 0.3rem;
+}
+
+.analysis-sub {
+  margin: 0;
+  font-size: 0.8rem;
+  color: var(--ink-faint);
+  font-family: var(--mono);
+}
+
+.analysis-sub code {
+  background: none;
+  border: none;
+  padding: 0;
+  color: var(--ink-soft);
+}
+
+/*
+ * El párrafo que traduce la fila de estadísticos.
+ *
+ * Va en serif y con filete al costado porque es prosa dentro de una vista de
+ * cifras: el lector tiene que reconocer de un vistazo que esto se lee y no se
+ * consulta.
+ */
+.analysis-reading {
+  margin: 0.7rem 0 0;
+  padding-left: 0.8rem;
+  border-left: 3px solid var(--rule);
+  font-family: var(--serif);
+  font-size: 1.02rem;
+  line-height: 1.6;
+  color: var(--ink-soft);
+  max-width: 70ch;
+}
+
+.stat-block {
+  border: 1px solid var(--rule);
+  border-radius: var(--radius);
+  background: var(--panel);
+  box-shadow: var(--shadow);
+  overflow: hidden;
+}
+
+.stat-block-head {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.5rem 0.8rem;
+  background: var(--panel-tint);
+  border-bottom: 1px solid var(--rule);
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+}
+
+/*
+ * Las casillas se reparten el ancho que haya.
+ *
+ * `auto-fit` y no un número de columnas: los tres bloques tienen cuatro, seis y
+ * seis casillas, y fijar cuatro dejaría a los otros dos con una fila de dos
+ * sueltas al final. Con el suelo de 9rem la cifra más larga —once dígitos de
+ * reservas en dólares— entra sin partirse.
+ */
+.stat-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(9rem, 1fr));
+}
+
+.stat-tile {
+  padding: 0.6rem 0.8rem;
+  border-right: 1px solid var(--rule-soft);
+  border-bottom: 1px solid var(--rule-soft);
+}
+
+.stat-tile-label {
+  display: block;
+  font-size: 0.68rem;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+}
+
+.stat-tile-value {
+  display: block;
+  margin-top: 0.1rem;
+  font-family: var(--mono);
+  font-size: 1.12rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.01em;
+  color: var(--ink);
+}
+
+.stat-tile-hint {
+  display: block;
+  font-size: 0.7rem;
+  color: var(--ink-faint);
+}
+
+.analysis-figure {
+  /*
+   * Caja posicionada, porque la pestaña que no está elegida se aparta con
+   * posición absoluta y tiene que medirse contra esta caja y no contra la
+   * página: apartada contra la página tomaría el ancho de la ventana y
+   * dibujaría un gráfico del tamaño equivocado, que es justo el que acabaría
+   * en el PDF.
+   */
+  position: relative;
+  border: 1px solid var(--rule);
+  border-radius: var(--radius);
+  background: var(--panel);
+  box-shadow: var(--shadow);
+  padding: 0.7rem 0.8rem 0.9rem;
+}
+
+.analysis-figure .strap {
+  margin-bottom: 0.3rem;
+}
+
+/*
+ * La densidad y el violín, uno al lado del otro.
+ *
+ * Son la misma distribución leída de dos maneras y la comparación es el punto:
+ * si la curva marca dos jorobas, el violín tiene que estar a la vista para
+ * confirmarlas. Por debajo de 900 px se apilan, porque media pantalla de móvil
+ * no es un gráfico.
+ */
+.analysis-pair {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--s3);
+}
+
+@media (min-width: 900px) {
+  .analysis-pair {
+    grid-template-columns: 1.35fr 1fr;
+  }
+}
+
+.violin-frame {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.violin-frame svg {
+  width: 100%;
+  max-width: 340px;
+  height: clamp(240px, 30vh, 340px);
+}
+
+.analysis-empty {
+  margin: 0;
+  padding: 1.4rem 0;
+  text-align: center;
+  font-size: 0.85rem;
+  color: var(--ink-faint);
+}
+
+.chart-note {
+  margin: 0.45rem 0 0;
+  font-size: 0.76rem;
+  color: var(--ink-faint);
+}
+
+.chart-note b {
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+}
+
+.analysis-note {
+  margin: 0;
+}
+
+/*
+ * En pantalla angosta la vista sigue siendo la vista.
+ *
+ * Lo único que cambia es que la barra de volver deja de repartir a los costados
+ * —el botón de descarga se iría solo a un renglón vacío— y el violín deja de
+ * reservar su alto mínimo de escritorio.
+ */
+@media (max-width: 640px) {
+  .analysis-bar .download {
+    margin-left: 0;
+    width: 100%;
+  }
+
+  .violin-frame svg {
+    height: 260px;
+  }
+}
+
+/*
+ * La pestaña apartada: fuera de la vista, pero dibujada.
+ *
+ * No se usa `hidden` ni `display: none` a propósito. Las dos dejan la caja sin
+ * ancho, el contenedor elástico de la librería de gráficos no dibuja nada, y el
+ * informe —que copia el SVG que hay en pantalla— saldría con tres figuras
+ * vacías. Apartada así conserva su ancho real, su figura existe desde que se
+ * abre la vista, y ni el puntero ni el tabulador la alcanzan.
+ */
+.analysis-pane-off {
+  position: absolute;
+  top: 0;
+  left: -300vw;
+  width: 100%;
+  pointer-events: none;
+}
