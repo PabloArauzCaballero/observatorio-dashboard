@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from 'react';
 import { Icon } from './icons';
+import { Pager } from './pager';
 import type { IconName } from './icons';
 import type { SourceNote } from '@/lib/series';
 
@@ -55,6 +56,17 @@ const PUBLISHER_ICON: Record<string, IconName> = {
   BINANCE: 'chip',
 };
 
+/**
+ * How many source rows one page carries.
+ *
+ * The same twenty as the macro panel, and for the reader's sake rather than the
+ * browser's: these rows carry no chart, so weight was never the reason there
+ * either, but a hundred and eleven rows in one sheet is not read — it is
+ * scrolled past — and a reader who learns the pager on Macroeconomía should
+ * find the same control, on the same page size, when they get here.
+ */
+const PAGE_SIZE = 20;
+
 /** The caveats a figure cannot carry in its own cell. */
 interface Note {
   icon: IconName;
@@ -75,6 +87,14 @@ export function SourcesExplorer({
   const [publisher, setPublisher] = useState('TODOS');
   const [frequency, setFrequency] = useState('TODAS');
   const [search, setSearch] = useState('');
+  /**
+   * Which page of rows is on screen, counted in series rather than pages.
+   *
+   * Every slicer resets it, like the macro panel: a reader on page four who
+   * narrows to six series would otherwise land on a page that no longer exists
+   * and be told their filter matched nothing.
+   */
+  const [offset, setOffset] = useState(0);
 
   const named = (source: SourceNote): string =>
     NAMES[source.indicator] ?? source.name ?? source.indicator;
@@ -116,6 +136,19 @@ export function SourcesExplorer({
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [sources, matches],
   );
+
+  /**
+   * The page on screen.
+   *
+   * The tallies below stay over the whole selection, not over the page: the
+   * rail and the strap answer "how much does this filter hold", and a figure
+   * that changed every time the reader turned a page would answer nothing.
+   */
+  const pages = Math.max(1, Math.ceil(selected.length / PAGE_SIZE));
+  const page = Math.min(pages, Math.floor(offset / PAGE_SIZE) + 1);
+  const shown = selected.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+  const first = selected.length ? (page - 1) * PAGE_SIZE + 1 : 0;
+  const last = (page - 1) * PAGE_SIZE + shown.length;
 
   const readings = selected.reduce((sum, source) => sum + source.readings, 0);
   const documents = selected.reduce((sum, source) => sum + source.documents, 0);
@@ -270,7 +303,10 @@ export function SourcesExplorer({
           <button
             type="button"
             className={publisher === 'TODOS' ? 'rail-item rail-item-on' : 'rail-item'}
-            onClick={() => setPublisher('TODOS')}
+            onClick={() => {
+              setOffset(0);
+              setPublisher('TODOS');
+            }}
           >
             <Icon name="capas" size={16} />
             <span className="rail-name">Todos los publicadores</span>
@@ -281,7 +317,10 @@ export function SourcesExplorer({
               key={name}
               type="button"
               className={publisher === name ? 'rail-item rail-item-on' : 'rail-item'}
-              onClick={() => setPublisher(publisher === name ? 'TODOS' : name)}
+              onClick={() => {
+                setOffset(0);
+                setPublisher(publisher === name ? 'TODOS' : name);
+              }}
             >
               <Icon name={PUBLISHER_ICON[name] ?? 'edificio'} size={16} />
               <span className="rail-name">{name}</span>
@@ -301,7 +340,10 @@ export function SourcesExplorer({
                 key={key}
                 type="button"
                 className={frequency === key ? 'rail-item rail-item-on' : 'rail-item'}
-                onClick={() => setFrequency(frequency === key ? 'TODAS' : key)}
+                onClick={() => {
+                  setOffset(0);
+                  setFrequency(frequency === key ? 'TODAS' : key);
+                }}
               >
                 <Icon name={FREQUENCY_ICON[key] ?? 'calendario'} size={16} />
                 <span className="rail-name">{FREQUENCY_LABEL[key] ?? key}</span>
@@ -322,7 +364,10 @@ export function SourcesExplorer({
               value={search}
               aria-label="Buscar una serie por nombre o código"
               placeholder="reservas, deuda, dólar…"
-              onChange={(event) => setSearch(event.target.value)}
+              onChange={(event) => {
+                setOffset(0);
+                setSearch(event.target.value);
+              }}
             />
           </div>
         </div>
@@ -391,57 +436,95 @@ export function SourcesExplorer({
         </div>
 
         {selected.length ? (
-          <div className="table-wrap">
-            <table className="grid-table">
-              <thead>
-                <tr>
-                  <th>Serie</th>
-                  <th>Publicador</th>
-                  <th>Frecuencia</th>
-                  <th className="num">Lecturas</th>
-                  <th className="num">Docs.</th>
-                  <th>Desde</th>
-                  <th>Hasta</th>
-                  <th>Fuente</th>
-                </tr>
-              </thead>
-              <tbody>
-                {selected.map((source) => (
-                  <tr key={`${source.indicator}-${source.publisher}`}>
-                    <td>
-                      <span className="cell-name">{named(source)}</span>
-                      <code className="cell-code">{source.indicator}</code>
-                    </td>
-                    <td>{source.publisher}</td>
-                    <td>
-                      {source.frequency
-                        ? (FREQUENCY_LABEL[source.frequency] ?? source.frequency)
-                        : '—'}
-                    </td>
-                    <td className="num">{source.readings.toLocaleString('es-BO')}</td>
-                    <td className="num">{source.documents.toLocaleString('es-BO')}</td>
-                    <td className="num">{source.firstDay}</td>
-                    <td className="num">{source.lastDay}</td>
-                    <td>
-                      <a href={source.sourceUrl} target="_blank" rel="noreferrer noopener">
-                        abrir
-                      </a>
-                    </td>
+          <>
+            {/*
+              Un paginador arriba y otro abajo, como en Macroeconomía. Veinte
+              filas son bastante más que una pantalla, así que un control solo
+              al pie obliga a recorrer entera la página que el lector ya decidió
+              dejar atrás para poder pasarla.
+            */}
+            <Pager
+              page={page}
+              pages={pages}
+              first={first}
+              last={last}
+              total={selected.length}
+              onGo={setOffset}
+              pageSize={PAGE_SIZE}
+              where="arriba"
+              noun="series"
+            />
+            <div className="table-wrap">
+              <table className="grid-table">
+                <thead>
+                  <tr>
+                    <th>Serie</th>
+                    <th>Publicador</th>
+                    <th>Frecuencia</th>
+                    <th className="num">Lecturas</th>
+                    <th className="num">Docs.</th>
+                    <th>Desde</th>
+                    <th>Hasta</th>
+                    <th>Fuente</th>
                   </tr>
-                ))}
-              </tbody>
-              <tfoot>
-                <tr>
-                  <td colSpan={3}>
-                    {selected.length} serie{selected.length === 1 ? '' : 's'}
-                  </td>
-                  <td className="num">{readings.toLocaleString('es-BO')}</td>
-                  <td className="num">{documents.toLocaleString('es-BO')}</td>
-                  <td colSpan={3} />
-                </tr>
-              </tfoot>
-            </table>
-          </div>
+                </thead>
+                <tbody>
+                  {shown.map((source) => (
+                    <tr key={`${source.indicator}-${source.publisher}`}>
+                      <td>
+                        <span className="cell-name">{named(source)}</span>
+                        <code className="cell-code">{source.indicator}</code>
+                      </td>
+                      <td>{source.publisher}</td>
+                      <td>
+                        {source.frequency
+                          ? (FREQUENCY_LABEL[source.frequency] ?? source.frequency)
+                          : '—'}
+                      </td>
+                      <td className="num">{source.readings.toLocaleString('es-BO')}</td>
+                      <td className="num">{source.documents.toLocaleString('es-BO')}</td>
+                      <td className="num">{source.firstDay}</td>
+                      <td className="num">{source.lastDay}</td>
+                      <td>
+                        <a href={source.sourceUrl} target="_blank" rel="noreferrer noopener">
+                          abrir
+                        </a>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+                {/*
+                  El pie sigue sumando la selección entera, no la página: es la
+                  respuesta a «cuánto hay detrás de este filtro», y una cifra
+                  que cambiara al pasar de página no respondería a nada. Lo que
+                  sí dice es cuántas de esas filas están a la vista.
+                */}
+                <tfoot>
+                  <tr>
+                    <td colSpan={3}>
+                      {shown.length === selected.length
+                        ? `${selected.length} serie${selected.length === 1 ? '' : 's'}`
+                        : `${shown.length} de ${selected.length} series en esta página`}
+                    </td>
+                    <td className="num">{readings.toLocaleString('es-BO')}</td>
+                    <td className="num">{documents.toLocaleString('es-BO')}</td>
+                    <td colSpan={3} />
+                  </tr>
+                </tfoot>
+              </table>
+            </div>
+            <Pager
+              page={page}
+              pages={pages}
+              first={first}
+              last={last}
+              total={selected.length}
+              onGo={setOffset}
+              pageSize={PAGE_SIZE}
+              where="abajo"
+              noun="series"
+            />
+          </>
         ) : (
           <div className="callout">Ninguna serie coincide con esta selección.</div>
         )}
