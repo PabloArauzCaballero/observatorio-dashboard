@@ -4,7 +4,6 @@ import {
   readMacroAnnual,
   readMarkets,
   readObservatory,
-  readPanelCatalogue,
   readPressCube,
   readPressPage,
   readPressPulse,
@@ -50,7 +49,6 @@ const READERS: ReadonlyArray<readonly [string, () => Promise<unknown>]> = [
   ['pressPulse', readPressPulse],
   ['termMonths', readTermMonths],
   ['termTotals', readTermTotals],
-  ['panelCatalogue', readPanelCatalogue],
   // Sondas, no lecturas: cuentan filas y dejan viajar el error, que es lo
   // unico que distingue un corpus sin cargar de una migracion sin correr.
   ['cityPlace', () => countPlaceRows('city_place')],

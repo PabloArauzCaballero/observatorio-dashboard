@@ -5,8 +5,6 @@ import { FilingExplorer } from '@/components/filing-explorer';
 import { FxExplorer } from '@/components/fx-explorer';
 import { MacroExplorer } from '@/components/macro-explorer';
 import { MarketCards } from '@/components/market-cards';
-
-import { PanelExplorer } from '@/components/panel-explorer';
 import { WorldExplorer } from '@/components/world-explorer';
 import { CityPlacesExplorer } from '@/components/city-places-explorer';
 import { PressExplorer } from '@/components/press-explorer';
@@ -36,7 +34,6 @@ import {
   readSources,
   readTermMonths,
   readTermTotals,
-  readPanelCatalogue,
   readChannelMix,
   readTradeCoverage,
   readTradeGap,
@@ -55,7 +52,6 @@ import type {
   SourceNote,
   TermMonth,
   TermTotal,
-  PanelIndicator,
   ChannelMix,
   TradeCoverage,
   TradeGap,
@@ -263,7 +259,6 @@ const NOMBRE_DE_SECCION: Record<string, string> = {
   pressPulse: 'prensa',
   termMonths: 'temas de prensa',
   termTotals: 'temas de prensa',
-  panelCatalogue: 'panel mundial',
   placeFamilies: 'lugares de las ciudades',
 };
 
@@ -285,7 +280,6 @@ export default async function Page() {
   let pressPulse: PressPulseData;
   let termMonths: TermMonth[];
   let termTotals: TermTotal[];
-  let panelCatalogue: PanelIndicator[];
   let placeFamilies: PlaceFamily[];
   /*
    * Las secciones que no llegan se cuentan, para no publicar su ausencia como
@@ -334,7 +328,6 @@ export default async function Page() {
       pressPulse,
       termMonths,
       termTotals,
-      panelCatalogue,
       placeFamilies,
     ] = await Promise.all([
       seccion('sources', readSources, []),
@@ -346,7 +339,6 @@ export default async function Page() {
       seccion('pressPulse', readPressPulse, EMPTY_PRESS_PULSE),
       seccion('termMonths', readTermMonths, []),
       seccion('termTotals', readTermTotals, []),
-      seccion('panelCatalogue', readPanelCatalogue, []),
       seccion('placeFamilies', readPlaceFamilies, []),
     ]);
   } catch (error) {
@@ -564,12 +556,11 @@ export default async function Page() {
 
         <section className="stack">
           <SubTabs
-            labels={['Series de Bolivia', 'Economía mundial', 'Buscar en el Banco Mundial']}
-            icons={['linea', 'globo', 'buscar']}
+            labels={['Series de Bolivia', 'Economía mundial']}
+            icons={['linea', 'globo']}
           >
             <MacroExplorer bundle={packMacro(macro)} />
             <WorldExplorer />
-            <PanelExplorer catalogue={panelCatalogue} />
           </SubTabs>
         </section>
 
