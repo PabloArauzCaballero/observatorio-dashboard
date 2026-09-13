@@ -15,8 +15,9 @@ import type { SourceNote } from '@/lib/series';
  * span. Columns that line up let a reader compare series down the page instead
  * of reading each row as a sentence.
  *
- * A hundred and eleven series is more than anyone reads at once, so the
- * publisher and the frequency are slicers, each counted under the other. The
+ * Sixteen hundred rows of series and publisher is far more than anyone reads at
+ * once, so the table is paged and the publisher and the frequency are slicers,
+ * each counted under the other. The
  * methodological notes below are the caveats a figure cannot carry in its own
  * cell, and they are cards rather than a wall of prose because a reader looks
  * for the one that applies to what they are about to quote.
@@ -59,11 +60,12 @@ const PUBLISHER_ICON: Record<string, IconName> = {
 /**
  * How many source rows one page carries.
  *
- * The same twenty as the macro panel, and for the reader's sake rather than the
- * browser's: these rows carry no chart, so weight was never the reason there
- * either, but a hundred and eleven rows in one sheet is not read — it is
- * scrolled past — and a reader who learns the pager on Macroeconomía should
- * find the same control, on the same page size, when they get here.
+ * The same twenty as the macro panel. These rows carry no chart, so the weight
+ * of eighty plots was never the reason here — but the panel opens on one
+ * thousand six hundred and sixty-one of them, and sixteen hundred rows in a
+ * single sheet is not a table anyone reads: it is one anyone scrolls past. A
+ * reader who learned the pager on Macroeconomía should find the same control,
+ * at the same page size, when they get here.
  */
 const PAGE_SIZE = 20;
 
