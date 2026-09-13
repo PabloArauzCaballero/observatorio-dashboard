@@ -981,6 +981,15 @@ code {
 
 .rail {
   width: 264px;
+  /*
+   * Nunca mas ancha que la columna que la sostiene.
+   *
+   * Con `flex: none` y un ancho fijo, una lista con un nombre largo dentro
+   * empuja: el municipio mas largo del pais ensanchaba el carril y el mapa de
+   * al lado encogia para dejarle sitio.
+   */
+  max-width: 100%;
+  min-width: 0;
   flex: none;
   position: sticky;
   top: var(--s3);
@@ -1000,17 +1009,46 @@ code {
   overscroll-behavior: contain;
 }
 
-.rail::-webkit-scrollbar {
+.rail::-webkit-scrollbar,
+.rail-list::-webkit-scrollbar {
   width: 8px;
 }
 
-.rail::-webkit-scrollbar-thumb {
+.rail::-webkit-scrollbar-thumb,
+.rail-list::-webkit-scrollbar-thumb {
   background: var(--rule);
   border-radius: 999px;
 }
 
-.rail::-webkit-scrollbar-thumb:hover {
+.rail::-webkit-scrollbar-thumb:hover,
+.rail-list::-webkit-scrollbar-thumb:hover {
   background: var(--ink-faint);
+}
+
+/*
+ * Una lista de filtro que se desplaza dentro de su propia seccion.
+ *
+ * El carril entero ya se desplazaba, y eso bastaba mientras las listas fueran
+ * cortas. Desde que el capitulo de ciudades dejo de leer tres municipios y paso
+ * a leer el pais, la primera lista sola mide varias pantallas: el buscador de
+ * familias y la familia elegida quedan empujados tan abajo que hay que recorrer
+ * cuarenta ciudades para llegar al control que se venia a usar, y desde el
+ * buscador ya no se ve que ciudad esta puesta.
+ *
+ * Con un tope por seccion las dos caben a la vez y cada una se mueve por
+ * dentro. `overscroll-behavior` evita lo de siempre: llegar al final de la
+ * lista y que el gesto siga, ahora arrastrando la pagina.
+ */
+.rail-list {
+  max-height: 15.5rem;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+}
+
+/* Una lista mas corta que su tope no debe parecer recortada. */
+.rail-list-cut {
+  box-shadow: inset 0 -10px 8px -10px color-mix(in srgb, var(--ink) 28%, transparent);
 }
 
 /* The header stays put while the list under it moves. */
@@ -3729,6 +3767,66 @@ button.download-btn {
   line-height: 1.5;
 }
 
+/*
+ * La coordenada, escrita como el sitio al que lleva.
+ *
+ * Mismo enlace en la ficha del mapa y en la tabla de abajo, porque son el mismo
+ * campo del mismo registro. En la ficha flotante no se puede pulsar —la tapa el
+ * `pointer-events: none` que le impide comerse el hover del punto— y aun asi va
+ * subrayado: una direccion que se puede leer y copiar vale, y en la ficha
+ * acoplada del telefono y en la tabla si se pulsa.
+ */
+.places-map-link {
+  color: var(--official);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  white-space: nowrap;
+}
+
+.places-map-link:hover {
+  color: var(--ink);
+}
+
+/* El registro completo, debajo del dibujo ---------------------------------- */
+
+/*
+ * Un mapa dice donde esta cada lugar y no dice cual es cada uno: cuatro mil
+ * puntos del mismo color no se leen de uno en uno, y la ficha del puntero
+ * ensena uno cada vez. La tabla es la misma seleccion en la forma que se
+ * ordena con la vista, se copia y se compara.
+ */
+.places-table {
+  margin-top: var(--s2);
+}
+
+.places-table .tile-title {
+  margin: 0;
+  font-family: var(--serif);
+  font-size: 1rem;
+}
+
+.places-table-count {
+  margin-left: auto;
+  font-family: var(--mono);
+  font-size: 0.68rem;
+  color: var(--ink-faint);
+  font-variant-numeric: tabular-nums;
+}
+
+/*
+ * Nueve columnas no caben en una pantalla estrecha y no deben intentarlo: el
+ * suelo mantiene legible cada una y `.table-wrap` las desplaza por dentro, que
+ * es como se desplaza toda tabla ancha de este informe.
+ */
+.grid-table-places {
+  min-width: 1080px;
+}
+
+/* Dos lineas por celda —nombre y codigo— piden alinear por arriba. */
+.grid-table-places td {
+  vertical-align: top;
+}
+
 /* Mientras se arma el tablero --------------------------------------------- */
 
 /*
@@ -4075,4 +4173,20 @@ button.download-btn {
   border-radius: 0;
   border-top: 2px dashed;
   background: none;
+}
+
+/*
+ * En un telefono el titulo del registro ya ocupa dos lineas, y la cuenta
+ * empujada a la derecha con `margin-left: auto` se le encarama al lado. En su
+ * propia linea se lee, y el titulo recupera el ancho entero.
+ */
+@media (max-width: 640px) {
+  .places-table .tile-head {
+    flex-wrap: wrap;
+  }
+
+  .places-table-count {
+    flex-basis: 100%;
+    margin-left: 0;
+  }
 }

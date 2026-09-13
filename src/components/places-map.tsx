@@ -148,6 +148,30 @@ function clamp(value: number, low: number, high: number): number {
   return Math.min(Math.max(value, low), high);
 }
 
+/**
+ * Where this place is, as somewhere a reader can actually go.
+ *
+ * The record files a latitude and a longitude, and «-17,78362, -63,18201» is
+ * the one field on the card nobody can use: it is not an address, it does not
+ * say what is around it, and getting from it to a route means copying two
+ * numbers into another site by hand. The same two numbers as a link are a
+ * pin on Google Maps with the street, the neighbours and the way there.
+ *
+ * Derived, not stored: nothing new is asked of the corpus, and a place whose
+ * coordinate changes takes its link with it.
+ */
+export function mapsHref(place: Pick<Place, 'latitude' | 'longitude'>): string {
+  const query = encodeURIComponent(`${place.latitude},${place.longitude}`);
+  return `https://www.google.com/maps/search/?api=1&query=${query}`;
+}
+
+/** One line of a place's record: a label, what it says, and where it leads. */
+interface Field {
+  term: string;
+  value: string;
+  href?: string;
+}
+
 /** Longitude and latitude into the tile grid's own pixels. */
 function project(longitude: number, latitude: number): { x: number; y: number } {
   const lat = clamp(latitude, -85.05112878, 85.05112878);
@@ -209,6 +233,23 @@ export function PlacesMap({
    */
   const [box, setBox] = useState<{ width: number; cap: number }>({ width: 0, cap: 0 });
 
+  /**
+   * Whether there is a plot to measure at all.
+   *
+   * Without a place to draw this figure is a line of text and the plot is not
+   * on the page, so the measurement below has nothing to read and gives up —
+   * and, hung on an empty dependency list, it used to give up for good: the
+   * box stayed at nought for the life of the component, and with it went the
+   * basemap, the floating card and the cap that fits the drawing to the screen,
+   * because every one of the three is switched off by a width of zero. A map
+   * that mounted before its places arrived and was never unmounted came out as
+   * a scatter of dots on blank paper with no card under the pointer.
+   *
+   * It is a dependency now, so the reading happens the moment there is
+   * something to read.
+   */
+  const drawable = places.length > 0;
+
   useEffect(() => {
     const plot = plotRef.current;
     if (!plot) return;
@@ -230,7 +271,7 @@ export function PlacesMap({
       observer.disconnect();
       window.removeEventListener('resize', measure);
     };
-  }, []);
+  }, [drawable]);
 
   /** The shape the screen would like, before the city has a say. */
   const boxAspect = box.width > 0 && box.cap > 0 ? box.cap / box.width : 0.7;
@@ -326,13 +367,34 @@ export function PlacesMap({
       farBottom = Math.max(farBottom, dot.y);
     }
 
-    /** Everything, stragglers included, in the same proportions as the frame. */
-    const wholeWidth = Math.max(farRight - farLeft, span) * 1.05;
+    /**
+     * Everything, stragglers included, in the same proportions as the frame.
+     *
+     * It has to CONTAIN the frame, and until now it did not. The width came
+     * from the horizontal spread of the points and the height was that width
+     * times the aspect, hung on the midpoint of the vertical spread — so a
+     * single premise mis-geocoded a degree north gave a rectangle the size of
+     * the city sitting a long way above the city, touching none of it. That
+     * rectangle is what `keepInside` clamps every window against, so the first
+     * turn of the wheel dragged the map off the town and onto empty ground:
+     * «al hacer zoom se buguea totalmente el mapa», and it did, every time, on
+     * any selection with a straggler above or below the frame.
+     *
+     * Built from the union of the frame and the outermost points, then grown
+     * about its own centre to the frame's proportions, it contains both by
+     * construction and the clamp can only ever hold a window in.
+     */
+    const left = Math.min(farLeft, west);
+    const right = Math.max(farRight, east);
+    const top = Math.min(farTop, north);
+    const bottom = Math.max(farBottom, south);
+    const wholeWidth = Math.max((right - left) * 1.05, ((bottom - top) * 1.05) / aspect, span);
+    const wholeHeight = wholeWidth * aspect;
     const whole: Rect = {
-      x: (farLeft + farRight) / 2 - wholeWidth / 2,
-      y: (farTop + farBottom) / 2 - (wholeWidth * aspect) / 2,
+      x: (left + right) / 2 - wholeWidth / 2,
+      y: (top + bottom) / 2 - wholeHeight / 2,
       width: wholeWidth,
-      height: wholeWidth * aspect,
+      height: wholeHeight,
     };
 
     /**
@@ -531,26 +593,27 @@ export function PlacesMap({
    * brand, and a card of «—» reads as a broken card, not as a place with no
    * brand.
    */
-  const detail = useMemo(() => {
+  const detail = useMemo<Field[]>(() => {
     const place = found?.place;
     if (!place) return [];
-    const rows: Array<[string, string]> = [];
-    if (place.brand) rows.push(['Marca', place.brand]);
-    if (place.address) rows.push(['Dirección', place.address]);
-    if (place.zone) rows.push(['Zona', place.zone]);
-    rows.push(['Ciudad', place.city]);
+    const rows: Field[] = [];
+    if (place.brand) rows.push({ term: 'Marca', value: place.brand });
+    if (place.address) rows.push({ term: 'Dirección', value: place.address });
+    if (place.zone) rows.push({ term: 'Zona', value: place.zone });
+    rows.push({ term: 'Ciudad', value: place.city });
     if (place.confidence !== null) {
-      rows.push([
-        'Confianza',
-        `${(place.confidence * 100).toFixed(0)}%${place.qualityGrade ? ` · ${place.qualityGrade}` : ''}`,
-      ]);
+      rows.push({
+        term: 'Confianza',
+        value: `${(place.confidence * 100).toFixed(0)}%${place.qualityGrade ? ` · ${place.qualityGrade}` : ''}`,
+      });
     } else if (place.qualityGrade) {
-      rows.push(['Calidad', place.qualityGrade]);
+      rows.push({ term: 'Calidad', value: place.qualityGrade });
     }
     if (place.officialValidationSource) {
-      rows.push(['Verificar en', place.officialValidationSource]);
+      rows.push({ term: 'Verificar en', value: place.officialValidationSource });
     }
-    rows.push(['Coordenadas', `${place.latitude.toFixed(5)}, ${place.longitude.toFixed(5)}`]);
+    // La coordenada, en lo unico que un lector puede hacer con ella.
+    rows.push({ term: 'Ubicación', value: 'Ver en Google Maps', href: mapsHref(place) });
     return rows;
   }, [found]);
 
@@ -602,10 +665,20 @@ export function PlacesMap({
       // Room to breathe around the city, never a window adrift in empty space.
       const slackX = bounds.width * 0.25;
       const slackY = bounds.height * 0.25;
+      /*
+       * A window wider than what it is allowed to roam over leaves no range to
+       * clamp into — the low bound passes the high one and `clamp`, asked for
+       * an empty interval, answers with the high one, which is to say it shoves
+       * the map somewhere nobody asked it to go. Centred is the only honest
+       * answer there: the reader is looking at more than the bounds, so the
+       * bounds should sit in the middle of what they see.
+       */
+      const hold = (value: number, low: number, size: number, span_: number): number =>
+        span_ >= size ? low + size / 2 - span_ / 2 : clamp(value, low, low + size - span_);
       return {
         ...next,
-        x: clamp(next.x, bounds.x - slackX, bounds.x + bounds.width + slackX - next.width),
-        y: clamp(next.y, bounds.y - slackY, bounds.y + bounds.height + slackY - next.height),
+        x: hold(next.x, bounds.x - slackX, bounds.width + slackX * 2, next.width),
+        y: hold(next.y, bounds.y - slackY, bounds.height + slackY * 2, next.height),
       };
     },
     [layout?.whole, home],
@@ -1140,7 +1213,7 @@ export function PlacesMap({
 }
 
 /** The record of one place, the same whether the card floats or sits under the map. */
-function PlaceRecord({ place, fields }: { place: Place; fields: Array<[string, string]> }) {
+function PlaceRecord({ place, fields }: { place: Place; fields: Field[] }) {
   return (
     <div className="tooltip">
       <div className="t-date">
@@ -1150,10 +1223,31 @@ function PlaceRecord({ place, fields }: { place: Place; fields: Array<[string, s
       <strong className="map-card-name">{place.name}</strong>
       {place.isRegulated ? <span className="places-map-flag">actividad regulada</span> : null}
       <dl className="places-map-fields">
-        {fields.map(([term, value]) => (
-          <div key={term} className="places-map-field">
-            <dt>{term}</dt>
-            <dd>{value}</dd>
+        {fields.map((field) => (
+          <div key={field.term} className="places-map-field">
+            <dt>{field.term}</dt>
+            <dd>
+              {field.href ? (
+                /*
+                 * La ficha no recibe puntero mientras flota — la tapa un
+                 * `pointer-events: none` que existe para que no se coma el
+                 * hover del punto que la abrio — asi que este enlace solo se
+                 * puede pulsar en la ficha acoplada del telefono y en la tabla
+                 * de abajo. Se dibuja igual en las dos: una direccion que se
+                 * puede copiar vale aunque no se pueda pulsar.
+                 */
+                <a
+                  className="places-map-link"
+                  href={field.href}
+                  target="_blank"
+                  rel="noreferrer noopener"
+                >
+                  {field.value}
+                </a>
+              ) : (
+                field.value
+              )}
+            </dd>
           </div>
         ))}
       </dl>
