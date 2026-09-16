@@ -8,3 +8,12 @@ build/
 *.tsbuildinfo
 next-env.d.ts
 .DS_Store
+
+# Salida de las pruebas de extremo a extremo.
+#
+# Las trazas de Playwright llevan cookies y cabeceras de una sesión real, y las
+# capturas llevan cifras del entorno contra el que corrió la suite. Se conservan
+# en la máquina que las produjo y no se publican.
+artifacts/
+test-results/
+playwright-report/

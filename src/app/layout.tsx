@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import { VisitReporter } from '@/components/visit-reporter';
 import './globals.css';
 
 export const metadata: Metadata = {
@@ -12,6 +13,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="es-BO">
       <body>
         <div className="shell">{children}</div>
+        {/* Reports one visit and nothing else; it renders no markup and never blocks. */}
+        <VisitReporter />
       </body>
     </html>
   );

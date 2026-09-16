@@ -1,3 +1,5 @@
+import { randomUUID } from 'node:crypto';
+import { reportExport } from '@/lib/admin/telemetry';
 import { readPlacesForExport } from '@/lib/places';
 import {
   readCompanyFilings,
@@ -27,6 +29,20 @@ import {
  */
 
 export const dynamic = 'force-dynamic';
+
+/**
+ * The ceiling each dataset is read under, and therefore the row count at which
+ * the file has to declare itself incomplete.
+ *
+ * A truncated file that does not say so is worse than no file: an analyst who
+ * counts five thousand filings and concludes there are five thousand has been
+ * misled by a limit nobody told them about. Datasets with no ceiling are absent
+ * from this table and are never reported as truncated.
+ */
+const ROW_CEILING: Partial<Record<Dataset, number>> = {
+  filings: 5_000,
+  prensa: 60_000,
+};
 
 type Row = Record<string, string | number | boolean | null>;
 
@@ -308,17 +324,70 @@ function toCsv(rows: Row[]): string {
   return `${lines.join('\n')}\n`;
 }
 
+/**
+ * The filters that travelled with the request, without the free-text search.
+ *
+ * The register records what the file was sliced by so an operator can reproduce
+ * it. `buscar` is deliberately excluded: it is a reader typing, and a reader's
+ * words do not belong in an operational register.
+ */
+function recordedFilters(parameters: URLSearchParams): Record<string, string> {
+  const recorded: Record<string, string> = {};
+  for (const name of [
+    'sector',
+    'tema',
+    'medio',
+    'tono',
+    'region',
+    'emisor',
+    'categoria',
+    'anio',
+    'termino',
+    'familia',
+    'ciudad',
+    'desde',
+    'hasta',
+  ]) {
+    const value = parameters.get(name);
+    if (value) recorded[name] = value.slice(0, 120);
+  }
+  return recorded;
+}
+
 export async function GET(request: Request): Promise<Response> {
   const url = new URL(request.url);
   const dataset = (url.searchParams.get('dataset') ?? 'series') as Dataset;
   const format = url.searchParams.get('format') === 'json' ? 'json' : 'csv';
+  /*
+   * One identifier for both stages of this export.
+   *
+   * It travels back on the response header, so a reader who reports that their
+   * file was empty hands over the exact identifier of the request that produced
+   * it, and the register can be asked what happened instead of guessed at.
+   */
+  const requestId = randomUUID();
+  const filters = recordedFilters(url.searchParams);
+  const startedAt = Date.now();
 
   if (!DATASETS.includes(dataset)) {
     return new Response(`Conjunto desconocido. Disponibles: ${DATASETS.join(', ')}.\n`, {
       status: 400,
-      headers: { 'Content-Type': 'text/plain; charset=utf-8' },
+      headers: { 'Content-Type': 'text/plain; charset=utf-8', 'X-Export-Request': requestId },
     });
   }
+
+  /*
+   * Sent before the work starts, and kept alive until it lands.
+   *
+   * The call begins here rather than after the file is built, so an export that
+   * hangs is visible as a request with no generation instead of as nothing at
+   * all. It is handed to `after` rather than left floating because a promise
+   * nobody holds is not guaranteed to finish: the request scope ends when the
+   * reader has their bytes, and a report still in flight at that moment is
+   * dropped. A register that loses stages under load is worse than no register,
+   * because the gaps read as exports nobody ever asked for.
+   */
+  await reportExport({ requestId, datasetCode: dataset, format, status: 'REQUESTED', filters });
 
   try {
     // A month is a legal end of a range: the subjects panel is dated by month,
@@ -342,10 +411,44 @@ export async function GET(request: Request): Promise<Response> {
       until: until && dated.test(until) ? until : undefined,
       search: url.searchParams.get('buscar') ?? undefined,
     });
+    const ceiling = ROW_CEILING[dataset];
+    const truncated = ceiling !== undefined && rows.length >= ceiling;
     const body =
       format === 'json'
-        ? `${JSON.stringify({ dataset, generado: new Date().toISOString(), filas: rows.length, datos: rows }, null, 2)}\n`
+        ? `${JSON.stringify(
+            {
+              dataset,
+              generado: new Date().toISOString(),
+              filas: rows.length,
+              // Stated in the file itself and not only in the register: whoever
+              // opens it later may never see the register.
+              truncado: truncated,
+              ...(truncated ? { techo: ceiling } : {}),
+              datos: rows,
+            },
+            null,
+            2,
+          )}\n`
         : toCsv(rows);
+
+    /*
+     * Generated, which is not the same as delivered.
+     *
+     * What this records is that the server built the file and how big it was.
+     * Nothing in this deployment observes the last byte reaching the reader, so
+     * no status here claims that it did.
+     */
+    await reportExport({
+      requestId,
+      datasetCode: dataset,
+      format,
+      status: 'GENERATED',
+      filters,
+      rowCount: rows.length,
+      byteCount: Buffer.byteLength(body, 'utf8'),
+      durationMs: Date.now() - startedAt,
+      truncated,
+    });
 
     return new Response(body, {
       headers: {
@@ -353,14 +456,26 @@ export async function GET(request: Request): Promise<Response> {
           format === 'json' ? 'application/json; charset=utf-8' : 'text/csv; charset=utf-8',
         'Content-Disposition': `attachment; filename="observatorio-${dataset}.${format}"`,
         'Cache-Control': 'no-store',
+        'X-Export-Request': requestId,
+        'X-Export-Rows': String(rows.length),
+        'X-Export-Truncated': truncated ? 'true' : 'false',
       },
     });
   } catch (error) {
     // The detail belongs in the log: a connection message can carry the host.
     console.error('[observatorio] exportación fallida', error);
+    await reportExport({
+      requestId,
+      datasetCode: dataset,
+      format,
+      status: 'FAILED',
+      filters,
+      durationMs: Date.now() - startedAt,
+      errorCode: 'READ_FAILED',
+    });
     return new Response('No fue posible leer los datos.\n', {
       status: 503,
-      headers: { 'Content-Type': 'text/plain; charset=utf-8' },
+      headers: { 'Content-Type': 'text/plain; charset=utf-8', 'X-Export-Request': requestId },
     });
   }
 }

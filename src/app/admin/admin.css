@@ -1,0 +1,613 @@
+/*
+ * The private area, built from the report's own vocabulary.
+ *
+ * It borrows every token from `globals.css` — the same ink, rules, spacing
+ * scale, radius and motion curve — so the console reads as the same product
+ * rather than as an admin panel somebody bolted on. What it adds is the one
+ * thing the public page does not need: a way to say what is known, what is not,
+ * and what is wrong, in text and shape as well as colour.
+ *
+ * Nothing here is keyed on colour alone. Every state carries a word and a mark,
+ * because an operator who cannot distinguish red from green still has to be
+ * able to run the observatory.
+ */
+
+.admin {
+  /*
+   * The four state tones, each above 4.5:1 on both surfaces they sit on.
+   *
+   * `--ink-faint` reads at 3.81:1 on a white panel, which is fine for a hairline
+   * and not fine for a word an operator has to read; `unknown` is the state this
+   * portal prints most often, so it gets a tone of its own rather than inheriting
+   * the faintest one in the palette. The amber is darkened for the same reason.
+   */
+  --state-ok: var(--down);
+  --state-warn: #8a5a0c;
+  --state-bad: var(--up);
+  --state-unknown: #646f83;
+
+  display: grid;
+  grid-template-columns: 15rem minmax(0, 1fr);
+  gap: var(--s3);
+  align-items: start;
+  min-height: 100vh;
+  padding: var(--s3);
+}
+
+@media (prefers-color-scheme: dark) {
+  .admin {
+    --state-warn: #e0a83c;
+    --state-unknown: #98a1b0;
+  }
+}
+
+@media (max-width: 900px) {
+  .admin {
+    grid-template-columns: minmax(0, 1fr);
+    padding: var(--s2);
+  }
+}
+
+/* Navigation ------------------------------------------------------------- */
+
+.admin-nav {
+  position: sticky;
+  top: var(--s3);
+  display: flex;
+  flex-direction: column;
+  gap: var(--s1);
+  padding: var(--s2);
+  background: var(--panel);
+  border: 1px solid var(--rule);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+}
+
+@media (max-width: 900px) {
+  .admin-nav {
+    position: static;
+    flex-direction: row;
+    flex-wrap: wrap;
+  }
+}
+
+.admin-brand {
+  display: block;
+  font-family: var(--serif);
+  font-size: 1.05rem;
+  line-height: 1.25;
+  padding-bottom: var(--s1);
+  border-bottom: 1px solid var(--rule-soft);
+  margin-bottom: var(--s1);
+}
+
+@media (max-width: 900px) {
+  .admin-brand {
+    flex: 1 0 100%;
+    border-bottom: 0;
+  }
+}
+
+.admin-nav a {
+  display: block;
+  padding: 0.4rem 0.6rem;
+  border-radius: 6px;
+  text-decoration: none;
+  color: var(--ink-soft);
+  font-size: 0.92rem;
+  transition:
+    background var(--fast) var(--ease),
+    color var(--fast) var(--ease);
+}
+
+.admin-nav a:hover {
+  background: var(--panel-tint);
+  color: var(--ink);
+}
+
+.admin-nav a[aria-current='page'] {
+  background: var(--panel-tint);
+  color: var(--ink);
+  font-weight: 600;
+  box-shadow: inset 2px 0 0 var(--official);
+}
+
+.admin-nav a:focus-visible,
+.admin button:focus-visible,
+.admin input:focus-visible,
+.admin select:focus-visible,
+.admin a:focus-visible {
+  outline: 2px solid var(--official);
+  outline-offset: 2px;
+}
+
+/* Header ----------------------------------------------------------------- */
+
+.admin-main {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--s3);
+}
+
+.admin-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--s2);
+}
+
+.admin-head h1 {
+  font-family: var(--serif);
+  font-size: 1.6rem;
+  line-height: 1.2;
+  margin: 0;
+}
+
+.admin-head p {
+  margin: 0.25rem 0 0;
+  color: var(--ink-soft);
+  font-size: 0.92rem;
+  max-width: 62ch;
+}
+
+.admin-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s1);
+  align-items: center;
+  font-size: 0.8rem;
+  color: var(--ink-soft);
+  font-family: var(--mono);
+}
+
+.admin-env {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.15rem 0.5rem;
+  border: 1px solid var(--rule);
+  border-radius: 999px;
+  background: var(--panel-tint);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+/* Cards ------------------------------------------------------------------ */
+
+.admin-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(15rem, 1fr));
+  gap: var(--s2);
+}
+
+.admin-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  padding: var(--s2);
+  background: var(--panel);
+  border: 1px solid var(--rule);
+  border-radius: var(--radius);
+  text-decoration: none;
+  color: inherit;
+  transition:
+    border-color var(--fast) var(--ease),
+    transform var(--fast) var(--ease);
+}
+
+a.admin-card:hover {
+  border-color: var(--ink-faint);
+  transform: translateY(-1px);
+}
+
+.admin-card h2 {
+  margin: 0;
+  font-size: 0.82rem;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+}
+
+.admin-figure {
+  font-family: var(--mono);
+  font-size: 1.9rem;
+  line-height: 1.1;
+  font-variant-numeric: tabular-nums;
+}
+
+.admin-figure-unknown {
+  font-size: 1.1rem;
+  color: var(--state-unknown);
+  font-family: var(--sans);
+}
+
+.admin-card small {
+  color: var(--ink-soft);
+  font-size: 0.8rem;
+}
+
+/* Panels and tables ------------------------------------------------------ */
+
+.admin-panel {
+  background: var(--panel);
+  border: 1px solid var(--rule);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+
+.admin-panel > header {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s1);
+  align-items: baseline;
+  justify-content: space-between;
+  padding: var(--s2);
+  border-bottom: 1px solid var(--rule-soft);
+}
+
+.admin-panel > header h2 {
+  margin: 0;
+  font-family: var(--serif);
+  font-size: 1.1rem;
+}
+
+.admin-panel > header p {
+  margin: 0;
+  font-size: 0.85rem;
+  color: var(--ink-soft);
+}
+
+/*
+ * A wide table scrolls inside its own panel, never the document.
+ *
+ * A horizontal scrollbar on the page pushes the navigation off screen and makes
+ * every other section unreachable on a narrow window.
+ */
+.admin-scroll {
+  overflow-x: auto;
+  max-width: 100%;
+}
+
+/*
+ * A scrollable area is reachable from the keyboard, and shows that it is.
+ *
+ * A wide table that only a mouse can scroll hides its last columns from anyone
+ * using a keyboard, which is what `scrollable-region-focusable` is about. The
+ * ring is not decoration: without it, a focus that landed here would be
+ * invisible and the reader would not know why the arrow keys started scrolling.
+ */
+.admin-scroll:focus-visible {
+  outline: 2px solid var(--official);
+  outline-offset: -2px;
+}
+
+.admin-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.88rem;
+}
+
+/*
+ * A caption is a line above the table, not a paragraph inside it.
+ *
+ * Reusing the empty-state style here made it render as a centred column three
+ * words wide in the middle of the header row — technically a caption, visually
+ * a mistake.
+ */
+.admin-table caption {
+  caption-side: top;
+  text-align: left;
+  padding: 0 var(--s2) var(--s1);
+  color: var(--ink-soft);
+  font-size: 0.82rem;
+  white-space: nowrap;
+}
+
+.admin-table th,
+.admin-table td {
+  padding: 0.5rem var(--s2);
+  text-align: left;
+  border-bottom: 1px solid var(--rule-soft);
+  white-space: nowrap;
+}
+
+.admin-table th {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--ink-soft);
+  font-weight: 600;
+  position: sticky;
+  top: 0;
+  background: var(--panel);
+}
+
+.admin-table td.wrap {
+  white-space: normal;
+  min-width: 18rem;
+}
+
+.admin-table .num {
+  text-align: right;
+  font-family: var(--mono);
+  font-variant-numeric: tabular-nums;
+}
+
+.admin-table tbody tr:hover {
+  background: var(--panel-tint);
+}
+
+/* States ----------------------------------------------------------------- */
+
+.state {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  font-size: 0.8rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.state::before {
+  content: attr(data-mark);
+  font-family: var(--mono);
+  font-size: 0.85em;
+}
+
+.state-ok {
+  color: var(--state-ok);
+}
+.state-warn {
+  color: var(--state-warn);
+}
+.state-bad {
+  color: var(--state-bad);
+}
+.state-unknown {
+  color: var(--state-unknown);
+}
+
+/* Empty, error and loading ----------------------------------------------- */
+
+.admin-note {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  padding: var(--s3);
+  text-align: center;
+  color: var(--ink-soft);
+  font-size: 0.9rem;
+}
+
+.admin-note strong {
+  color: var(--ink);
+  font-size: 1rem;
+}
+
+.admin-skeleton {
+  display: grid;
+  gap: 0.45rem;
+  padding: var(--s2);
+}
+
+.admin-skeleton span {
+  display: block;
+  height: 0.85rem;
+  border-radius: 4px;
+  background: linear-gradient(90deg, var(--rule-soft), var(--rule), var(--rule-soft));
+  background-size: 200% 100%;
+  animation: admin-shimmer 1.4s linear infinite;
+}
+
+@keyframes admin-shimmer {
+  from {
+    background-position: 200% 0;
+  }
+  to {
+    background-position: -200% 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .admin-skeleton span {
+    animation: none;
+  }
+}
+
+/* Forms and actions ------------------------------------------------------ */
+
+.admin-form {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s1);
+  align-items: flex-end;
+  padding: var(--s2);
+  border-bottom: 1px solid var(--rule-soft);
+}
+
+.admin-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  font-size: 0.8rem;
+  color: var(--ink-soft);
+}
+
+.admin-field input,
+.admin-field select {
+  font: inherit;
+  font-size: 0.9rem;
+  color: var(--ink);
+  background: var(--panel);
+  border: 1px solid var(--rule);
+  border-radius: 6px;
+  padding: 0.35rem 0.5rem;
+  min-width: 10rem;
+}
+
+.admin-button {
+  font: inherit;
+  font-size: 0.9rem;
+  font-weight: 600;
+  padding: 0.4rem 0.9rem;
+  border-radius: 6px;
+  border: 1px solid var(--rule);
+  background: var(--panel-tint);
+  color: var(--ink);
+  cursor: pointer;
+  transition:
+    background var(--fast) var(--ease),
+    border-color var(--fast) var(--ease);
+}
+
+.admin-button:hover:not(:disabled) {
+  border-color: var(--ink-faint);
+}
+
+.admin-button:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.admin-button-strong {
+  background: var(--official);
+  border-color: var(--official);
+  color: #fff;
+}
+
+.admin-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s1);
+  padding: var(--s2);
+}
+
+/* Login ------------------------------------------------------------------ */
+
+.admin-login {
+  max-width: 24rem;
+  margin: 12vh auto;
+  padding: var(--s3);
+  background: var(--panel);
+  border: 1px solid var(--rule);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+}
+
+.admin-login h1 {
+  font-family: var(--serif);
+  font-size: 1.35rem;
+  margin: 0 0 var(--s1);
+}
+
+.admin-login p {
+  margin: 0 0 var(--s2);
+  color: var(--ink-soft);
+  font-size: 0.9rem;
+}
+
+.admin-login label {
+  display: block;
+  margin-bottom: var(--s2);
+  font-size: 0.85rem;
+  color: var(--ink-soft);
+}
+
+.admin-login input {
+  display: block;
+  width: 100%;
+  margin-top: 0.25rem;
+  font: inherit;
+  font-size: 0.95rem;
+  color: var(--ink);
+  background: var(--paper);
+  border: 1px solid var(--rule);
+  border-radius: 6px;
+  padding: 0.45rem 0.6rem;
+}
+
+.admin-error {
+  margin: 0 0 var(--s2);
+  padding: var(--s1) var(--s2);
+  border-radius: 6px;
+  border: 1px solid var(--state-bad);
+  color: var(--state-bad);
+  font-size: 0.88rem;
+  background: color-mix(in srgb, var(--state-bad) 8%, transparent);
+}
+
+/* Modal ------------------------------------------------------------------ */
+
+.admin-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgb(10 14 20 / 0.5);
+  display: grid;
+  place-items: center;
+  padding: var(--s2);
+  z-index: 40;
+}
+
+.admin-modal {
+  width: min(36rem, 100%);
+  max-height: 85vh;
+  overflow: auto;
+  background: var(--panel);
+  border: 1px solid var(--rule);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: var(--s3);
+}
+
+.admin-modal h2 {
+  margin: 0 0 var(--s1);
+  font-family: var(--serif);
+  font-size: 1.15rem;
+}
+
+.admin-modal dl {
+  margin: 0 0 var(--s2);
+  display: grid;
+  grid-template-columns: max-content minmax(0, 1fr);
+  gap: 0.25rem var(--s2);
+  font-size: 0.88rem;
+}
+
+.admin-modal dt {
+  color: var(--ink-soft);
+}
+
+.admin-modal dd {
+  margin: 0;
+  font-family: var(--mono);
+  overflow-wrap: anywhere;
+}
+
+/* Detail lists ----------------------------------------------------------- */
+
+.admin-dl {
+  display: grid;
+  grid-template-columns: max-content minmax(0, 1fr);
+  gap: 0.3rem var(--s3);
+  margin: 0;
+  padding: var(--s2);
+  font-size: 0.9rem;
+}
+
+.admin-dl dt {
+  color: var(--ink-soft);
+}
+
+.admin-dl dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.admin-mono {
+  font-family: var(--mono);
+  font-size: 0.85em;
+  overflow-wrap: anywhere;
+}
