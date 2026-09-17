@@ -1,7 +1,7 @@
 'use client';
 
 import { useRouter, useSearchParams } from 'next/navigation';
-import { useState, type FormEvent } from 'react';
+import { useEffect, useState, type FormEvent } from 'react';
 
 /**
  * The only form in the portal that takes a password.
@@ -24,6 +24,17 @@ export function LoginForm() {
   const [password, setPassword] = useState('');
   const [problem, setProblem] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  /*
+   * Whether this form can actually do anything yet.
+   *
+   * The markup arrives before the script that gives the button its behaviour,
+   * and in that window pressing it either does nothing or falls back to a
+   * plain submit. Saying «Cargando…» and staying disabled until the effect has
+   * run is the honest version: a control that looks ready and is not is how
+   * somebody ends up typing their password twice.
+   */
+  const [ready, setReady] = useState(false);
+  useEffect(() => setReady(true), []);
 
   const submit = async (event: FormEvent<HTMLFormElement>): Promise<void> => {
     event.preventDefault();
@@ -52,7 +63,18 @@ export function LoginForm() {
   };
 
   return (
-    <form className="admin-login" onSubmit={(event) => void submit(event)}>
+    /*
+     * `method="post"` matters even though this handler never lets the browser
+     * submit the form itself.
+     *
+     * Between the HTML arriving and the script taking over, the form is a plain
+     * form, and a plain form's default method is GET. A person who submits in
+     * that window — or whose script never loads — sends their password as a
+     * query string, where it lands in their history, in the access log of every
+     * hop, and in the `Referer` of whatever the page loads next. Declaring POST
+     * costs one attribute and makes that window harmless.
+     */
+    <form className="admin-login" method="post" onSubmit={(event) => void submit(event)}>
       <h1>Portal administrativo</h1>
       <p>Solo para personas autorizadas del Observatorio.</p>
       {problem ? (
@@ -83,8 +105,8 @@ export function LoginForm() {
           onChange={(event) => setPassword(event.target.value)}
         />
       </label>
-      <button className="admin-button admin-button-strong" type="submit" disabled={busy}>
-        {busy ? 'Verificando…' : 'Entrar'}
+      <button className="admin-button admin-button-strong" type="submit" disabled={busy || !ready}>
+        {busy ? 'Verificando…' : ready ? 'Entrar' : 'Cargando…'}
       </button>
     </form>
   );

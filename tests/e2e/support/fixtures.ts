@@ -14,7 +14,15 @@ export async function signIn(page: Page, who: 'operator' | 'reader' = 'operator'
   await page.goto('/admin/login');
   await page.getByLabel('Identificador').fill(account.subject);
   await page.getByLabel('Contraseña').fill(account.password());
-  await page.getByRole('button', { name: 'Entrar', exact: true }).click();
+  /*
+   * The button reads «Cargando…» until the form is interactive, so waiting for
+   * it to say «Entrar» and to be enabled is waiting for the condition this
+   * step actually needs. Clicking earlier submits a form whose handler does
+   * not exist yet, and no amount of retrying afterwards makes that a pass.
+   */
+  const submit = page.getByRole('button', { name: 'Entrar', exact: true });
+  await expect(submit).toBeEnabled();
+  await submit.click();
   await page.waitForURL(/\/admin(?!\/login)/u);
 }
 

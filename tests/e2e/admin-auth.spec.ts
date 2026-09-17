@@ -79,6 +79,22 @@ test.describe('acceso al portal privado', () => {
     await page.waitForURL(/\/admin\/login/u);
   });
 
+  test('AUTH-06 · el formulario de acceso no puede enviar la contraseña por la URL', async ({
+    request,
+  }) => {
+    /*
+     * Asserted on the served HTML, because that is what exists during the
+     * window this protects: before the script runs, the form is a plain form,
+     * and a plain form defaults to GET. A password in a query string is a
+     * password in the browser history, in every access log on the way, and in
+     * the `Referer` of whatever loads next.
+     */
+    const html = await (await request.get('/admin/login')).text();
+    const form = /<form[^>]*admin-login[^>]*>/iu.exec(html)?.[0] ?? '';
+    expect(form).toBeTruthy();
+    expect(form.toLowerCase()).toContain('method="post"');
+  });
+
   test('AUTH-05 · una mutación sin el token de la sesión se rechaza', async ({ page }) => {
     await signIn(page);
     const response = await page.request.post('/api/admin/seeds/validations', {
