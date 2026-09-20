@@ -729,7 +729,7 @@ function kurtosisWord(value: number): string {
  */
 function narrate(stats: MacroStats, point: MacroPoint, unit: string): string {
   if (stats.n < 3) {
-    return `La selección deja ${stats.n} observación${stats.n === 1 ? '' : 'es'} de esta serie: no alcanzan para describir una distribución. Ampliá el período desde el filtro de la izquierda.`;
+    return `La selección deja ${stats.n} observación${stats.n === 1 ? '' : 'es'} de esta serie: no alcanzan para describir una distribución. Ampliá el período desde el filtro de período.`;
   }
 
   const centre =

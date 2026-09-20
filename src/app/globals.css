@@ -271,6 +271,32 @@ a:hover {
   margin: 0 0 var(--s4);
 }
 
+/*
+ * En un telefono las siete secciones envuelven en tres filas y se comen 135px
+ * —una sexta parte de la pantalla— antes de que empiece el informe. En una sola
+ * fila que se desliza ocupan una, que es como se navega en movil.
+ */
+@media (max-width: 720px) {
+  .tabs {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    overscroll-behavior-x: contain;
+    scrollbar-width: none;
+    scroll-snap-type: x proximity;
+    margin-bottom: var(--s3);
+  }
+
+  .tabs::-webkit-scrollbar {
+    display: none;
+  }
+
+  .tab {
+    flex: 0 0 auto;
+    scroll-snap-align: start;
+    padding-inline: 0.8rem;
+  }
+}
+
 .tab {
   display: inline-flex;
   align-items: center;
@@ -313,6 +339,24 @@ a:hover {
   flex-direction: column;
   gap: var(--s4);
   margin: 0;
+}
+
+/*
+ * En vertical, la explicacion va detras del informe.
+ *
+ * La tarjeta de «que muestra esta seccion» ocupa casi una pantalla de telefono.
+ * Delante del contenido obliga a leer seis lineas de prosa para averiguar si
+ * abajo hay algo; detras sigue estando entera, para quien quiera el contexto
+ * despues de ver la cifra. En escritorio no se toca: alli cabe arriba sin
+ * empujar nada fuera de la vista.
+ */
+@media (max-width: 720px) {
+  .stack > .workspace {
+    order: 1;
+  }
+  .stack > .briefcard {
+    order: 2;
+  }
 }
 
 h2 {
@@ -1522,6 +1566,22 @@ code {
   .rail {
     width: 100%;
     position: static;
+  }
+  /*
+   * El informe primero, los filtros despues.
+   *
+   * Apilado, el carril quedaba ARRIBA: entre 586 y 801px de filtros —una
+   * pantalla entera— antes de la primera cifra, que en «Macroeconomia» caia en
+   * y=2033, casi dos pantallas y media de scroll. Nadie baja tanto para ver si
+   * la pagina tiene algo. En el escritorio el carril esta al lado y no estorba;
+   * en vertical tiene que ceder el turno. Se ordena, no se oculta: sigue
+   * completo y a un scroll de distancia.
+   */
+  .workspace-main {
+    order: 1;
+  }
+  .rail {
+    order: 2;
   }
   .barlist-row .barlist-name {
     width: 120px;

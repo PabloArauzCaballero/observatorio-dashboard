@@ -398,7 +398,7 @@ export function FxExplorer({ rows, official, readingCount }: FxExplorerProps) {
               </span>
               <div>
                 <b>Todo recalcula</b>
-                <span>con los filtros de la izquierda</span>
+                <span>con los filtros de esta sección</span>
               </div>
             </div>
           </div>
