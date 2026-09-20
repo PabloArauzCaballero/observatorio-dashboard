@@ -158,3 +158,13 @@ captura visual todavía tomada, el alcance inicial recomendado es:
   filas; `border-radius: 999px` → `1.25rem`.
 - No verificado (declarado, no oculto): flujo con datos reales, lector de pantalla real, rendimiento.
 - Gate de fase 06 aprobado con alcance explícito. Sin bloqueos para fase 07 (movimiento y feedback).
+
+## Actualización — fase 07 (movimiento y feedback)
+
+> Ver `trabajo/MATRIZ_MOVIMIENTO.md` para el detalle completo.
+
+- Sin cambios de código: el sistema de movimiento existente (tokens, `panel-enter` con stagger, regla
+  global `prefers-reduced-motion`) ya cubre el piloto. Verificado con Playwright real emulando
+  `reducedMotion`, no asumido por lectura de código.
+- F07.4 (perfilado con datos reales) queda pendiente, mismo bloqueo de Neon que fases anteriores.
+- Gate de fase 07 aprobado. Sin bloqueos para fase 08 (extensión al producto).

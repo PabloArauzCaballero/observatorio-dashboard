@@ -214,3 +214,27 @@ análisis sobre lo ya inventariado; sí bloquean partes de fase 00.4 (captura vi
   `SubTabs`) ya tiene sus contratos, estados y responsive demostrados; fase 07 debe revisar
   transiciones (`prefers-reduced-motion`, que el proyecto ya resuelve globalmente según fase 03) sobre
   este mismo componente antes de pensar en propagar a más rutas (fase 08).
+
+## Sesión — fase 07 (movimiento y feedback)
+
+- **Fase 07 completada, sin cambios de código.** El sistema de movimiento ya existente (tokens
+  `--ease`/`--fast`/`--slow`, animación `rise` de entrada de panel con stagger, regla global
+  `prefers-reduced-motion: reduce`) ya cubría por completo lo que el piloto necesita — se verificó con
+  navegador real (misma técnica de ruta temporal de fase 06, borrada al terminar) en vez de darlo por
+  sentado.
+- **Verificado con Playwright real:** con movimiento normal, `animationName: "rise"` /
+  `animationDuration: "0.42s"` con stagger 0/70/140ms en los hijos del panel. Con
+  `prefers-reduced-motion: reduce` emulado, `animationName: "none"` / `animationDuration: "0s"` — la
+  regla global sí alcanza al piloto sin necesitar una excepción local.
+- **Interrupción:** el panel se remonta (`key={active}`) en vez de esconderse con CSS, así que no
+  existe una animación de salida que pueda quedar a medias al cambiar rápido de tab — no hay cola de
+  animaciones que limpiar, por diseño.
+- **Entregable nuevo:** `docs/refactor-profesional/trabajo/MATRIZ_MOVIMIENTO.md` (inventario de
+  interacciones, tokens, verificación de reduced-motion, perfilado declarado como no ejecutado).
+- **No verificado (declarado, no oculto):** F07.4 perfilado con datos reales — bloqueado por la
+  cuota de Neon, igual que en fases anteriores.
+- **Commit:** solo documentación (`MATRIZ_MOVIMIENTO.md`, `PLAN_SITUADO.md`, `ESTADO.md`) en
+  `refactor-ux-ui-profesional`, sin push. Ningún archivo de `src/` cambió en esta fase.
+- **Próximo paso sugerido:** fase 08 (extensión al producto) — sin bloqueos. Esa fase decide si y
+  cómo propagar el patrón del piloto (ARIA tablist, contraste, `.subtabs` sin cápsula) al resto de la
+  zona pública; `/admin` sigue fuera de alcance por decisión del usuario.
