@@ -186,3 +186,31 @@ análisis sobre lo ya inventariado; sí bloquean partes de fase 00.4 (captura vi
 - **Próximo paso sugerido:** continuar a fase 06 (flujo vertical piloto) — sin bloqueos. Esa fase
   debe demostrar el flujo completo (Tabs/Resumen) de principio a fin, incluida la verificación de
   teclado que hasta ahora solo se revisó por código.
+
+## Sesión — fase 06 (flujo vertical piloto)
+
+- **Fase 06 completada con alcance explícito** (ver `EVIDENCIAS.md`), en rama
+  `refactor-ux-ui-profesional`. Primera vez en este kit con navegador real disponible (Playwright vía
+  MCP, Chromium) — se levantó `npm run dev` y se verificó contra él, no solo por lectura de código.
+- **Contenido simulado, declarado como tal:** sin datos reales (Neon sigue sin cuota), se usó una
+  ruta temporal `smoke-tabs-temp` con contenido marcado `data-mock="true"` para poder ejercitar
+  `Tabs`/`SubTabs` con navegador. Creada, usada y **borrada dentro de la misma sesión** — nunca
+  comiteada (verificado con `git status` antes de cada commit).
+- **Verificado con navegador real:** ARIA tablist correcto (roles/aria-controls/aria-labelledby),
+  roving tabindex (Tab salta los inactivos en ambos niveles), ArrowLeft/Right/Home/End en nivel
+  superior y en `SubTabs` anidado, foco visible correcto, jerarquía activo/inactivo legible.
+- **Hallazgo nuevo H05 (P3) encontrado y corregido en la misma fase:** `.subtabs` (`border-radius:
+  999px`) se deformaba en una cápsula al envolver a 3 filas en 375px de ancho — nunca antes
+  verificado por falta de navegador. Fix: `border-radius: 1.25rem` en `src/app/globals.css`.
+  Recapturado antes/después, confirmado visualmente.
+- **No verificado en esta fase (declarado explícitamente, no oculto):** flujo con datos reales de
+  principio a fin (bloqueado por Neon), lector de pantalla real (NVDA/VoiceOver — fuera del alcance
+  de Playwright headless), rendimiento de carga (sin datos reales para una carga representativa).
+- **Verificación:** `typecheck`/`lint`/`build` en verde tras el fix, sin la ruta temporal en el build
+  final (confirmado en la tabla de rutas).
+- **Commit:** cambios de código (`globals.css`) + docs (`HALLAZGOS.md` con H05, `EVIDENCIAS.md`
+  nuevo, `PLAN_SITUADO.md`, `ESTADO.md`) en `refactor-ux-ui-profesional`, sin push.
+- **Próximo paso sugerido:** fase 07 (movimiento y feedback) — sin bloqueos nuevos. El piloto (`Tabs`/
+  `SubTabs`) ya tiene sus contratos, estados y responsive demostrados; fase 07 debe revisar
+  transiciones (`prefers-reduced-motion`, que el proyecto ya resuelve globalmente según fase 03) sobre
+  este mismo componente antes de pensar en propagar a más rutas (fase 08).

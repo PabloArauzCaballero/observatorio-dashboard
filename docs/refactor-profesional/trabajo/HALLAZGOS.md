@@ -146,6 +146,33 @@ candidato**, después de validar el piloto de `Tabs`, precisamente porque ya est
 accesibilidad (ver "No son hallazgos") y no tiene una condición de corrección pendiente que lo
 justifique como primer piloto.
 
+## H05 (P3, confianza alta) — `.subtabs` se deforma en cápsula al envolver a varias filas en móvil
+
+**Ruta/rol/estado:** `/` → sección con `SubTabs` (ej. "Tipo de cambio"), viewport 375×667.
+**Encontrado en:** fase 06 (flujo vertical piloto), primera verificación real en navegador de este
+kit (Playwright con Chromium, vía una ruta temporal `smoke-tabs-temp` con contenido simulado, borrada
+al terminar). Antes de esta fase estaba registrado como "no verificado" en `HALLAZGOS.md`/`ESTADO.md`
+por falta de navegador en el entorno.
+
+**Pasos de reproducción:** abrir cualquier sección con `SubTabs` en un viewport angosto donde los 3
+botones no caben en una fila (ej. 375px). `border-radius: 999px` en `.subtabs` asume una sola fila;
+al envolver a 3 filas (~116px de alto) el radio se recorta a `min(999, alto/2)` ≈ 58px por esquina,
+lo que convierte el contenedor en una cápsula/lente que no coincide con el contenido, con espacio
+vacío visible a la derecha de cada pastilla.
+
+**Impacto:** cosmético, no bloquea la tarea — los botones siguen siendo clicables y accesibles, el
+texto se lee bien. Confunde visualmente en el ~20% del ancho de pantalla más angosto del catálogo de
+dispositivos (fase 00 no fijó un mínimo, pero 375px es un ancho de referencia común).
+
+**Severidad:** P3 (inconsistencia visual, sin impacto funcional). **Confianza:** alta (reproducido y
+medido con `getBoundingClientRect`/`getComputedStyle` reales, no una suposición).
+
+**Corrección aplicada en esta misma fase:** `border-radius: 999px` → `border-radius: 1.25rem` en
+`.subtabs` (`src/app/globals.css`). Verificado visualmente antes/después con captura en 375px: la
+cápsula desaparece, el contenedor se ve como un riel redondeado normal en cualquier número de filas,
+y en desktop (una sola fila) sigue leyéndose como pastilla porque 1.25rem sigue siendo mayor que la
+mitad de la altura de una fila.
+
 ## Recuento por severidad
 
 | Severidad | Cantidad | IDs |
@@ -153,9 +180,10 @@ justifique como primer piloto.
 | P0 | 0 | — |
 | P1 | 0 | — |
 | P2 | 2 | H01, H04 |
-| P3 | 2 | H02, H03 |
+| P3 | 3 | H02, H03, H05 |
 
 > H04 se agregó en fase 03 (dirección visual), a partir de contraste medido sobre valores reales.
+> H05 se agregó en fase 06 (flujo vertical piloto) y ya fue corregido en el mismo incremento.
 
 No se encontró ningún hallazgo P0/P1 en la zona pública dentro de lo que se pudo verificar por código
 en esta fase. Esto no certifica ausencia de problemas P0/P1 en flujos que requieren datos reales o

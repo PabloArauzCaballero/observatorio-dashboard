@@ -144,3 +144,17 @@ captura visual todavía tomada, el alcance inicial recomendado es:
   `ui-states-recovery`, cada una con una nota de aprendizaje específica de este proyecto.
 - Sin código de producto nuevo tocado (los estados ya estaban completos).
 - Sin bloqueos para fase 06 (flujo vertical piloto).
+
+## Actualización — fase 06 (flujo vertical piloto)
+
+> Ver `trabajo/EVIDENCIAS.md` para el detalle completo.
+
+- Primera verificación con navegador real de este kit (Playwright/Chromium contra `npm run dev`).
+  Contenido simulado y declarado como tal (sin datos reales por cuota de Neon), en una ruta temporal
+  borrada al terminar, nunca comiteada.
+- ARIA tablist, roving tabindex y navegación por teclado (flechas/Home/End, en ambos niveles
+  anidados) verificados funcionando de verdad, no solo por lectura de código.
+- **H05 (P3) encontrado y corregido:** `.subtabs` se deformaba en móvil (375px) al envolver a 3
+  filas; `border-radius: 999px` → `1.25rem`.
+- No verificado (declarado, no oculto): flujo con datos reales, lector de pantalla real, rendimiento.
+- Gate de fase 06 aprobado con alcance explícito. Sin bloqueos para fase 07 (movimiento y feedback).
