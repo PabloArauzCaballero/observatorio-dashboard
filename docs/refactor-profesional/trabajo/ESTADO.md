@@ -282,3 +282,25 @@ análisis sobre lo ya inventariado; sí bloquean partes de fase 00.4 (captura vi
 - **Gate:** aprobado con limitaciones explícitas. Cero P0/P1 abiertos en el alcance del piloto.
 - **Commit:** solo documentación, en `refactor-ux-ui-profesional`, sin push.
 - **Próximo paso sugerido:** fase 10 (QA y regresión) — sin bloqueos.
+
+## Sesión — fase 10 (QA y regresión)
+
+- **Fase 10 completada, sin cambios de código.** Se instalaron navegadores reales de Playwright
+  (`npx playwright install chromium`, ya estaban en caché de esta máquina) y se corrió por primera
+  vez la suite e2e real del propio proyecto (`tests/e2e/public-visual.spec.ts`) contra `npm run dev`.
+- **6/6 tests fallan, causa confirmada (no supuesta):** todos fallan en el mismo punto (el tablist
+  nunca aparece) porque `/` muestra el estado `Unreadable` real — confirmado con captura de pantalla
+  y consola mostrando literalmente el error de cuota de Neon. Ninguno de los 6 fallos se debe a un
+  cambio de este kit; es el mismo bloqueo declarado desde `BASELINE.md` en fase 00, ahora con
+  evidencia de ejecución real en vez de una suposición.
+- **Checks en verde:** `typecheck`, `lint` (mismos 11 warnings preexistentes), `build`.
+- **Entregable nuevo:** `docs/refactor-profesional/trabajo/QA_FINAL.md` — historial completo de
+  hallazgos (0 P0/P1 en todo el kit), decisión de candidato.
+- **Decisión de candidato: LISTO dentro del alcance acordado** (zona pública, piloto
+  `Tabs`/`SubTabs`/`Pager`); **no fusionado a `dev`** — eso es decisión del usuario, se deja para
+  fase 11.
+- **Commit:** solo documentación, en `refactor-ux-ui-profesional`, sin push. Los artefactos de la
+  corrida e2e (capturas, video, trace) no se comitean — `artifacts/` está en `.gitignore`.
+- **Próximo paso sugerido:** fase 11 (entrega y gobierno) — última fase, cierra el kit con handoff,
+  reversión y deuda residual. Después de eso, la decisión de fusionar `refactor-ux-ui-profesional` a
+  `dev` (y por tanto desplegar) es del usuario.

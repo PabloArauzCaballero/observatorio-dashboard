@@ -192,3 +192,15 @@ captura visual todavía tomada, el alcance inicial recomendado es:
   entorno). H06b tratado como deuda explícita, condición de revisión definida.
 - Gate de fase 09 aprobado con limitaciones explícitas, 0 P0/P1 abiertos. Sin bloqueos para fase 10
   (QA y regresión).
+
+## Actualización — fase 10 (QA y regresión)
+
+> Ver `trabajo/QA_FINAL.md` para el detalle completo.
+
+- Navegadores reales de Playwright instalados; suite e2e real del proyecto corrida por primera vez.
+  6/6 fallan, causa confirmada con evidencia (no supuesta): el bloqueo de datos de Neon, no una
+  regresión de este kit.
+- typecheck/lint/build en verde. 0 defectos P0/P1 en todo el historial del kit.
+- **Decisión de candidato: listo dentro del alcance acordado, no fusionado a `dev`** (decisión del
+  usuario, pendiente para fase 11).
+- Sin bloqueos para fase 11 (entrega y gobierno).
