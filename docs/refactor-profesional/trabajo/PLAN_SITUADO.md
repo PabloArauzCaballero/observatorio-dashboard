@@ -114,4 +114,20 @@ captura visual todavía tomada, el alcance inicial recomendado es:
 - Tema oscuro ya está en alcance (sigue preferencia del sistema, sin selector manual); no se propone
   agregar un mecanismo de elección manual sin evidencia de que falte.
 - Ningún código de producto tocado en esta fase (documentación y medición únicamente).
+
+## Actualización — fase 04 (arquitectura y contratos)
+
+> Ver `trabajo/ARQUITECTURA.md` para el detalle completo.
+
+- **Primer código de producto de este kit, implementado en rama aislada `refactor-ux-ui-profesional`**
+  (no `dev`, sin push): `src/components/tabs.tsx` gana el contrato ARIA `tablist` completo (roving
+  tabindex, flechas/`Home`/`End`, `aria-controls`/`aria-labelledby`) — resuelve H01. Firma pública sin
+  cambios.
+- **Fix de contraste H04 aplicado** en `src/app/globals.css`: `.tab` y `.dateline` pasan de
+  `--ink-faint` a `--ink-soft`; se ajustó `.tab:hover` a `--ink` para conservar la progresión visual.
+- Verificado con `typecheck`/`lint`/`build` (los tres reales del proyecto), todos en verde, sin
+  warnings nuevos. Verificación manual de teclado/lector de pantalla en navegador: **pendiente**, no
+  ejecutable en este entorno.
+- Sin bloqueos para fase 05 (componentes y skills). Sigue abierto H02 (`globals.css` monolítico, P3,
+  baja prioridad) y la verificación visual/de teclado en navegador real.
 - Sin bloqueos para fase 04 (arquitectura y contratos).

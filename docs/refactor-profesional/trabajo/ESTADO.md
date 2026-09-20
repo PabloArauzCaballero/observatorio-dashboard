@@ -134,3 +134,29 @@ análisis sobre lo ya inventariado; sí bloquean partes de fase 00.4 (captura vi
   medición).
 - **Próximo paso sugerido:** continuar a fase 04 (arquitectura y contratos) — sin bloqueos. Fase
   04 debe decidir además qué hacer con `globals.css` (4737 líneas en un archivo, H02 de fase 01).
+
+## Sesión — fase 04 (arquitectura y contratos)
+
+- **Fase 04 completada. Primer código de producto tocado en este kit**, en rama aislada
+  `refactor-ux-ui-profesional` (creada desde `dev`; sin push, sin fusión).
+- **Cambio implementado:** `src/components/tabs.tsx` — patrón ARIA `tablist` completo en `Tabs` y
+  `SubTabs` (roving tabindex, flechas/`Home`/`End`, `aria-controls`/`aria-labelledby` tab↔panel vía
+  `useId()`), resolviendo H01 (P2). Cambio aditivo, misma firma pública
+  (`labels`/`icons`/`children`), sin romper `page.tsx`.
+- **Fix de contraste H04 aplicado:** `.tab` y `.dateline` en `src/app/globals.css` pasan de
+  `--ink-faint` (3.7:1, bajo AA) a `--ink-soft` (7.4:1); se ajustó `.tab:hover` a `--ink` para no
+  perder la progresión visual reposo→hover→activo. `SubTabs` no requería cambio (ya usaba
+  `--ink-soft`). Detalle completo en `ARQUITECTURA.md`.
+- **Verificación:** `npm run typecheck` OK · `npm run lint` OK (mismos 11 warnings preexistentes,
+  ninguno nuevo) · `npm run build` OK (compila y prerrenderiza, misma tabla de rutas del baseline).
+  Verificación manual de teclado/lector de pantalla en navegador real: **no ejecutada** (sin
+  Playwright con navegadores en este entorno, bloqueo ya conocido) — declarada explícitamente como
+  pendiente, no como aprobada.
+- **No hay tests previos ni runner de componentes en el proyecto** (solo Playwright e2e, sin
+  navegadores instalados aquí); no se introdujo uno nuevo por exceder el alcance de este seam.
+- **Commit:** cambios de código + `ARQUITECTURA.md` comiteados en rama
+  `refactor-ux-ui-profesional` (ver hash en el log de git; sin push a `dev`, sin publicar).
+- **Entregable nuevo:** `docs/refactor-profesional/trabajo/ARQUITECTURA.md`.
+- **Próximo paso sugerido:** continuar a fase 05 (componentes y skills) — sin bloqueos nuevos. Sigue
+  pendiente: verificación visual/teclado real y decisión sobre `globals.css` monolítico (H02, P3,
+  baja prioridad).

@@ -260,7 +260,7 @@ a:hover {
   font-size: 0.74rem;
   letter-spacing: 0.07em;
   text-transform: uppercase;
-  color: var(--ink-faint);
+  color: var(--ink-soft);
   margin-bottom: var(--s1);
 }
 
@@ -283,7 +283,7 @@ a:hover {
   padding: 0.65rem 1rem;
   font: inherit;
   font-size: 0.92rem;
-  color: var(--ink-faint);
+  color: var(--ink-soft);
   cursor: pointer;
   transition:
     color var(--fast) var(--ease),
@@ -291,7 +291,7 @@ a:hover {
 }
 
 .tab:hover {
-  color: var(--ink-soft);
+  color: var(--ink);
 }
 
 .tab-active {
