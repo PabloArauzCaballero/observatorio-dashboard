@@ -168,3 +168,16 @@ captura visual todavía tomada, el alcance inicial recomendado es:
   `reducedMotion`, no asumido por lectura de código.
 - F07.4 (perfilado con datos reales) queda pendiente, mismo bloqueo de Neon que fases anteriores.
 - Gate de fase 07 aprobado. Sin bloqueos para fase 08 (extensión al producto).
+
+## Actualización — fase 08 (extensión al producto)
+
+> Ver `trabajo/MATRIZ_COBERTURA.md` para el detalle completo.
+
+- Zona pública = una sola ruta (`/`); sin familias de rutas que migrar. `Tabs`/`SubTabs` compartido ya
+  alcanzó a todo su uso real desde fases 04-07. Se auditó `Pager` (única familia adicional con
+  componente compartido) — ya era sólido, salvo un defecto real.
+- **H06 (P2) encontrado y corregido:** mismo defecto de contraste que H04, ahora en `.pager-where`.
+- **H06b registrado como deuda explícita, no corregido:** `--ink-faint` usado en 60+ reglas fuera del
+  piloto; corregir en bloque sin datos reales excedería el alcance de este kit.
+- Gate de fase 08 aprobado con alcance explícito. Sin bloqueos para fase 09 (accesibilidad y
+  rendimiento).

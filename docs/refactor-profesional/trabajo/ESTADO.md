@@ -238,3 +238,27 @@ análisis sobre lo ya inventariado; sí bloquean partes de fase 00.4 (captura vi
 - **Próximo paso sugerido:** fase 08 (extensión al producto) — sin bloqueos. Esa fase decide si y
   cómo propagar el patrón del piloto (ARIA tablist, contraste, `.subtabs` sin cápsula) al resto de la
   zona pública; `/admin` sigue fuera de alcance por decisión del usuario.
+
+## Sesión — fase 08 (extensión al producto)
+
+- **Fase 08 completada.** La zona pública es una sola ruta (`/`); no hay "familias de rutas" que
+  migrar en el sentido tradicional — `Tabs`/`SubTabs` es compartido, así que las fases 04-07 ya
+  alcanzaron a todo su uso real (incluido `trade-explorer.tsx`). Se auditó la única familia adicional
+  con patrón compartido: `Pager` (4 de los 15 explorers).
+- **`Pager` ya era sólido:** botones nativos `disabled`, `aria-label` distingue instancias, foco
+  visible cubierto por la regla global. No necesitaba adoptar el patrón `tablist` (no es un widget de
+  pestañas).
+- **H06 (P2) encontrado y corregido:** `.pager-where` con el mismo defecto de contraste que H04
+  (`--ink-faint` = 3.81:1 sobre panel blanco, bajo AA). Corregido a `--ink-soft` (7.4:1).
+- **H06b registrado, deliberadamente NO corregido:** `--ink-faint` aparece en 60+ reglas fuera del
+  piloto. Sin datos reales para distinguir texto informativo de texto genuinamente auxiliar, corregir
+  en bloque sería un rediseño de jerarquía visual que excede el alcance de este kit. Queda como deuda
+  explícita para fase 09 o una auditoría dedicada — no se omitió en silencio.
+- **Entregable nuevo:** `docs/refactor-profesional/trabajo/MATRIZ_COBERTURA.md`.
+- **Verificación:** `typecheck`/`build` en verde tras limpiar `.next` (el caché de tipos tenía una
+  referencia obsoleta a la ruta temporal de fases 06-07, ya borrada — no era una regresión real).
+- **Commit:** `globals.css` (fix H06) + docs (`HALLAZGOS.md`, `MATRIZ_COBERTURA.md`,
+  `PLAN_SITUADO.md`, `ESTADO.md`) en `refactor-ux-ui-profesional`, sin push.
+- **Próximo paso sugerido:** fase 09 (accesibilidad y rendimiento) — sin bloqueos nuevos. Debe decidir
+  qué hacer con H06b (deuda de `--ink-faint` sistémico) y con el perfilado de rendimiento, ambos
+  pendientes por falta de datos reales.

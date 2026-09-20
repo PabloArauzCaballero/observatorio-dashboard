@@ -2622,7 +2622,7 @@ button.term-chip:hover {
   margin: 0 auto;
   font-family: var(--mono);
   font-size: 0.76rem;
-  color: var(--ink-faint);
+  color: var(--ink-soft);
   font-variant-numeric: tabular-nums;
 }
 

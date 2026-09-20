@@ -173,17 +173,43 @@ cápsula desaparece, el contenedor se ve como un riel redondeado normal en cualq
 y en desktop (una sola fila) sigue leyéndose como pastilla porque 1.25rem sigue siendo mayor que la
 mitad de la altura de una fila.
 
+## H06 (P2, confianza alta) — mismo defecto de contraste de H04, ahora en `Pager`
+
+**Ruta/rol/estado:** las 4 rutas de la zona pública que usan `Pager` (fase 01 corrigió el conteo:
+no son 13, son 4), estado normal con más de una página de resultados.
+**Encontrado en:** fase 08 (extensión al producto), al auditar la familia "lista paginada" antes de
+darla por ya cubierta por el piloto.
+**Evidencia:** `.pager-where` (`src/app/globals.css`) usaba `color: var(--ink-faint)` sobre fondo
+`--panel` (blanco en modo claro) para el texto "21–40 de 86 · página 1 de 5" — texto informativo
+real, no decorativo. Mismo cálculo WCAG que H04: 3.81:1, bajo el mínimo AA de 4.5:1 para texto normal.
+**Severidad:** P2 (texto de UI real bajo el umbral, mismo criterio que H04). **Confianza:** alta.
+**Corrección aplicada en la misma fase:** `--ink-faint` → `--ink-soft` (7.4:1) en `.pager-where`.
+
+## H06b (deuda de accesibilidad registrada, NO corregida) — `--ink-faint` es sistémico más allá del piloto
+
+Al buscar la causa raíz de H06, `--ink-faint` aparece en más de 60 reglas de `globals.css` fuera de
+`Tabs`/`SubTabs`/`Pager`. No se puede triar con confianza cuál de esos usos es texto informativo real
+(necesita AA) y cuál es genuinamente auxiliar/decorativo (donde un contraste más bajo es jerarquía
+visual legítima) sin ver el contenido real renderizado — bloqueado por la falta de datos reales
+(Neon). Corregir los 60+ casos a ciegas excedería el alcance de este piloto (sería un rediseño de la
+jerarquía visual de toda la app, no una extensión acotada). Se registra como deuda explícita para
+fase 09 o una auditoría de accesibilidad dedicada — no se omite silenciosamente ni se corrige a
+ciegas. Ver `MATRIZ_COBERTURA.md` para el detalle.
+
 ## Recuento por severidad
 
 | Severidad | Cantidad | IDs |
 |---|---|---|
 | P0 | 0 | — |
 | P1 | 0 | — |
-| P2 | 2 | H01, H04 |
+| P2 | 3 | H01, H04, H06 |
 | P3 | 3 | H02, H03, H05 |
+| Deuda registrada (no corregida, alcance explícito) | 1 | H06b |
 
 > H04 se agregó en fase 03 (dirección visual), a partir de contraste medido sobre valores reales.
 > H05 se agregó en fase 06 (flujo vertical piloto) y ya fue corregido en el mismo incremento.
+> H06 se agregó en fase 08 (extensión al producto) y ya fue corregido en el mismo incremento.
+> H06b es deuda de accesibilidad conocida, deliberadamente sin corregir por exceder el alcance del piloto.
 
 No se encontró ningún hallazgo P0/P1 en la zona pública dentro de lo que se pudo verificar por código
 en esta fase. Esto no certifica ausencia de problemas P0/P1 en flujos que requieren datos reales o
