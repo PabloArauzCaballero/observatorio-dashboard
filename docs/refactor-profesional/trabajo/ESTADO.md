@@ -304,3 +304,23 @@ análisis sobre lo ya inventariado; sí bloquean partes de fase 00.4 (captura vi
 - **Próximo paso sugerido:** fase 11 (entrega y gobierno) — última fase, cierra el kit con handoff,
   reversión y deuda residual. Después de eso, la decisión de fusionar `refactor-ux-ui-profesional` a
   `dev` (y por tanto desplegar) es del usuario.
+
+## Sesión — fase 11 (entrega y gobierno) — KIT COMPLETO
+
+- **Fase 11 completada. Las 12 fases del kit (00-11) están cerradas.**
+- **Entregable nuevo:** `docs/refactor-profesional/trabajo/ENTREGA.md` — resumen para producto,
+  mantenimiento, gobernanza de excepciones, plan de integración/reversión, estado final y prompt de
+  continuación.
+- **Resumen del resultado:** navegación por teclado completa en `Tabs`/`SubTabs` (antes solo `Tab`
+  secuencial, sin flechas ni asociación panel↔pestaña), contraste corregido en 3 lugares reales
+  (tab inactivo, `.dateline`, contador del paginador), un defecto visual de móvil encontrado y
+  corregido (cápsula de `.subtabs` en 375px). Cero cambios de navegación, cero cambios de reglas de
+  negocio, cero datos inventados.
+- **10 commits en `refactor-ux-ui-profesional`** (desde `dev`), ninguno pusheado, ninguno fusionado.
+  Decisión de fusionar es del usuario.
+- **Pendientes registrados con condición de cierre** (no P0/P1, no bloquean la entrega): H06b
+  (deuda de contraste sistémico fuera del piloto), verificación e2e con datos reales, lector de
+  pantalla real, rendimiento de campo, `globals.css` monolítico (H02), y la decisión de ampliar el
+  alcance a los 11 explorers restantes.
+- **Commit final:** solo documentación (`ENTREGA.md`, `ESTADO.md`), en `refactor-ux-ui-profesional`,
+  sin push.
