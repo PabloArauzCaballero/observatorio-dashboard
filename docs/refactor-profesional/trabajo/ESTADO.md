@@ -262,3 +262,23 @@ análisis sobre lo ya inventariado; sí bloquean partes de fase 00.4 (captura vi
 - **Próximo paso sugerido:** fase 09 (accesibilidad y rendimiento) — sin bloqueos nuevos. Debe decidir
   qué hacer con H06b (deuda de `--ink-faint` sistémico) y con el perfilado de rendimiento, ambos
   pendientes por falta de datos reales.
+
+## Sesión — fase 09 (accesibilidad y rendimiento)
+
+- **Fase 09 completada, sin cambios de código.** Primera vez con análisis automatizado real: axe-core
+  4.10.2 cargado desde CDN y corrido con Playwright contra el navegador real, reglas WCAG 2A+2AA.
+- **Resultado: 0 violaciones** en `/` (estado real actual, `Unreadable` por Neon) y en el piloto
+  completo (`Tabs`+`SubTabs` anidado+`Pager` con datos de prueba). Confirma que H01/H04/H06 quedaron
+  bien resueltos, sin regresión nueva — declarado explícitamente que 0 violaciones de axe no equivale
+  a "100% accesible" (axe cubre una fracción de los criterios WCAG).
+- **Teclado:** no se repitió la verificación (ya cubierta en fase 06 con evidencia real, sin overlays
+  ni modales en el alcance de este piloto que revisar).
+- **Lector de pantalla real y rendimiento de campo:** siguen sin verificar, declarado explícitamente,
+  mismos bloqueos de entorno/datos de fases anteriores.
+- **Decisión de tratamiento para H06b:** deuda de accesibilidad registrada (no P0/P1), condición de
+  revisión = cuando se resuelva la cuota de Neon o antes de extender este refactor más allá del
+  piloto actual. No bloquea el gate de esta fase.
+- **Entregable nuevo:** `docs/refactor-profesional/trabajo/EVIDENCIAS_ACCESIBILIDAD.md`.
+- **Gate:** aprobado con limitaciones explícitas. Cero P0/P1 abiertos en el alcance del piloto.
+- **Commit:** solo documentación, en `refactor-ux-ui-profesional`, sin push.
+- **Próximo paso sugerido:** fase 10 (QA y regresión) — sin bloqueos.

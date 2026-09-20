@@ -181,3 +181,14 @@ captura visual todavía tomada, el alcance inicial recomendado es:
   piloto; corregir en bloque sin datos reales excedería el alcance de este kit.
 - Gate de fase 08 aprobado con alcance explícito. Sin bloqueos para fase 09 (accesibilidad y
   rendimiento).
+
+## Actualización — fase 09 (accesibilidad y rendimiento)
+
+> Ver `trabajo/EVIDENCIAS_ACCESIBILIDAD.md` para el detalle completo.
+
+- axe-core real (WCAG 2A+2AA) corrido con navegador real: 0 violaciones en `/` y en el piloto
+  completo (Tabs+SubTabs+Pager). Confirma H01/H04/H06 sin regresión.
+- Rendimiento de campo y lector de pantalla real siguen sin verificar (mismos bloqueos de datos/
+  entorno). H06b tratado como deuda explícita, condición de revisión definida.
+- Gate de fase 09 aprobado con limitaciones explícitas, 0 P0/P1 abiertos. Sin bloqueos para fase 10
+  (QA y regresión).
