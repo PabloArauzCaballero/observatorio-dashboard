@@ -160,3 +160,29 @@ análisis sobre lo ya inventariado; sí bloquean partes de fase 00.4 (captura vi
 - **Próximo paso sugerido:** continuar a fase 05 (componentes y skills) — sin bloqueos nuevos. Sigue
   pendiente: verificación visual/teclado real y decisión sobre `globals.css` monolítico (H02, P3,
   baja prioridad).
+
+## Sesión — fase 05 (componentes y skills)
+
+- **Fase 05 completada**, en rama `refactor-ux-ui-profesional`. `Tabs`/`SubTabs` ya cubrían todos
+  los estados que les aplican (normal, hover, activo, foco de teclado) tras el trabajo de fase 04;
+  no había hueco real que cerrar. Se documentó explícitamente por qué pressed/disabled/error/ocupado
+  **no aplican** a este control (no son botones de acción con efecto secundario, ni tienen permiso o
+  carga que los deshabilite) en vez de inventar estados que el componente nunca puede producir.
+- **Entregable nuevo:** `docs/refactor-profesional/trabajo/CATALOGO_ESTADOS.md` — catálogo textual
+  (no Storybook: el proyecto no lo tiene y añadirlo para dos componentes sería la herramienta pesada
+  que la fase 05.3 pide evitar), con tabla estado→selector CSS real→verificación.
+- **F05.5 — sin duplicados:** único `role="tablist"`/`role="tab"` del proyecto es
+  `src/components/tabs.tsx`; no hay nada que consolidar.
+- **F05.4 — skills copiadas** a `.claude/skills/` (nuevo, no existía): `ui-atomic-solid`,
+  `ui-visual-system`, `ui-states-recovery` (carpeta completa con `references/`). Cada una recibió una
+  nota de aprendizaje específica de este proyecto en su `decisiones.md`. No se copiaron
+  `ui-audit-and-reorder` (fase ya cerrada), `ui-motion-feedback` (fase 07) ni `ui-quality-gate`
+  (fase 10) por no tener tarea activa todavía. Fuente canónica sigue en `docs/refactor-profesional/skills/`.
+- **Código de producto tocado:** ninguno nuevo (los estados ya estaban completos desde fase 04).
+- **Verificación:** no fue necesario re-correr typecheck/lint/build (sin cambios en `src/`); se
+  mantienen los resultados en verde de fase 04.
+- **Commit:** cambios de docs (`CATALOGO_ESTADOS.md`, `PLAN_SITUADO.md`, `ESTADO.md`) y las tres
+  skills nuevas en `.claude/skills/` comiteados en `refactor-ux-ui-profesional`, sin push.
+- **Próximo paso sugerido:** continuar a fase 06 (flujo vertical piloto) — sin bloqueos. Esa fase
+  debe demostrar el flujo completo (Tabs/Resumen) de principio a fin, incluida la verificación de
+  teclado que hasta ahora solo se revisó por código.

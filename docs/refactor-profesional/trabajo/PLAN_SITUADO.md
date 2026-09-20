@@ -130,4 +130,17 @@ captura visual todavía tomada, el alcance inicial recomendado es:
   ejecutable en este entorno.
 - Sin bloqueos para fase 05 (componentes y skills). Sigue abierto H02 (`globals.css` monolítico, P3,
   baja prioridad) y la verificación visual/de teclado en navegador real.
-- Sin bloqueos para fase 04 (arquitectura y contratos).
+
+## Actualización — fase 05 (componentes y skills)
+
+> Ver `trabajo/CATALOGO_ESTADOS.md` para el detalle completo.
+
+- `Tabs`/`SubTabs` ya cubrían todos los estados aplicables tras fase 04 (normal, hover, activo,
+  foco); pressed/disabled/error/ocupado no aplican a este control y quedó documentado por qué, en
+  vez de inventarlos.
+- No se introdujo Storybook (el proyecto no lo tiene) — catálogo textual en `CATALOGO_ESTADOS.md`.
+- Sin duplicados de `role="tablist"`/`role="tab"` en el proyecto — nada que consolidar.
+- Skills copiadas a `.claude/skills/` (nuevo): `ui-atomic-solid`, `ui-visual-system`,
+  `ui-states-recovery`, cada una con una nota de aprendizaje específica de este proyecto.
+- Sin código de producto nuevo tocado (los estados ya estaban completos).
+- Sin bloqueos para fase 06 (flujo vertical piloto).
