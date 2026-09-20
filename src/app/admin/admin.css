@@ -66,8 +66,27 @@
 @media (max-width: 900px) {
   .admin-nav {
     position: static;
-    flex-direction: row;
-    flex-wrap: wrap;
+  }
+}
+
+/*
+ * On a phone the nine sections plus brand plus "volver al tablero" used to
+ * wrap into a stack of link rows above every page — the console before its
+ * content. Below 900px the list collapses behind a toggle that always shows
+ * the section you're on, so the header costs one row instead of several; at
+ * 900px and up `display: contents` on both wrappers removes their own box so
+ * `.admin-nav`'s children lay out exactly as they did before this split.
+ */
+.admin-nav-head {
+  display: contents;
+}
+
+@media (max-width: 900px) {
+  .admin-nav-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--s2);
   }
 }
 
@@ -83,8 +102,55 @@
 
 @media (max-width: 900px) {
   .admin-brand {
-    flex: 1 0 100%;
+    padding-bottom: 0;
     border-bottom: 0;
+    margin-bottom: 0;
+  }
+}
+
+.admin-nav-toggle {
+  display: none;
+}
+
+@media (max-width: 900px) {
+  .admin-nav-toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    min-height: 2.5rem;
+    padding: 0.45rem 0.8rem;
+    border: 1px solid var(--rule);
+    border-radius: 999px;
+    background: var(--panel-tint);
+    color: var(--ink-soft);
+    font: inherit;
+    font-size: 0.85rem;
+    cursor: pointer;
+    transition:
+      color var(--fast) var(--ease),
+      border-color var(--fast) var(--ease);
+  }
+
+  .admin-nav-toggle:hover {
+    color: var(--ink);
+    border-color: var(--ink-faint);
+  }
+}
+
+.admin-nav-links {
+  display: contents;
+}
+
+@media (max-width: 900px) {
+  .admin-nav-links {
+    display: none;
+    flex-direction: column;
+    gap: var(--s1);
+    padding-top: var(--s2);
+  }
+
+  .admin-nav-links[data-open='true'] {
+    display: flex;
   }
 }
 
@@ -269,6 +335,21 @@ a.admin-card:hover {
 .admin-scroll {
   overflow-x: auto;
   max-width: 100%;
+  /* Same scroll-shadow pairing as the public site's `.table-wrap` — see its
+   * comment in globals.css. Always sits on `.admin-panel`'s `var(--panel)`. */
+  background:
+    linear-gradient(to right, var(--panel) 30%, transparent),
+    linear-gradient(to left, var(--panel) 30%, transparent) right,
+    linear-gradient(to right, color-mix(in srgb, var(--ink) 22%, transparent), transparent),
+    linear-gradient(to left, color-mix(in srgb, var(--ink) 22%, transparent), transparent) right;
+  background-repeat: no-repeat;
+  background-color: var(--panel);
+  background-size:
+    32px 100%,
+    32px 100%,
+    10px 100%,
+    10px 100%;
+  background-attachment: local, local, scroll, scroll;
 }
 
 /*
@@ -548,7 +629,7 @@ a.admin-card:hover {
   display: grid;
   place-items: center;
   padding: var(--s2);
-  z-index: 40;
+  z-index: var(--z-overlay);
 }
 
 .admin-modal {

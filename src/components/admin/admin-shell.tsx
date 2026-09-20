@@ -2,7 +2,9 @@
 
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
+import { useEffect, useState } from 'react';
 import type { ReactNode } from 'react';
+import { Icon } from '@/components/icons';
 
 const SECTIONS: ReadonlyArray<{ href: string; label: string }> = [
   { href: '/admin', label: 'Resumen' },
@@ -35,9 +37,17 @@ export function AdminShell({
 }) {
   const pathname = usePathname();
   const router = useRouter();
+  const [navOpen, setNavOpen] = useState(false);
 
   const current = (href: string): boolean =>
     href === '/admin' ? pathname === '/admin' : pathname.startsWith(href);
+
+  const currentLabel = SECTIONS.find((section) => current(section.href))?.label ?? 'Secciones';
+
+  // A followed link should not leave the mobile menu open behind the new page.
+  useEffect(() => {
+    setNavOpen(false);
+  }, [pathname]);
 
   const signOut = async (): Promise<void> => {
     await fetch('/api/admin/session', { method: 'DELETE' });
@@ -48,19 +58,33 @@ export function AdminShell({
   return (
     <div className="admin">
       <nav className="admin-nav" aria-label="Secciones del portal">
-        <Link className="admin-brand" href="/admin">
-          Portal del Observatorio
-        </Link>
-        {SECTIONS.map((section) => (
-          <Link
-            key={section.href}
-            href={section.href}
-            aria-current={current(section.href) ? 'page' : undefined}
-          >
-            {section.label}
+        <div className="admin-nav-head">
+          <Link className="admin-brand" href="/admin">
+            Portal del Observatorio
           </Link>
-        ))}
-        <Link href="/">Volver al tablero</Link>
+          <button
+            type="button"
+            className="admin-nav-toggle"
+            aria-expanded={navOpen}
+            aria-controls="admin-nav-links"
+            onClick={() => setNavOpen((open) => !open)}
+          >
+            {currentLabel}
+            <Icon name={navOpen ? 'plegar' : 'desplegar'} size={14} />
+          </button>
+        </div>
+        <div className="admin-nav-links" id="admin-nav-links" data-open={navOpen}>
+          {SECTIONS.map((section) => (
+            <Link
+              key={section.href}
+              href={section.href}
+              aria-current={current(section.href) ? 'page' : undefined}
+            >
+              {section.label}
+            </Link>
+          ))}
+          <Link href="/">Volver al tablero</Link>
+        </div>
       </nav>
       <main className="admin-main">
         <div className="admin-meta" data-testid="admin-session-bar">

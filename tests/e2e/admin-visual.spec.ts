@@ -115,4 +115,37 @@ test.describe('revisión visual y de accesibilidad', () => {
     await expect(page.locator('body')).toBeVisible();
     await page.screenshot({ path: 'artifacts/e2e/screenshots/1440x900-tablero-publico.png' });
   });
+
+  test('UI-02 · el menú de secciones colapsa en móvil y da acceso a las nueve', async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.goto('/admin/traffic');
+    const toggle = page.getByRole('button', { name: 'Tráfico' });
+    await expect(toggle).toBeVisible();
+    await expect(toggle).toHaveAttribute('aria-expanded', 'false');
+
+    const links = page.locator('#admin-nav-links');
+    await expect(links).toBeHidden();
+    const overflowClosed = await page.evaluate(
+      () => document.documentElement.scrollWidth - document.documentElement.clientWidth,
+    );
+    expect(overflowClosed, `el menú cerrado desborda ${overflowClosed}px`).toBeLessThanOrEqual(1);
+
+    await toggle.click();
+    await expect(toggle).toHaveAttribute('aria-expanded', 'true');
+    await expect(links).toBeVisible();
+    for (const label of ['Resumen', 'Descargas', 'Sembradores', 'Volver al tablero']) {
+      await expect(links.getByRole('link', { name: label })).toBeVisible();
+    }
+    const overflowOpen = await page.evaluate(
+      () => document.documentElement.scrollWidth - document.documentElement.clientWidth,
+    );
+    expect(overflowOpen, `el menú abierto desborda ${overflowOpen}px`).toBeLessThanOrEqual(1);
+
+    await links.getByRole('link', { name: 'Descargas' }).click();
+    await expect(page).toHaveURL(/\/admin\/downloads$/u);
+    // A followed link must not leave the mobile menu open behind the new page.
+    await expect(links).toBeHidden();
+  });
 });

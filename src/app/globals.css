@@ -42,7 +42,34 @@
   --ease: cubic-bezier(0.22, 0.61, 0.36, 1);
   --fast: 160ms;
   --slow: 420ms;
+
+  /*
+   * Stacking order, named so two unrelated overlays never fight by accident.
+   * Values are unchanged from before this token existed — only the name is new.
+   */
+  --z-sticky: 1; /* a header or column pinned inside its own scroll container */
+  --z-sticky-raised: 2; /* a sticky element that must sit above --z-sticky in the same table */
+  --z-sticky-corner: 3; /* the one cell above both a sticky row and a sticky column, or a
+                            floating tip anchored to on-screen content */
+  --z-overlay: 40; /* content that leaves the page flow entirely: skip link, modal backdrop */
 }
+
+/*
+ * Breakpoint reference — there is no build-time preprocessor here (no
+ * PostCSS), so this is documentation, not an enforced token: it exists so a
+ * new media query reaches for one of these widths instead of inventing a
+ * nearby one. Existing rules below keep the exact width each was tuned
+ * against; see each rule's own comment for why that width and not another.
+ *
+ *   360px  — smallest phones this site is checked against
+ *   640px  — phones, portrait ceiling
+ *   768px  — small tablets / large phones, landscape
+ *   900px  — the point most two-column layouts here (rail + content,
+ *            admin grid) fold to one column
+ *   1024px — tablets, landscape
+ *   1180-1280px — the point paired charts/cards stop fitting side by side
+ *   1600px — wide desktop, where the shell gets extra side padding
+ */
 
 @media (prefers-color-scheme: dark) {
   :root {
@@ -902,7 +929,8 @@ code {
 
 .slicer input[type='range'] {
   accent-color: var(--official);
-  width: 200px;
+  width: 100%;
+  max-width: 200px;
 }
 
 .slicer output {
@@ -934,6 +962,17 @@ code {
   text-transform: uppercase;
   color: var(--ink-faint);
   margin-bottom: 0.2rem;
+}
+
+/*
+ * Cuando la cabecera tiene botones flotantes, el nombre del rubro no puede
+ * usar todo el ancho de la tarjeta: a 320px, el sector mas largo del catalogo
+ * («Monetario y financiero») corria por debajo de ellos. Reservar su sitio
+ * hace que el nombre pase a una segunda linea antes de llegar ahi, en vez de
+ * superponerse.
+ */
+.card-head:has(.card-toggle) .card-sector {
+  max-width: calc(100% - 6rem);
 }
 
 /* Section preamble ------------------------------------------------------- */
@@ -1111,7 +1150,7 @@ code {
 .rail-top {
   position: sticky;
   top: 0;
-  z-index: 1;
+  z-index: var(--z-sticky);
   background: var(--panel);
 }
 
@@ -1909,8 +1948,27 @@ code {
   max-width: 100%;
   border: 1px solid var(--rule);
   border-radius: var(--radius);
-  background: var(--panel);
   box-shadow: var(--shadow);
+  /*
+   * A shadow at each edge that has more to scroll to, so a table cut off by
+   * `overflow-x` says so instead of just stopping mid-column. The two
+   * `local`-attached gradients fade to the panel colour and scroll with the
+   * content, cancelling the `scroll`-attached shadow once that edge is
+   * reached — the classic CSS scroll-shadow pairing, no JS.
+   */
+  background:
+    linear-gradient(to right, var(--panel) 30%, transparent),
+    linear-gradient(to left, var(--panel) 30%, transparent) right,
+    linear-gradient(to right, color-mix(in srgb, var(--ink) 22%, transparent), transparent),
+    linear-gradient(to left, color-mix(in srgb, var(--ink) 22%, transparent), transparent) right;
+  background-repeat: no-repeat;
+  background-color: var(--panel);
+  background-size:
+    32px 100%,
+    32px 100%,
+    10px 100%,
+    10px 100%;
+  background-attachment: local, local, scroll, scroll;
 }
 
 .grid-table {
@@ -2653,7 +2711,7 @@ button.term-chip:hover {
   position: absolute;
   left: -9999px;
   top: 0;
-  z-index: 40;
+  z-index: var(--z-overlay);
   padding: 0.55rem 0.9rem;
   background: var(--panel);
   color: var(--ink);
@@ -2911,7 +2969,7 @@ button.download-btn {
 .card-table .grid-table thead th {
   position: sticky;
   top: 0;
-  z-index: 1;
+  z-index: var(--z-sticky);
   background: var(--panel);
 }
 
@@ -3107,13 +3165,13 @@ button.download-btn {
   text-align: center;
   padding-bottom: 0.2rem;
   top: 0;
-  z-index: 2;
+  z-index: var(--z-sticky-raised);
 }
 
 .heat-row {
   padding-right: 0.5rem;
   left: 0;
-  z-index: 1;
+  z-index: var(--z-sticky);
 }
 
 /* Where the two pinned edges cross, and so above both. */
@@ -3121,7 +3179,7 @@ button.download-btn {
   position: sticky;
   top: 0;
   left: 0;
-  z-index: 3;
+  z-index: var(--z-sticky-corner);
   background: var(--panel);
 }
 
@@ -3356,7 +3414,7 @@ button.download-btn {
 
 .map-tip {
   position: absolute;
-  z-index: 3;
+  z-index: var(--z-sticky-corner);
   width: max-content;
   max-width: 19rem;
   pointer-events: none;
@@ -4439,7 +4497,7 @@ button.download-btn {
 .analysis-bar {
   position: sticky;
   top: 0;
-  z-index: 3;
+  z-index: var(--z-sticky-corner);
   display: flex;
   align-items: center;
   flex-wrap: wrap;
