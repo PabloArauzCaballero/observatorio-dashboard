@@ -233,6 +233,36 @@ a:hover {
   color: var(--ink-faint);
 }
 
+/*
+ * La cabecera, en un telefono, gastaba 350px antes de la primera pestaña: el
+ * titulo a dos lineas en cuerpo de escritorio, la marca de tiempo en otras dos
+ * y el boton de donar en una propia. Sigue diciendo lo mismo —quien publica,
+ * a que fecha estan los datos y donde donar— en poco mas de la mitad.
+ */
+@media (max-width: 720px) {
+  .topbar {
+    gap: var(--s1);
+    padding-bottom: var(--s1);
+  }
+
+  .brand-mark {
+    width: 28px;
+    height: 28px;
+    border-radius: 8px;
+  }
+
+  .brand h1 {
+    font-size: 1rem;
+    letter-spacing: -0.02em;
+  }
+
+  .topbar-stamp {
+    font-size: 0.62rem;
+    letter-spacing: 0.04em;
+    text-transform: none;
+  }
+}
+
 .tab .ic {
   opacity: 0.8;
 }
@@ -1367,6 +1397,19 @@ code {
   letter-spacing: 0.05em;
   color: var(--ink-faint);
   text-transform: uppercase;
+}
+
+/*
+ * El rotulo cede el sitio del boton flotante.
+ *
+ * `.tile-hint` se empuja al borde derecho con `margin-left:auto`, y el
+ * `.card-toggle` esta posicionado sobre ese mismo borde: en un telefono el
+ * icono terminaba dibujado encima de los ultimos caracteres —«2026-09-19»
+ * se leia «2026-09-⊞9»—. Reservar su ancho los separa sin mover el boton.
+ */
+.tile-head:has(.card-toggle) .tile-hint,
+.tile-head:has(.card-tools) .tile-hint {
+  padding-right: 2.4rem;
 }
 
 /*
