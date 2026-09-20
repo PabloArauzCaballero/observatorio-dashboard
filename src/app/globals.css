@@ -260,7 +260,7 @@ a:hover {
   font-size: 0.74rem;
   letter-spacing: 0.07em;
   text-transform: uppercase;
-  color: var(--ink-faint);
+  color: var(--ink-soft);
   margin-bottom: var(--s1);
 }
 
@@ -283,7 +283,7 @@ a:hover {
   padding: 0.65rem 1rem;
   font: inherit;
   font-size: 0.92rem;
-  color: var(--ink-faint);
+  color: var(--ink-soft);
   cursor: pointer;
   transition:
     color var(--fast) var(--ease),
@@ -291,7 +291,7 @@ a:hover {
 }
 
 .tab:hover {
-  color: var(--ink-soft);
+  color: var(--ink);
 }
 
 .tab-active {
@@ -2622,7 +2622,7 @@ button.term-chip:hover {
   margin: 0 auto;
   font-family: var(--mono);
   font-size: 0.76rem;
-  color: var(--ink-faint);
+  color: var(--ink-soft);
   font-variant-numeric: tabular-nums;
 }
 
@@ -3049,7 +3049,12 @@ button.download-btn {
   gap: 0.3rem;
   padding: 0.25rem;
   border: 1px solid var(--rule-soft);
-  border-radius: 999px;
+  /* Fixed, not 999px: at narrow widths this rail wraps to two or three
+     rows, and a radius that assumes a single-row pill turns the whole
+     rail into a lens/capsule around the stacked buttons (verified at
+     375px). A bounded radius still reads as a pill on one row and stays
+     a plain rounded rail once it wraps. */
+  border-radius: 1.25rem;
   width: fit-content;
   max-width: 100%;
   margin-bottom: var(--s1);
