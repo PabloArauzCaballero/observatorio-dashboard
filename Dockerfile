@@ -37,6 +37,10 @@ EXPOSE 3000
 # nucleos: los despliegues pasaron de dieciseis minutos a dos horas y murieron,
 # incluido el que traia el arreglo. `/api/version` hace un SELECT de una fila y
 # dice lo mismo que importa — el proceso vive y alcanza la base — sin cobrarlo.
+# `localhost`, no `127.0.0.1`: el servidor standalone de Next.js escucha en `::`
+# salvo que se le fije `HOSTNAME`, asi que una sonda contra la IPv4 de loopback
+# recibe un rechazo de conexion y marca insano un contenedor que esta sirviendo
+# de sobra. Con el nombre, Node prueba ambas familias.
 HEALTHCHECK --interval=60s --timeout=10s --start-period=25s --retries=3 \
-  CMD ["node", "-e", "fetch('http://127.0.0.1:3000/api/version').then(r=>{if(!r.ok)process.exit(1)}).catch(()=>process.exit(1))"]
+  CMD ["node", "-e", "fetch('http://localhost:3000/api/version').then(r=>{if(!r.ok)process.exit(1)}).catch(()=>process.exit(1))"]
 CMD ["node", "server.js"]
