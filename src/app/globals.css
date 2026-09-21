@@ -1082,6 +1082,17 @@ h2 {
   margin-bottom: 0.15rem;
 }
 
+/*
+ * Plegado, la cabecera es todo lo que hay.
+ *
+ * El margen que la separa del texto queda colgando debajo del titulo y se suma
+ * al relleno de la caja: cerrado, el bloque se veia mas alto de lo que su
+ * contenido justifica.
+ */
+.analysis-folded .tile-head {
+  margin-bottom: 0;
+}
+
 .analysis-note {
   font-size: 0.76rem;
   color: var(--ink-soft);
