@@ -329,8 +329,17 @@ function StablecoinCensus({ plotted }: { plotted: readonly string[] }) {
   const missing = stablecoinsWithoutSeries(plotted);
   if (!missing.length) return null;
 
+  /*
+   * Tres motivos distintos por los que una ficha no tiene línea, y cada uno
+   * dice una cosa distinta sobre el mercado. Meterlos en una sola frase fue el
+   * primer intento y salió una falsedad: USDC, que cotiza por los dos lados,
+   * quedó descrito como «de un solo lado» por compartir rama con FDUSD.
+   */
   const empty = missing.filter((entry) => entry.state === 'NO_MARKET');
-  const partial = missing.filter((entry) => entry.state !== 'NO_MARKET');
+  const oneSided = missing.filter((entry) => entry.state === 'ONE_SIDED');
+  const awaiting = missing.filter(
+    (entry) => entry.state === 'QUOTED' || entry.state === 'QUOTED_THIN',
+  );
 
   return (
     <p className="chart-note">
@@ -345,18 +354,32 @@ function StablecoinCensus({ plotted }: { plotted: readonly string[] }) {
           y no se inventa uno.
         </>
       ) : null}
-      {partial.map((entry) => (
+      {oneSided.map((entry) => (
         <span key={entry.label}>
           {' '}
-          <b>{entry.label}</b> tiene {entry.asks || entry.bids} aviso
-          {(entry.asks || entry.bids) === 1 ? '' : 's'} de un solo lado y ninguno del otro: medio
-          libro no es un precio, así que tampoco se publica.
+          <b>{entry.label}</b> cotiza de un solo lado, {oneOrOther(entry)} y ninguno del contrario:
+          medio libro no tiene punto medio, y media cotización no es un precio.
+        </span>
+      ))}
+      {awaiting.map((entry) => (
+        <span key={entry.label}>
+          {' '}
+          <b>{entry.label}</b> sí tiene libro por los dos lados —{entry.bids} y {entry.asks} avisos—
+          y todavía no tiene línea: su serie empieza el día que se publique su primera lectura, no
+          antes.
         </span>
       ))}{' '}
-      Recuento del {sayLong(STABLECOIN_MARKET_SURVEY_DATE)}. Si alguna abre mercado, su línea
-      empieza sola el día que aparezca el primer aviso.
+      Recuento del {sayLong(STABLECOIN_MARKET_SURVEY_DATE)}. Si alguna de las vacías abre mercado,
+      su línea empieza sola el día que aparezca el primer aviso.
     </p>
   );
+}
+
+/** «7 avisos de compra» / «7 de venta», según qué lado sea el que existe. */
+function oneOrOther(entry: StablecoinMarketEntry): string {
+  const count = entry.asks || entry.bids;
+  const side = entry.asks ? 'de venta' : 'de compra';
+  return `${count} aviso${count === 1 ? '' : 's'} ${side}`;
 }
 
 /** «USDS, USDe y PYUSD» — la lista como se dice en voz alta, no separada por comas hasta el final. */
