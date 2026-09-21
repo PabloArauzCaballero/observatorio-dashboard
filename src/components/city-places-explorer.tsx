@@ -18,6 +18,7 @@ import { Icon } from './icons';
 import { Pager } from './pager';
 import { PlacesMap, mapsHref } from './places-map';
 import type { Place, PlaceFamily } from '@/lib/places';
+import { tallySectors } from '@/lib/place-sectors';
 
 /*
  * El grupo de los que no estan en ninguna poblacion. Va al final de la lista:
@@ -124,6 +125,20 @@ export function CityPlacesExplorer({ families }: { families: PlaceFamily[] }) {
     return [...held.values()].sort((left, right) => right.places - left.places);
   }, [families, city]);
 
+  /**
+   * Los rubros de la ciudad elegida, con las familias que los componen.
+   *
+   * Se calculan sobre las filas **crudas** y no sobre `inCity`, que suma las
+   * familias repetidas en varios grupos y por eso marca el grupo como
+   * «VARIOS». Ese valor no es un grupo y no tiene rubro: calculado ahi, mandaba
+   * 2.225 lugares de Santa Cruz al residuo y «Salud» decia 1.534 en vez de
+   * 2.104. El rubro necesita el grupo original de cada fila.
+   */
+  const sectors = useMemo(
+    () => tallySectors(families.filter((row) => accepts(city, row.city))),
+    [families, city],
+  );
+
   const matches = useMemo(() => {
     const needle = search.trim().toLocaleLowerCase('es');
     if (!needle) return inCity.slice(0, SHOWN);
@@ -191,7 +206,8 @@ export function CityPlacesExplorer({ families }: { families: PlaceFamily[] }) {
    * propios recuentos— así que la nota pasa a hablar del conjunto, que es lo
    * que el mapa está dibujando.
    */
-  const chosen = family.size === 1 ? inCity.find((row) => picked(family, row.entityFamily)) : undefined;
+  const chosen =
+    family.size === 1 ? inCity.find((row) => picked(family, row.entityFamily)) : undefined;
   const chosenFamilies = family.size
     ? inCity.filter((row) => picked(family, row.entityFamily))
     : [];
@@ -301,6 +317,46 @@ export function CityPlacesExplorer({ families }: { families: PlaceFamily[] }) {
                   </button>
                 );
               })}
+            </div>
+          </div>
+
+          <div className="rail-sec">
+            <div className="rail-head">
+              <Icon name="capas" size={13} />
+              Rubro
+              <span className="rail-count">derivado</span>
+            </div>
+            {/*
+              El rubro no viene de la fuente: se deriva de la familia y el grupo
+              (ver src/lib/place-sectors.ts). Sin el, el panel solo ofrecia 153
+              familias sueltas y no habia forma de preguntar cuanto comercio o
+              cuanta salud tiene una ciudad — que es lo primero que se pregunta.
+              Elegir un rubro selecciona sus familias, de modo que el recorte que
+              viaja al servidor es el mismo de siempre.
+            */}
+            <div className={sectors.length > 8 ? 'rail-list rail-list-cut' : 'rail-list'}>
+              {sectors.map((entry) => {
+                const on = entry.families.every((one) => picked(family, one));
+                return (
+                  <button
+                    key={entry.sector}
+                    type="button"
+                    className={on ? 'rail-item rail-item-on' : 'rail-item'}
+                    aria-pressed={on}
+                    title={`${entry.label}: ${entry.families.length} familias`}
+                    onClick={() => setFamily(on ? ANY : new Set(entry.families))}
+                  >
+                    <Icon name={entry.icon} size={16} />
+                    <span className="rail-name">{entry.label}</span>
+                    <span className="rail-n">{NUMBER.format(entry.places)}</span>
+                  </button>
+                );
+              })}
+            </div>
+            <div className="rail-foot">
+              El rubro lo deriva este informe de la familia y el grupo del lugar; la fuente no lo
+              publica. No hay minería ni banca de oficina: el registro mapea locales urbanos, y lo
+              que no encaja queda en «sin clasificar» en vez de repartirse.
             </div>
           </div>
 
