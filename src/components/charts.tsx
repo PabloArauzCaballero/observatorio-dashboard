@@ -2461,6 +2461,14 @@ export interface DatedBand {
   from: string;
   to: string;
   label: string;
+  /**
+   * Which edge of the band the label hangs from. Left by default.
+   *
+   * A label anchored to the left edge of a band that is a sliver at the end of
+   * the axis runs off the plot and arrives cut mid-word. A band that ends where
+   * the series ends says `right` and the text grows inwards instead.
+   */
+  align?: 'left' | 'right';
 }
 
 /**
@@ -2565,7 +2573,7 @@ export function DatedLines({
                 fillOpacity={1}
                 label={{
                   value: band.label,
-                  position: 'insideTopLeft',
+                  position: band.align === 'right' ? 'insideTopRight' : 'insideTopLeft',
                   fontSize: 10,
                   fill: 'var(--axis-ink)',
                 }}

@@ -134,10 +134,12 @@ export function FxConclusions({ conclusions }: { conclusions: readonly FxConclus
  */
 function labelledBand(from: string | undefined, dates: readonly string[]): DatedBand[] {
   const last = dates.at(-1);
-  // El rotulo se dibuja dentro de la franja, y la franja son veintitantas
-  // jornadas de ochocientas: «leído por ficha» se salia del grafico por la
-  // derecha y llegaba cortado a media palabra.
-  return from && last && from <= last ? [{ from, to: last, label: 'por ficha' }] : [];
+  // La franja son veintitantas jornadas de ochocientas, pegadas al borde
+  // derecho: colgado de su izquierda, el rótulo se salía del gráfico y llegaba
+  // cortado a media palabra. Colgado de la derecha, crece hacia adentro.
+  return from && last && from <= last
+    ? [{ from, to: last, label: 'leído por ficha', align: 'right' as const }]
+    : [];
 }
 
 /** The regime stretches, shaded behind whichever series is drawn over them. */
