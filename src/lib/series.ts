@@ -2122,6 +2122,15 @@ export interface StablecoinSeries {
  * untouched, and a deployment where the model does not exist yet loses this
  * panel and nothing else.
  */
+/**
+ * El día a partir del cual puede existir una lectura por ficha.
+ *
+ * Anterior al primer instrumento anotado, con margen: sirve para no recorrer los
+ * dos años de archivo agregado que no tienen ficha, no para decidir dónde
+ * empieza la serie. Quien decide eso son los datos.
+ */
+const STABLECOIN_SERIES_FLOOR = '2026-08-01';
+
 export function readStablecoins(): Promise<StablecoinSeries[]> {
   return held('stablecoins', buildStablecoins);
 }
@@ -2161,9 +2170,18 @@ async function buildStablecoins(): Promise<StablecoinSeries[]> {
               mid_spread::text, sides_resolved, change_percent::text
        FROM read_models.stablecoin_parallel_daily
        WHERE aggregation = 'POINT_IN_TIME'
-         -- El archivo no registró instrumento, así que antes de esta ventana no
-         -- hay ni una fila por token: pedirla solo obliga a recorrerlo.
-         AND event_date >= current_date - interval '400 days'
+         /*
+          * Un piso fijo, no una ventana móvil.
+          *
+          * El archivo no registró instrumento, así que antes de esta fecha no
+          * hay ni una fila por ficha y pedirlas solo obliga a recorrerlo. Eso
+          * justifica un límite inferior, pero no uno que avance con el
+          * calendario: current_date menos 400 días habría empezado a comerse el
+          * principio de la serie por ficha a finales de 2027, sin aviso y justo
+          * en el gráfico cuyo asunto es que la serie es corta. Un piso fijo
+          * ahorra el mismo recorrido del archivo y nunca recorta nada.
+          */
+         AND event_date >= DATE '${STABLECOIN_SERIES_FLOOR}'
        ORDER BY token, event_date`,
     );
 

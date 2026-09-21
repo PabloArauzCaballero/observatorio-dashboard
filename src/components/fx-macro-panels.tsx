@@ -8,6 +8,12 @@ import { Icon } from './icons';
 import type { IconName } from './icons';
 import type { MacroPoint, RegimeSegment } from '@/lib/fx-macro';
 import type { FxConclusion, FxSnapshot, StablecoinReading } from '@/lib/fx-snapshot';
+import {
+  STABLECOIN_MARKET_SURVEY_DATE,
+  STABLECOIN_MARKET_SURVEY_VENUES,
+  stablecoinsWithoutSeries,
+  type StablecoinMarketEntry,
+} from '@/lib/stablecoin-market-survey';
 
 /**
  * The macroeconomic reading of the exchange rate: the answers, then the charts.
@@ -181,6 +187,15 @@ const REAL_SERIES: readonly DatedLineSeries[] = [
  */
 const TOKEN_CHART_MINIMUM = 14;
 
+/**
+ * Colour per token, and deliberately only three of them.
+ *
+ * The palette's pairwise separation check is passed by the first three slots
+ * and by no combination that includes a fourth, so a fourth token gets the
+ * neutral rest colour rather than a hue invented to fill the gap. That is not a
+ * limitation worth working around here: three tokens have never had a boliviano
+ * market at all, and the day one of them does it will be one line, not three.
+ */
 const TOKEN_TONE: Record<string, string> = {
   USDT: 'var(--parallel)',
   USDC: 'var(--gap)',
@@ -291,10 +306,72 @@ export function FxMacroPanels({
         ) : (
           <StablecoinTable readings={snapshot.stablecoins} />
         )}
+        <StablecoinCensus plotted={tokens.map((entry) => entry.token)} />
       </div>
     </>
   );
 }
+
+/**
+ * Las fichas que se buscaron y hoy no tienen línea, con lo que devolvió cada una.
+ *
+ * Un gráfico con dos líneas no puede decir por sí solo si las demás fichas no
+ * cotizan o si nadie las miró, y esa es exactamente la pregunta del lector que
+ * conoce USDS, USDe o PYUSD de otros mercados. Sin esta nota la respuesta
+ * honesta —«se pidieron las cinco y tres devolvieron el libro vacío»— no está
+ * en ninguna parte de la página, y la ausencia se lee como un olvido.
+ *
+ * Se arma restando las fichas dibujadas al censo, no escribiendo nombres: el
+ * día que una de estas abra mercado, su serie aparece arriba y su nombre
+ * desaparece de aquí sin que nadie edite la frase.
+ */
+function StablecoinCensus({ plotted }: { plotted: readonly string[] }) {
+  const missing = stablecoinsWithoutSeries(plotted);
+  if (!missing.length) return null;
+
+  const empty = missing.filter((entry) => entry.state === 'NO_MARKET');
+  const partial = missing.filter((entry) => entry.state !== 'NO_MARKET');
+
+  return (
+    <p className="chart-note">
+      <b>Por qué no hay una línea por cada ficha.</b> Cada corrida del recolector pide el libro en
+      bolivianos de todas las fichas de esta lista, no solo de las que ya tienen serie.
+      {empty.length ? (
+        <>
+          {' '}
+          {sayList(empty)} {empty.length === 1 ? 'devolvió' : 'devolvieron'}{' '}
+          <b>cero avisos en los dos lados</b> en {sayVenues()}: en bolivianos no{' '}
+          {empty.length === 1 ? 'se negocia' : 'se negocian'}, de modo que no hay precio que dibujar
+          y no se inventa uno.
+        </>
+      ) : null}
+      {partial.map((entry) => (
+        <span key={entry.label}>
+          {' '}
+          <b>{entry.label}</b> tiene {entry.asks || entry.bids} aviso
+          {(entry.asks || entry.bids) === 1 ? '' : 's'} de un solo lado y ninguno del otro: medio
+          libro no es un precio, así que tampoco se publica.
+        </span>
+      ))}{' '}
+      Recuento del {sayLong(STABLECOIN_MARKET_SURVEY_DATE)}. Si alguna abre mercado, su línea
+      empieza sola el día que aparezca el primer aviso.
+    </p>
+  );
+}
+
+/** «USDS, USDe y PYUSD» — la lista como se dice en voz alta, no separada por comas hasta el final. */
+function sayList(entries: readonly StablecoinMarketEntry[]): string {
+  const names = entries.map((entry) => entry.label);
+  if (names.length <= 1) return names[0] ?? '';
+  return `${names.slice(0, -1).join(', ')} y ${names.at(-1)}`;
+}
+
+const sayVenues = (): string => {
+  const names = [...STABLECOIN_MARKET_SURVEY_VENUES];
+  return names.length <= 1
+    ? (names[0] ?? '')
+    : `${names.slice(0, -1).join(', ')} y ${names.at(-1)}`;
+};
 
 /**
  * The tokens as a table, for while the series is too short to plot.
