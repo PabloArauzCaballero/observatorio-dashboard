@@ -682,7 +682,7 @@ export function LagBars({ lags, band, label }: { lags: LagPoint[]; band: number;
             />
             <Tooltip content={renderTooltip} cursor={{ fill: 'var(--rule-soft)' }} />
             <ReferenceArea y1={-band} y2={band} fill="var(--ink-faint)" fillOpacity={0.12} />
-            <ReferenceLine y={0} stroke="var(--axis-ink)" strokeWidth={1} />
+            <ReferenceLine y={0} stroke="var(--axis-rule)" strokeWidth={1} />
             {/*
              * El color dice el signo y la saturacion dice si la barra sale de la
              * banda de ruido. El signo es polaridad —un lado del cero contra el

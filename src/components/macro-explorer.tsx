@@ -9,7 +9,6 @@ import { DistributionStrip, TrendSpark } from './macro-analysis-charts';
 import {
   SECTOR_ICON,
   SECTOR_LABEL,
-  SECTOR_TONE,
   UNIT_LABEL,
   headline,
   headlineValue,
@@ -493,7 +492,16 @@ function MacroCard({ point, series }: { point: MacroPoint; series: MacroPoint[] 
   /** Whether they have opened the readings behind the line. */
   const [expanded, setExpanded] = useState(false);
   const definition = GLOSSARY[point.indicatorCode];
-  const tone = SECTOR_TONE[point.sector] ?? 'var(--ink-soft)';
+  /*
+   * Por el ayudante, no por el mapa a pelo.
+   *
+   * Leer `SECTOR_TONE` directamente deja fuera a los rubros que el mapa no
+   * enumera —los datos traen alguno más, «Financiero» entre ellos— y esos
+   * caían en el gris de respaldo: media retícula dibujaba su serie en azul y
+   * la otra media en gris, sin que eso significara nada. `sectorTone` da el
+   * mismo tono a todos, que es lo que este panel quiere decir.
+   */
+  const tone = sectorTone(point.sector);
 
   /** A candle per year: it opens at the year before and closes at this one. */
   const ohlc = useMemo((): CandlePoint[] => {

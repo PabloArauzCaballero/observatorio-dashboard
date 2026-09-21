@@ -274,6 +274,26 @@ export function PressPulse({ cube, selection, span, onPick }: PressPulseProps) {
             <b>cuántos medios</b> se pudieron leer ese año: un año con menos notas puede ser un año
             tranquilo o un año que nadie archivó, y esa columna dice cuál.
           </p>
+          {/*
+            Dos marcas llevan sentido en esta lista —la barra de detrás es el
+            volumen del año y la de delante su alarma— y ninguna estaba
+            nombrada sobre el dibujo: el texto lo contaba, pero un lector que
+            baja directo a las barras veía dos rojos y tenía que adivinar cuál
+            era cuál.
+          */}
+          <ul className="chart-legend" style={{ marginBottom: 'var(--s2)' }}>
+            <li>
+              <span className="chart-legend-mark" style={{ background: 'var(--up)' }} />
+              Alarma y conflicto, en % de la cobertura del año
+            </li>
+            <li>
+              <span
+                className="chart-legend-mark"
+                style={{ background: 'color-mix(in srgb, var(--up) 26%, var(--panel-tint))' }}
+              />
+              Notas archivadas ese año
+            </li>
+          </ul>
           <div className="barlist">
             {alarmByYear.map((row) => {
               const on = selection.year === row.year;
