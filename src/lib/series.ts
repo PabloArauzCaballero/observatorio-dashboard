@@ -1483,7 +1483,8 @@ export async function readTradeCoverage(): Promise<TradeCoverage[]> {
       unread: row.unread,
     }));
   } catch (error) {
-    if (isUnreadableModel(error)) return unreadable<TradeCoverage>('read_models.informal_trade_coverage', error);
+    if (isUnreadableModel(error))
+      return unreadable<TradeCoverage>('read_models.informal_trade_coverage', error);
     throw error;
   }
 }
@@ -1540,7 +1541,8 @@ export async function readChannelMix(): Promise<ChannelMix[]> {
       forms: row.forms,
     }));
   } catch (error) {
-    if (isUnreadableModel(error)) return unreadable<ChannelMix>('read_models.informal_trade_channel_mix', error);
+    if (isUnreadableModel(error))
+      return unreadable<ChannelMix>('read_models.informal_trade_channel_mix', error);
     throw error;
   }
 }
@@ -1595,7 +1597,8 @@ export async function readTradeReadings(): Promise<TradeReading[]> {
       url: row.reading_url,
     }));
   } catch (error) {
-    if (isUnreadableModel(error)) return unreadable<TradeReading>('read_models.social_commerce', error);
+    if (isUnreadableModel(error))
+      return unreadable<TradeReading>('read_models.social_commerce', error);
     throw error;
   }
 }
@@ -1644,7 +1647,8 @@ export async function readTradeGap(): Promise<TradeGap[]> {
       distancePoints: row.distance_points === null ? null : Number(row.distance_points),
     }));
   } catch (error) {
-    if (isUnreadableModel(error)) return unreadable<TradeGap>('read_models.informal_trade_gap', error);
+    if (isUnreadableModel(error))
+      return unreadable<TradeGap>('read_models.informal_trade_gap', error);
     throw error;
   }
 }
@@ -1735,7 +1739,8 @@ export async function readTermMonths(): Promise<TermMonth[]> {
       adverseShare: row.adverse_share === null ? null : Number(row.adverse_share),
     }));
   } catch (error) {
-    if (isUnreadableModel(error)) return unreadable<TermMonth>('read_models.press_term_month', error);
+    if (isUnreadableModel(error))
+      return unreadable<TermMonth>('read_models.press_term_month', error);
     throw error;
   }
 }
@@ -1800,7 +1805,8 @@ export async function readTermTotals(): Promise<TermTotal[]> {
       adverseShare: row.adverse_share === null ? null : Number(row.adverse_share),
     }));
   } catch (error) {
-    if (isUnreadableModel(error)) return unreadable<TermTotal>('read_models.press_term_month', error);
+    if (isUnreadableModel(error))
+      return unreadable<TermTotal>('read_models.press_term_month', error);
     throw error;
   }
 }
@@ -1902,7 +1908,28 @@ export interface StablecoinSeries {
  * untouched, and a deployment where the model does not exist yet loses this
  * panel and nothing else.
  */
-export async function readStablecoins(): Promise<StablecoinSeries[]> {
+export function readStablecoins(): Promise<StablecoinSeries[]> {
+  return held('stablecoins', buildStablecoins);
+}
+
+/**
+ * Held for five minutes like the observatory and the gap, and for a harder
+ * reason than either.
+ *
+ * This model medians three times over — per venue and side, then per venue,
+ * then across venues — on top of a view that already expands every observation's
+ * measures with a lateral join. Served fresh on every visit it is the most
+ * expensive read on the page, and it does not need to be fresh: the collector
+ * publishes a few times a day.
+ *
+ * Going through `held` also **deduplicates concurrent calls**, which matters
+ * more than the caching here. The exchange-rate section asks for this series and
+ * for the snapshot that also contains it, in the same `Promise.all`; without the
+ * hold those are two of this query running at once, every load. On the smaller
+ * of the two servers that contention was enough to push the gap read past its
+ * statement timeout and blank the chart.
+ */
+async function buildStablecoins(): Promise<StablecoinSeries[]> {
   try {
     const { rows } = await pool().query<{
       token: string;
@@ -1920,6 +1947,9 @@ export async function readStablecoins(): Promise<StablecoinSeries[]> {
               mid_spread::text, sides_resolved, change_percent::text
        FROM read_models.stablecoin_parallel_daily
        WHERE aggregation = 'POINT_IN_TIME'
+         -- El archivo no registró instrumento, así que antes de esta ventana no
+         -- hay ni una fila por token: pedirla solo obliga a recorrerlo.
+         AND event_date >= current_date - interval '400 days'
        ORDER BY token, event_date`,
     );
 
