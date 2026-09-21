@@ -13,12 +13,14 @@ import { SubjectsExplorer } from '@/components/subjects-explorer';
 import { SubTabs } from '@/components/tabs';
 import { Icon } from '@/components/icons';
 import { SummaryExplorer } from '@/components/summary-explorer';
+import { TodayBoardPanel } from '@/components/today-board';
 import type { SummaryFigure } from '@/components/summary-explorer';
 import { Tabs } from '@/components/tabs';
 import { readPlaceFamilies } from '@/lib/places';
 import type { PlaceFamily } from '@/lib/places';
 import { packMacro } from '@/lib/macro-transport';
 import { dailyAnalysis } from '@/lib/daily-analysis';
+import { buildTodayBoard } from '@/lib/today-board';
 import type { Observation } from '@/lib/econometrics';
 import {
   isUnaffordableRead,
@@ -254,6 +256,7 @@ const NOMBRE_DE_SECCION: Record<string, string> = {
   macro: 'macroeconomía anual',
   filings: 'hechos relevantes',
   press: 'prensa',
+  pressToday: 'prensa',
   markets: 'mercados',
   pressCube: 'prensa',
   pressPulse: 'prensa',
@@ -275,6 +278,7 @@ export default async function Page() {
   let macro: MacroPoint[];
   let filings: CompanyFiling[];
   let press: PressArticle[];
+  let pressToday: PressArticle[];
   let markets: MarketSeries[];
   let pressCube: PressCube;
   let pressPulse: PressPulseData;
@@ -323,6 +327,7 @@ export default async function Page() {
       macro,
       filings,
       press,
+      pressToday,
       markets,
       pressCube,
       pressPulse,
@@ -334,6 +339,17 @@ export default async function Page() {
       seccion('macro', readMacroAnnual, []),
       seccion('filings', () => readCompanyFilings(), []),
       seccion('press', () => readPressPage({ topic: 'ECONOMICOS' }, 60).then((page) => page.articles), []),
+      /*
+       * El mismo archivo sin filtrar por tema, para el cuadro de mando.
+       *
+       * La lectura de arriba deja fuera `OTROS`, que es lo correcto para la
+       * pestaña de prensa economica y lo contrario de lo que necesita la
+       * portada: un bloqueo de caminos o una medida de combustible entran por
+       * ahi, y son exactamente las novedades que un inversor externo busca. El
+       * limite alcanza para los ultimos dias con holgura, que es lo unico que
+       * el tablero mira.
+       */
+      seccion('pressToday', () => readPressPage({}, 120).then((page) => page.articles), []),
       seccion('markets', readMarkets, []),
       seccion('pressCube', readPressCube, EMPTY_PRESS_CUBE),
       seccion('pressPulse', readPressPulse, EMPTY_PRESS_PULSE),
@@ -450,6 +466,19 @@ export default async function Page() {
       : []),
   ];
 
+  /*
+   * El año contra el que se mide la edad de cada dato macro.
+   *
+   * Se toma en La Paz y no en el reloj del servidor, que corre en UTC: entre
+   * las 20:00 y la medianoche boliviana los dos no coinciden, y el 31 de
+   * diciembre esa diferencia envejece de golpe cada cifra del tablero.
+   */
+  const currentYear = Number(
+    new Intl.DateTimeFormat('en-CA', { year: 'numeric', timeZone: TIME_ZONE }).format(new Date()),
+  );
+
+  const board = buildTodayBoard({ macro, gap, press: pressToday, currentYear });
+
   const analysis = dailyAnalysis({
     latestDate: observatory.latestDate,
     gap,
@@ -504,7 +533,7 @@ export default async function Page() {
 
       <Tabs
         labels={[
-          'Resumen',
+          'Hoy',
           'Tipo de cambio',
           'Macroeconomía',
           'Empresas',
@@ -543,6 +572,7 @@ export default async function Page() {
             analysis={analysis.bullets}
             latestDate={observatory.latestDate}
             markets={<MarketCards markets={markets} />}
+            board={<TodayBoardPanel board={board} />}
           />
         </section>
 

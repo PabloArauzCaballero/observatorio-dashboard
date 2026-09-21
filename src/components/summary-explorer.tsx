@@ -40,6 +40,16 @@ export interface SummaryExplorerProps {
   latestDate: string | null;
   /** The dollar-linked markets, rendered by the caller that reads them. */
   markets?: React.ReactNode;
+  /**
+   * El cuadro de mando, armado por el servidor y puesto delante de todo.
+   *
+   * Llega como nodo y no como datos porque su regla es del servidor: esta
+   * pestaña filtra una ventana de la brecha, y el veredicto de los cinco
+   * bloques no depende de esa ventana — cambiar el selector a «90 días» no
+   * puede mover el color de «Situación externa». Pasarlo ya renderizado es lo
+   * que impide que alguien lo cablee al filtro sin querer.
+   */
+  board?: React.ReactNode;
 }
 
 const RANGES: ReadonlyArray<{ key: string; label: string; days: number | null }> = [
@@ -62,6 +72,7 @@ export function SummaryExplorer({
   analysis,
   latestDate,
   markets,
+  board,
 }: SummaryExplorerProps) {
   const [range, setRange] = useState('todo');
 
@@ -202,6 +213,8 @@ export function SummaryExplorer({
       </aside>
 
       <div className="workspace-main" id="tablero" tabIndex={-1}>
+        {board ?? null}
+
         <div className="figures">
           {figures.map((figure) => (
             <div className="figure" key={figure.label}>
