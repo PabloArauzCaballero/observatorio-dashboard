@@ -19,6 +19,7 @@ import { MacroChart, YearCandles } from './charts';
 import type { CandlePoint } from './charts';
 import { Icon } from './icons';
 import type { IconName } from './icons';
+import { InfoPopover } from './info-popover';
 import { MacroAnalysis } from './macro-analysis';
 import { DistributionStrip, TrendSpark } from './macro-analysis-charts';
 import {
@@ -565,8 +566,6 @@ export function MacroExplorer({
  */
 function MacroCard({ point, series }: { point: MacroPoint; series: MacroPoint[] }) {
   const [candles, setCandles] = useState(false);
-  /** Whether the reader has asked what this indicator actually measures. */
-  const [explained, setExplained] = useState(false);
   /** Whether they have opened the readings behind the line. */
   const [expanded, setExpanded] = useState(false);
   const definition = GLOSSARY[point.indicatorCode];
@@ -601,15 +600,56 @@ function MacroCard({ point, series }: { point: MacroPoint; series: MacroPoint[] 
           {SECTOR_LABEL[point.sector] ?? point.sector}
         </span>
         <span className="card-tools">
-          <button
-            type="button"
-            className={explained ? 'card-toggle card-toggle-on' : 'card-toggle'}
-            onClick={() => setExplained(!explained)}
-            title={explained ? 'Ocultar la explicación' : '¿Qué mide este indicador?'}
-            aria-pressed={explained}
-          >
-            <Icon name="info" size={16} />
-          </button>
+          <InfoPopover>
+            {definition ? (
+              <>
+                <p>
+                  <b>Qué mide.</b> {definition.what}
+                </p>
+                <p>
+                  <b>Cómo leerlo.</b> {definition.howToRead}
+                </p>
+                {definition.caveat ? (
+                  <p className="card-note-caveat">
+                    <Icon name="info" size={12} /> {definition.caveat}
+                  </p>
+                ) : null}
+              </>
+            ) : (
+              <p>
+                El observatorio no escribió una definición propia para esta serie. La publica{' '}
+                <b>{point.publisher ?? 'la fuente citada'}</b> bajo el nombre{' '}
+                <b>{point.name ?? point.indicatorCode}</b>, y se mide en{' '}
+                {UNIT_MEANING[point.unit] ?? UNIT_LABEL[point.unit] ?? point.unit}. Preferimos
+                admitir el hueco antes que redactar una explicación que nadie verificó.
+              </p>
+            )}
+            {/*
+              Two provenances, and they are not the same one. The figure is the
+              publisher's; the explanation is ours, written from the standard
+              concept rather than copied from their metadata. One link standing
+              for both would suggest they vouched for wording they never saw.
+            */}
+            <p className="card-note-source">
+              <b>Dato:</b> {point.publisher ?? 'fuente citada'}
+              {point.sourceUrl ? (
+                <>
+                  {' · '}
+                  <a href={point.sourceUrl} target="_blank" rel="noreferrer noopener">
+                    ver la serie publicada
+                  </a>
+                </>
+              ) : null}
+            </p>
+            <p className="card-note-source">
+              <b>Definición:</b> redactada por el {DEFINITION_AUTHOR} a partir del concepto
+              estándar. No es la del publicador.
+            </p>
+            <p className="card-note-source">
+              <code>{point.indicatorCode}</code> ·{' '}
+              {UNIT_MEANING[point.unit] ?? UNIT_LABEL[point.unit] ?? point.unit}
+            </p>
+          </InfoPopover>
           <button
             type="button"
             className={candles ? 'card-toggle card-toggle-on' : 'card-toggle'}
@@ -644,58 +684,6 @@ function MacroCard({ point, series }: { point: MacroPoint; series: MacroPoint[] 
           )}
         </div>
       </header>
-      {explained ? (
-        <div className="card-note">
-          {definition ? (
-            <>
-              <p>
-                <b>Qué mide.</b> {definition.what}
-              </p>
-              <p>
-                <b>Cómo leerlo.</b> {definition.howToRead}
-              </p>
-              {definition.caveat ? (
-                <p className="card-note-caveat">
-                  <Icon name="info" size={12} /> {definition.caveat}
-                </p>
-              ) : null}
-            </>
-          ) : (
-            <p>
-              El observatorio no escribió una definición propia para esta serie. La publica{' '}
-              <b>{point.publisher ?? 'la fuente citada'}</b> bajo el nombre{' '}
-              <b>{point.name ?? point.indicatorCode}</b>, y se mide en{' '}
-              {UNIT_MEANING[point.unit] ?? UNIT_LABEL[point.unit] ?? point.unit}. Preferimos admitir
-              el hueco antes que redactar una explicación que nadie verificó.
-            </p>
-          )}
-          {/*
-            Two provenances, and they are not the same one. The figure is the
-            publisher's; the explanation is ours, written from the standard
-            concept rather than copied from their metadata. One link standing
-            for both would suggest they vouched for wording they never saw.
-          */}
-          <p className="card-note-source">
-            <b>Dato:</b> {point.publisher ?? 'fuente citada'}
-            {point.sourceUrl ? (
-              <>
-                {' · '}
-                <a href={point.sourceUrl} target="_blank" rel="noreferrer noopener">
-                  ver la serie publicada
-                </a>
-              </>
-            ) : null}
-          </p>
-          <p className="card-note-source">
-            <b>Definición:</b> redactada por el {DEFINITION_AUTHOR} a partir del concepto estándar.
-            No es la del publicador.
-          </p>
-          <p className="card-note-source">
-            <code>{point.indicatorCode}</code> ·{' '}
-            {UNIT_MEANING[point.unit] ?? UNIT_LABEL[point.unit] ?? point.unit}
-          </p>
-        </div>
-      ) : null}
       {candles ? (
         <YearCandles data={ohlc} unit={UNIT_LABEL[point.unit] ?? point.unit} />
       ) : (

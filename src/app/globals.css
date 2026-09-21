@@ -3241,6 +3241,48 @@ button.term-chip:hover {
   color: var(--ink-soft) !important;
 }
 
+/*
+ * La misma nota, flotando sobre la tarjeta en vez de dentro de ella.
+ *
+ * Abierta en el flujo, la explicación empujaba la cifra, el año y el gráfico
+ * hacia abajo justo cuando el lector los estaba mirando. Flotando, la tarjeta
+ * no se mueve: la nota se pone encima, cuelga hacia la izquierda si no cabe y
+ * se va sin dejar hueco. Se abre con un clic —nunca al pasar por encima— y se
+ * cierra al salir de ella, al clicar fuera o con Escape.
+ */
+.info-pop {
+  position: relative;
+  display: inline-flex;
+}
+
+.info-pop .card-toggle {
+  position: static;
+}
+
+.info-pop-note {
+  position: absolute;
+  top: calc(100% + 7px);
+  /* `--pop-nudge` lo pone la nota al abrirse si no cabe en la pantalla. */
+  right: calc(-6px - var(--pop-nudge, 0px));
+  z-index: var(--z-sticky-corner);
+  width: min(19rem, calc(100vw - 2rem));
+  max-height: min(21rem, 60vh);
+  overflow-y: auto;
+  margin: 0;
+  text-align: left;
+  cursor: default;
+  box-shadow: var(--shadow);
+}
+
+/*
+ * La tarjeta que tiene la nota abierta pasa por delante de sus vecinas: sin
+ * esto, la tarjeta de la derecha —que se pinta después— tapa media nota.
+ */
+.card:has(.info-pop-note) {
+  position: relative;
+  z-index: var(--z-sticky-corner);
+}
+
 /* The view switch sits with the downloads: both act on the same selection. */
 .download-btn-on {
   background: var(--ink);
