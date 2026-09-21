@@ -5,7 +5,7 @@
  * años hay detras. Eso responde «cuanto vale hoy» y nada mas: no dice si ese
  * valor es alto para la serie, si la serie es estable o erratica, ni si el año
  * pasado fue una excepcion. Esas preguntas son descriptiva basica y se
- * contestan con los mismos numeros para los 1.620 indicadores, asi que se
+ * contestan con los mismos numeros para los dos corpus anuales, asi que se
  * calculan aqui una vez y los consumen la tabla, la vista de analisis y el PDF.
  *
  * Todo se calcula sobre la seleccion que el lector tiene en pantalla —el filtro

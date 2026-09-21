@@ -2,6 +2,7 @@ import { randomUUID } from 'node:crypto';
 import { reportExport } from '@/lib/admin/telemetry';
 import { readPlacesForExport } from '@/lib/places';
 import {
+  readBoliviaPanel,
   readCompanyFilings,
   readMacroAnnual,
   readObservatory,
@@ -46,7 +47,16 @@ const ROW_CEILING: Partial<Record<Dataset, number>> = {
 
 type Row = Record<string, string | number | boolean | null>;
 
-const DATASETS = ['series', 'macro', 'filings', 'prensa', 'temas', 'lugares', 'mundo'] as const;
+const DATASETS = [
+  'series',
+  'macro',
+  'panel',
+  'filings',
+  'prensa',
+  'temas',
+  'lugares',
+  'mundo',
+] as const;
 type Dataset = (typeof DATASETS)[number];
 
 const UNITS: Record<string, string> = {
@@ -101,31 +111,46 @@ interface Selection {
 const inAny = (chosen: readonly string[] | undefined, value: string): boolean =>
   !chosen || chosen.length === 0 || chosen.includes(value);
 
+/**
+ * Las dos lecturas anuales tienen la misma forma y la misma descarga.
+ *
+ * `macro` son las series que el observatorio mide para Bolivia; `panel` es el
+ * catálogo del Banco Mundial recortado a Bolivia. Un `MacroPoint` describe a
+ * las dos —indicador, año, valor, unidad, de dónde sale—, así que el recorte y
+ * las columnas del archivo se escriben una vez. Lo único que cambia es de qué
+ * lectura salen las filas.
+ */
+async function annualRows(
+  read: () => Promise<Awaited<ReturnType<typeof readMacroAnnual>>>,
+  selection: Selection,
+): Promise<Row[]> {
+  const term = selection.search?.trim().toLocaleLowerCase('es');
+  return (await read())
+    .filter(
+      (point) =>
+        inAny(selection.sector, point.sector) &&
+        (selection.from === undefined || Number(point.period) >= Number(selection.from)) &&
+        (!term ||
+          (point.name ?? '').toLocaleLowerCase('es').includes(term) ||
+          point.indicatorCode.toLocaleLowerCase('es').includes(term)),
+    )
+    .map((point) => ({
+      rubro: point.sector,
+      indicador: point.indicatorCode,
+      nombre: point.name,
+      periodo: point.period,
+      valor: point.value,
+      unidad: point.unit,
+      valor_anterior: point.previousValue,
+      variacion_pct: point.changePercent,
+      editor: point.publisher,
+      fuente: point.sourceUrl,
+    }));
+}
+
 async function collect(dataset: Dataset, selection: Selection): Promise<Row[]> {
-  if (dataset === 'macro') {
-    const term = selection.search?.trim().toLocaleLowerCase('es');
-    return (await readMacroAnnual())
-      .filter(
-        (point) =>
-          inAny(selection.sector, point.sector) &&
-          (selection.from === undefined || Number(point.period) >= Number(selection.from)) &&
-          (!term ||
-            (point.name ?? '').toLocaleLowerCase('es').includes(term) ||
-            point.indicatorCode.toLocaleLowerCase('es').includes(term)),
-      )
-      .map((point) => ({
-        rubro: point.sector,
-        indicador: point.indicatorCode,
-        nombre: point.name,
-        periodo: point.period,
-        valor: point.value,
-        unidad: point.unit,
-        valor_anterior: point.previousValue,
-        variacion_pct: point.changePercent,
-        editor: point.publisher,
-        fuente: point.sourceUrl,
-      }));
-  }
+  if (dataset === 'macro') return annualRows(readMacroAnnual, selection);
+  if (dataset === 'panel') return annualRows(readBoliviaPanel, selection);
 
   if (dataset === 'lugares') {
     // The map draws at most four thousand premises because past that a drawing

@@ -66,7 +66,7 @@ export function MacroAnalysis({
   onBack: () => void;
 }) {
   const unit = unitLabel(point.unit);
-  const tone = sectorTone(point.sector);
+  const tone = sectorTone();
   const definition = GLOSSARY[point.indicatorCode];
 
   const ordered = useMemo(
@@ -722,7 +722,8 @@ function kurtosisWord(value: number): string {
  * El párrafo que traduce la fila de estadísticos.
  *
  * Se arma con reglas y no con plantillas sueltas porque tiene que ser cierto
- * para los 1.620 indicadores, incluidos los que tienen doce observaciones o una
+ * para las mil quinientas series del catálogo, incluidas las que tienen doce
+ * observaciones o una
  * hiperinflación dentro. Dice solo lo que los números sostienen: dónde está el
  * centro, cuán dispersa es la serie, hacia qué lado se estira y qué años se
  * salen. Ninguna causa, porque de la causa estos datos no saben nada.

@@ -3,12 +3,17 @@ import type { MacroPoint } from './series';
 /**
  * The macro panel, packed for the wire.
  *
- * The annual panel is 59.071 lecturas de 1.620 indicadores, y un `MacroPoint`
- * lleva seis campos que no cambian dentro de un indicador: su codigo, su
- * nombre, su sector, su unidad, quien lo publica y de donde sale. Mandarlos
- * fila a fila los repite 59.071 veces —el nombre de un indicador del Banco
- * Mundial pasa de los cien caracteres— y esa repeticion era ella sola 33 de los
- * 35 MB que pesaba la portada.
+ * Un `MacroPoint` lleva seis campos que no cambian dentro de un indicador: su
+ * codigo, su nombre, su sector, su unidad, quien lo publica y de donde sale.
+ * Mandarlos fila a fila los repite una vez por año —el nombre de una serie del
+ * Banco Mundial pasa de los cien caracteres— y esa repeticion era ella sola 33
+ * de los 35 MB que pesaba la portada cuando el catalogo entero del banco
+ * viajaba con ella.
+ *
+ * La portada ya no lo lleva: la migracion 0077 devolvio esas mil quinientas
+ * series a su propia pestaña, que las pide aparte. Pero el empaquetado sigue
+ * siendo suyo tanto como del panel macro —son treinta mil lecturas por el
+ * cable en cuanto alguien abre esa pestaña— y ahi vuelve a valer entero.
  *
  * Aqui van una vez, en un catalogo, y cada lectura guarda el indice de su
  * indicador. Lo que viaja despues son cinco valores sueltos por fila y ningun

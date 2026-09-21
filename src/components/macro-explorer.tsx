@@ -1,6 +1,7 @@
 'use client';
 
 import { useMemo, useState } from 'react';
+import type { ReactNode } from 'react';
 import {
   ANY,
   accepts,
@@ -17,6 +18,7 @@ import { FilterHint, PickedCount } from './filters';
 import { MacroChart, YearCandles } from './charts';
 import type { CandlePoint } from './charts';
 import { Icon } from './icons';
+import type { IconName } from './icons';
 import { MacroAnalysis } from './macro-analysis';
 import { DistributionStrip, TrendSpark } from './macro-analysis-charts';
 import {
@@ -39,11 +41,11 @@ import type { MacroPoint } from '@/lib/series';
 /**
  * The macroeconomic panel, filtered the way a report pane is.
  *
- * Eighty-six series is more than anyone reads at once, so the panel starts by
- * asking what the reader is looking at rather than showing everything. The
- * slicers are docked to the side instead of stacked above the cards: a pane
- * that scrolls away from what it is filtering stops being a control, and the
- * stacked version pushed every card below the fold.
+ * A couple of hundred series is more than anyone reads at once, so the panel
+ * starts by asking what the reader is looking at rather than showing
+ * everything. The slicers are docked to the side instead of stacked above the
+ * cards: a pane that scrolls away from what it is filtering stops being a
+ * control, and the stacked version pushed every card below the fold.
  *
  * Three slicers compose: sector, period, and a search over names. Each one
  * narrows what the others offer, so a combination that would return nothing
@@ -51,25 +53,95 @@ import type { MacroPoint } from '@/lib/series';
  *
  * The download follows the selection. Offering a filtered view and then a file
  * of everything is the quickest way to make a reader distrust both.
+ *
+ * It draws two corpora, one at a time, and `CHAPTER` below says which and why.
  */
 
 /**
  * How many indicator cards one page carries.
  *
- * Every card mounts its own chart, and the panel opens on eighty-six of them:
- * eighty-six plots laid out at once is a second of frozen scrolling on a laptop
- * and considerably worse on a phone, for a page nobody reads past the first
- * screenful of anyway. Twenty is the most that still draws at once without the
- * wait being felt, and it keeps a page short enough to scan whole.
+ * Every card mounts its own chart, and the panel opens on every series that
+ * survived the filter: a hundred plots laid out at once is a second of frozen
+ * scrolling on a laptop and considerably worse on a phone, for a page nobody
+ * reads past the first screenful of anyway. Twenty is the most that still draws
+ * at once without the wait being felt, and it keeps a page short enough to scan
+ * whole.
  *
  * The table is paged by the same figure. Its rows carry no chart, so weight was
- * never the reason there — but a table 1.654 rows long is not read either, and
- * a reader who switches between the two views expects to be looking at the same
- * twenty indicators, not at twenty in one and every one of them in the other.
+ * never the reason there — but a table fifteen hundred rows long is not read
+ * either, and a reader who switches between the two views expects to be looking
+ * at the same twenty indicators, not at twenty in one and every one of them in
+ * the other.
  */
 const PAGE_SIZE = 20;
 
-export function MacroExplorer({ bundle }: { bundle: MacroBundle }) {
+/**
+ * Qué corpus está leyendo el panel, dicho en su cabecera y en su descarga.
+ *
+ * Son dos y no se mezclan. Las **series medidas** son las que el observatorio
+ * sigue una por una para Bolivia: el Banco Mundial, el Fondo, Comtrade y el
+ * banco central, con su glosario escrito y su unidad declarada. El **catálogo**
+ * es el Banco Mundial entero —mil quinientas series para Bolivia—, que sirve
+ * para buscar una cifra que las primeras no tienen y no para leer de corrido.
+ *
+ * Estuvieron juntos sin quererlo hasta la migración 0077, y no juntos sino
+ * promediados: la vista anual no tiene columna de país, así que cada serie del
+ * catálogo llegaba a la portada como la media de Bolivia con otras
+ * veintinueve economías y el agregado mundial. Separarlos es lo que arregla
+ * esa cifra; darles una pestaña a cada uno es lo que los hace legibles.
+ */
+interface Chapter {
+  dataset: 'macro' | 'panel';
+  title: string;
+  lead: ReactNode;
+  points: ReadonlyArray<{ icon: IconName; title: string; detail: string }>;
+}
+
+const CHAPTER: Record<'medidas' | 'catalogo', Chapter> = {
+  medidas: {
+    dataset: 'macro',
+    title: 'Contexto macroeconómico',
+    lead: (
+      <>
+        series anuales que el observatorio sigue para Bolivia —el Banco Mundial, el Fondo, Comtrade
+        y el banco central—, desde 1960 y hasta el último año publicado. Elegí un rubro a la
+        izquierda: las tarjetas, el conteo y la descarga siguen esa selección. Tocá el <b>ⓘ</b> de
+        una tarjeta para saber qué mide, y el <b>desplegar</b> para ver sus observaciones año por
+        año.
+      </>
+    ),
+    points: [
+      { icon: 'balanza', title: 'Deuda por acreedor', detail: '14 series: BM, BIRF, AIF, plazo y servicio' },
+      { icon: 'reloj', title: 'Desde 1960', detail: 'toda la historia que publica la fuente' },
+      { icon: 'descarga', title: 'CSV con el filtro', detail: 'se descarga lo que estás viendo' },
+    ],
+  },
+  catalogo: {
+    dataset: 'panel',
+    title: 'Catálogo del Banco Mundial',
+    lead: (
+      <>
+        series del World Development Indicators, recortadas a Bolivia, con el nombre y la unidad que
+        les da el publicador. Es un catálogo de consulta —se entra buscando una cifra, no se lee de
+        corrido—, así que el buscador de la izquierda es el atajo corto y el rubro el largo.
+      </>
+    ),
+    points: [
+      { icon: 'buscar', title: 'Buscá por nombre', detail: 'el título es el del Banco Mundial, en inglés' },
+      { icon: 'mapa', title: 'Solo Bolivia', detail: 'la comparación con otros países va en «Economía mundial»' },
+      { icon: 'info', title: 'Unidad nativa', detail: 'cada serie en la unidad que publica la fuente' },
+    ],
+  },
+};
+
+export function MacroExplorer({
+  bundle,
+  corpus = 'medidas',
+}: {
+  bundle: MacroBundle;
+  corpus?: keyof typeof CHAPTER;
+}) {
+  const chapter = CHAPTER[corpus];
   /**
    * Cards or table.
    *
@@ -201,7 +273,7 @@ export function MacroExplorer({ bundle }: { bundle: MacroBundle }) {
 
   const active = counts(sector) + (search.trim() ? 1 : 0) + (from > minYear ? 1 : 0);
   const query = new URLSearchParams({
-    dataset: 'macro',
+    dataset: chapter.dataset,
     ...(sector.size ? { sector: list(sector).join(',') } : {}),
     desde: String(from),
     ...(search.trim() ? { buscar: search.trim() } : {}),
@@ -345,41 +417,22 @@ export function MacroExplorer({ bundle }: { bundle: MacroBundle }) {
                 <Icon name="globo" size={20} />
               </span>
               <div>
-                <h2>Contexto macroeconómico</h2>
+                <h2>{chapter.title}</h2>
                 <p>
-                  <b>{catalogue}</b> series anuales del Banco Mundial, desde 1960 y hasta el último
-                  año publicado. Elegí un rubro a la izquierda: las tarjetas, el conteo y la
-                  descarga siguen esa selección. Tocá el <b>ⓘ</b> de una tarjeta para saber qué
-                  mide, y el <b>desplegar</b> para ver sus observaciones año por año.
+                  <b>{catalogue}</b> {chapter.lead}
                 </p>
                 <div className="brief-points">
-                  <div className="brief-point">
-                    <span className="brief-point-mark">
-                      <Icon name="balanza" size={17} />
-                    </span>
-                    <div>
-                      <b>Deuda por acreedor</b>
-                      <span>14 series: BM, BIRF, AIF, plazo y servicio</span>
+                  {chapter.points.map((point) => (
+                    <div className="brief-point" key={point.title}>
+                      <span className="brief-point-mark">
+                        <Icon name={point.icon} size={17} />
+                      </span>
+                      <div>
+                        <b>{point.title}</b>
+                        <span>{point.detail}</span>
+                      </div>
                     </div>
-                  </div>
-                  <div className="brief-point">
-                    <span className="brief-point-mark">
-                      <Icon name="reloj" size={17} />
-                    </span>
-                    <div>
-                      <b>Desde 1960</b>
-                      <span>toda la historia que publica la fuente</span>
-                    </div>
-                  </div>
-                  <div className="brief-point">
-                    <span className="brief-point-mark">
-                      <Icon name="descarga" size={17} />
-                    </span>
-                    <div>
-                      <b>CSV con el filtro</b>
-                      <span>se descarga lo que estás viendo</span>
-                    </div>
-                  </div>
+                  ))}
                 </div>
               </div>
             </div>
@@ -518,15 +571,14 @@ function MacroCard({ point, series }: { point: MacroPoint; series: MacroPoint[] 
   const [expanded, setExpanded] = useState(false);
   const definition = GLOSSARY[point.indicatorCode];
   /*
-   * Por el ayudante, no por el mapa a pelo.
+   * El mismo tono para todos, que es lo que este panel quiere decir.
    *
-   * Leer `SECTOR_TONE` directamente deja fuera a los rubros que el mapa no
-   * enumera —los datos traen alguno más, «Financiero» entre ellos— y esos
-   * caían en el gris de respaldo: media retícula dibujaba su serie en azul y
-   * la otra media en gris, sin que eso significara nada. `sectorTone` da el
-   * mismo tono a todos, que es lo que este panel quiere decir.
+   * Hubo una tabla de rubro a color y el rubro que no estaba en ella caía en
+   * un gris de respaldo: media retícula dibujaba su serie en azul y la otra
+   * media en gris, sin que eso significara nada. Con veintidós rubros esa
+   * tabla habría sido veintidós veces el mismo color.
    */
-  const tone = sectorTone(point.sector);
+  const tone = sectorTone();
 
   /** A candle per year: it opens at the year before and closes at this one. */
   const ohlc = useMemo((): CandlePoint[] => {
@@ -703,10 +755,10 @@ function MacroTable({
   /**
    * Las descriptivas de las veinte filas en pantalla, y de ninguna más.
    *
-   * Calcularlas para los 1.620 indicadores de la selección costaría casi un
-   * segundo cada vez que el lector mueve un filtro, y mil seiscientas de ellas
-   * no se verían. Se calculan por página; el resto se calcula cuando el lector
-   * llegue a esa página, que es cuando importan.
+   * Calcularlas para las mil quinientas series del catálogo costaría casi un
+   * segundo cada vez que el lector mueve un filtro, y todas menos veinte no se
+   * verían. Se calculan por página; el resto se calcula cuando el lector llegue
+   * a esa página, que es cuando importan.
    */
   const stats = useMemo(() => {
     const byCode = new Map<string, MacroPoint[]>();
@@ -774,7 +826,7 @@ function MacroTable({
           {rows.map((point) => {
             const stat = stats.get(point.indicatorCode);
             const unit = UNIT_LABEL[point.unit] ?? point.unit;
-            const tone = sectorTone(point.sector);
+            const tone = sectorTone();
             if (!stat) return null;
             /*
               La fila entera abre el análisis, no solo el minigráfico. Es un
