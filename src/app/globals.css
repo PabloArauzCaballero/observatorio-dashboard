@@ -142,6 +142,17 @@
   --grid: #e6e9ef;
   --axis-ink: #6b7688;
 
+  /*
+   * La raya del cero, que NO es el gris del rótulo.
+   *
+   * Al subir el contraste de los rótulos de eje se usó el mismo gris para las
+   * reglas del cero, y sobre un gráfico de retornos eso dibujaba un listón
+   * claro de lado a lado del panel que pesaba más que las propias barras: la
+   * referencia tapando el dato. Una regla se ve y no se mira, así que vive un
+   * paso por encima de la rejilla y bastante por debajo del texto.
+   */
+  --axis-rule: #c9d0da;
+
   --serif: ui-serif, Georgia, 'Times New Roman', serif;
   --sans: ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
   --mono: ui-monospace, 'SF Mono', 'Cascadia Mono', Menlo, Consolas, monospace;
@@ -245,6 +256,7 @@
 
     --grid: #262d39;
     --axis-ink: #98a3b5;
+    --axis-rule: #3c4553;
 
     --shadow: 0 1px 2px rgb(0 0 0 / 0.3), 0 10px 28px -14px rgb(0 0 0 / 0.7);
   }
@@ -1823,18 +1835,26 @@ code {
   white-space: nowrap;
 }
 
+/*
+ * El carril y la barra.
+ *
+ * La punta redondeada va en el extremo al que crece la barra y el arranque
+ * queda a escuadra sobre su línea base, que es donde empieza a medir: una
+ * barra redondeada por los dos lados flota, y a 11 px de alto los 3 px de
+ * radio del arranque se comían medio punto porcentual de longitud.
+ */
 .barlist-track {
   flex: 1 1 auto;
   height: 11px;
   background: var(--panel-tint);
-  border-radius: 3px;
+  border-radius: 0 4px 4px 0;
   overflow: hidden;
 }
 
 .barlist-fill {
   display: block;
   height: 11px;
-  border-radius: 3px;
+  border-radius: 0 4px 4px 0;
   transition: width var(--slow) var(--ease);
 }
 
@@ -2232,8 +2252,16 @@ code {
   align-items: center;
 }
 
+/*
+ * El rótulo acompaña, la cifra manda.
+ *
+ * Estaba al revés: el nombre de la categoría iba en versalitas blancas y en
+ * negrita, y la cuenta —que es el dato de la celda— en un gris apagado y más
+ * grande. Una tarjeta de cifra se lee de un vistazo solo si lo primero que
+ * encuentra el ojo es el número.
+ */
 .tone-top {
-  color: var(--ink);
+  color: var(--ink-soft);
   display: flex;
   align-items: center;
   gap: 0.35rem;
@@ -2244,6 +2272,7 @@ code {
 }
 
 .tone-count {
+  color: var(--ink);
   font-family: var(--mono);
   font-size: 1.3rem;
   font-variant-numeric: tabular-nums;
@@ -2668,13 +2697,23 @@ button.barlist-row:hover {
   position: relative;
 }
 
+/*
+ * La barra de detrás es el volumen del año; la de delante, su alarma.
+ *
+ * Iba en `--rule-soft`, que en modo oscuro es el mismo gris que el carril: la
+ * cifra que el panel pone entre paréntesis para que nadie confunda «un año
+ * tranquilo» con «un año que nadie archivó» estaba dibujada y no se veía. Va
+ * en el propio tono de la barra de delante, rebajado contra el panel: es la
+ * misma magnitud vista en dos cortes, así que tono sobre tono dice eso y dos
+ * grises distintos no dicen nada.
+ */
 .barlist-ghost {
   position: absolute;
   inset: 0 auto 0 0;
   display: block;
   height: 11px;
-  border-radius: 3px;
-  background: var(--rule-soft);
+  border-radius: 0 4px 4px 0;
+  background: color-mix(in srgb, var(--up) 26%, var(--panel-tint));
   transition: width var(--slow) var(--ease);
 }
 

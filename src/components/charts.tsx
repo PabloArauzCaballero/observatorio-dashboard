@@ -601,6 +601,7 @@ export function RateChart({
 export function GapChart({ data, tall }: { data: GapChartPoint[]; tall?: boolean }) {
   const zoom = useRangeZoom(data.map((point) => point.date));
   const shown = zoom.visible(data);
+  const domain = fittedDomain([0, ...shown.map((point) => point.gapPercent)]);
   const renderTooltip = ({ active, payload, label }: TooltipRender) => {
     if (!active || !payload?.length || typeof label !== 'string') return null;
     const point = payload[0]?.payload as GapChartPoint | undefined;
@@ -633,14 +634,19 @@ export function GapChart({ data, tall }: { data: GapChartPoint[]; tall?: boolean
           </defs>
           <CartesianGrid {...GRID} />
           <XAxis dataKey="date" tickFormatter={shortLabel} minTickGap={52} {...AXIS} />
-          <YAxis width={54} tickFormatter={(value) => `${number(value, 0)}%`} {...AXIS} />
+          <YAxis
+            domain={domain}
+            width={54}
+            tickFormatter={(value) => `${number(value, 0)}%`}
+            {...AXIS}
+          />
           <Tooltip content={renderTooltip} cursor={{ stroke: 'var(--rule)', strokeWidth: 1 }} />
           {/*
            * Parity is a real reference here, unlike on a rate axis — y es una
            * regla del eje, no un umbral que alguien eligió, así que va sólida:
            * el discontinuo dice «límite» y aquí solo dice «cero».
            */}
-          <ReferenceLine y={0} stroke="var(--axis-ink)" strokeWidth={1} />
+          <ReferenceLine y={0} stroke="var(--axis-rule)" strokeWidth={1} />
           <Area
             type="monotone"
             dataKey="gapPercent"
@@ -755,7 +761,7 @@ export function MacroChart({
             <YAxis domain={domain} width={46} tickFormatter={compact} {...AXIS} />
             <Tooltip content={renderTooltip} cursor={{ stroke: 'var(--rule)', strokeWidth: 1 }} />
             {domain[0] < 0 ? (
-              <ReferenceLine y={0} stroke="var(--axis-ink)" strokeWidth={1} />
+              <ReferenceLine y={0} stroke="var(--axis-rule)" strokeWidth={1} />
             ) : null}
             <Line
               type="monotone"
@@ -857,6 +863,10 @@ export function SeriesChart({
     );
   };
 
+  /** Dónde cae la frontera dentro de lo que se está dibujando, de 0 a 1. */
+  const boundaryAt = boundary ? shown.findIndex((point) => point.date === boundary) : -1;
+  const boundaryLate = boundaryAt >= 0 && shown.length > 1 && boundaryAt / shown.length > 0.62;
+
   const frameClass =
     height === 'tall'
       ? 'chart-frame chart-frame-tall'
@@ -892,17 +902,17 @@ export function SeriesChart({
               {...AXIS}
             />
             <Tooltip content={renderTooltip} cursor={{ stroke: 'var(--rule)', strokeWidth: 1 }} />
-            {zeroLine ? <ReferenceLine y={0} stroke="var(--axis-ink)" strokeWidth={1} /> : null}
+            {zeroLine ? <ReferenceLine y={0} stroke="var(--axis-rule)" strokeWidth={1} /> : null}
             {boundary ? (
               <ReferenceLine
                 x={boundary}
-                stroke="var(--ink-faint)"
+                stroke="var(--axis-rule)"
                 strokeDasharray="2 4"
                 label={{
                   value: 'cambio de método',
-                  position: 'insideTopLeft',
+                  position: boundaryLate ? 'insideTopRight' : 'insideTopLeft',
                   fontSize: 10,
-                  fill: 'var(--ink-faint)',
+                  fill: 'var(--axis-ink)',
                 }}
               />
             ) : null}
@@ -1716,7 +1726,7 @@ export function DivergingBars({
             <YAxis type="category" dataKey="name" width={210} {...AXIS} />
             <Tooltip content={renderTooltip} cursor={{ fill: 'var(--rule-soft)' }} />
             {/* El cero es la referencia del gráfico: una regla del eje, sólida. */}
-            <ReferenceLine x={0} stroke="var(--axis-ink)" strokeWidth={1} />
+            <ReferenceLine x={0} stroke="var(--axis-rule)" strokeWidth={1} />
             {/*
              * Dos barras sobre una sola pila, una por lado del cero: la punta
              * redondeada tiene que estar del lado hacia el que crece la barra,
