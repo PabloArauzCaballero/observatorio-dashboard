@@ -1,6 +1,20 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
+import {
+  ANY,
+  accepts,
+  additive,
+  counts,
+  describe,
+  list,
+  multiTitle,
+  picked,
+  toggle as toggleChoice,
+  without,
+} from '@/lib/choice';
+import type { Choice } from '@/lib/choice';
+import { FilterHint, PickedCount } from './filters';
 import { WorldLines } from './charts';
 import type { WorldLinePoint, WorldLineSeries } from './charts';
 import { Icon } from './icons';
@@ -107,7 +121,16 @@ function latestShared(left: YearValues | undefined, right: YearValues | undefine
 export function WorldExplorer() {
   const [points, setPoints] = useState<WorldPoint[]>([]);
   const [state, setState] = useState<'loading' | 'ready' | 'failed'>('loading');
-  const [theme, setTheme] = useState<WorldTheme | 'TODOS'>('TODOS');
+  /*
+   * El tema es un conjunto; la región, no.
+   *
+   * El tema recorta la lista de indicadores y sumar dos es sumar dos listas.
+   * La región es la tercera línea de cada gráfico —el mundo y Bolivia son las
+   * otras dos, siempre— así que no es un filtro que se ensancha sino un punto
+   * de comparación, y dos a la vez serían cuatro líneas y una leyenda distinta.
+   * Eso es otro trabajo y no éste.
+   */
+  const [theme, setTheme] = useState<Choice>(ANY);
   const [region, setRegion] = useState(DEFAULT_REGION);
   const [from, setFrom] = useState(DEFAULT_FROM);
   const [search, setSearch] = useState('');
@@ -176,7 +199,7 @@ export function WorldExplorer() {
   for (const indicator of searched) {
     themeCounts.set(indicator.theme, (themeCounts.get(indicator.theme) ?? 0) + 1);
   }
-  const visible = searched.filter((indicator) => theme === 'TODOS' || indicator.theme === theme);
+  const visible = searched.filter((indicator) => accepts(theme, indicator.theme));
 
   const pages = Math.max(1, Math.ceil(visible.length / PAGE_SIZE));
   const page = Math.min(pages, Math.floor(offset / PAGE_SIZE) + 1);
@@ -184,11 +207,11 @@ export function WorldExplorer() {
   const first = visible.length ? (page - 1) * PAGE_SIZE + 1 : 0;
   const last = (page - 1) * PAGE_SIZE + shown.length;
 
-  const active = (theme === 'TODOS' ? 0 : 1) + (query ? 1 : 0) + (from === DEFAULT_FROM ? 0 : 1);
+  const active = counts(theme) + (query ? 1 : 0) + (from === DEFAULT_FROM ? 0 : 1);
   const regionLabel = PLACE_LABEL[region] ?? region;
 
   const exportQuery = new URLSearchParams({ dataset: 'mundo', region, desde: String(from) });
-  if (theme !== 'TODOS') exportQuery.set('tema', theme);
+  if (theme.size) exportQuery.set('tema', list(theme).join(','));
   if (query) exportQuery.set('buscar', search.trim());
 
   const goTo = (next: () => void): void => {
@@ -222,6 +245,8 @@ export function WorldExplorer() {
           </span>
         </div>
 
+        <FilterHint />
+
         {active ? (
           <div className="rail-sec">
             <div className="rail-head">
@@ -229,17 +254,18 @@ export function WorldExplorer() {
               Selección activa
             </div>
             <div className="rail-pills">
-              {theme === 'TODOS' ? null : (
+              {list(theme).map((key) => (
                 <button
+                  key={`theme-${key}`}
                   type="button"
                   className="chip chip-on"
-                  onClick={() => goTo(() => setTheme('TODOS'))}
+                  onClick={() => goTo(() => setTheme((current) => without(current, key)))}
                   title="Quitar este filtro"
                 >
-                  <Icon name={THEME_ICON[theme]} size={12} />
-                  {THEME_LABEL[theme]} ×
+                  <Icon name={THEME_ICON[key as WorldTheme]} size={12} />
+                  {THEME_LABEL[key as WorldTheme]} ×
                 </button>
-              )}
+              ))}
               {from === DEFAULT_FROM ? null : (
                 <button
                   type="button"
@@ -265,7 +291,7 @@ export function WorldExplorer() {
                 className="chip"
                 onClick={() =>
                   goTo(() => {
-                    setTheme('TODOS');
+                    setTheme(ANY);
                     setFrom(DEFAULT_FROM);
                     setSearch('');
                   })
@@ -281,28 +307,38 @@ export function WorldExplorer() {
           <div className="rail-head">
             <Icon name="cajas" size={13} />
             Tema
+            <PickedCount choice={theme} />
           </div>
           <button
             type="button"
-            className={theme === 'TODOS' ? 'rail-item rail-item-on' : 'rail-item'}
-            onClick={() => goTo(() => setTheme('TODOS'))}
+            className={theme.size === 0 ? 'rail-item rail-item-on' : 'rail-item'}
+            aria-pressed={theme.size === 0}
+            onClick={() => goTo(() => setTheme(ANY))}
           >
             <Icon name="globo" size={16} />
             <span className="rail-name">Todos los temas</span>
             <span className="rail-n">{searched.length}</span>
           </button>
-          {THEMES.map((key) => (
-            <button
-              key={key}
-              type="button"
-              className={theme === key ? 'rail-item rail-item-on' : 'rail-item'}
-              onClick={() => goTo(() => setTheme(theme === key ? 'TODOS' : key))}
-            >
-              <Icon name={THEME_ICON[key]} size={16} />
-              <span className="rail-name">{THEME_LABEL[key]}</span>
-              <span className="rail-n">{themeCounts.get(key) ?? 0}</span>
-            </button>
-          ))}
+          {THEMES.map((key) => {
+            const on = picked(theme, key);
+            return (
+              <button
+                key={key}
+                type="button"
+                className={on ? 'rail-item rail-item-on' : 'rail-item'}
+                aria-pressed={on}
+                title={multiTitle(THEME_LABEL[key], on)}
+                onClick={(event) => {
+                  const add = additive(event);
+                  goTo(() => setTheme((current) => toggleChoice(current, key, add)));
+                }}
+              >
+                <Icon name={THEME_ICON[key]} size={16} />
+                <span className="rail-name">{THEME_LABEL[key]}</span>
+                <span className="rail-n">{themeCounts.get(key) ?? 0}</span>
+              </button>
+            );
+          })}
         </div>
 
         <div className="rail-sec">
@@ -310,6 +346,13 @@ export function WorldExplorer() {
             <Icon name="mapa" size={13} />
             Comparar con la región
           </div>
+          {/*
+            Una sola, a diferencia del resto del informe.
+
+            Cada gráfico dibuja tres líneas —el mundo, esta región y Bolivia—
+            con un trazo distinto cada una. Dos regiones serían cuatro líneas y
+            una leyenda que ya no cabe, así que aquí el clic elige y no suma.
+          */}
           {WORLD_PLACES.filter((place) => place.code !== WORLD).map((place) => (
             <button
               key={place.code}
@@ -481,8 +524,17 @@ export function WorldExplorer() {
         </div>
 
         <div className="strap">
-          <Icon name={theme === 'TODOS' ? 'globo' : THEME_ICON[theme]} size={17} />
-          <h2>{theme === 'TODOS' ? 'Todos los temas' : THEME_LABEL[theme]}</h2>
+          <Icon
+            name={theme.size === 0 ? 'globo' : (THEME_ICON[list(theme)[0] as WorldTheme] ?? 'globo')}
+            size={17}
+          />
+          <h2>
+            {describe(
+              theme,
+              (value) => THEME_LABEL[value as WorldTheme] ?? value,
+              'Todos los temas',
+            )}
+          </h2>
           <span className="tile-hint">
             {visible.length} indicador{visible.length === 1 ? '' : 'es'}
             {pages === 1 ? '' : ` · ${first}–${last} en pantalla`}

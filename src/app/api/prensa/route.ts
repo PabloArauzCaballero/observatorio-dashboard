@@ -15,7 +15,24 @@ export const dynamic = 'force-dynamic';
 /** How many stories a page of the register holds; the panel asks for the same. */
 const PAGE_SIZE = 60;
 
-/** A selection value only reaches SQL when it is a real filter. */
+/**
+ * Las categorías de una dimensión, tal como las manda el tablero.
+ *
+ * Separadas por coma, porque el lector puede sumar varias con Ctrl+clic. El
+ * centinela `TODOS` de las direcciones viejas se sigue entendiendo como «sin
+ * recorte», y cada valor se recorta a lo que un código puede medir: lo que
+ * llega por aquí es texto de fuera.
+ */
+const pickMany = (value: string | null): string[] | undefined => {
+  if (!value) return undefined;
+  const values = value
+    .split(',')
+    .map((one) => one.trim().slice(0, 120))
+    .filter((one) => one.length > 0 && one !== 'TODOS');
+  return values.length ? values.slice(0, 200) : undefined;
+};
+
+/** Lo mismo para la búsqueda, que es una sola cadena y no una lista. */
 const pick = (value: string | null): string | undefined =>
   value && value !== 'TODOS' ? value.slice(0, 120) : undefined;
 
@@ -32,12 +49,12 @@ export async function GET(request: Request): Promise<Response> {
     const cube = params.get('cubo') === '1' ? await readPressCube(search) : null;
     const page = await readPressPage(
       {
-        year: pick(params.get('anio')),
-        tone: pick(params.get('tono')),
-        topic: pick(params.get('tema')),
-        region: pick(params.get('region')),
-        outlet: pick(params.get('medio')),
-        term: pick(params.get('termino')),
+        year: pickMany(params.get('anio')),
+        tone: pickMany(params.get('tono')),
+        topic: pickMany(params.get('tema')),
+        region: pickMany(params.get('region')),
+        outlet: pickMany(params.get('medio')),
+        term: pickMany(params.get('termino')),
         search,
       },
       PAGE_SIZE,

@@ -1,6 +1,19 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
+import {
+  ANY,
+  accepts,
+  additive,
+  choiceOf,
+  describe,
+  list,
+  multiTitle,
+  picked,
+  toggle as toggleChoice,
+} from '@/lib/choice';
+import type { Choice } from '@/lib/choice';
+import { FilterHint, PickedCount } from './filters';
 import { Icon } from './icons';
 import { Pager } from './pager';
 import { PlacesMap, mapsHref } from './places-map';
@@ -63,8 +76,18 @@ export function CityPlacesExplorer({ families }: { families: PlaceFamily[] }) {
     return [...MAPPED_CITIES.filter((name) => held.has(name)), ...rest, ...residual];
   }, [families]);
 
-  const [city, setCity] = useState<string>(MAPPED_CITIES[0] as string);
-  const [family, setFamily] = useState<string | null>(null);
+  /**
+   * Las ciudades dibujadas, que son al menos una.
+   *
+   * El resto del informe admite «ninguna categoría elegida» y lo lee como
+   * «todas»; aquí no puede: «todos los lugares del país» son veintiséis mil
+   * filas por cambio de filtro sobre un servidor compartido, y el mapa las
+   * dibujaría como una mancha. Así que quitar la última ciudad devuelve a la
+   * de partida en vez de dejar el mapa sin recorte.
+   */
+  const [city, setCity] = useState<Choice>(() => choiceOf(MAPPED_CITIES[0] as string));
+  const [family, setFamily] = useState<Choice>(ANY);
+  const homeCity = useMemo(() => choiceOf(MAPPED_CITIES[0] as string), []);
   const [search, setSearch] = useState('');
   const [places, setPlaces] = useState<Place[]>([]);
   /* Cuando el lector pide ver el recorte entero, y no los cuatro mil. */
@@ -86,7 +109,7 @@ export function CityPlacesExplorer({ families }: { families: PlaceFamily[] }) {
   const inCity = useMemo(() => {
     const held = new Map<string, PlaceFamily>();
     for (const row of families) {
-      if (row.city !== city) continue;
+      if (!accepts(city, row.city)) continue;
       const already = held.get(row.entityFamily);
       if (!already) {
         held.set(row.entityFamily, { ...row });
@@ -133,8 +156,8 @@ export function CityPlacesExplorer({ families }: { families: PlaceFamily[] }) {
   useEffect(() => {
     let live = true;
     setLoading(true);
-    const query = new URLSearchParams({ ciudad: city });
-    if (family) query.set('familia', family);
+    const query = new URLSearchParams({ ciudad: list(city).join(',') });
+    if (family.size) query.set('familia', list(family).join(','));
     if (showAll) query.set('todos', '1');
     fetch(`/api/lugares?${query.toString()}`)
       .then((response) => (response.ok ? response.json() : { places: [], total: 0 }))
@@ -161,7 +184,20 @@ export function CityPlacesExplorer({ families }: { families: PlaceFamily[] }) {
     return <div className="callout">Todavía no hay lugares cargados.</div>;
   }
 
-  const chosen = family ? inCity.find((row) => row.entityFamily === family) : undefined;
+  /*
+   * La nota bajo el mapa habla de una familia cuando hay exactamente una.
+   *
+   * Con dos elegidas no hay una fila que resuma las dos —cada una trae sus
+   * propios recuentos— así que la nota pasa a hablar del conjunto, que es lo
+   * que el mapa está dibujando.
+   */
+  const chosen = family.size === 1 ? inCity.find((row) => picked(family, row.entityFamily)) : undefined;
+  const chosenFamilies = family.size
+    ? inCity.filter((row) => picked(family, row.entityFamily))
+    : [];
+  const chosenPlaces = chosenFamilies.reduce((sum, row) => sum + row.places, 0);
+  const chosenRegulated = chosenFamilies.reduce((sum, row) => sum + row.regulated, 0);
+  const cityLabel = describe(city, (name) => name, 'ninguna ciudad');
 
   /**
    * The file follows the selection, and carries the whole of it.
@@ -169,12 +205,16 @@ export function CityPlacesExplorer({ families }: { families: PlaceFamily[] }) {
    * The map stops at four thousand premises because past that it is a blot; the
    * file does not, so the note under it says which of the two the reader has.
    */
-  const fileQuery = new URLSearchParams({ dataset: 'lugares', ciudad: city });
-  if (family) fileQuery.set('familia', family);
-  const slug = `lugares-${city
-    .toLocaleLowerCase('es')
-    .replaceAll(/[^a-z0-9]+/gu, '-')
-    .replace(/^-|-$/gu, '')}${family ? `-${family.toLocaleLowerCase('es')}` : ''}`;
+  const fileQuery = new URLSearchParams({ dataset: 'lugares', ciudad: list(city).join(',') });
+  if (family.size) fileQuery.set('familia', list(family).join(','));
+  const piece = (value: string): string =>
+    value
+      .toLocaleLowerCase('es')
+      .replaceAll(/[^a-z0-9]+/gu, '-')
+      .replace(/^-|-$/gu, '');
+  const slug = `lugares-${list(city).map(piece).join('-')}${
+    family.size ? `-${list(family).map(piece).join('-')}` : ''
+  }`;
   // El lector tiene que poder distinguir «esto es la ciudad entera» de «esto es
   // lo que cabe en el mapa». Un mapa recortado sin decirlo es un mapa que miente.
   const truncated = total > places.length;
@@ -185,7 +225,13 @@ export function CityPlacesExplorer({ families }: { families: PlaceFamily[] }) {
         <Figure
           label="Lugares"
           value={NUMBER.format(cityTotals.places)}
-          note={city === WITHOUT_LOCALITY ? 'sin poblacion publicada' : 'en el municipio'}
+          note={
+            picked(city, WITHOUT_LOCALITY) && city.size === 1
+              ? 'sin poblacion publicada'
+              : city.size === 1
+                ? 'en el municipio'
+                : `en ${city.size} municipios`
+          }
         />
         <Figure
           label="De actividad regulada"
@@ -217,7 +263,9 @@ export function CityPlacesExplorer({ families }: { families: PlaceFamily[] }) {
             <div className="rail-head">
               <Icon name="mapa" size={13} />
               Ciudad
+              <PickedCount choice={city} />
             </div>
+            <FilterHint>El mapa dibuja siempre al menos una ciudad.</FilterHint>
             {/*
               Cuarenta municipios en una lista que no termina.
 
@@ -228,22 +276,31 @@ export function CityPlacesExplorer({ families }: { families: PlaceFamily[] }) {
               mueve por dentro y las dos secciones caben a la vez.
             */}
             <div className={cities.length > 9 ? 'rail-list rail-list-cut' : 'rail-list'}>
-              {cities.map((name) => (
-                <button
-                  key={name}
-                  type="button"
-                  className={city === name ? 'rail-item rail-item-on' : 'rail-item'}
-                  onClick={() => {
-                    setCity(name);
-                    setFamily(null);
-                    setShowAll(false);
-                  }}
-                >
-                  <Icon name="mapa" size={16} />
-                  <span className="rail-name">{name}</span>
-                  <span className="rail-n">{NUMBER.format(placesIn(name))}</span>
-                </button>
-              ))}
+              {cities.map((name) => {
+                const on = picked(city, name);
+                return (
+                  <button
+                    key={name}
+                    type="button"
+                    className={on ? 'rail-item rail-item-on' : 'rail-item'}
+                    aria-pressed={on}
+                    title={multiTitle(name, on)}
+                    onClick={(event) => {
+                      const add = additive(event);
+                      setCity((current) => toggleChoice(current, name, add, homeCity));
+                      // Una familia que existe en Santa Cruz puede no existir en
+                      // la ciudad que se elige en su lugar; al sumar, en cambio,
+                      // la selección sólo se ensancha y la familia sigue valiendo.
+                      if (!add) setFamily(ANY);
+                      setShowAll(false);
+                    }}
+                  >
+                    <Icon name="mapa" size={16} />
+                    <span className="rail-name">{name}</span>
+                    <span className="rail-n">{NUMBER.format(placesIn(name))}</span>
+                  </button>
+                );
+              })}
             </div>
           </div>
 
@@ -274,25 +331,35 @@ export function CityPlacesExplorer({ families }: { families: PlaceFamily[] }) {
             <div className={matches.length > 8 ? 'rail-list rail-list-cut' : 'rail-list'}>
               <button
                 type="button"
-                className={family === null ? 'rail-item rail-item-on' : 'rail-item'}
-                onClick={() => setFamily(null)}
+                className={family.size === 0 ? 'rail-item rail-item-on' : 'rail-item'}
+                aria-pressed={family.size === 0}
+                onClick={() => setFamily(ANY)}
               >
                 <Icon name="cajas" size={16} />
                 <span className="rail-name">Todas las familias</span>
                 <span className="rail-n">{NUMBER.format(cityTotals.places)}</span>
               </button>
-              {matches.map((row) => (
-                <button
-                  key={row.entityFamily}
-                  type="button"
-                  className={family === row.entityFamily ? 'rail-item rail-item-on' : 'rail-item'}
-                  onClick={() => setFamily(family === row.entityFamily ? null : row.entityFamily)}
-                >
-                  <Icon name={row.regulated > 0 ? 'escudo' : 'tienda'} size={16} />
-                  <span className="rail-name">{label(row.entityFamily)}</span>
-                  <span className="rail-n">{NUMBER.format(row.places)}</span>
-                </button>
-              ))}
+              {matches.map((row) => {
+                const on = picked(family, row.entityFamily);
+                return (
+                  <button
+                    key={row.entityFamily}
+                    type="button"
+                    className={on ? 'rail-item rail-item-on' : 'rail-item'}
+                    aria-pressed={on}
+                    title={multiTitle(label(row.entityFamily), on)}
+                    onClick={(event) =>
+                      setFamily((current) =>
+                        toggleChoice(current, row.entityFamily, additive(event)),
+                      )
+                    }
+                  >
+                    <Icon name={row.regulated > 0 ? 'escudo' : 'tienda'} size={16} />
+                    <span className="rail-name">{label(row.entityFamily)}</span>
+                    <span className="rail-n">{NUMBER.format(row.places)}</span>
+                  </button>
+                );
+              })}
             </div>
             {inCity.length > matches.length ? (
               <div className="rail-foot">
@@ -336,13 +403,18 @@ export function CityPlacesExplorer({ families }: { families: PlaceFamily[] }) {
             <p>
               {chosen ? (
                 <>
-                  <b>{label(chosen.entityFamily)}</b> en {city}: {NUMBER.format(chosen.places)}{' '}
+                  <b>{label(chosen.entityFamily)}</b> en {cityLabel}: {NUMBER.format(chosen.places)}{' '}
                   lugares, {NUMBER.format(chosen.regulated)} de actividad regulada.
+                </>
+              ) : family.size ? (
+                <>
+                  <b>{family.size} familias</b> en {cityLabel}: {NUMBER.format(chosenPlaces)}{' '}
+                  lugares, {NUMBER.format(chosenRegulated)} de actividad regulada.
                 </>
               ) : (
                 <>
-                  <b>Todas las familias</b> de {city}: {NUMBER.format(cityTotals.places)} lugares,{' '}
-                  {NUMBER.format(cityTotals.regulated)} de actividad regulada.
+                  <b>Todas las familias</b> de {cityLabel}: {NUMBER.format(cityTotals.places)}{' '}
+                  lugares, {NUMBER.format(cityTotals.regulated)} de actividad regulada.
                 </>
               )}{' '}
               {truncated ? (
@@ -381,7 +453,7 @@ export function CityPlacesExplorer({ families }: { families: PlaceFamily[] }) {
             restaurantes.
           */}
           <PlacesTable
-            key={`${city}:${family ?? ''}:${showAll ? 'todos' : 'recorte'}`}
+            key={`${list(city).join(',')}:${list(family).join(',')}:${showAll ? 'todos' : 'recorte'}`}
             places={places}
             total={total}
           />

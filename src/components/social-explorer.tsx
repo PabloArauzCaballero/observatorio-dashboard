@@ -1,6 +1,9 @@
 'use client';
 
 import { useMemo, useState } from 'react';
+import { ANY, accepts, additive, multiTitle, picked, toggle as toggleChoice } from '@/lib/choice';
+import type { Choice } from '@/lib/choice';
+import { ChipsHint } from './filters';
 import { ReachChart, ShareBars } from './charts';
 import type { ReachBar, ShareSlice } from './charts';
 import { Icon } from './icons';
@@ -142,8 +145,9 @@ export function SocialExplorer({
   readings: SocialReading[];
   audience: SocialAudience[];
 }) {
-  const [subject, setSubject] = useState<string>('TODOS');
-  const [grade, setGrade] = useState<string>('TODOS');
+  /* Dos recortes del registro, y los dos admiten varias categorías. */
+  const [subject, setSubject] = useState<Choice>(ANY);
+  const [grade, setGrade] = useState<Choice>(ANY);
   const [open, setOpen] = useState<string | null>(null);
 
   /** Every chart below is built from this, so no figure is typed twice. */
@@ -294,8 +298,7 @@ export function SocialExplorer({
     () =>
       readings.filter(
         (reading) =>
-          (subject === 'TODOS' || reading.subject === subject) &&
-          (grade === 'TODOS' || reading.evidenceGrade === grade),
+          accepts(subject, reading.subject) && accepts(grade, reading.evidenceGrade),
       ),
     [readings, subject, grade],
   );
@@ -537,46 +540,64 @@ export function SocialExplorer({
           </span>
         </div>
 
+        <ChipsHint />
+
         <div className="chips" style={{ marginBottom: 'var(--s2)' }}>
           <button
             type="button"
-            className={subject === 'TODOS' ? 'chip chip-on' : 'chip'}
-            onClick={() => setSubject('TODOS')}
+            className={subject.size === 0 ? 'chip chip-on' : 'chip'}
+            aria-pressed={subject.size === 0}
+            onClick={() => setSubject(ANY)}
           >
             Todo
           </button>
-          {subjects.map((key) => (
-            <button
-              key={key}
-              type="button"
-              className={subject === key ? 'chip chip-on' : 'chip'}
-              onClick={() => setSubject(subject === key ? 'TODOS' : key)}
-            >
-              <Icon name={SUBJECT_ICON[key] ?? 'cajas'} size={12} />
-              {SUBJECT_LABEL[key] ?? key}
-            </button>
-          ))}
+          {subjects.map((key) => {
+            const on = picked(subject, key);
+            return (
+              <button
+                key={key}
+                type="button"
+                className={on ? 'chip chip-on' : 'chip'}
+                aria-pressed={on}
+                title={multiTitle(SUBJECT_LABEL[key] ?? key, on)}
+                onClick={(event) =>
+                  setSubject((current) => toggleChoice(current, key, additive(event)))
+                }
+              >
+                <Icon name={SUBJECT_ICON[key] ?? 'cajas'} size={12} />
+                {SUBJECT_LABEL[key] ?? key}
+              </button>
+            );
+          })}
         </div>
 
         <div className="chips" style={{ marginBottom: 'var(--s2)' }}>
           <button
             type="button"
-            className={grade === 'TODOS' ? 'chip chip-on' : 'chip'}
-            onClick={() => setGrade('TODOS')}
+            className={grade.size === 0 ? 'chip chip-on' : 'chip'}
+            aria-pressed={grade.size === 0}
+            onClick={() => setGrade(ANY)}
           >
             Cualquier evidencia
           </button>
-          {['HIGH', 'MEDIUM', 'LOW'].map((key) => (
-            <button
-              key={key}
-              type="button"
-              className={grade === key ? 'chip chip-on' : 'chip'}
-              onClick={() => setGrade(grade === key ? 'TODOS' : key)}
-              style={grade === key ? undefined : { borderColor: GRADE_TONE[key] }}
-            >
-              {GRADE_LABEL[key]} ({grades.get(key) ?? 0})
-            </button>
-          ))}
+          {['HIGH', 'MEDIUM', 'LOW'].map((key) => {
+            const on = picked(grade, key);
+            return (
+              <button
+                key={key}
+                type="button"
+                className={on ? 'chip chip-on' : 'chip'}
+                aria-pressed={on}
+                title={multiTitle(GRADE_LABEL[key] ?? key, on)}
+                onClick={(event) =>
+                  setGrade((current) => toggleChoice(current, key, additive(event)))
+                }
+                style={on ? undefined : { borderColor: GRADE_TONE[key] }}
+              >
+                {GRADE_LABEL[key]} ({grades.get(key) ?? 0})
+              </button>
+            );
+          })}
         </div>
 
         {shown.length ? (

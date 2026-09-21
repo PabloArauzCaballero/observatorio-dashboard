@@ -1,6 +1,19 @@
 'use client';
 
 import { useState } from 'react';
+import {
+  ANY,
+  accepts,
+  additive,
+  counts,
+  list,
+  multiTitle,
+  picked,
+  toggle as toggleChoice,
+  without,
+} from '@/lib/choice';
+import type { Choice } from '@/lib/choice';
+import { FilterHint, PickedCount } from './filters';
 import { HeatGrid, MonthlyBars, ShareBars, TermCloud, YearlyBars } from './charts';
 import type { CloudWord, HeatCell, MonthBar, ShareSlice, YearBar } from './charts';
 import { Icon } from './icons';
@@ -243,9 +256,18 @@ const sumOf = (folds: Iterable<{ mentions: number }>): number => {
 };
 
 export function SubjectsExplorer({ months, totals }: { months: TermMonth[]; totals: TermTotal[] }) {
-  const [family, setFamily] = useState('');
+  /*
+   * La familia y el año son conjuntos; el tema no.
+   *
+   * Los dos primeros recortan: «Combustibles y Precios» o «2023 y 2024» son
+   * preguntas normales y ahora se contestan de una. El tercero no recorta nada
+   * —elige cuál de los temas se abre abajo, en «Análisis del tema»— y dos temas
+   * abiertos a la vez no es un filtro más ancho sino dos análisis pisándose. Ahí
+   * el clic sigue eligiendo uno.
+   */
+  const [family, setFamily] = useState<Choice>(ANY);
   const [term, setTerm] = useState('');
-  const [year, setYear] = useState('');
+  const [year, setYear] = useState<Choice>(ANY);
   const [search, setSearch] = useState('');
   /** The rejilla's granularity, the way a pivot table drills down a date. */
   const [grain, setGrain] = useState<'anio' | 'mes'>('anio');
@@ -269,8 +291,24 @@ export function SubjectsExplorer({ months, totals }: { months: TermMonth[]; tota
     !query ||
     row.label.toLocaleLowerCase('es').includes(query) ||
     row.term.toLocaleLowerCase('es').includes(query);
-  const inYear = (row: TermMonth): boolean => !year || row.month.slice(0, 4) === year;
-  const inFamily = (row: TermMonth): boolean => !family || row.family === family;
+  const inYear = (row: TermMonth): boolean => accepts(year, row.month.slice(0, 4));
+  const inFamily = (row: TermMonth): boolean => accepts(family, row.family);
+
+  /** Cómo se nombra el recorte temporal allí donde el panel lo dice en prosa. */
+  const chosenYears = list(year);
+  const yearsLabel = chosenYears.join(', ');
+  const yearsWord = year.size === 1 ? 'año' : 'años';
+  const familiesLabel = list(family)
+    .map((name) => FAMILY_LABEL[name] ?? name)
+    .join(', ');
+  /*
+   * El mes lleva su año encima salvo cuando hay un único año elegido.
+   *
+   * Con uno solo las doce columnas son de ese año y repetirlo doce veces es
+   * ruido; con dos, «ene» aparece dos veces en la misma fila y sin el año no
+   * hay forma de saber cuál es cuál.
+   */
+  const monthNeedsYear = year.size !== 1;
 
   /*
    * Three sets, because no list of options may be narrowed by the dimension it
@@ -295,20 +333,36 @@ export function SubjectsExplorer({ months, totals }: { months: TermMonth[]; tota
     (left, right) => right[1].mentions - left[1].mentions,
   );
 
-  const active = (year ? 1 : 0) + (family ? 1 : 0) + (term ? 1 : 0) + (query ? 1 : 0);
+  const active = counts(year) + counts(family) + (term ? 1 : 0) + (query ? 1 : 0);
   const clearAll = (): void => {
-    setYear('');
-    setFamily('');
+    setYear(ANY);
+    setFamily(ANY);
     setTerm('');
     setSearch('');
   };
 
+  /**
+   * Elegir una familia deja el tema abierto sin dueño.
+   *
+   * El tema que se estaba analizando puede no pertenecer a ninguna de las
+   * familias elegidas, y entonces el panel de abajo analiza algo que el de
+   * arriba dice haber dejado fuera. Al reemplazar se suelta; al sumar una
+   * familia la selección sólo se ensancha, así que el tema sigue siendo válido
+   * y se queda.
+   */
+  const pickFamily = (name: string, add: boolean): void => {
+    setFamily((current) => toggleChoice(current, name, add));
+    if (!add) setTerm('');
+  };
+  const pickYear = (at: string, add: boolean): void =>
+    setYear((current) => toggleChoice(current, at, add));
+
   /** The file carries exactly the selection the panels are drawing. */
   const exportQuery = (subjectTerm?: string): string => {
     const params = new URLSearchParams({ dataset: 'temas' });
-    if (family) params.set('familia', family);
+    if (family.size) params.set('familia', list(family).join(','));
     if (subjectTerm) params.set('termino', subjectTerm);
-    if (year) params.set('anio', year);
+    if (year.size) params.set('anio', chosenYears.join(','));
     if (query) params.set('buscar', search.trim());
     return params.toString();
   };
@@ -322,8 +376,8 @@ export function SubjectsExplorer({ months, totals }: { months: TermMonth[]; tota
   const fileName = (subjectTerm: string | undefined, format: string): string => {
     const parts = ['observatorio-temas'];
     if (subjectTerm) parts.push(subjectTerm.toLocaleLowerCase('es'));
-    else if (family) parts.push(family.toLocaleLowerCase('es'));
-    if (year) parts.push(year);
+    else if (family.size) parts.push(list(family).join('-').toLocaleLowerCase('es'));
+    if (year.size) parts.push(chosenYears.join('-'));
     return `${parts.join('-')}.${format}`;
   };
 
@@ -338,10 +392,19 @@ export function SubjectsExplorer({ months, totals }: { months: TermMonth[]; tota
     adverse: one.adverseShare,
   }));
 
+  /*
+   * El rótulo se lee y el código se filtra.
+   *
+   * `pick` es lo que devuelve la barra al tocarla: sin él el gráfico sería un
+   * dibujo al lado de una lista que hace exactamente lo mismo, y el lector que
+   * está mirando las familias comparadas tendría que ir a buscarlas al carril
+   * para elegir la que acaba de ver destacar.
+   */
   const familyShare: ShareSlice[] = families.map(([name, fold]) => ({
     name: FAMILY_LABEL[name] ?? name,
     value: fold.mentions,
-    ...(name === family ? { emphasis: true } : {}),
+    pick: name,
+    ...(picked(family, name) ? { emphasis: true } : {}),
   }));
 
   /*
@@ -357,17 +420,19 @@ export function SubjectsExplorer({ months, totals }: { months: TermMonth[]; tota
     .map(([name, fold]) => ({
       name: FAMILY_LABEL[name] ?? name,
       value: (fold.adverse / fold.mentions) * 100,
+      pick: name,
       parts: [
         { name: 'Menciones adversas', value: fold.adverse },
         { name: 'Menciones de la familia', value: fold.mentions },
       ],
       note: `${count(fold.adverse)} ÷ ${count(fold.mentions)} menciones con alarma, deterioro, conflicto o incertidumbre`,
-      ...(name === family ? { emphasis: true } : {}),
+      ...(picked(family, name) ? { emphasis: true } : {}),
     }));
 
   const topTerms: ShareSlice[] = ranked.slice(0, 15).map((one) => ({
     name: one.label,
     value: one.mentions,
+    pick: one.term,
     ...(one.term === subject?.term ? { emphasis: true } : {}),
   }));
 
@@ -398,7 +463,7 @@ export function SubjectsExplorer({ months, totals }: { months: TermMonth[]; tota
       const [name = '', at = ''] = key.split('|');
       cells.push({
         row: FAMILY_LABEL[name] ?? name,
-        column: grain === 'mes' ? shortMonth(at, !year) : at,
+        column: grain === 'mes' ? shortMonth(at, monthNeedsYear) : at,
         value: fold.mentions,
       });
     }
@@ -408,7 +473,7 @@ export function SubjectsExplorer({ months, totals }: { months: TermMonth[]; tota
     const keys = [...new Set(source.map(bucket))].sort();
     return {
       rows,
-      columns: grain === 'mes' ? keys.map((at) => shortMonth(at, !year)) : keys,
+      columns: grain === 'mes' ? keys.map((at) => shortMonth(at, monthNeedsYear)) : keys,
       cells,
     };
   })();
@@ -439,6 +504,7 @@ export function SubjectsExplorer({ months, totals }: { months: TermMonth[]; tota
   ).map((one) => ({
     name: one.label,
     value: one.mentions,
+    pick: one.term,
     ...(one.term === subject?.term ? { emphasis: true } : {}),
   }));
 
@@ -453,7 +519,7 @@ export function SubjectsExplorer({ months, totals }: { months: TermMonth[]; tota
     const inside = searched.filter(inYear).filter((row) => row.family === subject.family);
     const bucket = (row: TermMonth): string =>
       grain === 'mes' ? row.month : row.month.slice(0, 4);
-    const head = (at: string): string => (grain === 'mes' ? shortMonth(at, !year) : at);
+    const head = (at: string): string => (grain === 'mes' ? shortMonth(at, monthNeedsYear) : at);
     const top = rollUp(inside).slice(0, 12);
     const keep = new Map(top.map((one) => [one.term, one.label]));
     const cells: HeatCell[] = [];
@@ -488,6 +554,8 @@ export function SubjectsExplorer({ months, totals }: { months: TermMonth[]; tota
           </span>
         </div>
 
+        <FilterHint />
+
         {active ? (
           <div className="rail-sec">
             <div className="rail-head">
@@ -495,31 +563,33 @@ export function SubjectsExplorer({ months, totals }: { months: TermMonth[]; tota
               Selección activa
             </div>
             <div className="rail-pills">
-              {year ? (
+              {chosenYears.map((at) => (
                 <button
+                  key={`year-${at}`}
                   type="button"
                   className="chip chip-on"
-                  onClick={() => setYear('')}
+                  onClick={() => setYear((current) => without(current, at))}
                   title="Quitar este filtro"
                 >
                   <Icon name="calendario" size={12} />
-                  {year} ×
+                  {at} ×
                 </button>
-              ) : null}
-              {family ? (
+              ))}
+              {list(family).map((name) => (
                 <button
+                  key={`family-${name}`}
                   type="button"
                   className="chip chip-on"
                   onClick={() => {
-                    setFamily('');
+                    setFamily((current) => without(current, name));
                     setTerm('');
                   }}
                   title="Quitar este filtro"
                 >
-                  <Icon name={FAMILY_ICON[family] ?? 'capas'} size={12} />
-                  {FAMILY_LABEL[family] ?? family} ×
+                  <Icon name={FAMILY_ICON[name] ?? 'capas'} size={12} />
+                  {FAMILY_LABEL[name] ?? name} ×
                 </button>
-              ) : null}
+              ))}
               {term ? (
                 <button
                   type="button"
@@ -547,40 +617,49 @@ export function SubjectsExplorer({ months, totals }: { months: TermMonth[]; tota
           <div className="rail-head">
             <Icon name="calendario" size={13} />
             Año
+            <PickedCount choice={year} />
           </div>
           <button
             type="button"
-            className={year === '' ? 'rail-item rail-item-on' : 'rail-item'}
-            onClick={() => setYear('')}
+            className={year.size === 0 ? 'rail-item rail-item-on' : 'rail-item'}
+            aria-pressed={year.size === 0}
+            onClick={() => setYear(ANY)}
           >
             <Icon name="calendario" size={16} />
             <span className="rail-name">Todos los años</span>
             <span className="rail-n">{count(sumOf(yearCounts.values()))}</span>
           </button>
-          {years.map((at) => (
-            <button
-              key={at}
-              type="button"
-              className={year === at ? 'rail-item rail-item-on' : 'rail-item'}
-              onClick={() => setYear(year === at ? '' : at)}
-            >
-              <Icon name="calendario" size={16} />
-              <span className="rail-name">{at}</span>
-              <span className="rail-n">{count(yearCounts.get(at)?.mentions ?? 0)}</span>
-            </button>
-          ))}
+          {years.map((at) => {
+            const on = picked(year, at);
+            return (
+              <button
+                key={at}
+                type="button"
+                className={on ? 'rail-item rail-item-on' : 'rail-item'}
+                aria-pressed={on}
+                title={multiTitle(at, on)}
+                onClick={(event) => pickYear(at, additive(event))}
+              >
+                <Icon name="calendario" size={16} />
+                <span className="rail-name">{at}</span>
+                <span className="rail-n">{count(yearCounts.get(at)?.mentions ?? 0)}</span>
+              </button>
+            );
+          })}
         </div>
 
         <div className="rail-sec">
           <div className="rail-head">
             <Icon name="capas" size={13} />
             Familia ({families.length})
+            <PickedCount choice={family} />
           </div>
           <button
             type="button"
-            className={family === '' ? 'rail-item rail-item-on' : 'rail-item'}
+            className={family.size === 0 ? 'rail-item rail-item-on' : 'rail-item'}
+            aria-pressed={family.size === 0}
             onClick={() => {
-              setFamily('');
+              setFamily(ANY);
               setTerm('');
             }}
           >
@@ -588,21 +667,23 @@ export function SubjectsExplorer({ months, totals }: { months: TermMonth[]; tota
             <span className="rail-name">Todas las familias</span>
             <span className="rail-n">{count(sumOf(familyCounts.values()))}</span>
           </button>
-          {families.map(([name, fold]) => (
-            <button
-              key={name}
-              type="button"
-              className={family === name ? 'rail-item rail-item-on' : 'rail-item'}
-              onClick={() => {
-                setFamily(family === name ? '' : name);
-                setTerm('');
-              }}
-            >
-              <Icon name={FAMILY_ICON[name] ?? 'cajas'} size={16} />
-              <span className="rail-name">{FAMILY_LABEL[name] ?? name}</span>
-              <span className="rail-n">{count(fold.mentions)}</span>
-            </button>
-          ))}
+          {families.map(([name, fold]) => {
+            const on = picked(family, name);
+            return (
+              <button
+                key={name}
+                type="button"
+                className={on ? 'rail-item rail-item-on' : 'rail-item'}
+                aria-pressed={on}
+                title={multiTitle(FAMILY_LABEL[name] ?? name, on)}
+                onClick={(event) => pickFamily(name, additive(event))}
+              >
+                <Icon name={FAMILY_ICON[name] ?? 'cajas'} size={16} />
+                <span className="rail-name">{FAMILY_LABEL[name] ?? name}</span>
+                <span className="rail-n">{count(fold.mentions)}</span>
+              </button>
+            );
+          })}
         </div>
 
         <div className="rail-sec">
@@ -625,7 +706,8 @@ export function SubjectsExplorer({ months, totals }: { months: TermMonth[]; tota
             </select>
           </div>
           <p className="rail-hint">
-            También se elige tocando una palabra de la nube, y se quita tocándola otra vez.
+            También se elige tocando una palabra de la nube, y se quita tocándola otra vez. El tema
+            se abre de a uno: es el que se analiza abajo, no un recorte más del archivo.
           </p>
         </div>
 
@@ -745,7 +827,7 @@ export function SubjectsExplorer({ months, totals }: { months: TermMonth[]; tota
               Menciones fechadas
             </span>
             <span className="stat-value">{count(selectedMentions)}</span>
-            <span className="stat-hint">{year ? `sólo ${year}` : 'todo el archivo'}</span>
+            <span className="stat-hint">{year.size ? `sólo ${yearsLabel}` : 'todo el archivo'}</span>
           </div>
           <div
             className="stat"
@@ -779,8 +861,8 @@ export function SubjectsExplorer({ months, totals }: { months: TermMonth[]; tota
           <Icon name="globo" size={17} />
           <h2>Panorama: los temas entre sí</h2>
           <span className="tile-hint">
-            {year ? `año ${year}` : 'archivo completo'}
-            {family ? ` · ${FAMILY_LABEL[family] ?? family}` : ''}
+            {year.size ? `${yearsWord} ${yearsLabel}` : 'archivo completo'}
+            {family.size ? ` · ${familiesLabel}` : ''}
           </span>
         </div>
 
@@ -811,13 +893,14 @@ export function SubjectsExplorer({ months, totals }: { months: TermMonth[]; tota
               <Icon name="etiqueta" size={17} />
               <h2>Los quince más nombrados</h2>
               <span className="tile-hint">
-                {family ? (FAMILY_LABEL[family] ?? family) : 'todas las familias'}
+                {family.size ? familiesLabel : 'todas las familias'}
               </span>
             </div>
             <ShareBars
               data={topTerms}
               unit="menciones"
               height={Math.max(200, topTerms.length * 26)}
+              onPick={(value) => setTerm(value === term ? '' : value)}
             />
             <p className="panel-sub" style={{ marginTop: 'var(--s1)' }}>
               La altura es atención mediática y no tamaño económico: el contrabando ocupa más
@@ -849,10 +932,12 @@ export function SubjectsExplorer({ months, totals }: { months: TermMonth[]; tota
               data={familyShare}
               unit="menciones"
               height={Math.max(200, familyShare.length * 22)}
+              onPick={pickFamily}
             />
             <p className="panel-sub" style={{ marginTop: 'var(--s1)' }}>
               Siguen todas aunque haya una elegida — va marcada —, porque un ranking de una sola
-              barra no compara nada.
+              barra no compara nada. Tocá una barra para quedarte con esa familia; Ctrl+clic suma
+              otra.
             </p>
           </div>
 
@@ -867,6 +952,7 @@ export function SubjectsExplorer({ months, totals }: { months: TermMonth[]; tota
               unit="%"
               tone="var(--gap)"
               height={Math.max(200, familyAdverse.length * 22)}
+              onPick={pickFamily}
             />
             <p className="panel-sub" style={{ marginTop: 'var(--s1)' }}>
               Las mismas familias del panel de al lado, ordenadas por tono en vez de por volumen:
@@ -884,7 +970,7 @@ export function SubjectsExplorer({ months, totals }: { months: TermMonth[]; tota
             <Icon name="calendario" size={17} />
             <h2>Qué se cubrió {grain === 'mes' ? 'cada mes' : 'cada año'}</h2>
             <span className="tile-hint">
-              {year ? `año ${year}` : 'archivo completo'} · {calendar.columns.length}{' '}
+              {year.size ? `${yearsWord} ${yearsLabel}` : 'archivo completo'} · {calendar.columns.length}{' '}
               {grain === 'mes' ? 'meses' : 'años'}
             </span>
             <div className="tile-tools" role="group" aria-label="Granularidad de la tabla">
@@ -920,8 +1006,8 @@ export function SubjectsExplorer({ months, totals }: { months: TermMonth[]; tota
             Cuanto más oscura la celda, más se habló de esa familia en esa columna.{' '}
             <strong>Por mes</strong> abre cada año en sus doce meses, y el filtro del año de la
             izquierda recorta la tabla igual que a los demás paneles:{' '}
-            {year
-              ? `ahora muestra sólo ${year}${grain === 'mes' ? ', mes por mes' : ''}.`
+            {year.size
+              ? `ahora muestra sólo ${yearsLabel}${grain === 'mes' ? ', mes por mes' : ''}.`
               : 'sin año elegido está el archivo entero.'}{' '}
             La familia elegida no la recorta, porque las familias son las filas y dejar una sola no
             comparte nada con nada. Las celdas vacías son periodos sin ninguna mención del asunto,
@@ -931,8 +1017,8 @@ export function SubjectsExplorer({ months, totals }: { months: TermMonth[]; tota
 
         {missing ? (
           <div className="callout">
-            El tema elegido no tiene ninguna mención{year ? ` en ${year}` : ''}
-            {family ? ` dentro de ${FAMILY_LABEL[family] ?? family}` : ''}. Quitá el filtro del año
+            El tema elegido no tiene ninguna mención{year.size ? ` en ${yearsLabel}` : ''}
+            {family.size ? ` dentro de ${familiesLabel}` : ''}. Quitá el filtro del año
             o elegí otro tema para ver su análisis.
           </div>
         ) : null}
@@ -1003,7 +1089,7 @@ export function SubjectsExplorer({ months, totals }: { months: TermMonth[]; tota
                 <div className="tile-head">
                   <Icon name="pulso" size={17} />
                   <h2>Con qué tono se lo cubrió</h2>
-                  <span className="tile-hint">{year ? `año ${year}` : 'todo el archivo'}</span>
+                  <span className="tile-hint">{year.size ? `${yearsWord} ${yearsLabel}` : 'todo el archivo'}</span>
                 </div>
                 <ShareBars
                   data={subjectTones}
@@ -1029,6 +1115,7 @@ export function SubjectsExplorer({ months, totals }: { months: TermMonth[]; tota
                   data={siblingShare}
                   unit="menciones"
                   height={Math.max(180, Math.min(siblingShare.length, 16) * 26)}
+                  onPick={(value) => setTerm(value === term ? '' : value)}
                 />
                 <p className="panel-sub" style={{ marginTop: 'var(--s1)' }}>
                   El tema abierto va marcado, para leerlo contra sus vecinos de familia y no contra
@@ -1046,7 +1133,7 @@ export function SubjectsExplorer({ months, totals }: { months: TermMonth[]; tota
                     {grain === 'mes' ? 'mes por mes' : 'año por año'}
                   </h2>
                   <span className="tile-hint">
-                    hasta 12 temas · {year ? `año ${year}` : 'archivo completo'}
+                    hasta 12 temas · {year.size ? `${yearsWord} ${yearsLabel}` : 'archivo completo'}
                   </span>
                   <div className="tile-tools" role="group" aria-label="Granularidad de la tabla">
                     <button

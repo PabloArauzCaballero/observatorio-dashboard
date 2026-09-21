@@ -1,6 +1,19 @@
 'use client';
 
 import { useMemo, useState } from 'react';
+import {
+  ANY,
+  accepts,
+  additive,
+  counts,
+  describe,
+  list,
+  multiTitle,
+  picked,
+  toggle as toggleChoice,
+} from '@/lib/choice';
+import type { Choice } from '@/lib/choice';
+import { FilterHint, PickedCount } from './filters';
 import { MacroChart, YearCandles } from './charts';
 import type { CandlePoint } from './charts';
 import { Icon } from './icons';
@@ -76,7 +89,8 @@ export function MacroExplorer({ bundle }: { bundle: MacroBundle }) {
   const points = useMemo(() => unpackMacro(bundle), [bundle]);
 
   const [asTable, setAsTable] = useState(false);
-  const [sector, setSector] = useState<string>('TODOS');
+  /* Un conjunto: «Externo y Fiscal» a la vez es una pregunta, no dos. */
+  const [sector, setSector] = useState<Choice>(ANY);
   const [search, setSearch] = useState('');
   const [from, setFrom] = useState<number>(1990);
   /**
@@ -104,7 +118,7 @@ export function MacroExplorer({ bundle }: { bundle: MacroBundle }) {
   const matches = useMemo(() => {
     const term = search.trim().toLocaleLowerCase('es');
     return (point: MacroPoint, except: 'sector' | null): boolean =>
-      (except === 'sector' || sector === 'TODOS' || point.sector === sector) &&
+      (except === 'sector' || accepts(sector, point.sector)) &&
       Number(point.period) >= from &&
       (!term ||
         (point.name ?? '').toLocaleLowerCase('es').includes(term) ||
@@ -185,10 +199,10 @@ export function MacroExplorer({ bundle }: { bundle: MacroBundle }) {
     return latest ? { latest, rows } : null;
   }, [opened, selected]);
 
-  const active = (sector === 'TODOS' ? 0 : 1) + (search.trim() ? 1 : 0) + (from > minYear ? 1 : 0);
+  const active = counts(sector) + (search.trim() ? 1 : 0) + (from > minYear ? 1 : 0);
   const query = new URLSearchParams({
     dataset: 'macro',
-    ...(sector === 'TODOS' ? {} : { sector }),
+    ...(sector.size ? { sector: list(sector).join(',') } : {}),
     desde: String(from),
     ...(search.trim() ? { buscar: search.trim() } : {}),
   });
@@ -204,38 +218,47 @@ export function MacroExplorer({ bundle }: { bundle: MacroBundle }) {
           </span>
         </div>
 
+        <FilterHint />
+
         <div className="rail-sec">
           <div className="rail-head">
             <Icon name="cajas" size={13} />
             Rubro
+            <PickedCount choice={sector} />
           </div>
           <button
             type="button"
-            className={sector === 'TODOS' ? 'rail-item rail-item-on' : 'rail-item'}
+            className={sector.size === 0 ? 'rail-item rail-item-on' : 'rail-item'}
+            aria-pressed={sector.size === 0}
             onClick={() => {
               setOffset(0);
-              setSector('TODOS');
+              setSector(ANY);
             }}
           >
             <Icon name="cajas" size={16} />
             <span className="rail-name">Todos los rubros</span>
             <span className="rail-n">{total}</span>
           </button>
-          {sectors.map(([key, count]) => (
-            <button
-              key={key}
-              type="button"
-              className={sector === key ? 'rail-item rail-item-on' : 'rail-item'}
-              onClick={() => {
-                setOffset(0);
-                setSector(sector === key ? 'TODOS' : key);
-              }}
-            >
-              <Icon name={SECTOR_ICON[key] ?? 'cajas'} size={16} />
-              <span className="rail-name">{SECTOR_LABEL[key] ?? key}</span>
-              <span className="rail-n">{count}</span>
-            </button>
-          ))}
+          {sectors.map(([key, count]) => {
+            const on = picked(sector, key);
+            return (
+              <button
+                key={key}
+                type="button"
+                className={on ? 'rail-item rail-item-on' : 'rail-item'}
+                aria-pressed={on}
+                title={multiTitle(SECTOR_LABEL[key] ?? key, on)}
+                onClick={(event) => {
+                  setOffset(0);
+                  setSector((current) => toggleChoice(current, key, additive(event)));
+                }}
+              >
+                <Icon name={SECTOR_ICON[key] ?? 'cajas'} size={16} />
+                <span className="rail-name">{SECTOR_LABEL[key] ?? key}</span>
+                <span className="rail-n">{count}</span>
+              </button>
+            );
+          })}
         </div>
 
         <div className="rail-sec">
@@ -362,8 +385,10 @@ export function MacroExplorer({ bundle }: { bundle: MacroBundle }) {
             </div>
 
             <div className="strap">
-              <Icon name={SECTOR_ICON[sector] ?? 'cajas'} size={17} />
-              <h2>{sector === 'TODOS' ? 'Todos los rubros' : (SECTOR_LABEL[sector] ?? sector)}</h2>
+              <Icon name={SECTOR_ICON[list(sector)[0] ?? ''] ?? 'cajas'} size={17} />
+              <h2>
+                {describe(sector, (value) => SECTOR_LABEL[value] ?? value, 'Todos los rubros')}
+              </h2>
               <span className="tile-hint">
                 {cards.length} indicador{cards.length === 1 ? '' : 'es'}
                 {pages === 1 ? '' : ` · ${first}–${last} en pantalla`}
