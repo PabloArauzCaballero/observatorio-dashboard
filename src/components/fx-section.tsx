@@ -22,11 +22,16 @@ import type { Observation } from '@/lib/econometrics';
  * another pass over a million and a half observations.
  */
 export async function FxSection() {
-  const [observatory, stablecoins, snapshot] = await Promise.all([
-    readObservatory(),
-    readStablecoins(),
-    readFxSnapshot(),
-  ]);
+  /*
+   * En serie y no en paralelo, a propósito. El resumen ya lee el observatorio,
+   * la brecha y las fichas, y todas las lecturas se sostienen cinco minutos:
+   * pedirlas primero deja las de abajo resueltas desde memoria. Lanzadas a la
+   * vez, la primera visita tras vencer el plazo dispara la consulta de fichas
+   * —la más cara de la página— dos veces al mismo tiempo, y en el servidor
+   * chico eso bastaba para que la brecha no entrara en su plazo.
+   */
+  const snapshot = await readFxSnapshot();
+  const [observatory, stablecoins] = await Promise.all([readObservatory(), readStablecoins()]);
 
   const official = officialSeries(observatory);
   const buy = observatory.series.get('FX_PARALLEL_USD_BOB:BUY') ?? [];
