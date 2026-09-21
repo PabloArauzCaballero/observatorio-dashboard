@@ -251,9 +251,29 @@ a:hover {
     border-radius: 8px;
   }
 
+  /*
+   * El titulo se mide contra la pantalla, no contra un tamaño fijo.
+   *
+   * A 320px «Observatorio Económico de Bolivia» partia en dos lineas y el
+   * subtitulo en otras dos, con el icono centrado a media altura del bloque,
+   * flotando junto a ninguna de las dos. Ahora el cuerpo sigue al ancho
+   * disponible y el icono se alinea con la primera linea, que es la que lleva
+   * el nombre.
+   */
+  .brand {
+    align-items: flex-start;
+    min-width: 0;
+  }
+
+  .brand > div {
+    min-width: 0;
+  }
+
   .brand h1 {
-    font-size: 1rem;
+    font-size: clamp(0.82rem, 4.3vw, 1rem);
     letter-spacing: -0.02em;
+    text-wrap: balance;
+    overflow-wrap: anywhere;
   }
 
   .topbar-stamp {
@@ -2262,14 +2282,28 @@ code {
   gap: 0.15rem;
 }
 
+/*
+ * La columna del texto tiene que poder encoger.
+ *
+ * `1fr` no baja del contenido minimo de lo que lleva dentro, y dentro hay una
+ * cifra con `white-space: nowrap`. Con la letra del sistema agrandada —lo que
+ * hace cualquiera que no ve de cerca— el punto media 366px dentro de una
+ * pantalla de 320 y empujaba la pagina entera 112px a la derecha: la cabecera
+ * quedaba corrida y el titulo parecia cortado. `minmax(0, 1fr)` le devuelve el
+ * permiso de encoger, y la linea envuelve antes que empujar.
+ */
 .bullet {
   display: grid;
-  grid-template-columns: 30px 1fr;
+  grid-template-columns: 30px minmax(0, 1fr);
   gap: 0.7rem;
   align-items: start;
   padding: 0.6rem 0.5rem;
   border-radius: 10px;
   transition: background var(--fast) var(--ease);
+}
+
+.bullet-body {
+  min-width: 0;
 }
 
 .bullet + .bullet {
@@ -2305,6 +2339,8 @@ code {
   display: flex;
   align-items: baseline;
   gap: 0.5rem;
+  /* Antes de empujar, que baje de linea. */
+  flex-wrap: wrap;
 }
 
 /* The leader between name and figure: it is what makes a list read as a list. */
