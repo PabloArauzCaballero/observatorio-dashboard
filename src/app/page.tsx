@@ -2,7 +2,7 @@ import type { GapChartPoint, RatePoint } from '@/components/charts';
 import { Download } from '@/components/download';
 import { Donate } from '@/components/donate';
 import { FilingExplorer } from '@/components/filing-explorer';
-import { FxExplorer } from '@/components/fx-explorer';
+import { FxSection } from '@/components/fx-section';
 import { MacroExplorer } from '@/components/macro-explorer';
 import { MarketCards } from '@/components/market-cards';
 import { WorldExplorer } from '@/components/world-explorer';
@@ -21,7 +21,6 @@ import type { PlaceFamily } from '@/lib/places';
 import { packMacro } from '@/lib/macro-transport';
 import { dailyAnalysis } from '@/lib/daily-analysis';
 import { buildTodayBoard } from '@/lib/today-board';
-import type { Observation } from '@/lib/econometrics';
 import {
   isUnaffordableRead,
   officialSeries,
@@ -392,13 +391,6 @@ export default async function Page() {
     gapPercent: point.gapPercent,
   }));
 
-  /** The official series in the shape the exchange-rate explorer measures on. */
-  const officialObservations: Observation[] = official.map((point) => ({
-    date: point.date,
-    value: point.value,
-    aggregation: point.aggregation,
-  }));
-
   /** Enough of the tail to show direction without redrawing the whole year. */
   const tail = <T,>(values: T[], count = 90): T[] => values.slice(-count);
   const midSpark = tail(rows)
@@ -577,11 +569,7 @@ export default async function Page() {
         </section>
 
         <section className="stack">
-          <FxExplorer
-            rows={rows}
-            official={officialObservations}
-            readingCount={observatory.readingCount}
-          />
+          <FxSection />
         </section>
 
         <section className="stack">
