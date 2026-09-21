@@ -50,6 +50,15 @@ export interface SummaryExplorerProps {
    * que impide que alguien lo cablee al filtro sin querer.
    */
   board?: React.ReactNode;
+  /**
+   * La brecha no llego porque el servidor no termino de leerla.
+   *
+   * Cambia lo que dice el hueco del grafico, y solo eso. «La brecha solo puede
+   * calcularse en los dias con ambas cotizaciones» es verdad cuando no hay
+   * jornadas con las dos y es mentira cuando las hay y la consulta se agoto: en
+   * ese caso el informe estaria explicando una ausencia que no es la suya.
+   */
+  gapUnread?: boolean;
 }
 
 const RANGES: ReadonlyArray<{ key: string; label: string; days: number | null }> = [
@@ -73,6 +82,7 @@ export function SummaryExplorer({
   latestDate,
   markets,
   board,
+  gapUnread,
 }: SummaryExplorerProps) {
   const [range, setRange] = useState('todo');
 
@@ -250,7 +260,9 @@ export function SummaryExplorer({
             <GapChart data={shown} tall />
           ) : (
             <div className="callout">
-              La brecha solo puede calcularse en los días con ambas cotizaciones.
+              {gapUnread
+                ? 'La serie de la brecha no se pudo leer a tiempo en esta carga. No es que falte: es que la consulta que la arma agotó su plazo, y el informe prefiere no dibujarla antes que dibujarla a medias.'
+                : 'La brecha solo puede calcularse en los días con ambas cotizaciones.'}
             </div>
           )}
           {peak && trough && peak.date !== trough.date ? (
