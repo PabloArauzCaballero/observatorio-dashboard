@@ -934,8 +934,11 @@ export function PlacesMap({
       context.fill();
       context.globalAlpha = 1;
     };
-    draw(false, read('--official', '#1b4f9c'), 0.75);
-    draw(true, read('--parallel', '#c2551f'), 0.9);
+    /* Los respaldos son los valores claros de los tokens, para el caso en que
+       el lienzo se dibuje antes de que el navegador resuelva la hoja de
+       estilos. Estaban apuntando a la paleta anterior. */
+    draw(false, read('--official', '#2a78d6'), 0.75);
+    draw(true, read('--parallel', '#eb6834'), 0.9);
 
     context.font = '20px ui-sans-serif, system-ui, sans-serif';
     context.fillStyle = 'rgba(255,255,255,0.85)';

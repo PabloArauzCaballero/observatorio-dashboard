@@ -47,15 +47,20 @@ const GRADE_LABEL: Record<string, string> = {
 };
 
 /*
- * Read against this report's own convention, not a traffic light. Here --down
- * is green because a falling exchange rate is good news and --up is red because
- * a rising one is not. So a weak grade takes --up: it is the row a reader
- * should slow down on, and painting it green would say the opposite.
+ * Alta, media y baja no son tres identidades: son una escala con orden y con
+ * juicio —qué tan fiable es la evidencia detrás de una lectura—. Por eso toma
+ * los tonos de estado del informe, que están reservados justo para esto y no se
+ * reutilizan nunca como «serie 3», y no tres colores de serie que decían lo
+ * mismo que una escala pero sin el orden.
+ *
+ * Un tono de estado nunca viaja solo: aquí va siempre pegado a la palabra
+ * («Alta», «Media», «Baja»), que es lo que lo hace legible para quien no
+ * distingue el rojo del verde.
  */
 const GRADE_TONE: Record<string, string> = {
-  HIGH: 'var(--official)',
-  MEDIUM: 'var(--parallel)',
-  LOW: 'var(--up)',
+  HIGH: 'var(--good)',
+  MEDIUM: 'var(--warning)',
+  LOW: 'var(--critical)',
 };
 
 const REGISTER_LABEL: Record<string, string> = {
@@ -189,7 +194,11 @@ export function SocialExplorer({
   ]);
 
   const fabrication = slices([
-    { metric: 'ACCOUNTS_IMPERSONATING_MEDIA_SHARE', name: 'Cuentas que fingen ser medios', emphasis: true },
+    {
+      metric: 'ACCOUNTS_IMPERSONATING_MEDIA_SHARE',
+      name: 'Cuentas que fingen ser medios',
+      emphasis: true,
+    },
     { metric: 'CONTENT_AI_GENERATED_SHARE', name: 'Contenido generado con IA', emphasis: true },
     { metric: 'CONTENT_ORIGIN_BOLIVIA_SHARE', name: 'Originado en Bolivia' },
   ]);
@@ -511,8 +520,8 @@ export function SocialExplorer({
               </div>
               <p className="panel-sub" style={{ marginTop: 'var(--s2)' }}>
                 Cifras y no barras: un crecimiento interanual y un recuento de billeteras no
-                comparten escala con un porcentaje de hogares, y ponerlos en un mismo eje haría
-                que la tasa pareciera una mayoría.
+                comparten escala con un porcentaje de hogares, y ponerlos en un mismo eje haría que
+                la tasa pareciera una mayoría.
               </p>
             </>
           ) : null}

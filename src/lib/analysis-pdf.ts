@@ -37,11 +37,56 @@ const PALETTE: Record<string, string> = {
   '--paper': '#ffffff',
   '--panel': '#ffffff',
   '--panel-tint': '#f6f8fa',
-  '--official': '#1b4f9c',
-  '--parallel': '#c2551f',
-  '--gap': '#7a5197',
-  '--up': '#a32b1f',
-  '--down': '#1c6b4a',
+
+  /*
+   * Las casillas de identidad y los tres personajes del informe, en su versión
+   * clara. Un token que falte aquí no se rompe de forma visible: se sustituye
+   * por `currentColor`, así que la figura sale impresa en el color del texto y
+   * nadie se entera hasta que mira el PDF. Por eso esta lista tiene que cubrir
+   * todos los tokens de color que una figura pueda usar, no solo los cinco
+   * primeros.
+   */
+  '--series-1': '#2a78d6',
+  '--series-2': '#eb6834',
+  '--series-3': '#963b8c',
+  '--series-4': '#a87c00',
+  '--series-5': '#4a3aa7',
+  '--series-6': '#0f8f62',
+  '--series-rest': '#6b7688',
+  '--official': '#2a78d6',
+  '--parallel': '#eb6834',
+  '--gap': '#963b8c',
+
+  '--up': '#d03b3b',
+  '--down': '#0d7f85',
+  '--mid': '#f0efec',
+
+  '--good': '#0ca30c',
+  '--warning': '#fab219',
+  '--serious': '#ec835a',
+  '--critical': '#d03b3b',
+
+  '--seq-100': '#cde2fb',
+  '--seq-200': '#9ec5f4',
+  '--seq-300': '#6da7ec',
+  '--seq-400': '#3987e5',
+  '--seq-500': '#256abf',
+  '--seq-600': '#184f95',
+  '--seq-700': '#0d366b',
+
+  '--ord-1': '#86b6ef',
+  '--ord-2': '#2a78d6',
+  '--ord-3': '#104281',
+
+  '--adv-0': '#6b7688',
+  '--adv-1': '#c04d44',
+  '--adv-2': '#a5332e',
+  '--adv-3': '#8a1616',
+
+  '--chart-surface': '#ffffff',
+  '--grid': '#e6e9ef',
+  '--axis-ink': '#6b7688',
+
   '--serif': "ui-serif, Georgia, 'Times New Roman', serif",
   '--sans':
     "ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif",

@@ -101,8 +101,18 @@ const CATEGORY_ICON: Record<string, IconName> = {
   OTROS: 'cajas',
 };
 
-/** Five tones cycled by rank, so a bar's colour never implies a category. */
-const TONES = ['var(--official)', 'var(--parallel)', 'var(--gap)', 'var(--down)', 'var(--up)'];
+/**
+ * Un rubro es un nombre, no una cantidad, así que todas las barras van del
+ * mismo color y la elegida va en tinta.
+ *
+ * Antes se recorrían cinco colores por puesto en el ranking, y el comentario
+ * que lo acompañaba decía la verdad —«para que el color nunca implique una
+ * categoría»—: era un canal encendido sin nada que decir. Peor: el color
+ * cambiaba de rubro en cuanto cambiaba el orden, así que quien había aprendido
+ * que «Directorio» era el naranja se lo encontraba azul al filtrar. Con un solo
+ * tono, lo que queda pintado es el único dato que hay: el largo de la barra.
+ */
+const BAR_TONE = 'var(--official)';
 
 /** One page of the register. The whole register is already in the browser, so
  * paging it costs nothing but the state that says where the reader is. */
@@ -492,7 +502,7 @@ export function FilingExplorer({ filings }: { filings: CompanyFiling[] }) {
               </span>
             </div>
             <div className="barlist">
-              {categories.map(([key, count], index) => (
+              {categories.map(([key, count]) => (
                 <button
                   key={key}
                   type="button"
@@ -509,7 +519,7 @@ export function FilingExplorer({ filings }: { filings: CompanyFiling[] }) {
                       className="barlist-fill"
                       style={{
                         width: `${(count / categoryPeak) * 100}%`,
-                        background: category === key ? 'var(--ink)' : TONES[index % TONES.length],
+                        background: category === key ? 'var(--ink)' : BAR_TONE,
                       }}
                     />
                   </span>
@@ -531,7 +541,7 @@ export function FilingExplorer({ filings }: { filings: CompanyFiling[] }) {
               </span>
             </div>
             <div className="barlist">
-              {sectors.map(([key, count], index) => (
+              {sectors.map(([key, count]) => (
                 <button
                   key={key}
                   type="button"
@@ -548,7 +558,7 @@ export function FilingExplorer({ filings }: { filings: CompanyFiling[] }) {
                       className="barlist-fill"
                       style={{
                         width: `${(count / peak) * 100}%`,
-                        background: sector === key ? 'var(--ink)' : TONES[index % TONES.length],
+                        background: sector === key ? 'var(--ink)' : BAR_TONE,
                       }}
                     />
                   </span>

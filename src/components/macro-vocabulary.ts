@@ -37,17 +37,36 @@ export const SECTOR_ICON: Record<string, IconName> = {
   OTROS: 'cajas',
 };
 
+/**
+ * El rubro lo dice el icono y el rótulo; la línea va siempre del mismo color.
+ *
+ * Había diez rubros repartidos entre cinco colores, así que «Actividad» y
+ * «Sector externo» compartían azul y «Precios», «Recursos» y «Tipo de cambio»
+ * compartían naranja: el color afirmaba un parentesco que no existe, que es
+ * peor que no decir nada. Y con diez rubros no hay forma de arreglarlo
+ * pintando: una paleta solo garantiza que dos colores se distingan hasta media
+ * docena, y más allá de eso dos rubros distintos acaban siendo el mismo color
+ * para quien no ve bien el rojo o el verde.
+ *
+ * La ficha ya nombra su rubro dos veces —con un icono y con la palabra—, así
+ * que el color no estaba identificando nada que no estuviera ya escrito. Lo
+ * que gana la retícula al pintarlas todas igual es que vuelve a ser un solo
+ * instrumento: diez fichas se comparan entre sí, que es para lo que están
+ * juntas. Un rubro adverso o favorable NO se marca aquí —el rojo y el verde
+ * azulado de este informe significan «por encima» y «por debajo» de una
+ * referencia, y ningún rubro es eso por naturaleza—.
+ */
 export const SECTOR_TONE: Record<string, string> = {
   ACTIVIDAD: 'var(--official)',
-  SECTORIAL: 'var(--gap)',
-  RECURSOS: 'var(--parallel)',
+  SECTORIAL: 'var(--official)',
+  RECURSOS: 'var(--official)',
   EXTERNO: 'var(--official)',
-  PRECIOS: 'var(--parallel)',
-  MONETARIO: 'var(--gap)',
-  DEUDA: 'var(--up)',
-  SOCIAL: 'var(--down)',
-  CAMBIARIO: 'var(--parallel)',
-  OTROS: 'var(--ink-soft)',
+  PRECIOS: 'var(--official)',
+  MONETARIO: 'var(--official)',
+  DEUDA: 'var(--official)',
+  SOCIAL: 'var(--official)',
+  CAMBIARIO: 'var(--official)',
+  OTROS: 'var(--official)',
 };
 
 export const UNIT_LABEL: Record<string, string> = {
@@ -62,7 +81,7 @@ export const UNIT_LABEL: Record<string, string> = {
 
 export const sectorLabel = (sector: string): string => SECTOR_LABEL[sector] ?? sector;
 export const sectorIcon = (sector: string): IconName => SECTOR_ICON[sector] ?? 'cajas';
-export const sectorTone = (sector: string): string => SECTOR_TONE[sector] ?? 'var(--ink-soft)';
+export const sectorTone = (sector: string): string => SECTOR_TONE[sector] ?? 'var(--official)';
 export const unitLabel = (unit: string): string => UNIT_LABEL[unit] ?? unit;
 
 export const number = (value: number, decimals = 2): string =>

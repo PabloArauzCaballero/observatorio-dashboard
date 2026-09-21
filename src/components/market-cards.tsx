@@ -21,10 +21,34 @@ import type { MarketSeries } from '@/lib/series';
  * deviation in basis points rather than a percentage that would round to zero.
  */
 
+/*
+ * Tres fichas, tres casillas de identidad: son exactamente las tres que la
+ * paleta garantiza distinguibles una contra otra en los dos modos, que es la
+ * prueba dura —la que aplica cuando dos marcas cualesquiera pueden quedar lado
+ * a lado, como aquí—.
+ *
+ * El lavado del fondo se saca del propio acento en vez de estar escrito a mano
+ * en rgb. Los tres rgb que había eran los hexadecimales viejos copiados a mano:
+ * al re-escalar la paleta se quedaron apuntando a colores que ya no existen, y
+ * además no cambiaban en modo oscuro, así que el lavado claro seguía ahí sobre
+ * un panel negro. Derivado del token, el lavado sigue al acento a donde vaya.
+ */
 const TONE: Record<string, { accent: string; tint: string; icon: IconName }> = {
-  XAU_USD: { accent: 'var(--parallel)', tint: 'rgb(194 85 31 / 0.07)', icon: 'gema' },
-  BTC_USD: { accent: 'var(--gap)', tint: 'rgb(122 81 151 / 0.07)', icon: 'monedas' },
-  USDT_USD: { accent: 'var(--official)', tint: 'rgb(27 79 156 / 0.07)', icon: 'balanza' },
+  XAU_USD: {
+    accent: 'var(--parallel)',
+    tint: 'color-mix(in srgb, var(--parallel) 8%, var(--panel))',
+    icon: 'gema',
+  },
+  BTC_USD: {
+    accent: 'var(--gap)',
+    tint: 'color-mix(in srgb, var(--gap) 8%, var(--panel))',
+    icon: 'monedas',
+  },
+  USDT_USD: {
+    accent: 'var(--official)',
+    tint: 'color-mix(in srgb, var(--official) 8%, var(--panel))',
+    icon: 'balanza',
+  },
 };
 
 const CAPTION: Record<string, string> = {

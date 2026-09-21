@@ -21,11 +21,126 @@
   --panel: #ffffff;
   --panel-tint: #f6f8fa;
 
-  --official: #1b4f9c;
-  --parallel: #c2551f;
-  --gap: #7a5197;
-  --up: #a32b1f;
-  --down: #1c6b4a;
+  /*
+   * La escala de color de los gráficos, verificada y no elegida a ojo.
+   *
+   * Cada color de una serie hace exactamente un trabajo —identidad, magnitud,
+   * polaridad o estado— y la escala categórica se validó con el comprobador de
+   * la disciplina (separación bajo protanopía y deuteranopía, piso de
+   * distinción a vista plena, banda de luminosidad, piso de croma y contraste
+   * contra la superficie) en los dos modos. Los valores anteriores no pasaban:
+   * el azul y el violeta se fundían en uno bajo daltonismo, el rojo y el
+   * naranja eran casi el mismo color incluso a vista plena, y el verde caía por
+   * debajo del piso de croma. Cambiarlos «porque se ven bien» es volver a ahí,
+   * así que cualquier valor nuevo se vuelve a pasar por el comprobador.
+   *
+   * ORDEN. El orden de las casillas ES el mecanismo de seguridad, no un
+   * capricho: se enumeraron las permutaciones y esta es la que maximiza la
+   * peor separación entre vecinas (ΔE 16,9 en claro y en oscuro, sin avisos).
+   * Las series se asignan en orden y NUNCA se ciclan: una séptima serie se
+   * pliega en «Otros», no inventa un color.
+   */
+  --series-1: #2a78d6; /* azul     — oficial */
+  --series-2: #eb6834; /* naranja  — paralelo */
+  --series-3: #963b8c; /* púrpura  — brecha */
+  --series-4: #a87c00; /* ámbar */
+  --series-5: #4a3aa7; /* violeta */
+  --series-6: #0f8f62; /* verde azulado */
+  --series-rest: #6b7688; /* el resto plegado, deliberadamente sin color */
+
+  /*
+   * Los tres personajes del informe. Son las tres primeras casillas porque esas
+   * tres —y solo esas tres— pasan la prueba dura de «todos contra todos», que
+   * es la que aplica cuando dos marcas cualesquiera pueden quedar una al lado
+   * de la otra (dispersión, mapas, pequeños múltiplos).
+   */
+  --official: var(--series-1);
+  --parallel: var(--series-2);
+  --gap: var(--series-3);
+
+  /*
+   * Polaridad: los dos polos de una escala divergente y su punto neutro.
+   *
+   * Eran rojo contra verde, que es el par que un lector daltónico NO puede
+   * separar (ΔE 4,1: por debajo del piso, sin excusa posible). El polo frío
+   * pasa a verde azulado, que conserva la lectura «frío = a favor, cálido = en
+   * contra» del informe y separa limpio en los dos modos (ΔE 12,2 y 11,9).
+   */
+  --up: #d03b3b; /* por encima de la referencia, al alza, adverso */
+  --down: #0d7f85; /* por debajo, a la baja, a favor */
+  --mid: #f0efec; /* el cero de una escala divergente: gris, nunca un tono */
+
+  /*
+   * Estado. Escala fija, jamás tematizada y jamás reutilizada como «serie 4»;
+   * siempre acompañada de icono y etiqueta, nunca solo el color.
+   */
+  --good: #0ca30c;
+  --warning: #fab219;
+  --serious: #ec835a;
+  --critical: #d03b3b;
+
+  /*
+   * Magnitud: un solo tono, de claro a oscuro. Un arcoíris para «cuánto» es
+   * ilegible; esta rampa es la que usan las retículas de calor y los pesos.
+   */
+  --seq-100: #cde2fb;
+  --seq-200: #9ec5f4;
+  --seq-300: #6da7ec;
+  --seq-400: #3987e5;
+  --seq-500: #256abf;
+  --seq-600: #184f95;
+  --seq-700: #0d366b;
+
+  /*
+   * La tinta que le toca a cada paso de la rampa, medida contra ese paso.
+   *
+   * Un umbral fijo («blanco a partir del paso 3») no sirve, porque la rampa se
+   * ancla al revés en oscuro: ahí el paso 3 es CLARO y el blanco encima de él
+   * se quedaba en 3,2:1 — justo la celda con la cuenta más alta era la que no
+   * se leía. Emparejar tinta y paso uno a uno es lo único que aguanta el
+   * cambio de modo; el peor par de esta lista es 4,8:1.
+   */
+  --seq-ink-1: #14181f;
+  --seq-ink-2: #14181f;
+  --seq-ink-3: #14181f;
+  --seq-ink-4: #ffffff;
+  --seq-ink-5: #ffffff;
+
+  /*
+   * Rampa ordinal: los pasos de una escala que SÍ tiene orden pero no es una
+   * magnitud —informal, mixto, formal—. Es un solo tono con la luminosidad
+   * escalonada, para que el orden se vea en el color; el paso más claro se
+   * queda por encima de 2:1 contra la superficie, que es donde un tramo de
+   * barra deja de confundirse con el fondo.
+   */
+  --ord-1: #86b6ef;
+  --ord-2: #2a78d6;
+  --ord-3: #104281;
+
+  /*
+   * La rampa del tono adverso, la única escala de este informe que se pinta
+   * sobre TEXTO —la nube de temas—. Por eso sus tres pasos están elegidos para
+   * pasar 4,5:1 contra el papel, no solo el 3:1 de una marca: una palabra
+   * escrita en un rojo claro no es una marca pálida, es una palabra que no se
+   * lee. `--adv-0` es el gris de «no se midió», deliberadamente sin color.
+   */
+  --adv-0: var(--series-rest);
+  --adv-1: #c04d44;
+  --adv-2: #a5332e;
+  --adv-3: #8a1616;
+
+  /*
+   * Cromo del gráfico.
+   *
+   * `--chart-surface` es el color con el que se separan dos marcas que se tocan
+   * —la rendija de 2 px de un apilado, el anillo de un punto— así que tiene que
+   * ser el fondo real del panel y no un gris parecido. `--axis-ink` sube el
+   * contraste de los rótulos de eje de 3,8:1 a 4,6:1, que es donde un número de
+   * 11 px deja de ser una sugerencia.
+   */
+  --chart-surface: var(--panel);
+  --grid: #e6e9ef;
+  --axis-ink: #6b7688;
 
   --serif: ui-serif, Georgia, 'Times New Roman', serif;
   --sans: ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
@@ -82,11 +197,54 @@
     --panel: #151a21;
     --panel-tint: #1a202a;
 
-    --official: #6fa8e8;
-    --parallel: #ee9161;
-    --gap: #b696d6;
-    --up: #e8776a;
-    --down: #58c39a;
+    /*
+     * El modo oscuro es una escala elegida, no un volteo automático: son los
+     * mismos seis tonos escalonados contra la superficie oscura y validados
+     * como conjunto contra ella (los pasos claros, puestos aquí, se salen de la
+     * banda de luminosidad y el púrpura claro se funde con el azul).
+     */
+    --series-1: #3987e5;
+    --series-2: #d95926;
+    --series-3: #c06fb0;
+    --series-4: #c98500;
+    --series-5: #9085e9;
+    --series-6: #199e70;
+    --series-rest: #98a3b5;
+
+    --up: #e66767;
+    --down: #2aa6ad;
+    --mid: #383835;
+
+    --good: #0ca30c;
+    --warning: #fab219;
+    --serious: #ec835a;
+    --critical: #d03b3b;
+
+    /* La rampa de magnitud se ancla al otro extremo: en oscuro «mucho» es claro. */
+    --seq-100: #0d366b;
+    --seq-200: #184f95;
+    --seq-300: #256abf;
+    --seq-400: #3987e5;
+    --seq-500: #6da7ec;
+    --seq-600: #9ec5f4;
+    --seq-700: #cde2fb;
+
+    --seq-ink-1: #eef1f6;
+    --seq-ink-2: #eef1f6;
+    --seq-ink-3: #0e1116;
+    --seq-ink-4: #0e1116;
+    --seq-ink-5: #0e1116;
+
+    --ord-1: #9ec5f4;
+    --ord-2: #3987e5;
+    --ord-3: #184f95;
+
+    --adv-1: #d55f56;
+    --adv-2: #f47c70;
+    --adv-3: #ff988b;
+
+    --grid: #262d39;
+    --axis-ink: #98a3b5;
 
     --shadow: 0 1px 2px rgb(0 0 0 / 0.3), 0 10px 28px -14px rgb(0 0 0 / 0.7);
   }
@@ -230,7 +388,7 @@ a:hover {
   font-size: 0.7rem;
   letter-spacing: 0.06em;
   text-transform: uppercase;
-  color: var(--ink-faint);
+  color: var(--ink-soft);
 }
 
 /*
@@ -485,7 +643,7 @@ h2 {
   font-size: 0.73rem;
   letter-spacing: 0.05em;
   text-transform: uppercase;
-  color: var(--ink-faint);
+  color: var(--ink-soft);
   margin-bottom: 0.35rem;
 }
 
@@ -499,7 +657,7 @@ h2 {
 
 .figure .unit {
   font-size: 0.78rem;
-  color: var(--ink-faint);
+  color: var(--ink-soft);
   margin-left: 0.3rem;
 }
 
@@ -589,11 +747,44 @@ h2 {
   gap: 0.4rem;
 }
 
+/*
+ * La marca de la leyenda imita la marca del gráfico.
+ *
+ * Una leyenda de líneas dibujada con cuadraditos obliga al lector a traducir:
+ * ve un bloque y tiene que buscar qué línea era. El cuadrado queda para
+ * rellenos —barras, áreas, celdas— y la línea para las series que son línea,
+ * con su propio trazo discontinuo cuando el gráfico lo usa.
+ */
 .chart-legend-mark {
   width: 0.7rem;
   height: 0.7rem;
   border-radius: 2px;
   flex: none;
+}
+
+.chart-legend-mark-line {
+  width: 1.05rem;
+  height: 0;
+  border-radius: 0;
+  border-top: 2px solid currentColor;
+  /* El color viaja por `color` para que el borde discontinuo lo herede. */
+  background: none !important;
+}
+
+.chart-legend-mark-dashed {
+  border-top-style: dashed;
+}
+
+/*
+ * La nota al pie de un gráfico: de dónde sale el dato o qué no dice.
+ *
+ * Vivía suelta en cada panel con un tamaño distinto cada vez.
+ */
+.chart-note {
+  margin: 0.3rem 0 0;
+  font-size: 0.72rem;
+  line-height: 1.45;
+  color: var(--ink-soft);
 }
 
 /*
@@ -627,21 +818,51 @@ h2 {
 .tooltip .t-date {
   font-family: var(--mono);
   font-size: 0.73rem;
-  color: var(--ink-faint);
+  color: var(--ink-soft);
   margin-bottom: 0.3rem;
 }
 
+/*
+ * En el tooltip manda la cifra, no el rótulo.
+ *
+ * Es la jerarquía de la leyenda invertida a propósito: quien está apuntando ya
+ * sabe qué serie mira, lo que le falta es el número. La serie se identifica con
+ * un trazo corto de su color —a esta densidad un bloque relleno es tinta de
+ * dato haciendo el trabajo de una etiqueta— y el texto nunca se pinta del color
+ * de la serie: un ámbar o un verde claro como texto no se leen.
+ */
 .tooltip .t-row {
   display: flex;
+  align-items: baseline;
   justify-content: space-between;
   gap: 1.4rem;
   font-variant-numeric: tabular-nums;
 }
 
+.tooltip .t-row > span {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  color: var(--ink-soft);
+  min-width: 0;
+}
+
+.tooltip .t-row strong {
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+}
+
+.tooltip .t-key {
+  width: 0.85rem;
+  height: 0;
+  flex: none;
+  border-top: 2px solid currentColor;
+}
+
 .tooltip .t-note {
   margin-top: 0.35rem;
   font-size: 0.73rem;
-  color: var(--ink-faint);
+  color: var(--ink-soft);
 }
 
 /* Macro cards ------------------------------------------------------------ */
@@ -697,14 +918,14 @@ h2 {
 
 .card-unit {
   font-size: 0.75rem;
-  color: var(--ink-faint);
+  color: var(--ink-soft);
 }
 
 .card-meta {
   display: flex;
   gap: 0.7rem;
   font-size: 0.76rem;
-  color: var(--ink-faint);
+  color: var(--ink-soft);
   font-variant-numeric: tabular-nums;
   margin-top: 0.15rem;
 }
@@ -740,7 +961,7 @@ h2 {
   font-family: var(--mono);
   font-size: 0.73rem;
   letter-spacing: 0.04em;
-  color: var(--ink-faint);
+  color: var(--ink-soft);
 }
 
 .tl-body h4 {
@@ -766,7 +987,7 @@ h2 {
 .tl-foot {
   margin: 0.4rem 0 0;
   font-size: 0.75rem;
-  color: var(--ink-faint);
+  color: var(--ink-soft);
 }
 
 /* Sources ---------------------------------------------------------------- */
@@ -795,7 +1016,7 @@ h2 {
 }
 
 .src-span {
-  color: var(--ink-faint);
+  color: var(--ink-soft);
   font-variant-numeric: tabular-nums;
   margin-left: auto;
 }
@@ -851,7 +1072,7 @@ h2 {
 
 .analysis-note {
   font-size: 0.76rem;
-  color: var(--ink-faint);
+  color: var(--ink-soft);
   margin: 0 0 var(--s2);
 }
 
@@ -949,7 +1170,7 @@ code {
   font-size: 0.7rem;
   letter-spacing: 0.07em;
   text-transform: uppercase;
-  color: var(--ink-faint);
+  color: var(--ink-soft);
 }
 
 .chips {
@@ -982,7 +1203,7 @@ code {
   font-style: normal;
   font-family: var(--mono);
   font-size: 0.7rem;
-  color: var(--ink-faint);
+  color: var(--ink-soft);
 }
 
 .chip:hover {
@@ -1056,7 +1277,7 @@ code {
   border-top: 1px solid var(--rule-soft);
   padding-top: var(--s2);
   font-size: 0.83rem;
-  color: var(--ink-faint);
+  color: var(--ink-soft);
   font-variant-numeric: tabular-nums;
 }
 
@@ -1069,7 +1290,7 @@ code {
   font-size: 0.65rem;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: var(--ink-faint);
+  color: var(--ink-soft);
   margin-bottom: 0.2rem;
 }
 
@@ -1096,7 +1317,7 @@ code {
   font-size: 0.72rem;
   letter-spacing: 0.1em;
   text-transform: uppercase;
-  color: var(--ink-faint);
+  color: var(--ink-soft);
   margin: 0 0 var(--s2);
 }
 
@@ -1119,7 +1340,7 @@ code {
 
 .brief p.brief-note {
   font-size: 0.85rem;
-  color: var(--ink-faint);
+  color: var(--ink-soft);
 }
 
 /* Econometric statistics ------------------------------------------------- */
@@ -1146,7 +1367,7 @@ code {
   font-size: 0.68rem;
   letter-spacing: 0.07em;
   text-transform: uppercase;
-  color: var(--ink-faint);
+  color: var(--ink-soft);
 }
 
 .stat-value {
@@ -1158,7 +1379,7 @@ code {
 
 .stat-hint {
   font-size: 0.72rem;
-  color: var(--ink-faint);
+  color: var(--ink-soft);
   line-height: 1.35;
 }
 
@@ -1282,7 +1503,7 @@ code {
   margin-left: auto;
   font-family: var(--mono);
   font-size: 0.68rem;
-  color: var(--ink-faint);
+  color: var(--ink-soft);
 }
 
 .rail-sec {
@@ -1302,7 +1523,7 @@ code {
   font-size: 0.66rem;
   letter-spacing: 0.09em;
   text-transform: uppercase;
-  color: var(--ink-faint);
+  color: var(--ink-soft);
 }
 
 .rail-item {
@@ -1347,7 +1568,7 @@ code {
 .rail-item .rail-n {
   font-family: var(--mono);
   font-size: 0.68rem;
-  color: var(--ink-faint);
+  color: var(--ink-soft);
   font-variant-numeric: tabular-nums;
 }
 
@@ -1359,7 +1580,7 @@ code {
   padding: 0.7rem 0.875rem;
   background: var(--panel-tint);
   font-size: 0.72rem;
-  color: var(--ink-faint);
+  color: var(--ink-soft);
   font-variant-numeric: tabular-nums;
   line-height: 1.5;
 }
@@ -1430,7 +1651,7 @@ code {
   font-family: var(--mono);
   font-size: 0.68rem;
   letter-spacing: 0.05em;
-  color: var(--ink-faint);
+  color: var(--ink-soft);
   text-transform: uppercase;
 }
 
@@ -1527,7 +1748,7 @@ code {
   font-size: 0.7rem;
   letter-spacing: 0.1em;
   text-transform: uppercase;
-  color: var(--ink-faint);
+  color: var(--ink-soft);
   font-weight: 600;
   margin: 0 0 0.3rem;
 }
@@ -1575,7 +1796,7 @@ code {
 .brief-point span {
   display: block;
   font-size: 0.74rem;
-  color: var(--ink-faint);
+  color: var(--ink-soft);
   line-height: 1.35;
 }
 
@@ -1623,7 +1844,7 @@ code {
   text-align: right;
   font-family: var(--mono);
   font-size: 0.72rem;
-  color: var(--ink-faint);
+  color: var(--ink-soft);
   font-variant-numeric: tabular-nums;
 }
 
@@ -1727,7 +1948,7 @@ code {
   font-size: 0.63rem;
   letter-spacing: 0.07em;
   text-transform: uppercase;
-  color: var(--ink-faint);
+  color: var(--ink-soft);
 }
 
 .filing-top .filing-date {
@@ -1798,7 +2019,7 @@ code {
   gap: 0.35rem;
   margin: 0;
   font-size: 0.73rem;
-  color: var(--ink-faint);
+  color: var(--ink-soft);
 }
 
 /* Expanded text keeps the line breaks the filing was written with. */
@@ -1835,7 +2056,7 @@ code {
   padding-top: 0.5rem;
   border-top: 1px solid var(--rule-soft);
   font-size: 0.72rem;
-  color: var(--ink-faint);
+  color: var(--ink-soft);
 }
 
 .filing-foot > span {
@@ -1898,7 +2119,7 @@ code {
   font-family: var(--mono);
   font-weight: 400;
   letter-spacing: 0.04em;
-  color: var(--ink-faint);
+  color: var(--ink-soft);
 }
 
 .market-figure {
@@ -1925,7 +2146,7 @@ code {
   margin-top: 0.2rem;
   font-size: 0.72rem;
   line-height: 1.45;
-  color: var(--ink-faint);
+  color: var(--ink-soft);
   font-variant-numeric: tabular-nums;
 }
 
@@ -1998,7 +2219,21 @@ code {
   box-shadow: inset 0 0 0 2px var(--ink);
 }
 
+/*
+ * El icono lleva el color; el rótulo lleva tinta.
+ *
+ * El nombre de la categoría iba pintado del color de la categoría, y varios de
+ * esos tonos a 0,8 rem no llegan al contraste que necesita un texto. La
+ * identidad la da la marca de color que está AL LADO de la palabra, no la
+ * palabra teñida.
+ */
+.tone-icon {
+  display: inline-flex;
+  align-items: center;
+}
+
 .tone-top {
+  color: var(--ink);
   display: flex;
   align-items: center;
   gap: 0.35rem;
@@ -2019,12 +2254,12 @@ code {
 .tone-share {
   font-family: var(--mono);
   font-size: 0.72rem;
-  color: var(--ink-faint);
+  color: var(--ink-soft);
 }
 
 .tone-note {
   font-size: 0.69rem;
-  color: var(--ink-faint);
+  color: var(--ink-soft);
   line-height: 1.35;
   margin-top: 0.15rem;
 }
@@ -2059,7 +2294,7 @@ code {
   font-style: normal;
   font-family: var(--mono);
   font-size: 0.62rem;
-  color: var(--ink-faint);
+  color: var(--ink-soft);
 }
 
 /* Data tables ------------------------------------------------------------ */
@@ -2124,7 +2359,7 @@ code {
   font-size: 0.68rem;
   letter-spacing: 0.07em;
   text-transform: uppercase;
-  color: var(--ink-faint);
+  color: var(--ink-soft);
   font-weight: 600;
   padding: 0.55rem var(--s3);
   border-bottom: 1px solid var(--rule);
@@ -2177,6 +2412,12 @@ code {
  * the annual change and its colour the direction. Rising takes the same red the
  * report uses for a widening gap, because in most of these series a rising
  * number is the bad news.
+ *
+ * Los dos colores son los polos de la escala divergente del informe, y eso no
+ * es cosmético: eran rojo y verde, el único par que un lector daltónico no
+ * puede separar, y en una vela el color es lo ÚNICO que dice la dirección —no
+ * hay eje ni posición que lo repita—. El polo frío es ahora verde azulado, que
+ * mantiene la lectura y separa limpio bajo protanopía y deuteranopía.
  */
 
 .candles svg {
@@ -2225,7 +2466,7 @@ code {
   margin-top: 0.3rem;
   font-family: var(--mono);
   font-size: 0.68rem;
-  color: var(--ink-faint);
+  color: var(--ink-soft);
   font-variant-numeric: tabular-nums;
 }
 
@@ -2379,7 +2620,7 @@ code {
   margin: 0.15rem 0 0;
   font-size: 0.78rem;
   line-height: 1.5;
-  color: var(--ink-faint);
+  color: var(--ink-soft);
   max-width: 62ch;
 }
 
@@ -2518,7 +2759,7 @@ button.term-chip:hover {
 .cell-code {
   display: block;
   font-size: 0.66rem;
-  color: var(--ink-faint);
+  color: var(--ink-soft);
   letter-spacing: 0.01em;
 }
 
@@ -2711,7 +2952,7 @@ button.term-chip:hover {
   margin: 0.5rem 0 0;
   font-family: var(--mono);
   font-size: 0.68rem;
-  color: var(--ink-faint);
+  color: var(--ink-soft);
   text-align: center;
 }
 
@@ -2735,7 +2976,7 @@ button.term-chip:hover {
 
 /* The second figure on a bar row: present, but not competing with the first. */
 .barlist-aside {
-  color: var(--ink-faint);
+  color: var(--ink-soft);
 }
 
 /*
@@ -2834,7 +3075,7 @@ button.term-chip:hover {
 
 .candle-tip-detail {
   margin-left: auto;
-  color: var(--ink-faint);
+  color: var(--ink-soft);
 }
 
 .candles svg {
@@ -2941,13 +3182,13 @@ button.term-chip:hover {
   display: flex;
   align-items: flex-start;
   gap: 0.35rem;
-  color: var(--ink-faint) !important;
+  color: var(--ink-soft) !important;
 }
 
 .card-note-source {
   font-family: var(--mono);
   font-size: 0.68rem !important;
-  color: var(--ink-faint) !important;
+  color: var(--ink-soft) !important;
 }
 
 /* The view switch sits with the downloads: both act on the same selection. */
@@ -3355,10 +3596,19 @@ button.download-btn {
   background: var(--panel);
 }
 
+/*
+ * Una celda de la retícula, sin borde.
+ *
+ * Lo que separa dos celdas es la rendija de 2 px del `gap` de la retícula, que
+ * es el fondo del panel: un borde alrededor de cada celda añade tinta con peso
+ * de dato que no es dato, y a esta densidad convierte la retícula en una reja.
+ * La celda vacía se dibuja con un relleno plano y pálido —no con un borde— para
+ * que «nadie midió aquí» se lea como un hueco y no como un cero.
+ */
 .heat-cell {
   min-height: 1.9rem;
   border-radius: 3px;
-  border: 1px solid var(--rule-soft);
+  background: var(--rule-soft);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -3368,9 +3618,59 @@ button.download-btn {
   color: var(--ink-soft);
 }
 
+/*
+ * El número dentro de una celda pintada es la única excepción a «el texto nunca
+ * lleva el color del dato»: va en blanco o en tinta según lo oscuro que sea el
+ * relleno, que es lo que garantiza que siempre se lea. El componente elige cuál
+ * y lo dice con este atributo.
+ */
 .heat-cell-filled {
-  border-color: transparent;
   color: var(--ink);
+}
+
+.heat-cell-filled[data-ink='reverse'] {
+  color: #ffffff;
+}
+
+/*
+ * En oscuro la rampa se ancla al otro extremo —«mucho» es claro— así que la
+ * tinta invertida también se da la vuelta.
+ *
+ * Sin esto, las celdas más altas salían en blanco sobre un azul claro: el
+ * número que más importa de la retícula era justo el que no se leía. La regla
+ * no es «blanco sobre los pasos altos», es «lo contrario de lo oscuro que sea
+ * el relleno», y eso depende del modo.
+ */
+@media (prefers-color-scheme: dark) {
+  .heat-cell-filled[data-ink='reverse'] {
+    color: #0e1116;
+  }
+}
+
+/*
+ * La clave de una escala continua: de menos a más, con los extremos dichos.
+ *
+ * Una retícula de calor sin esto es tinta sin unidad — el lector ve que una
+ * celda es más oscura que otra y no sabe si eso son diez lecturas o diez mil.
+ */
+.heat-scale {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin-top: 0.5rem;
+  font-size: 0.72rem;
+  color: var(--ink-soft);
+}
+
+.heat-scale-steps {
+  display: flex;
+  gap: 2px;
+}
+
+.heat-scale-steps span {
+  width: 1.4rem;
+  height: 0.55rem;
+  border-radius: 2px;
 }
 
 /* Donation --------------------------------------------------------------- */
@@ -3469,13 +3769,13 @@ button.download-btn {
   font-size: 0.68rem;
   letter-spacing: 0.06em;
   text-transform: uppercase;
-  color: #78839a;
+  color: var(--ink-soft);
 }
 
 .donate-note {
   margin: 0;
   font-size: 0.78rem;
-  color: var(--ink-faint);
+  color: var(--ink-soft);
 }
 
 .donate-close {
@@ -3627,7 +3927,7 @@ button.download-btn {
   font-size: 0.68rem;
   letter-spacing: 0.07em;
   text-transform: uppercase;
-  color: var(--ink-faint);
+  color: var(--ink-soft);
   font-weight: 600;
 }
 
@@ -3671,13 +3971,13 @@ button.download-btn {
 
 .map-row-kind {
   font-size: 0.68rem;
-  color: var(--ink-faint);
+  color: var(--ink-soft);
   font-weight: 400;
 }
 
 .map-row-count {
   font-variant-numeric: tabular-nums;
-  color: var(--ink-faint);
+  color: var(--ink-soft);
   font-weight: 400;
 }
 
@@ -3685,7 +3985,7 @@ button.download-btn {
   margin: var(--s2) 0 0;
   font-size: 0.76rem;
   line-height: 1.5;
-  color: var(--ink-faint);
+  color: var(--ink-soft);
 }
 
 /*
@@ -3722,7 +4022,7 @@ button.download-btn {
   align-items: center;
   gap: 0.9rem;
   font-size: 0.76rem;
-  color: var(--ink-faint);
+  color: var(--ink-soft);
 }
 
 .places-map-key {
@@ -4018,7 +4318,7 @@ button.download-btn {
 
 .places-map-fields dt {
   font-size: 0.72rem;
-  color: var(--ink-faint);
+  color: var(--ink-soft);
   white-space: nowrap;
 }
 
@@ -4116,7 +4416,7 @@ button.download-btn {
   margin-left: auto;
   font-family: var(--mono);
   font-size: 0.68rem;
-  color: var(--ink-faint);
+  color: var(--ink-soft);
   font-variant-numeric: tabular-nums;
 }
 
@@ -4369,7 +4669,7 @@ button.download-btn {
 
 .rail-hint {
   font-size: 0.72rem;
-  color: var(--ink-faint);
+  color: var(--ink-soft);
   line-height: 1.4;
   margin: 0.45rem 0 0;
 }
@@ -4389,7 +4689,7 @@ button.download-btn {
 .world-unit {
   margin: 0.15rem 0 0;
   font-size: 0.74rem;
-  color: var(--ink-faint);
+  color: var(--ink-soft);
 }
 
 .world-figures {
@@ -4419,13 +4719,24 @@ button.download-btn {
   text-overflow: ellipsis;
 }
 
+/*
+ * La clave imita la marca: estas tres series son líneas, así que la clave es un
+ * trazo y no un cuadrado —y la que el gráfico dibuja discontinua lleva su clave
+ * discontinua—. Un cuadrado obliga al lector a traducir de bloque a línea, y
+ * dejaba sin decir cuál de las tres era la de trazo partido.
+ */
 .world-figure dt i,
 .world-legend i {
-  width: 9px;
-  height: 9px;
-  border-radius: 2px;
+  width: 14px;
+  height: 0;
+  border-top: 2px solid currentColor;
   flex: none;
   display: inline-block;
+}
+
+.world-figure dt i.world-legend-dash,
+.world-legend i.world-legend-dash {
+  border-top-style: dashed;
 }
 
 .world-figure dd {
@@ -4441,14 +4752,14 @@ button.download-btn {
 .world-figure dd span {
   margin-left: 0.45rem;
   font-size: 0.66rem;
-  color: var(--ink-faint);
+  color: var(--ink-soft);
 }
 
 /* Said under a chart drawn as an index, so it is not read as the totals. */
 .world-index-note {
   margin: 0.35rem 0 0;
   font-size: 0.72rem;
-  color: var(--ink-faint);
+  color: var(--ink-soft);
 }
 
 .world-gap {
@@ -4589,7 +4900,7 @@ button.download-btn {
   display: block;
   font-size: 0.68rem;
   font-weight: 500;
-  color: var(--ink-faint);
+  color: var(--ink-soft);
 }
 
 .cell-figure {
@@ -4622,7 +4933,7 @@ button.download-btn {
 }
 
 .spark-empty {
-  color: var(--ink-faint);
+  color: var(--ink-soft);
   font-family: var(--mono);
 }
 
@@ -4690,7 +5001,7 @@ button.download-btn {
   font-size: 0.72rem;
   letter-spacing: 0.06em;
   text-transform: uppercase;
-  color: var(--ink-faint);
+  color: var(--ink-soft);
 }
 
 .analysis-head h2 {
@@ -4703,7 +5014,7 @@ button.download-btn {
 .analysis-sub {
   margin: 0;
   font-size: 0.8rem;
-  color: var(--ink-faint);
+  color: var(--ink-soft);
   font-family: var(--mono);
 }
 
@@ -4751,7 +5062,7 @@ button.download-btn {
   font-weight: 600;
   letter-spacing: 0.09em;
   text-transform: uppercase;
-  color: var(--ink-faint);
+  color: var(--ink-soft);
 }
 
 /*
@@ -4778,7 +5089,7 @@ button.download-btn {
   font-size: 0.68rem;
   letter-spacing: 0.05em;
   text-transform: uppercase;
-  color: var(--ink-faint);
+  color: var(--ink-soft);
 }
 
 .stat-tile-value {
@@ -4795,7 +5106,7 @@ button.download-btn {
 .stat-tile-hint {
   display: block;
   font-size: 0.7rem;
-  color: var(--ink-faint);
+  color: var(--ink-soft);
 }
 
 .analysis-figure {
@@ -4855,13 +5166,13 @@ button.download-btn {
   padding: 1.4rem 0;
   text-align: center;
   font-size: 0.85rem;
-  color: var(--ink-faint);
+  color: var(--ink-soft);
 }
 
 .chart-note {
   margin: 0.45rem 0 0;
   font-size: 0.76rem;
-  color: var(--ink-faint);
+  color: var(--ink-soft);
 }
 
 .chart-note b {

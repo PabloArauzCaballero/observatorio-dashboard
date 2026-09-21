@@ -37,13 +37,16 @@ import type { DensityPoint, Fit, HistoBin, LagPoint, MacroStats } from '@/lib/ma
 type TooltipRender = TooltipContentProps<ValueType, NameType>;
 
 const MOTION = { duration: 700, easing: 'ease-out' } as const;
+/* Mismos ejes y misma rejilla que el resto del tablero, desde los mismos
+   tokens: `--axis-ink` es el gris de rotulo a 4,6:1 y `--grid` el pelo de la
+   rejilla, un paso por encima de la superficie. */
 const AXIS = {
-  stroke: 'var(--ink-faint)',
+  stroke: 'var(--axis-ink)',
   fontSize: 11,
   tickLine: false,
   axisLine: false,
 } as const;
-const GRID = { stroke: 'var(--rule-soft)', vertical: false } as const;
+const GRID = { stroke: 'var(--grid)', vertical: false } as const;
 
 const number = (value: number, decimals = 2): string =>
   value.toLocaleString('es-BO', {
@@ -67,7 +70,7 @@ function TooltipShell({
   note,
 }: {
   label: string;
-  rows: Array<{ name: string; value: string }>;
+  rows: Array<{ name: string; value: string; color?: string }>;
   note?: string;
 }) {
   return (
@@ -75,7 +78,10 @@ function TooltipShell({
       <div className="t-date">{label}</div>
       {rows.map((row) => (
         <div className="t-row" key={row.name}>
-          <span>{row.name}</span>
+          <span>
+            {row.color ? <i className="t-key" style={{ color: row.color }} /> : null}
+            {row.name}
+          </span>
           <strong>{row.value}</strong>
         </div>
       ))}
@@ -155,9 +161,13 @@ export function DensityHistogram({
       <TooltipShell
         label={`${compactNumber(point.from)} → ${compactNumber(point.to)} ${unit}`}
         rows={[
-          { name: 'Años', value: String(point.count) },
+          {
+            name: 'Años',
+            value: String(point.count),
+            color: point.tail ? 'var(--up)' : 'var(--official)',
+          },
           { name: 'Del total', value: `${number((point.count / stats.n) * 100, 1)} %` },
-          { name: 'Densidad', value: number(point.curve, 2) },
+          { name: 'Densidad', value: number(point.curve, 2), color: 'var(--gap)' },
         ]}
         {...(point.tail ? { note: 'Fuera de los bigotes de Tukey' } : {})}
       />
@@ -165,60 +175,109 @@ export function DensityHistogram({
   };
 
   return (
-    <div className="chart-frame">
-      <ResponsiveContainer width="100%" height="100%">
-        <ComposedChart data={data} margin={{ top: 12, right: 16, bottom: 4, left: 4 }}>
-          <defs>
-            <linearGradient id="macroDensityFill" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor="var(--gap)" stopOpacity={0.32} />
-              <stop offset="100%" stopColor="var(--gap)" stopOpacity={0} />
-            </linearGradient>
-          </defs>
-          <CartesianGrid {...GRID} />
-          <XAxis dataKey="label" minTickGap={22} {...AXIS} />
-          <YAxis width={40} allowDecimals={false} {...AXIS} />
-          <Tooltip content={renderTooltip} cursor={{ fill: 'var(--rule-soft)' }} />
-          <Bar
-            dataKey="count"
-            animationDuration={MOTION.duration}
-            animationEasing={MOTION.easing}
-            radius={[3, 3, 0, 0]}
-          >
-            {data.map((bin) => (
-              <Cell
-                key={bin.label}
-                fill={bin.tail ? 'var(--up)' : 'var(--official)'}
-                fillOpacity={bin.tail ? 0.78 : 0.5}
+    <div className="chart-stack">
+      <div className="chart-frame">
+        <ResponsiveContainer width="100%" height="100%">
+          <ComposedChart data={data} margin={{ top: 12, right: 16, bottom: 4, left: 4 }}>
+            <defs>
+              <linearGradient id="macroDensityFill" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor="var(--gap)" stopOpacity={0.12} />
+                <stop offset="100%" stopColor="var(--gap)" stopOpacity={0} />
+              </linearGradient>
+            </defs>
+            <CartesianGrid {...GRID} />
+            <XAxis dataKey="label" minTickGap={22} {...AXIS} />
+            <YAxis width={40} allowDecimals={false} {...AXIS} />
+            <Tooltip content={renderTooltip} cursor={{ fill: 'var(--rule-soft)' }} />
+            <Bar
+              dataKey="count"
+              maxBarSize={28}
+              animationDuration={MOTION.duration}
+              animationEasing={MOTION.easing}
+              radius={[4, 4, 0, 0]}
+            >
+              {/*
+               * Opacas: dos opacidades decian lo mismo que los dos colores y
+               * dejaban el cuerpo de la distribucion a medio camino del fondo.
+               */}
+              {data.map((bin) => (
+                <Cell key={bin.label} fill={bin.tail ? 'var(--up)' : 'var(--official)'} />
+              ))}
+            </Bar>
+            <Line
+              type="monotone"
+              dataKey="curve"
+              stroke="var(--gap)"
+              strokeWidth={2.2}
+              dot={false}
+              animationDuration={MOTION.duration}
+              animationEasing={MOTION.easing}
+            />
+            {/*
+             * Los rotulos van en tinta, no en el color de la linea que rotulan.
+             * «media» escrito en naranja sobre papel blanco es un rotulo que se
+             * lee peor que la propia linea, y el color no aporta nada que la
+             * posicion no diga ya: el rotulo esta encima de su linea.
+             *
+             * La mediana deja de ir en el verde de «a la baja» —que en este
+             * informe es un signo, no un estadistico— y pasa a la tinta, que es
+             * lo que ya usa el violin para la misma raya.
+             */}
+            {meanAt === undefined ? null : (
+              <ReferenceLine
+                x={meanAt}
+                stroke="var(--parallel)"
+                strokeDasharray="4 3"
+                label={{ value: 'media', position: 'top', fill: 'var(--ink-soft)', fontSize: 10 }}
               />
-            ))}
-          </Bar>
-          <Line
-            type="monotone"
-            dataKey="curve"
-            stroke="var(--gap)"
-            strokeWidth={2.2}
-            dot={false}
-            animationDuration={MOTION.duration}
-            animationEasing={MOTION.easing}
+            )}
+            {medianAt === undefined || medianAt === meanAt ? null : (
+              <ReferenceLine
+                x={medianAt}
+                stroke="var(--ink)"
+                label={{ value: 'mediana', position: 'top', fill: 'var(--ink-soft)', fontSize: 10 }}
+              />
+            )}
+          </ComposedChart>
+        </ResponsiveContainer>
+      </div>
+      {/*
+        Cuatro colores llevaban sentido en este dibujo y ninguno estaba
+        nombrado: el lector veia una barra roja y tenia que deducir que era una
+        cola, o pasar el puntero por encima. Quien imprime la pagina no podia
+        deducirlo nunca.
+      */}
+      <ul className="chart-legend">
+        <li>
+          <span className="chart-legend-mark" style={{ background: 'var(--official)' }} />
+          años por intervalo
+        </li>
+        <li>
+          <span className="chart-legend-mark" style={{ background: 'var(--up)' }} />
+          fuera de los bigotes
+        </li>
+        <li>
+          <span
+            className="chart-legend-mark chart-legend-mark-line"
+            style={{ color: 'var(--gap)' }}
           />
-          {meanAt === undefined ? null : (
-            <ReferenceLine
-              x={meanAt}
-              stroke="var(--parallel)"
-              strokeDasharray="4 3"
-              label={{ value: 'media', position: 'top', fill: 'var(--parallel)', fontSize: 10 }}
-            />
-          )}
-          {medianAt === undefined || medianAt === meanAt ? null : (
-            <ReferenceLine
-              x={medianAt}
-              stroke="var(--down)"
-              strokeDasharray="2 3"
-              label={{ value: 'mediana', position: 'top', fill: 'var(--down)', fontSize: 10 }}
-            />
-          )}
-        </ComposedChart>
-      </ResponsiveContainer>
+          densidad
+        </li>
+        <li>
+          <span
+            className="chart-legend-mark chart-legend-mark-line chart-legend-mark-dashed"
+            style={{ color: 'var(--parallel)' }}
+          />
+          media
+        </li>
+        <li>
+          <span
+            className="chart-legend-mark chart-legend-mark-line"
+            style={{ color: 'var(--ink)' }}
+          />
+          mediana
+        </li>
+      </ul>
     </div>
   );
 }
@@ -312,7 +371,7 @@ export function ViolinPlot({
               y={y(tick) + 3.5}
               textAnchor="end"
               fontSize={10}
-              fill="var(--ink-faint)"
+              fill="var(--axis-ink)"
               fontFamily="var(--mono)"
             >
               {compactNumber(tick)}
@@ -353,10 +412,12 @@ export function ViolinPlot({
           strokeWidth={1.2}
           rx={2}
         >
-          <title>
-            RIC {compactNumber(stats.iqr)} {unit} · Q1 {compactNumber(stats.q1)} · Q3{' '}
-            {compactNumber(stats.q3)}
-          </title>
+          {/* Un `<title>` es UNA cadena: interpolado en trozos llegaba como una
+              lista y el navegador se quedaba con parte, así que el globo de la
+              caja se construía mal y React lo avisaba en cada dibujado. */}
+          <title>{`RIC ${compactNumber(stats.iqr)} ${unit} · Q1 ${compactNumber(
+            stats.q1,
+          )} · Q3 ${compactNumber(stats.q3)}`}</title>
         </rect>
         <line
           x1={axis - boxW / 2}
@@ -398,7 +459,7 @@ export function ViolinPlot({
           y={H - 8}
           textAnchor="middle"
           fontSize={10}
-          fill="var(--ink-faint)"
+          fill="var(--axis-ink)"
           fontFamily="var(--sans)"
         >
           {stats.n} observaciones · {outliers.size} atípica{outliers.size === 1 ? '' : 's'}
@@ -581,45 +642,99 @@ export function LagBars({ lags, band, label }: { lags: LagPoint[]; band: number;
     return <p className="analysis-empty">Faltan años para medir la autocorrelación.</p>;
   }
 
+  const rows = lags.map((point) => ({
+    ...point,
+    above: point.correlation >= 0 ? point.correlation : null,
+    below: point.correlation < 0 ? point.correlation : null,
+    /** Dentro de la banda, la barra se apaga a gris en vez de atenuarse. */
+    tone:
+      Math.abs(point.correlation) <= band
+        ? 'var(--series-rest)'
+        : point.correlation >= 0
+          ? 'var(--up)'
+          : 'var(--down)',
+  }));
   const renderTooltip = ({ active, payload }: TooltipRender) => {
     if (!active || !payload?.length) return null;
-    const point = payload[0]?.payload as LagPoint | undefined;
+    const point = payload[0]?.payload as (typeof rows)[number] | undefined;
     if (!point) return null;
     return (
       <TooltipShell
         label={`Rezago de ${point.lag} año${point.lag === 1 ? '' : 's'}`}
-        rows={[{ name: label, value: number(point.correlation, 3) }]}
+        rows={[{ name: label, value: number(point.correlation, 3), color: point.tone }]}
         {...(Math.abs(point.correlation) > band ? { note: 'Fuera de la banda de ruido' } : {})}
       />
     );
   };
 
   return (
-    <div className="chart-frame chart-frame-small">
-      <ResponsiveContainer width="100%" height="100%">
-        <ComposedChart data={lags} margin={{ top: 10, right: 14, bottom: 4, left: 4 }}>
-          <CartesianGrid {...GRID} />
-          <XAxis dataKey="lag" {...AXIS} />
-          <YAxis
-            domain={[-1, 1]}
-            width={40}
-            tickFormatter={(v: number) => number(v, 1)}
-            {...AXIS}
-          />
-          <Tooltip content={renderTooltip} cursor={{ fill: 'var(--rule-soft)' }} />
-          <ReferenceArea y1={-band} y2={band} fill="var(--ink-faint)" fillOpacity={0.12} />
-          <ReferenceLine y={0} stroke="var(--ink-faint)" />
-          <Bar dataKey="correlation" animationDuration={MOTION.duration} radius={[2, 2, 0, 0]}>
-            {lags.map((point) => (
-              <Cell
-                key={point.lag}
-                fill={point.correlation >= 0 ? 'var(--official)' : 'var(--parallel)'}
-                fillOpacity={Math.abs(point.correlation) > band ? 0.85 : 0.32}
-              />
-            ))}
-          </Bar>
-        </ComposedChart>
-      </ResponsiveContainer>
+    <div className="chart-stack">
+      <div className="chart-frame chart-frame-small">
+        <ResponsiveContainer width="100%" height="100%">
+          <ComposedChart data={rows} margin={{ top: 10, right: 14, bottom: 4, left: 4 }}>
+            <CartesianGrid {...GRID} />
+            <XAxis dataKey="lag" {...AXIS} />
+            <YAxis
+              domain={[-1, 1]}
+              width={40}
+              tickFormatter={(v: number) => number(v, 1)}
+              {...AXIS}
+            />
+            <Tooltip content={renderTooltip} cursor={{ fill: 'var(--rule-soft)' }} />
+            <ReferenceArea y1={-band} y2={band} fill="var(--ink-faint)" fillOpacity={0.12} />
+            <ReferenceLine y={0} stroke="var(--axis-ink)" strokeWidth={1} />
+            {/*
+             * El color dice el signo y la saturacion dice si la barra sale de la
+             * banda de ruido. El signo es polaridad —un lado del cero contra el
+             * otro— asi que toma los dos polos de la escala divergente del
+             * informe, no dos identidades sueltas: azul contra naranja eran dos
+             * «series» para algo que es un mas y un menos.
+             *
+             * Y una barra dentro de la banda no se atenua: se apaga a gris. Una
+             * barra al 32 % de opacidad sigue teniendo color, asi que seguia
+             * afirmando un signo que el propio grafico dice que no distingue de
+             * un sorteo.
+             */}
+            {/*
+             * La punta redondeada va al extremo hacia el que crece la barra, y
+             * el radio se declara por serie, así que los dos signos son dos
+             * series sobre una misma pila. Con una sola, las barras negativas
+             * salían redondeadas por el lado del cero — por el extremo que no
+             * es su punta.
+             */}
+            <Bar
+              dataKey="above"
+              stackId="cero"
+              maxBarSize={24}
+              animationDuration={MOTION.duration}
+              radius={[4, 4, 0, 0]}
+            >
+              {rows.map((point) => (
+                <Cell key={point.lag} fill={point.tone} />
+              ))}
+            </Bar>
+            <Bar dataKey="below" stackId="cero" maxBarSize={24} radius={[0, 0, 4, 4]}>
+              {rows.map((point) => (
+                <Cell key={point.lag} fill={point.tone} />
+              ))}
+            </Bar>
+          </ComposedChart>
+        </ResponsiveContainer>
+      </div>
+      <ul className="chart-legend">
+        <li>
+          <span className="chart-legend-mark" style={{ background: 'var(--up)' }} />
+          se parece (correlación positiva)
+        </li>
+        <li>
+          <span className="chart-legend-mark" style={{ background: 'var(--down)' }} />
+          se opone (correlación negativa)
+        </li>
+        <li>
+          <span className="chart-legend-mark" style={{ background: 'var(--series-rest)' }} />
+          dentro de la banda de ruido
+        </li>
+      </ul>
     </div>
   );
 }
@@ -681,14 +796,28 @@ export function VariationHeat({ cells, unit }: { cells: VariationCell[]; unit: s
               // hiperinflación en la serie dejaría todo lo demás en blanco si
               // el reparto fuera lineal.
               const weight = Math.max(0.14, Math.sqrt(Math.abs(cell.change) / peak));
+              /*
+               * Tres pasos por brazo, y mezclados con el PANEL y no con
+               * `transparent`.
+               *
+               * Una mezcla con `transparent` deja un relleno translúcido: el
+               * mismo año se veía de un color sobre el panel y de otro sobre
+               * una fila fijada, y el número escrito encima perdía contraste
+               * sin que nada lo avisara. Mezclado con el color real del panel
+               * el paso es opaco, es el que dice ser, y se puede elegir la
+               * tinta del número por lo oscuro que sea.
+               */
+              const step = weight > 0.72 ? 3 : weight > 0.42 ? 2 : 1;
               const hue = cell.change >= 0 ? 'var(--down)' : 'var(--up)';
+              const mix = [0, 34, 66, 100][step] as number;
               return (
                 <span
                   className="heat-cell heat-cell-filled"
                   key={period}
+                  data-ink={step === 3 ? 'reverse' : 'normal'}
                   title={`${period}: ${cell.change > 0 ? '+' : ''}${number(cell.change, 2)} % anual (${unit})`}
                   style={{
-                    background: `color-mix(in srgb, ${hue} ${Math.round(weight * 100)}%, transparent)`,
+                    background: `color-mix(in srgb, ${hue} ${mix}%, var(--panel))`,
                   }}
                 >
                   {Math.abs(cell.change) >= 100 ? number(cell.change, 0) : number(cell.change, 1)}
@@ -698,20 +827,23 @@ export function VariationHeat({ cells, unit }: { cells: VariationCell[]; unit: s
           </Fragment>
         ))}
       </div>
-      <ul className="chart-legend">
-        <li>
-          <span className="chart-legend-mark" style={{ background: 'var(--down)' }} />
-          año al alza
-        </li>
-        <li>
-          <span className="chart-legend-mark" style={{ background: 'var(--up)' }} />
-          año a la baja
-        </li>
-        <li>
-          <span className="chart-legend-mark" style={{ background: 'var(--rule)' }} />
-          sin lectura
-        </li>
-      </ul>
+      <div className="heat-scale">
+        <span>a la baja</span>
+        <span className="heat-scale-steps">
+          <span style={{ background: 'color-mix(in srgb, var(--up) 100%, var(--panel))' }} />
+          <span style={{ background: 'color-mix(in srgb, var(--up) 66%, var(--panel))' }} />
+          <span style={{ background: 'color-mix(in srgb, var(--up) 34%, var(--panel))' }} />
+          <span style={{ background: 'var(--mid)' }} />
+          <span style={{ background: 'color-mix(in srgb, var(--down) 34%, var(--panel))' }} />
+          <span style={{ background: 'color-mix(in srgb, var(--down) 66%, var(--panel))' }} />
+          <span style={{ background: 'color-mix(in srgb, var(--down) 100%, var(--panel))' }} />
+        </span>
+        <span>al alza</span>
+        <span className="heat-scale-steps" style={{ marginLeft: '0.6rem' }}>
+          <span style={{ background: 'var(--rule-soft)' }} />
+        </span>
+        <span>sin lectura comparable</span>
+      </div>
     </div>
   );
 }

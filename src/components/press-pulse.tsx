@@ -25,10 +25,21 @@ import type { PressCube } from '@/lib/series';
  * audit word by word, which a sentiment model's number is not, and the panel
  * says so rather than presenting a score as a fact about the country's mood.
  *
- * Colour is the signal. Alarm and conflict take the two warning hues the report
- * already uses for a rising gap; improvement takes the falling one. A reader
- * who has learned the palette on the exchange-rate charts reads this strip
- * without a legend.
+ * El color dice el SIGNO, y el icono y la palabra dicen la categoría.
+ *
+ * Antes cada una de las ocho categorías tenía su propio tono, y eran ocho tonos
+ * para ocho cosas que no son ocho identidades independientes: dos de ellas
+ * compartían color con otra, dos más iban en el gris de una nota al margen, y
+ * el conjunto pedía al lector que memorizara ocho colores para leer una tira
+ * que ya viene rotulada palabra por palabra. Ocho clases de color con sentido
+ * es más de las que cualquiera distingue de un vistazo.
+ *
+ * Ahora las tres categorías adversas comparten el cálido de «adverso», la
+ * mejora toma el frío de «a favor», la desinformación toma el ámbar de una
+ * señal aparte, la medida tomada el azul de lo administrado, y lo que no es
+ * ninguna de esas cosas va en gris. El color pasa a contestar de un vistazo la
+ * pregunta que abre el panel —cuánto de la cobertura es adversa— y la categoría
+ * exacta la sigue diciendo el rótulo, que es el canal que no falla.
  */
 
 const TONE: Record<string, { label: string; colour: string; icon: IconName; note: string }> = {
@@ -40,19 +51,19 @@ const TONE: Record<string, { label: string; colour: string; icon: IconName; note
   },
   CONFLICTO: {
     label: 'Conflicto',
-    colour: 'var(--parallel)',
+    colour: 'var(--up)',
     icon: 'rayo',
     note: 'bloqueos, paros, denuncias',
   },
   DETERIORO: {
     label: 'Deterioro',
-    colour: 'var(--gap)',
+    colour: 'var(--up)',
     icon: 'area',
     note: 'caídas, pérdidas, incumplimiento',
   },
   INCERTIDUMBRE: {
     label: 'Incertidumbre',
-    colour: 'var(--ink-faint)',
+    colour: 'var(--series-rest)',
     icon: 'info',
     note: 'rumor, presunto, se evalúa',
   },
@@ -64,7 +75,7 @@ const TONE: Record<string, { label: string; colour: string; icon: IconName; note
   },
   DESINFORMACION: {
     label: 'Desinformación',
-    colour: 'var(--official)',
+    colour: 'var(--series-4)',
     icon: 'escudo',
     note: 'verificado como falso o manipulado',
   },
@@ -79,10 +90,12 @@ const TONE: Record<string, { label: string; colour: string; icon: IconName; note
      * The residual is the largest cell on the strip and must not read as a
      * disabled one. `--rule` is the hairline colour: in dark mode it made the
      * biggest category look switched off, which says the opposite of what four
-     * notes in ten deserve.
+     * notes in ten deserve. `--series-rest` es el gris del «resto» de la
+     * paleta, que está medido para leerse (4,6:1) — `--ink-faint` es el gris de
+     * una nota al margen y no llegaba.
      */
     label: 'Sin marca',
-    colour: 'var(--ink-faint)',
+    colour: 'var(--series-rest)',
     icon: 'cajas',
     note: 'ninguna regla del léxico coincidió',
   },
@@ -229,8 +242,14 @@ export function PressPulse({ cube, selection, span, onPick }: PressPulseProps) {
                 onClick={() => onPick('tone', on ? 'TODOS' : key)}
                 style={{ borderTopColor: entry?.colour ?? 'var(--rule)' }}
               >
-                <span className="tone-top" style={{ color: entry?.colour ?? 'var(--ink-soft)' }}>
-                  <Icon name={entry?.icon ?? 'cajas'} size={14} />
+                <span className="tone-top">
+                  <i
+                    className="tone-icon"
+                    style={{ color: entry?.colour ?? 'var(--ink-soft)' }}
+                    aria-hidden="true"
+                  >
+                    <Icon name={entry?.icon ?? 'cajas'} size={14} />
+                  </i>
                   {entry?.label ?? key}
                 </span>
                 <span className="tone-count">{count.toLocaleString('es-BO')}</span>

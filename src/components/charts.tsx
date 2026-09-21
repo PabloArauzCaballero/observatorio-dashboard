@@ -9,8 +9,10 @@ import {
   CartesianGrid,
   Cell,
   ComposedChart,
+  LabelList,
   Line,
   ReferenceArea,
+  ReferenceDot,
   ReferenceLine,
   ResponsiveContainer,
   Tooltip,
@@ -41,13 +43,52 @@ type TooltipRender = TooltipContentProps<ValueType, NameType>;
 
 /** Shared so a redesign happens in one place, not in six. */
 const MOTION = { duration: 900, easing: 'ease-out' } as const;
+
+/**
+ * Los rótulos del eje son texto, y se leían a 3,8:1.
+ *
+ * `--ink-faint` es el gris de una nota al margen; en una cifra de 11 px pegada
+ * al borde del dibujo es una sugerencia. `--axis-ink` es el mismo gris subido a
+ * 4,6:1, que es el umbral a partir del cual un número pequeño se lee sin
+ * acercarse a la pantalla.
+ */
 const AXIS = {
-  stroke: 'var(--ink-faint)',
+  stroke: 'var(--axis-ink)',
   fontSize: 11,
   tickLine: false,
   axisLine: false,
 } as const;
-const GRID = { stroke: 'var(--rule-soft)', vertical: false } as const;
+
+/** Rejilla: un pelo sólido a un paso de la superficie, nunca discontinua. */
+const GRID = { stroke: 'var(--grid)', vertical: false } as const;
+
+/**
+ * El grosor máximo de una barra.
+ *
+ * Sin tope, una barra ocupa toda su banda y el gráfico se convierte en un muro
+ * de bloques saturados: el dato deja de ser una marca y pasa a ser el fondo.
+ * Con el tope, lo que sobra de la banda es aire, que es lo que separa una
+ * barra de la siguiente sin dibujar nada.
+ */
+const BAR_CAP = 24;
+
+/**
+ * La rendija que separa dos marcas que se tocan.
+ *
+ * Son 2 px del color de la superficie entre los tramos de un apilado. Es el
+ * mecanismo —no un borde alrededor de cada tramo, que añade tinta con peso de
+ * dato— y tiene que medir lo mismo en todo el apilado.
+ */
+const STACK_GAP = { stroke: 'var(--chart-surface)', strokeWidth: 2 } as const;
+
+/**
+ * El anillo de superficie de un punto.
+ *
+ * Un punto de fin de línea cruza la línea de al lado y se pierde; 2 px del
+ * color del panel alrededor lo devuelven. Forma parte del área sensible, no
+ * solo del dibujo.
+ */
+const DOT_RING = { stroke: 'var(--chart-surface)', strokeWidth: 2 } as const;
 
 /**
  * A frame height that follows the screen instead of the figure it was written
@@ -68,47 +109,62 @@ const framed = (base: number): string =>
   `clamp(${base}px, ${((base / 900) * 100).toFixed(1)}vh, ${Math.round(base * 1.55)}px)`;
 
 /**
- * The step between two round ticks, chosen so an axis of `max` carries at most
- * `count` of them: 1, 2, 2,5 or 5 times a power of ten, and nothing else.
+ * Las casillas de identidad, en su orden, y ese orden NO se toca.
+ *
+ * Es la única lista de la que puede salir el color de una serie. Se asignan en
+ * orden y no se ciclan: la séptima serie no inventa un color —dos colores
+ * generados son indistinguibles bajo daltonismo y rompen la validación— sino
+ * que se pliega en «Otros», que es el gris de `--series-rest`.
  */
-function niceStep(max: number, count: number): number {
-  if (!(max > 0)) return 1;
-  const magnitude = 10 ** Math.floor(Math.log10(max));
-  for (const scale of [magnitude / 100, magnitude / 10, magnitude, magnitude * 10]) {
-    for (const factor of [1, 2, 2.5, 5]) {
-      const step = scale * factor;
-      if (step > 0 && max / step <= count) return step;
-    }
-  }
-  return max;
+export const SERIES = [
+  'var(--series-1)',
+  'var(--series-2)',
+  'var(--series-3)',
+  'var(--series-4)',
+  'var(--series-5)',
+  'var(--series-6)',
+] as const;
+
+/** El color de la casilla `index`, o el gris del resto si ya no quedan. */
+export const seriesTone = (index: number): string => SERIES[index] ?? 'var(--series-rest)';
+
+export interface LegendItem {
+  color: string;
+  label: string;
+  /** `line` para las series que son línea; `fill` (el defecto) para rellenos. */
+  shape?: 'fill' | 'line';
+  /** Marca discontinua, para la serie que el gráfico dibuja discontinua. */
+  dashed?: boolean;
 }
 
 /**
- * Round ticks that stop before the data does, for an axis that ends at the data.
+ * La clave que nombra cada color, bajo el dibujo.
  *
- * Recharts picks its own top by rounding the largest value up to its next nice
- * number, and on a ranking that is ink thrown away: 4.036 mentions became an
- * axis that ran to 6.000, so the longest bar in the chart — the one the whole
- * panel is about — filled two thirds of the width and the last third was empty
- * on every ranking in the report. Here the axis ends exactly at the largest
- * value and only the labelled ticks stay round, which is the same reading with
- * the width put back.
+ * Está SIEMPRE que haya dos o más series, y no como adorno: el color es el
+ * único canal que puede fallarle a un lector: daltonismo, una impresión en
+ * gris, una captura de pantalla recomprimida. La leyenda es el canal que no
+ * falla, y las etiquetas directas sobre las marcas la complementan en lugar de
+ * sustituirla. Una serie sola NO lleva leyenda —el título ya la nombra y una
+ * caja con un solo cuadrito repite el título y gasta sitio.
+ *
+ * La marca imita la marca del gráfico: cuadrado para un relleno, trazo para una
+ * línea, discontinuo si la línea lo es.
  */
-function niceTicks(max: number, count = 6): number[] {
-  if (!(max > 0)) return [0];
-  const step = niceStep(max, count);
-  const ticks: number[] = [];
-  for (let at = 0; at <= max + step / 1000; at += step) ticks.push(Number(at.toPrecision(12)));
-  return ticks;
-}
-
-/** The key that names each colour of a stacked chart, under the drawing. */
-function ChartLegend({ items }: { items: ReadonlyArray<{ color: string; label: string }> }) {
+function ChartLegend({ items }: { items: ReadonlyArray<LegendItem> }) {
   return (
     <ul className="chart-legend">
       {items.map((item) => (
         <li key={item.label}>
-          <span className="chart-legend-mark" style={{ background: item.color }} />
+          <span
+            className={
+              item.shape === 'line'
+                ? `chart-legend-mark chart-legend-mark-line${
+                    item.dashed ? ' chart-legend-mark-dashed' : ''
+                  }`
+                : 'chart-legend-mark'
+            }
+            style={item.shape === 'line' ? { color: item.color } : { background: item.color }}
+          />
           {item.label}
         </li>
       ))}
@@ -338,13 +394,31 @@ function Frame({ children, tall }: { children: React.ReactElement; tall?: boolea
   );
 }
 
+export interface TooltipRow {
+  name: string;
+  value: string;
+  /** El color de la serie, dibujado como trazo corto delante del nombre. */
+  color?: string;
+}
+
+/**
+ * Lo que dice el gráfico cuando el lector apunta.
+ *
+ * Tres reglas, y ninguna es de estilo. La cifra manda y el rótulo la sigue,
+ * porque quien apunta ya sabe qué serie mira y lo que le falta es el número.
+ * La serie se identifica con un trazo de su color delante del nombre, no
+ * pintando el nombre —un ámbar como texto no se lee—. Y el tooltip AÑADE: todo
+ * lo que enseña está también en el eje, en una etiqueta directa o en la tabla,
+ * porque un valor que solo existe al pasar el ratón no existe para quien lee
+ * con teclado, imprime o mira una captura.
+ */
 function TooltipShell({
   label,
   rows,
   note,
 }: {
   label: string;
-  rows: Array<{ name: string; value: string }>;
+  rows: Array<TooltipRow>;
   note?: string;
 }) {
   return (
@@ -352,7 +426,10 @@ function TooltipShell({
       <div className="t-date">{label}</div>
       {rows.map((row) => (
         <div className="t-row" key={row.name}>
-          <span>{row.name}</span>
+          <span>
+            {row.color ? <i className="t-key" style={{ color: row.color }} /> : null}
+            {row.name}
+          </span>
           <strong>{row.value}</strong>
         </div>
       ))}
@@ -360,6 +437,21 @@ function TooltipShell({
     </div>
   );
 }
+
+/**
+ * Las tres series del tipo de cambio, nombradas.
+ *
+ * Este gráfico llevaba tres líneas y ninguna clave: las dos del paralelo
+ * comparten tono y se distinguen solo por el trazo, así que un lector que
+ * llegaba por primera vez tenía que pasar el ratón por encima para saber cuál
+ * era la compra y cuál la venta —y quien imprimía la página no podía saberlo
+ * nunca—.
+ */
+const RATE_KEY: ReadonlyArray<LegendItem> = [
+  { color: 'var(--official)', label: 'Oficial', shape: 'line' },
+  { color: 'var(--parallel)', label: 'Paralelo · compra', shape: 'line' },
+  { color: 'var(--parallel)', label: 'Paralelo · venta', shape: 'line', dashed: true },
+];
 
 /**
  * A rate against time, with the market's two published sides and, where it
@@ -397,12 +489,19 @@ export function RateChart({
     if (!active || !payload?.length || typeof label !== 'string') return null;
     const point = payload[0]?.payload as RatePoint | undefined;
     const rows = [
-      { name: 'Paralelo buy', value: point?.parallelBuy },
-      { name: 'Paralelo sell', value: point?.parallelSell },
-      { name: 'Oficial', value: point?.official },
+      { name: 'Paralelo compra', value: point?.parallelBuy, color: 'var(--parallel)' },
+      { name: 'Paralelo venta', value: point?.parallelSell, color: 'var(--parallel)' },
+      { name: 'Oficial', value: point?.official, color: 'var(--official)' },
     ]
-      .filter((row): row is { name: string; value: number } => typeof row.value === 'number')
-      .map((row) => ({ name: row.name, value: `${number(row.value, 4)} Bs/USD` }));
+      .filter(
+        (row): row is { name: string; value: number; color: string } =>
+          typeof row.value === 'number',
+      )
+      .map((row) => ({
+        name: row.name,
+        value: `${number(row.value, 4)} Bs/USD`,
+        color: row.color,
+      }));
 
     return (
       <TooltipShell
@@ -413,8 +512,22 @@ export function RateChart({
     );
   };
 
+  /*
+   * El punto del final de cada línea, con su anillo de superficie.
+   *
+   * Es el único punto que se dibuja: marcar los mil y pico días llenaría el
+   * gráfico de puntos y no diría nada, pero el último es la lectura de hoy —la
+   * cifra por la que se abre este panel— y sin él la línea se acaba en el aire.
+   * El anillo del color del panel lo separa de la línea que cruza por detrás.
+   */
+  const last = shown.at(-1);
+  const endDot = (key: 'official' | 'parallelBuy', color: string) =>
+    last && typeof last[key] === 'number' ? (
+      <ReferenceDot x={last.date} y={last[key] as number} r={4.5} fill={color} {...DOT_RING} />
+    ) : null;
+
   return (
-    <>
+    <div className="chart-stack">
       <ZoomExit zoom={zoom} format={(label) => longDate.format(asDate(label))} />
       <Frame {...(tall ? { tall: true } : {})}>
         <ComposedChart
@@ -426,8 +539,13 @@ export function RateChart({
           onMouseLeave={zoom.finish}
         >
           <defs>
+            {/*
+             * Un lavado, no un bloque. El relleno de un área está para decir
+             * de qué lado del eje vive la línea, no para competir con ella: a
+             * 18 % el azul pesaba más que el trazo que es el dato.
+             */}
             <linearGradient id="fillOfficial" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor="var(--official)" stopOpacity={0.18} />
+              <stop offset="0%" stopColor="var(--official)" stopOpacity={0.1} />
               <stop offset="100%" stopColor="var(--official)" stopOpacity={0} />
             </linearGradient>
           </defs>
@@ -450,7 +568,7 @@ export function RateChart({
           <Line
             type="monotone"
             dataKey="parallelBuy"
-            name="Paralelo buy"
+            name="Paralelo compra"
             stroke="var(--parallel)"
             strokeWidth={2}
             dot={false}
@@ -461,19 +579,22 @@ export function RateChart({
           <Line
             type="monotone"
             dataKey="parallelSell"
-            name="Paralelo sell"
+            name="Paralelo venta"
             stroke="var(--parallel)"
-            strokeWidth={1.1}
+            strokeWidth={1.4}
             strokeDasharray="4 3"
             dot={false}
             connectNulls
             animationDuration={MOTION.duration}
             animationEasing={MOTION.easing}
           />
+          {endDot('official', 'var(--official)')}
+          {endDot('parallelBuy', 'var(--parallel)')}
           <ZoomBand zoom={zoom} />
         </ComposedChart>
       </Frame>
-    </>
+      <ChartLegend items={RATE_KEY} />
+    </div>
   );
 }
 
@@ -506,16 +627,20 @@ export function GapChart({ data, tall }: { data: GapChartPoint[]; tall?: boolean
         >
           <defs>
             <linearGradient id="fillGap" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor="var(--gap)" stopOpacity={0.28} />
-              <stop offset="100%" stopColor="var(--gap)" stopOpacity={0.02} />
+              <stop offset="0%" stopColor="var(--gap)" stopOpacity={0.12} />
+              <stop offset="100%" stopColor="var(--gap)" stopOpacity={0} />
             </linearGradient>
           </defs>
           <CartesianGrid {...GRID} />
           <XAxis dataKey="date" tickFormatter={shortLabel} minTickGap={52} {...AXIS} />
           <YAxis width={54} tickFormatter={(value) => `${number(value, 0)}%`} {...AXIS} />
           <Tooltip content={renderTooltip} cursor={{ stroke: 'var(--rule)', strokeWidth: 1 }} />
-          {/* Parity is a real reference here, unlike on a rate axis. */}
-          <ReferenceLine y={0} stroke="var(--ink-faint)" strokeDasharray="3 3" />
+          {/*
+           * Parity is a real reference here, unlike on a rate axis — y es una
+           * regla del eje, no un umbral que alguien eligió, así que va sólida:
+           * el discontinuo dice «límite» y aquí solo dice «cero».
+           */}
+          <ReferenceLine y={0} stroke="var(--axis-ink)" strokeWidth={1} />
           <Area
             type="monotone"
             dataKey="gapPercent"
@@ -553,8 +678,8 @@ export function SpreadChart({ data }: { data: SpreadPoint[] }) {
       <ComposedChart data={data} margin={{ top: 10, right: 14, bottom: 4, left: 4 }}>
         <defs>
           <linearGradient id="fillSpread" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor="var(--parallel)" stopOpacity={0.24} />
-            <stop offset="100%" stopColor="var(--parallel)" stopOpacity={0.02} />
+            <stop offset="0%" stopColor="var(--parallel)" stopOpacity={0.12} />
+            <stop offset="100%" stopColor="var(--parallel)" stopOpacity={0} />
           </linearGradient>
         </defs>
         <CartesianGrid {...GRID} />
@@ -630,7 +755,7 @@ export function MacroChart({
             <YAxis domain={domain} width={46} tickFormatter={compact} {...AXIS} />
             <Tooltip content={renderTooltip} cursor={{ stroke: 'var(--rule)', strokeWidth: 1 }} />
             {domain[0] < 0 ? (
-              <ReferenceLine y={0} stroke="var(--ink-faint)" strokeDasharray="3 3" />
+              <ReferenceLine y={0} stroke="var(--axis-ink)" strokeWidth={1} />
             ) : null}
             <Line
               type="monotone"
@@ -754,8 +879,8 @@ export function SeriesChart({
           >
             <defs>
               <linearGradient id={gradientId} x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stopColor={tone} stopOpacity={0.3} />
-                <stop offset="100%" stopColor={tone} stopOpacity={0.02} />
+                <stop offset="0%" stopColor={tone} stopOpacity={0.12} />
+                <stop offset="100%" stopColor={tone} stopOpacity={0} />
               </linearGradient>
             </defs>
             <CartesianGrid {...GRID} />
@@ -767,9 +892,7 @@ export function SeriesChart({
               {...AXIS}
             />
             <Tooltip content={renderTooltip} cursor={{ stroke: 'var(--rule)', strokeWidth: 1 }} />
-            {zeroLine ? (
-              <ReferenceLine y={0} stroke="var(--ink-faint)" strokeDasharray="3 3" />
-            ) : null}
+            {zeroLine ? <ReferenceLine y={0} stroke="var(--axis-ink)" strokeWidth={1} /> : null}
             {boundary ? (
               <ReferenceLine
                 x={boundary}
@@ -784,10 +907,17 @@ export function SeriesChart({
               />
             ) : null}
             {kind === 'bar' ? (
+              /*
+               * Opaca y con tope de grosor, no traslúcida y a toda la banda.
+               * Bajar la opacidad de una barra para «suavizarla» la pone a
+               * medio camino del fondo y hace que dos barras que se solapan
+               * mientan sobre su valor; lo que la suaviza es ser delgada.
+               */
               <Bar
                 dataKey="value"
                 fill={tone}
-                fillOpacity={0.75}
+                maxBarSize={BAR_CAP}
+                radius={[4, 4, 0, 0]}
                 isAnimationActive
                 animationDuration={MOTION.duration}
                 animationEasing={MOTION.easing}
@@ -843,34 +973,57 @@ export function Histogram({ data }: { data: HistogramBucket[] }) {
     return (
       <TooltipShell
         label={`${point.bin} %`}
-        rows={[{ name: 'Días', value: String(point.count) }]}
+        rows={[
+          {
+            name: point.tail ? 'Días (cola inferior)' : 'Días',
+            value: String(point.count),
+            color: point.tail ? 'var(--up)' : 'var(--official)',
+          },
+        ]}
         {...(point.tail ? { note: 'Cola inferior (5 %)' } : {})}
       />
     );
   };
 
   return (
-    <div className="chart-frame">
-      <ResponsiveContainer width="100%" height="100%">
-        <ComposedChart data={data} margin={{ top: 10, right: 14, bottom: 4, left: 4 }}>
-          <CartesianGrid {...GRID} />
-          <XAxis dataKey="bin" minTickGap={26} {...AXIS} />
-          <YAxis width={44} allowDecimals={false} {...AXIS} />
-          <Tooltip content={renderTooltip} cursor={{ fill: 'var(--rule-soft)' }} />
-          <Bar dataKey="count" animationDuration={MOTION.duration} animationEasing={MOTION.easing}>
-            {data.map((bucket) => (
-              <Cell
-                key={bucket.bin}
-                fill={bucket.tail ? 'var(--up)' : 'var(--official)'}
-                fillOpacity={bucket.tail ? 0.85 : 0.6}
-              />
-            ))}
-          </Bar>
-        </ComposedChart>
-      </ResponsiveContainer>
+    <div className="chart-stack">
+      <div className="chart-frame">
+        <ResponsiveContainer width="100%" height="100%">
+          <ComposedChart data={data} margin={{ top: 10, right: 14, bottom: 4, left: 4 }}>
+            <CartesianGrid {...GRID} />
+            <XAxis dataKey="bin" minTickGap={26} {...AXIS} />
+            <YAxis width={44} allowDecimals={false} {...AXIS} />
+            <Tooltip content={renderTooltip} cursor={{ fill: 'var(--rule-soft)' }} />
+            <Bar
+              dataKey="count"
+              maxBarSize={BAR_CAP}
+              radius={[4, 4, 0, 0]}
+              animationDuration={MOTION.duration}
+              animationEasing={MOTION.easing}
+            >
+              {data.map((bucket) => (
+                /*
+                 * Énfasis, no dos series: la cola es el hallazgo y el resto es
+                 * el contexto contra el que se lee. Las dos opacidades que
+                 * había antes decían lo mismo dos veces y dejaban el cuerpo de
+                 * la distribución medio borrado; el peso lo lleva el color.
+                 */
+                <Cell key={bucket.bin} fill={bucket.tail ? 'var(--up)' : 'var(--official)'} />
+              ))}
+            </Bar>
+          </ComposedChart>
+        </ResponsiveContainer>
+      </div>
+      <ChartLegend items={TAIL_KEY} />
     </div>
   );
 }
+
+/** Los dos colores del histograma, nombrados bajo el dibujo. */
+const TAIL_KEY: ReadonlyArray<LegendItem> = [
+  { color: 'var(--up)', label: 'Cola inferior (peor 5 % de las jornadas)' },
+  { color: 'var(--official)', label: 'Resto de las jornadas' },
+];
 
 export interface CandlePoint {
   period: string;
@@ -898,6 +1051,7 @@ export function YearCandles({ data, unit }: { data: CandlePoint[]; unit: string 
 
   const width = 1000;
   const height = 132;
+  const covered = `${data[0]?.period ?? ''} a ${data.at(-1)?.period ?? ''}`;
   const values = data.flatMap((point) => [point.open, point.close]);
   const low = Math.min(...values);
   const high = Math.max(...values);
@@ -923,6 +1077,7 @@ export function YearCandles({ data, unit }: { data: CandlePoint[]; unit: string 
         viewBox={`0 0 ${width} ${height}`}
         preserveAspectRatio="none"
         role="img"
+        aria-label={`Cambio anual de la serie, ${data.length} años, de ${covered}, en ${unit}. Cada vela va del nivel del año anterior al de ese año.`}
         onMouseLeave={() => setHover(null)}
       >
         <line x1="0" y1={height - pad} x2={width} y2={height - pad} className="candle-axis" />
@@ -1042,6 +1197,7 @@ export function DayCandles({ data, unit }: { data: DayCandle[]; unit: string }) 
    */
   const width = 1000;
   const height = 260;
+  const covered = `${data[0]?.date ?? ''} a ${data.at(-1)?.date ?? ''}`;
   const values = data.flatMap((point) => [point.high, point.low, point.open, point.close]);
   const low = Math.min(...values);
   const high = Math.max(...values);
@@ -1062,6 +1218,7 @@ export function DayCandles({ data, unit }: { data: DayCandle[]; unit: string }) 
         viewBox={`0 0 ${width} ${height}`}
         preserveAspectRatio="none"
         role="img"
+        aria-label={`Una vela por jornada, ${data.length} jornadas, de ${covered}, en ${unit}. El cuerpo va del punto medio de la jornada anterior al de esta; la mecha es la horquilla publicada.`}
         onMouseLeave={() => setHover(null)}
       >
         {data.map((point, index) => {
@@ -1175,6 +1332,17 @@ export interface ShareSlice {
  * Horizontal because the categories are Spanish phrases: a vertical axis would
  * either truncate them or turn them sideways. Ranked because the order is the
  * reading - nobody asks what share Instagram took without asking who took more.
+ *
+ * La cifra va en la punta de cada barra, y por eso el eje de valores ya no está
+ * dibujado: un eje numérico existe para dar los valores que no se rotularon, y
+ * aquí están todos rotulados. Dibujarlo además era pedirle al lector que
+ * midiera contra una rejilla lo que ya tenía escrito al lado.
+ *
+ * Cuando una fila va marcada, el gráfico pasa a la forma de énfasis: la marcada
+ * se queda con el color y TODAS las demás bajan al gris de contexto. Antes la
+ * marcada se pintaba de rojo, que en este informe significa «adverso», así que
+ * elegir una familia en el buscador la teñía de alarma sin que nadie lo hubiera
+ * medido.
  */
 export function ShareBars({
   data,
@@ -1189,6 +1357,12 @@ export function ShareBars({
 }) {
   const rows = [...data].sort((left, right) => right.value - left.value);
   const peak = rows.reduce((highest, row) => Math.max(highest, row.value), 0);
+  const marked = rows.some((row) => row.emphasis);
+  /** Un decimal donde cambia algo, ninguno donde la cifra son miles. */
+  const decimals = peak >= 100 ? 0 : 1;
+  const say = (value: number): string =>
+    unit === '%' ? `${number(value, decimals)} %` : number(value, decimals);
+
   const renderTooltip = ({ active, payload }: TooltipRender) => {
     if (!active || !payload?.length) return null;
     const point = payload[0]?.payload as ShareSlice | undefined;
@@ -1197,7 +1371,11 @@ export function ShareBars({
       <TooltipShell
         label={point.name}
         rows={[
-          { name: 'Valor', value: `${number(point.value, 1)} ${unit}` },
+          {
+            name: 'Valor',
+            value: `${number(point.value, 1)} ${unit}`,
+            color: marked && !point.emphasis ? 'var(--series-rest)' : tone,
+          },
           ...(point.parts ?? []).map((part) => ({
             name: part.name,
             value: `${number(part.value, 0)}${part.unit ? ` ${part.unit}` : ''}`,
@@ -1211,15 +1389,9 @@ export function ShareBars({
   return (
     <div className="chart-frame" style={{ height: framed(height) }}>
       <ResponsiveContainer width="100%" height="100%">
-        <BarChart data={rows} layout="vertical" margin={{ top: 4, right: 18, bottom: 0, left: 4 }}>
-          <CartesianGrid {...GRID} horizontal={false} vertical />
-          <XAxis
-            type="number"
-            domain={[0, peak > 0 ? peak : 1]}
-            ticks={niceTicks(peak)}
-            tickFormatter={(value: number) => number(value, 0)}
-            {...AXIS}
-          />
+        {/* El margen derecho es el sitio donde vive la cifra de la barra más larga. */}
+        <BarChart data={rows} layout="vertical" margin={{ top: 4, right: 56, bottom: 0, left: 4 }}>
+          <XAxis type="number" domain={[0, peak > 0 ? peak : 1]} hide />
           {/*
            * `auto`, and not the 172 pixels this column used to be fixed at: a
            * fixed column is wrong in both directions at once. «Actividad
@@ -1232,12 +1404,24 @@ export function ShareBars({
           <Tooltip content={renderTooltip} cursor={{ fill: 'var(--rule-soft)' }} />
           <Bar
             dataKey="value"
-            radius={[0, 3, 3, 0]}
+            maxBarSize={BAR_CAP}
+            radius={[0, 4, 4, 0]}
             animationDuration={MOTION.duration}
             animationEasing={MOTION.easing}
           >
+            <LabelList
+              dataKey="value"
+              position="right"
+              offset={8}
+              fontSize={11}
+              fill="var(--ink-soft)"
+              formatter={(value: unknown) => (typeof value === 'number' ? say(value) : '')}
+            />
             {rows.map((row) => (
-              <Cell key={row.name} fill={row.emphasis ? 'var(--up)' : tone} />
+              <Cell
+                key={row.name}
+                fill={marked ? (row.emphasis ? tone : 'var(--series-rest)') : tone}
+              />
             ))}
           </Bar>
         </BarChart>
@@ -1284,47 +1468,80 @@ export function ReachChart({
   };
 
   return (
-    <div className="chart-frame" style={{ height: framed(height) }}>
-      <ResponsiveContainer width="100%" height="100%">
-        <BarChart data={data} layout="vertical" margin={{ top: 4, right: 46, bottom: 0, left: 4 }}>
-          <CartesianGrid {...GRID} horizontal={false} vertical />
-          <XAxis type="number" tickFormatter={millions} {...AXIS} />
-          <YAxis type="category" dataKey="platform" width={96} {...AXIS} />
-          <Tooltip content={renderTooltip} cursor={{ fill: 'var(--rule-soft)' }} />
-          {ceiling === null ? null : (
-            <ReferenceLine
-              x={ceiling}
-              stroke="var(--ink)"
-              strokeDasharray="4 3"
-              /*
-               * Bottom, not top. The line falls where the tallest bar is, and
-               * a label there sat on a dark fill in pale ink. The short bars
-               * leave the foot of the plot empty on both sides of it.
-               */
-              label={{
-                value: `${millions(ceiling)} internautas`,
-                position: 'insideBottomLeft',
-                fill: 'var(--ink-soft)',
-                fontSize: 11,
-                offset: 10,
-              }}
-            />
-          )}
-          <Bar
-            dataKey="value"
-            radius={[0, 3, 3, 0]}
-            animationDuration={MOTION.duration}
-            animationEasing={MOTION.easing}
+    <div className="chart-stack">
+      <div className="chart-frame" style={{ height: framed(height) }}>
+        <ResponsiveContainer width="100%" height="100%">
+          <BarChart
+            data={data}
+            layout="vertical"
+            margin={{ top: 4, right: 64, bottom: 0, left: 4 }}
           >
-            {data.map((row) => (
-              <Cell key={row.platform} fill={row.exceeds ? 'var(--up)' : 'var(--official)'} />
-            ))}
-          </Bar>
-        </BarChart>
-      </ResponsiveContainer>
+            <XAxis type="number" hide />
+            <YAxis type="category" dataKey="platform" width={96} {...AXIS} />
+            <Tooltip content={renderTooltip} cursor={{ fill: 'var(--rule-soft)' }} />
+            {ceiling === null ? null : (
+              <ReferenceLine
+                x={ceiling}
+                stroke="var(--ink)"
+                /*
+                 * Discontinua, y aquí sí: esta línea no es el eje, es un techo
+                 * medido aparte contra el que se leen las barras. El trazo
+                 * partido es exactamente lo que distingue un umbral de una
+                 * regla del dibujo.
+                 */
+                strokeDasharray="4 3"
+                /*
+                 * Bottom, not top. The line falls where the tallest bar is, and
+                 * a label there sat on a dark fill in pale ink. The short bars
+                 * leave the foot of the plot empty on both sides of it.
+                 */
+                label={{
+                  value: `${millions(ceiling)} internautas`,
+                  position: 'insideBottomLeft',
+                  fill: 'var(--ink-soft)',
+                  fontSize: 11,
+                  offset: 10,
+                }}
+              />
+            )}
+            <Bar
+              dataKey="value"
+              maxBarSize={BAR_CAP}
+              radius={[0, 4, 4, 0]}
+              animationDuration={MOTION.duration}
+              animationEasing={MOTION.easing}
+            >
+              <LabelList
+                dataKey="value"
+                position="right"
+                offset={8}
+                fontSize={11}
+                fill="var(--ink-soft)"
+                formatter={(value: unknown) => (typeof value === 'number' ? millions(value) : '')}
+              />
+              {data.map((row) => (
+                <Cell key={row.platform} fill={row.exceeds ? 'var(--up)' : 'var(--official)'} />
+              ))}
+            </Bar>
+          </BarChart>
+        </ResponsiveContainer>
+      </div>
+      <ChartLegend items={REACH_KEY} />
     </div>
   );
 }
+
+/**
+ * Los dos colores del alcance, nombrados.
+ *
+ * El hallazgo del panel es cuáles barras pasan el techo, y eso se estaba
+ * diciendo solo con el color: quien no distingue el rojo del azul —o quien
+ * imprime la página— veía un ranking y no el hallazgo.
+ */
+const REACH_KEY: ReadonlyArray<LegendItem> = [
+  { color: 'var(--up)', label: 'Declara más alcance que internautas hay en el país' },
+  { color: 'var(--official)', label: 'Dentro de los internautas del país' },
+];
 
 export interface StackedRow {
   name: string;
@@ -1353,9 +1570,9 @@ export function StackedBars({ data, height = 200 }: { data: StackedRow[]; height
       <TooltipShell
         label={String(label)}
         rows={[
-          { name: 'Informal', value: `${number(point.informal, 0)} %` },
-          { name: 'Mixto', value: `${number(point.mixto, 0)} %` },
-          { name: 'Formal', value: `${number(point.formal, 0)} %` },
+          { name: 'Informal', value: `${number(point.informal, 0)} %`, color: 'var(--ord-1)' },
+          { name: 'Mixto', value: `${number(point.mixto, 0)} %`, color: 'var(--ord-2)' },
+          { name: 'Formal', value: `${number(point.formal, 0)} %`, color: 'var(--ord-3)' },
         ]}
         note={`Las penetraciones suman ${number(total, 0)} % porque un hogar compra en varios canales`}
       />
@@ -1363,33 +1580,67 @@ export function StackedBars({ data, height = 200 }: { data: StackedRow[]; height
   };
 
   return (
-    <div className="chart-frame" style={{ height: framed(height) }}>
-      <ResponsiveContainer width="100%" height="100%">
-        <BarChart data={data} layout="vertical" margin={{ top: 4, right: 24, bottom: 0, left: 4 }}>
-          <CartesianGrid {...GRID} horizontal={false} vertical />
-          <XAxis type="number" tickFormatter={(value: number) => number(value, 0)} {...AXIS} />
-          <YAxis type="category" dataKey="name" width={128} {...AXIS} />
-          <Tooltip content={renderTooltip} cursor={{ fill: 'var(--rule-soft)' }} />
-          <Bar
-            dataKey="informal"
-            stackId="mix"
-            fill="var(--up)"
-            animationDuration={MOTION.duration}
-            animationEasing={MOTION.easing}
-          />
-          <Bar dataKey="mixto" stackId="mix" fill="var(--parallel)" animationDuration={0} />
-          <Bar
-            dataKey="formal"
-            stackId="mix"
-            fill="var(--official)"
-            radius={[0, 3, 3, 0]}
-            animationDuration={0}
-          />
-        </BarChart>
-      </ResponsiveContainer>
+    <div className="chart-stack">
+      <div className="chart-frame" style={{ height: framed(height) }}>
+        <ResponsiveContainer width="100%" height="100%">
+          <BarChart
+            data={data}
+            layout="vertical"
+            margin={{ top: 4, right: 24, bottom: 0, left: 4 }}
+          >
+            <CartesianGrid {...GRID} horizontal={false} vertical />
+            <XAxis type="number" tickFormatter={(value: number) => number(value, 0)} {...AXIS} />
+            <YAxis type="category" dataKey="name" width={128} {...AXIS} />
+            <Tooltip content={renderTooltip} cursor={{ fill: 'var(--rule-soft)' }} />
+            {/*
+             * Informal, mixto, formal es una escala CON orden: cambiar los tres
+             * de sitio cambia lo que dice la barra. Por eso los tres tramos son
+             * un solo tono en tres luminosidades y no tres colores distintos —el
+             * orden se ve en el color—. Antes el tramo informal iba en el rojo
+             * de «adverso», que convertía una descripción de canales de compra
+             * en un juicio, y el mixto y el formal eran dos identidades sin
+             * relación entre sí.
+             */}
+            <Bar
+              dataKey="informal"
+              stackId="mix"
+              fill="var(--ord-1)"
+              maxBarSize={BAR_CAP}
+              {...STACK_GAP}
+              animationDuration={MOTION.duration}
+              animationEasing={MOTION.easing}
+            />
+            <Bar
+              dataKey="mixto"
+              stackId="mix"
+              fill="var(--ord-2)"
+              maxBarSize={BAR_CAP}
+              {...STACK_GAP}
+              animationDuration={0}
+            />
+            <Bar
+              dataKey="formal"
+              stackId="mix"
+              fill="var(--ord-3)"
+              maxBarSize={BAR_CAP}
+              {...STACK_GAP}
+              radius={[0, 4, 4, 0]}
+              animationDuration={0}
+            />
+          </BarChart>
+        </ResponsiveContainer>
+      </div>
+      <ChartLegend items={CHANNEL_KEY} />
     </div>
   );
 }
+
+/** Los tres tramos del apilado, en el orden en el que están apilados. */
+const CHANNEL_KEY: ReadonlyArray<LegendItem> = [
+  { color: 'var(--ord-1)', label: 'Informal' },
+  { color: 'var(--ord-2)', label: 'Mixto' },
+  { color: 'var(--ord-3)', label: 'Formal' },
+];
 
 export interface DivergingRow {
   name: string;
@@ -1402,9 +1653,15 @@ export interface DivergingRow {
  *
  * Bars and a zero line rather than two series side by side: the quantity here
  * is the difference itself, and drawing the two levels would invite the reader
- * to compare heights and miss it. Red above the reference and green below is
- * this report's own convention, not a traffic light — the same one the exchange
- * rate uses, where a figure over the measured series is the one to slow down on.
+ * to compare heights and miss it. Por encima de la referencia es el color
+ * cálido y por debajo el frío: es la convención del propio informe, no un
+ * semáforo —la misma del tipo de cambio, donde una cifra por encima de la serie
+ * medida es la que obliga a frenar—.
+ *
+ * El polo frío era verde. Rojo contra verde es el único par que un lector
+ * daltónico no puede separar, y aquí el color es la mitad de la lectura, así
+ * que el frío pasó a verde azulado: misma lectura, y los dos polos se
+ * distinguen bajo protanopía y deuteranopía.
  */
 export function DivergingBars({
   data,
@@ -1415,7 +1672,13 @@ export function DivergingBars({
   unit?: string;
   height?: number;
 }) {
-  const rows = [...data].sort((left, right) => right.value - left.value);
+  const rows = [...data]
+    .sort((left, right) => right.value - left.value)
+    .map((row) => ({
+      ...row,
+      above: row.value >= 0 ? row.value : null,
+      below: row.value < 0 ? row.value : null,
+    }));
   const renderTooltip = ({ active, payload }: TooltipRender) => {
     if (!active || !payload?.length) return null;
     const point = payload[0]?.payload as DivergingRow | undefined;
@@ -1425,8 +1688,9 @@ export function DivergingBars({
         label={point.name}
         rows={[
           {
-            name: 'Distancia',
+            name: point.value >= 0 ? 'Por encima' : 'Por debajo',
             value: `${point.value > 0 ? '+' : ''}${number(point.value, 1)} ${unit}`,
+            color: point.value >= 0 ? 'var(--up)' : 'var(--down)',
           },
         ]}
         {...(point.meta ? { note: point.meta } : {})}
@@ -1435,28 +1699,66 @@ export function DivergingBars({
   };
 
   return (
-    <div className="chart-frame" style={{ height: framed(height) }}>
-      <ResponsiveContainer width="100%" height="100%">
-        <BarChart data={rows} layout="vertical" margin={{ top: 4, right: 24, bottom: 0, left: 4 }}>
-          <CartesianGrid {...GRID} horizontal={false} vertical />
-          <XAxis
-            type="number"
-            tickFormatter={(value: number) => `${value > 0 ? '+' : ''}${number(value, 0)}`}
-            {...AXIS}
-          />
-          <YAxis type="category" dataKey="name" width={210} {...AXIS} />
-          <Tooltip content={renderTooltip} cursor={{ fill: 'var(--rule-soft)' }} />
-          <ReferenceLine x={0} stroke="var(--ink-faint)" strokeWidth={1.2} />
-          <Bar dataKey="value" animationDuration={MOTION.duration} animationEasing={MOTION.easing}>
-            {rows.map((row) => (
-              <Cell key={row.name} fill={row.value >= 0 ? 'var(--up)' : 'var(--down)'} />
-            ))}
-          </Bar>
-        </BarChart>
-      </ResponsiveContainer>
+    <div className="chart-stack">
+      <div className="chart-frame" style={{ height: framed(height) }}>
+        <ResponsiveContainer width="100%" height="100%">
+          <BarChart
+            data={rows}
+            layout="vertical"
+            margin={{ top: 4, right: 24, bottom: 0, left: 4 }}
+          >
+            <CartesianGrid {...GRID} horizontal={false} vertical />
+            <XAxis
+              type="number"
+              tickFormatter={(value: number) => `${value > 0 ? '+' : ''}${number(value, 0)}`}
+              {...AXIS}
+            />
+            <YAxis type="category" dataKey="name" width={210} {...AXIS} />
+            <Tooltip content={renderTooltip} cursor={{ fill: 'var(--rule-soft)' }} />
+            {/* El cero es la referencia del gráfico: una regla del eje, sólida. */}
+            <ReferenceLine x={0} stroke="var(--axis-ink)" strokeWidth={1} />
+            {/*
+             * Dos barras sobre una sola pila, una por lado del cero: la punta
+             * redondeada tiene que estar del lado hacia el que crece la barra,
+             * y el radio se declara por serie. Cada fila trae su valor en una
+             * sola de las dos claves, así que no se dibuja nada dos veces.
+             */}
+            <Bar
+              dataKey="above"
+              stackId="cero"
+              fill="var(--up)"
+              maxBarSize={BAR_CAP}
+              radius={[0, 4, 4, 0]}
+              animationDuration={MOTION.duration}
+              animationEasing={MOTION.easing}
+            />
+            <Bar
+              dataKey="below"
+              stackId="cero"
+              fill="var(--down)"
+              maxBarSize={BAR_CAP}
+              radius={[4, 0, 0, 4]}
+              animationDuration={MOTION.duration}
+              animationEasing={MOTION.easing}
+            />
+          </BarChart>
+        </ResponsiveContainer>
+      </div>
+      <ChartLegend items={DISTANCE_KEY(unit)} />
     </div>
   );
 }
+
+/**
+ * Los dos lados del cero, dichos con palabras.
+ *
+ * El signo está en el eje, pero el eje no dice qué significa estar de un lado o
+ * del otro, y ese era justo el sentido que el gráfico daba por supuesto.
+ */
+const DISTANCE_KEY = (unit: string): ReadonlyArray<LegendItem> => [
+  { color: 'var(--up)', label: `Por encima de la referencia, en ${unit}` },
+  { color: 'var(--down)', label: `Por debajo de la referencia, en ${unit}` },
+];
 
 export interface HeatCell {
   row: string;
@@ -1489,6 +1791,18 @@ export function HeatGrid({
 }) {
   const index = new Map(cells.map((cell) => [`${cell.row}|${cell.column}`, cell]));
   const peak = cells.reduce((highest, cell) => Math.max(highest, cell.value), 0);
+  /*
+   * Cinco pasos de un solo tono, y no una opacidad continua.
+   *
+   * El relleno era `color-mix(… , transparent)`: un azul translúcido que deja
+   * pasar lo que tenga debajo, así que la misma cuenta se veía de un color en
+   * una fila pinchada y de otro sobre el panel, y el número escrito encima
+   * perdía contraste sin avisar. Cinco pasos opacos de la rampa de magnitud
+   * dan la misma lectura —más oscuro es más— con un color que es el que es, y
+   * permiten elegir la tinta del número por lo oscuro que sea el paso.
+   */
+  const step = (value: number): number =>
+    peak > 0 ? Math.min(SEQ_STEPS.length - 1, Math.floor((value / peak) * SEQ_STEPS.length)) : 0;
 
   return (
     <div className="heat-scroll">
@@ -1515,7 +1829,7 @@ export function HeatGrid({
             <span className="heat-row">{row}</span>
             {columns.map((column) => {
               const cell = index.get(`${row}|${column}`);
-              const weight = cell && peak > 0 ? Math.max(0.12, cell.value / peak) : 0;
+              const at = cell ? step(cell.value) : -1;
               return (
                 <span
                   className={cell ? 'heat-cell heat-cell-filled' : 'heat-cell'}
@@ -1523,7 +1837,8 @@ export function HeatGrid({
                   style={
                     cell
                       ? {
-                          background: `color-mix(in srgb, var(--official) ${Math.round(weight * 100)}%, transparent)`,
+                          background: SEQ_STEPS[at]?.fill,
+                          color: SEQ_STEPS[at]?.ink,
                         }
                       : undefined
                   }
@@ -1540,6 +1855,46 @@ export function HeatGrid({
           </Fragment>
         ))}
       </div>
+      <HeatScale unit={unit} peak={peak} />
+    </div>
+  );
+}
+
+/**
+ * Los cinco pasos de la rampa de magnitud, de poco a mucho, con la tinta que le
+ * toca a cada uno.
+ *
+ * La tinta viaja con el paso y no se deduce de su número. Es la única excepción
+ * a «el texto nunca lleva el color del dato» —un rótulo escrito DENTRO de un
+ * relleno tiene que elegir blanco o tinta según lo oscuro que sea el relleno—,
+ * y deducirla del índice falla en cuanto la rampa se ancla al revés, que es
+ * exactamente lo que pasa en modo oscuro.
+ */
+const SEQ_STEPS = [
+  { fill: 'var(--seq-200)', ink: 'var(--seq-ink-1)' },
+  { fill: 'var(--seq-300)', ink: 'var(--seq-ink-2)' },
+  { fill: 'var(--seq-400)', ink: 'var(--seq-ink-3)' },
+  { fill: 'var(--seq-500)', ink: 'var(--seq-ink-4)' },
+  { fill: 'var(--seq-600)', ink: 'var(--seq-ink-5)' },
+] as const;
+
+/** La clave de la retícula: qué vale un paso, y que el hueco es un hueco. */
+function HeatScale({ unit, peak }: { unit: string; peak: number }) {
+  return (
+    <div className="heat-scale">
+      <span>0</span>
+      <span className="heat-scale-steps">
+        {SEQ_STEPS.map((step) => (
+          <span key={step.fill} style={{ background: step.fill }} />
+        ))}
+      </span>
+      <span>
+        {number(peak, 0)} {unit}
+      </span>
+      <span className="heat-scale-steps" style={{ marginLeft: '0.6rem' }}>
+        <span style={{ background: 'var(--rule-soft)' }} />
+      </span>
+      <span>sin lectura</span>
     </div>
   );
 }
@@ -1591,8 +1946,8 @@ export function MonthlyBars({ data, height = 220 }: { data: MonthBar[]; height?:
         label={`${MONTH_NAME[Number(month) - 1] ?? month} de ${year}`}
         rows={[
           { name: 'Notas', value: number(point.mentions, 0) },
-          { name: 'Tono adverso', value: number(point.adverse, 0) },
-          { name: 'Resto', value: number(point.calm, 0) },
+          { name: 'Tono adverso', value: number(point.adverse, 0), color: 'var(--up)' },
+          { name: 'Resto', value: number(point.calm, 0), color: 'var(--official)' },
         ]}
       />
     );
@@ -1624,7 +1979,21 @@ export function MonthlyBars({ data, height = 220 }: { data: MonthBar[]; height?:
               animationDuration={MOTION.duration}
               animationEasing={MOTION.easing}
             />
-            <Bar dataKey="calm" stackId="mes" fill="var(--official)" animationDuration={0} />
+            {/*
+             * Sin rendija entre los dos tramos, y a propósito: con ochenta
+             * meses en el cuadro la barra mide tres píxeles, y dos de borde
+             * del color del panel no la separarían, la borrarían. Aquí lo que
+             * separa los tramos es el contraste de los dos colores, que está
+             * medido y sobra. La rendija vuelve en el gráfico por años, donde
+             * las barras son anchas.
+             */}
+            <Bar
+              dataKey="calm"
+              stackId="mes"
+              fill="var(--official)"
+              radius={[3, 3, 0, 0]}
+              animationDuration={0}
+            />
           </BarChart>
         </ResponsiveContainer>
       </div>
@@ -1659,7 +2028,16 @@ export function YearSeriesBars({
   countries: readonly string[];
   height?: number;
 }) {
-  const tones = ['var(--official)', 'var(--parallel)', 'var(--gap)', 'var(--down)'];
+  /*
+   * El color sale de la casilla que le toca al país, y de ninguna otra parte.
+   *
+   * Esta lista se recorría con un módulo: el quinto país recibía otra vez el
+   * color del primero, así que dos barras de la misma altura y del mismo color
+   * eran dos países distintos y el lector no tenía cómo saberlo. Con seis
+   * casillas y ningún ciclo, un séptimo país cae en el gris de «Otros» —que es
+   * una respuesta honesta— en vez de en un color prestado.
+   */
+  const toneOf = (index: number): string => seriesTone(index);
   const renderTooltip = ({ active, payload, label }: TooltipRender) => {
     if (!active || !payload?.length) return null;
     return (
@@ -1668,39 +2046,48 @@ export function YearSeriesBars({
         rows={payload.map((entry) => ({
           name: String(entry.name ?? ''),
           value: number(Number(entry.value), 2),
+          color: toneOf(countries.indexOf(String(entry.name ?? ''))),
         }))}
       />
     );
   };
 
   return (
-    <div className="chart-frame" style={{ height: framed(height) }}>
-      <ResponsiveContainer width="100%" height="100%">
-        <BarChart data={data} margin={{ top: 4, right: 8, bottom: 0, left: 0 }}>
-          <CartesianGrid {...GRID} />
-          <XAxis
-            dataKey="year"
-            interval={0}
-            tickFormatter={(value: string) => (Number(value) % 5 === 0 ? value : '')}
-            {...AXIS}
-          />
-          <YAxis
-            tickFormatter={(value: number) => number(value, Math.abs(value) < 10 ? 1 : 0)}
-            width={54}
-            {...AXIS}
-          />
-          <Tooltip content={renderTooltip} cursor={{ fill: 'var(--rule-soft)' }} />
-          {countries.map((country, index) => (
-            <Bar
-              key={country}
-              dataKey={country}
-              fill={tones[index % tones.length] ?? 'var(--official)'}
-              animationDuration={index === 0 ? MOTION.duration : 0}
-              animationEasing={MOTION.easing}
+    <div className="chart-stack">
+      <div className="chart-frame" style={{ height: framed(height) }}>
+        <ResponsiveContainer width="100%" height="100%">
+          <BarChart data={data} margin={{ top: 4, right: 8, bottom: 0, left: 0 }}>
+            <CartesianGrid {...GRID} />
+            <XAxis
+              dataKey="year"
+              interval={0}
+              tickFormatter={(value: string) => (Number(value) % 5 === 0 ? value : '')}
+              {...AXIS}
             />
-          ))}
-        </BarChart>
-      </ResponsiveContainer>
+            <YAxis
+              tickFormatter={(value: number) => number(value, Math.abs(value) < 10 ? 1 : 0)}
+              width={54}
+              {...AXIS}
+            />
+            <Tooltip content={renderTooltip} cursor={{ fill: 'var(--rule-soft)' }} />
+            {countries.map((country, index) => (
+              <Bar
+                key={country}
+                dataKey={country}
+                name={country}
+                fill={toneOf(index)}
+                maxBarSize={BAR_CAP}
+                radius={[2, 2, 0, 0]}
+                animationDuration={index === 0 ? MOTION.duration : 0}
+                animationEasing={MOTION.easing}
+              />
+            ))}
+          </BarChart>
+        </ResponsiveContainer>
+      </div>
+      <ChartLegend
+        items={countries.map((country, index) => ({ color: toneOf(index), label: country }))}
+      />
     </div>
   );
 }
@@ -1764,32 +2151,69 @@ export function TermCloud({
   };
 
   return (
-    <div className="cloud">
-      {words.map((word) => {
-        const heat = word.adverse === null ? null : Math.max(0, Math.min(100, word.adverse));
-        return (
-          <button
-            key={word.term}
-            type="button"
-            className={word.term === selected ? 'cloud-word cloud-word-on' : 'cloud-word'}
-            style={{
-              fontSize: sizeOf(word.value),
-              color:
-                heat === null
-                  ? 'var(--ink-soft)'
-                  : `color-mix(in srgb, var(--up) ${Math.round(heat)}%, var(--official))`,
-              fontWeight: word.value >= floor + (peak - floor) * 0.55 ? 600 : 500,
-            }}
-            title={`${word.label}: ${number(word.value, 0)} menciones${
-              heat === null ? '' : ` · ${number(heat, 1)} % de cobertura adversa`
-            }`}
-            onClick={() => onPick?.(word.term)}
-            aria-pressed={word.term === selected}
-          >
-            {word.label}
-          </button>
-        );
-      })}
+    <>
+      <div className="cloud">
+        {words.map((word) => {
+          const heat = word.adverse === null ? null : Math.max(0, Math.min(100, word.adverse));
+          return (
+            <button
+              key={word.term}
+              type="button"
+              className={word.term === selected ? 'cloud-word cloud-word-on' : 'cloud-word'}
+              style={{
+                fontSize: sizeOf(word.value),
+                color: adverseTone(heat),
+                fontWeight: word.value >= floor + (peak - floor) * 0.55 ? 600 : 500,
+              }}
+              title={`${word.label}: ${number(word.value, 0)} menciones${
+                heat === null ? '' : ` · ${number(heat, 1)} % de cobertura adversa`
+              }`}
+              onClick={() => onPick?.(word.term)}
+              aria-pressed={word.term === selected}
+            >
+              {word.label}
+            </button>
+          );
+        })}
+      </div>
+      <CloudScale />
+    </>
+  );
+}
+
+/**
+ * El color de una palabra de la nube: cuánta de su cobertura fue adversa.
+ *
+ * Era una mezcla continua entre el azul de «oficial» y el rojo de «adverso»,
+ * y eso es un arcoíris para decir una magnitud: la mitad de la escala caía en
+ * un violeta sucio que no es ninguno de los dos extremos, y los pasos claros
+ * quedaban ilegibles —porque aquí el color no pinta una marca, pinta la propia
+ * palabra—. Ahora son tres pasos de un solo tono, elegidos para pasar 4,5:1
+ * contra el papel, más un gris para «no se midió», que es un estado y no un
+ * cero.
+ */
+const adverseTone = (share: number | null): string => {
+  if (share === null) return 'var(--adv-0)';
+  if (share < 25) return 'var(--adv-1)';
+  if (share < 50) return 'var(--adv-2)';
+  return 'var(--adv-3)';
+};
+
+/** Qué vale cada tono de la nube. Sin esto el color es decoración. */
+function CloudScale() {
+  return (
+    <div className="heat-scale">
+      <span>Cobertura adversa</span>
+      <span className="heat-scale-steps">
+        <span style={{ background: 'var(--adv-1)' }} />
+        <span style={{ background: 'var(--adv-2)' }} />
+        <span style={{ background: 'var(--adv-3)' }} />
+      </span>
+      <span>0 → 100 %</span>
+      <span className="heat-scale-steps" style={{ marginLeft: '0.6rem' }}>
+        <span style={{ background: 'var(--adv-0)' }} />
+      </span>
+      <span>sin medir</span>
     </div>
   );
 }
@@ -1820,8 +2244,8 @@ export function YearlyBars({ data, height = 200 }: { data: YearBar[]; height?: n
         label={point.year}
         rows={[
           { name: 'Menciones', value: number(point.mentions, 0) },
-          { name: 'Tono adverso', value: number(point.adverse, 0) },
-          { name: 'Resto', value: number(point.calm, 0) },
+          { name: 'Tono adverso', value: number(point.adverse, 0), color: 'var(--up)' },
+          { name: 'Resto', value: number(point.calm, 0), color: 'var(--official)' },
         ]}
       />
     );
@@ -1840,6 +2264,8 @@ export function YearlyBars({ data, height = 200 }: { data: YearBar[]; height?: n
               dataKey="adverse"
               stackId="anio"
               fill="var(--up)"
+              maxBarSize={BAR_CAP * 2}
+              {...STACK_GAP}
               animationDuration={MOTION.duration}
               animationEasing={MOTION.easing}
             />
@@ -1847,7 +2273,8 @@ export function YearlyBars({ data, height = 200 }: { data: YearBar[]; height?: n
               dataKey="calm"
               stackId="anio"
               fill="var(--official)"
-              radius={[3, 3, 0, 0]}
+              radius={[4, 4, 0, 0]}
+              {...STACK_GAP}
               animationDuration={0}
             />
           </BarChart>

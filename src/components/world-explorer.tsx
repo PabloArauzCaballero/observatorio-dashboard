@@ -489,19 +489,15 @@ export function WorldExplorer() {
           </span>
           <div className="world-legend" aria-label="Qué es cada línea">
             <span>
-              <i style={{ background: TONE.world }} aria-hidden="true" />
+              <i style={{ color: TONE.world }} aria-hidden="true" />
               Mundo
             </span>
             <span>
-              <i
-                className="world-legend-dash"
-                style={{ borderColor: TONE.region }}
-                aria-hidden="true"
-              />
+              <i className="world-legend-dash" style={{ color: TONE.region }} aria-hidden="true" />
               {regionLabel}
             </span>
             <span>
-              <i style={{ background: TONE.bolivia }} aria-hidden="true" />
+              <i style={{ color: TONE.bolivia }} aria-hidden="true" />
               Bolivia
             </span>
           </div>
@@ -624,9 +620,22 @@ function WorldCard({
   ];
 
   const readings = [
-    { key: 'world', label: 'Mundo', reading: latest(world), tone: TONE.world },
-    { key: 'region', label: regionLabel, reading: latest(zone), tone: TONE.region },
-    { key: 'bolivia', label: 'Bolivia', reading: latest(bolivia), tone: TONE.bolivia },
+    { key: 'world', label: 'Mundo', reading: latest(world), tone: TONE.world, dashed: false },
+    {
+      key: 'region',
+      label: regionLabel,
+      reading: latest(zone),
+      tone: TONE.region,
+      /* La región es la línea de trazo partido del gráfico de al lado. */
+      dashed: true,
+    },
+    {
+      key: 'bolivia',
+      label: 'Bolivia',
+      reading: latest(bolivia),
+      tone: TONE.bolivia,
+      dashed: false,
+    },
   ];
 
   const shared = indicator.format === 'percent' ? latestShared(bolivia, world) : null;
@@ -657,7 +666,11 @@ function WorldCard({
         {readings.map((one) => (
           <div className="world-figure" key={one.key}>
             <dt title={one.label}>
-              <i style={{ background: one.tone }} aria-hidden="true" />
+              <i
+                {...(one.dashed ? { className: 'world-legend-dash' } : {})}
+                style={{ color: one.tone }}
+                aria-hidden="true"
+              />
               {one.label}
             </dt>
             <dd>

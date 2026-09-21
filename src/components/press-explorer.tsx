@@ -112,7 +112,18 @@ const REGION_LABEL: Record<string, string> = {
   NACIONAL: 'Sin departamento',
 };
 
-const BAR_TONES = ['var(--official)', 'var(--parallel)', 'var(--gap)', 'var(--down)', 'var(--up)'];
+/**
+ * Un tema es un nombre, no una cantidad, así que todas las barras van del
+ * mismo color y la elegida va en tinta.
+ *
+ * Antes se recorrían cinco colores por puesto en el ranking, y el comentario
+ * que lo acompañaba decía la verdad —«para que el color nunca implique una
+ * categoría»—: era un canal encendido sin nada que decir. Peor: el color
+ * cambiaba de rubro en cuanto cambiaba el orden, así que quien había aprendido
+ * que «Economía» era el naranja se lo encontraba azul al filtrar. Con un solo
+ * tono, lo que queda pintado es el único dato que hay: el largo de la barra.
+ */
+const BAR_TONE = 'var(--official)';
 
 /** One page of the register; the API is asked for exactly this many. */
 const PAGE_SIZE = 60;
@@ -540,7 +551,7 @@ export function PressExplorer({
               </span>
             </div>
             <div className="barlist">
-              {topics.map(([key, count], index) => {
+              {topics.map(([key, count]) => {
                 const on = selection.topic === key;
                 return (
                   <button
@@ -556,7 +567,7 @@ export function PressExplorer({
                         className="barlist-fill"
                         style={{
                           width: `${(count / peakTopic) * 100}%`,
-                          background: on ? 'var(--ink)' : BAR_TONES[index % BAR_TONES.length],
+                          background: on ? 'var(--ink)' : BAR_TONE,
                         }}
                       />
                     </span>
