@@ -67,14 +67,48 @@ Dos cosas de la UFV que no son defectos y hay que respetar al programar: **baja 
   el colector empezó a nombrar el instrumento; la carga histórica no registró `instrument`. Solo
   `FX_PARALLEL_USD_BOB` llega hasta julio de 2024.
 
+## Las pruebas formales, y qué ventana usa cada una
+
+Las cuatro preguntas de arriba se someten a prueba en `src/lib/fx-econometrics.ts`, y cada
+prueba lleva su ventana escrita. La regla es la misma de siempre: nada que cruce el cambio de
+régimen se agrupa, salvo la prueba que mide ese cambio.
+
+| Pregunta | Prueba | Ventana |
+| --- | --- | --- |
+| ¿El paralelo revierte o acumula? | Dickey–Fuller aumentado (rezagos por Schwarz, críticos de MacKinnon al tamaño de muestra) sobre el log del nivel, la variación diaria y el índice real | toda la serie |
+| ¿La brecha se cierra sola? | AR(1) con vida media `ln 0,5 / ln ρ`, más ADF de la brecha | toda la serie **y** el tramo en movimiento, por separado |
+| ¿Quién sigue a quién? | Engle–Granger (críticos para dos variables) y modelo de corrección de errores en las dos ecuaciones; causalidad de Granger en los dos sentidos | solo el tramo en que el oficial se mueve |
+| ¿Dónde se quiebra? | Quandt–Andrews sobre las variaciones diarias (recorte 15 %, críticos de Andrews 2003), Chow y razón de varianzas en la fecha del cambio de régimen | toda la serie, porque la prueba es sobre el cambio |
+| ¿La volatilidad viene en rachas? | ARCH-LM, Ljung–Box y GARCH(1,1) por máxima verosimilitud, con la lectura RiskMetrics al lado | variaciones del paralelo, toda la serie, y se dice si la persistencia toca la unidad |
+| ¿Cuánto llega a los precios? | inflación mensual UFV sobre depreciación mensual del paralelo y tres rezagos, coeficiente acumulado con su error estándar | los meses que tiene la serie del paralelo, que son pocos y se dice |
+
+Lo que salió en septiembre de 2026 y no hay que volver a descubrir: el paralelo es un camino
+aleatorio; la brecha no revertía con el oficial fijo (ρ ≈ 0,998) y desde que se mueve revierte
+en unos seis días; oficial y paralelo cointegran desde el 27-06-2026 y es **el oficial el que
+corrige** (λ ≈ −0,18, vida media 3,5 días); el quiebre de la media de los retornos cae en el
+máximo de la brecha (17-05-2025), no en la fecha en que el oficial se soltó, donde lo que cambia
+es la varianza; el GARCH sale integrado (persistencia ≈ 1) porque la muestra junta dos regímenes,
+y por eso el nivel de largo plazo se retiene; y el traspaso a precios sale **negativo**, porque
+la brecha se cerró mientras la inflación subía. Ese último signo no es un error: es la serie.
+
+Las frases salen de `src/lib/fx-econometrics-reading.ts`, derivadas del mismo objeto que se
+tabula. Cada una dice qué se rechaza y a qué nivel; ninguna dice por qué ni qué va a pasar.
+
 ## Dónde vive cada cosa
 
 - `src/lib/fx-macro.ts` — aritmética pura: `alignIndex`, `realIndex`, `impliedInflation`,
   `detectRegimes`, `gapProfile`.
 - `src/lib/fx-snapshot.ts` — el resumen y las frases. Cambiar el texto aquí, nunca en el JSX.
 - `src/lib/fx-reader.ts` — `readFxSnapshot()`, una sola lectura para el tablero, la portada y el PDF.
+- `src/lib/stats-distributions.ts` — mínimos cuadrados, las distribuciones χ², F y t, y Nelder–Mead.
+  No sabe qué es un tipo de cambio.
+- `src/lib/fx-econometrics.ts` — las pruebas; `src/lib/fx-econometrics-reading.ts` — sus frases.
 - `src/components/fx-macro-panels.tsx` — conclusiones y gráficos macro.
 - `src/components/fx-explorer.tsx` — nivel, velas y la estadística técnica plegada.
+- `src/components/fx-econometrics-section.tsx` — lee las series y monta el panel de pruebas
+  (`fx-econometrics-panel.tsx`); se monta desde `page.tsx`, después de `FxSection`.
+- `src/components/derived-reading.tsx` — la lista de frases derivadas, compartida con los capítulos
+  de energía e instituciones.
 
 ## Antes de tocar un color
 
