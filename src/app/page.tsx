@@ -4,6 +4,7 @@ import { Donate } from '@/components/donate';
 import { FilingExplorer } from '@/components/filing-explorer';
 import { FxSection } from '@/components/fx-section';
 import { MacroExplorer } from '@/components/macro-explorer';
+import { PanelSection } from '@/components/panel-section';
 import { MarketCards } from '@/components/market-cards';
 import { WorldExplorer } from '@/components/world-explorer';
 import { CityPlacesExplorer } from '@/components/city-places-explorer';
@@ -604,11 +605,20 @@ export default async function Page() {
         </section>
 
         <section className="stack">
+          {/*
+            Tres lecturas y no una. «Series de Bolivia» son las que el
+            observatorio mide una por una; «Catálogo del Banco Mundial» es el
+            WDI entero recortado a Bolivia, para la cifra que las primeras no
+            tienen; «Economía mundial» pone a Bolivia al lado del mundo y de su
+            región. Las dos primeras estuvieron mezcladas —promediadas, de
+            hecho— hasta la migración 0077.
+          */}
           <SubTabs
-            labels={['Series de Bolivia', 'Economía mundial']}
-            icons={['linea', 'globo']}
+            labels={['Series de Bolivia', 'Catálogo del Banco Mundial', 'Economía mundial']}
+            icons={['linea', 'capas', 'globo']}
           >
             <MacroExplorer bundle={packMacro(macro)} />
+            <PanelSection />
             <WorldExplorer />
           </SubTabs>
         </section>

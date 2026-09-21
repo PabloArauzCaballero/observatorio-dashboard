@@ -1,5 +1,6 @@
 import 'server-only';
 import { pool } from './db';
+import { wdiSector } from './wdi-sectors';
 
 /**
  * Corpus-wide aggregates, computed once and held for a while.
@@ -476,6 +477,86 @@ export async function readMacroAnnual(): Promise<MacroPoint[]> {
     publisher: row.publisher,
     sourceUrl: row.source_url,
   }));
+}
+
+/**
+ * El catálogo entero del Banco Mundial, leído solo para Bolivia.
+ *
+ * Son las mismas mil quinientas series que `world_panel_reading` guarda para
+ * las treinta economías del panel, recortadas a la fila que tiene `BOL` en la
+ * columna de país. Ese recorte es el punto: hasta la migración 0077 estas
+ * series entraban en el panel macro sin él —la vista anual no tiene columna de
+ * país y las promediaba con las otras veintinueve y con el agregado mundial—,
+ * así que la población de Bolivia salía en quinientos millones. Aquí el país
+ * está en el `WHERE`, no promediado.
+ *
+ * Se devuelven como `MacroPoint` porque son exactamente eso: un indicador, un
+ * año, un valor y de dónde sale. El rubro no viene de la base —el Banco
+ * Mundial no publica ninguno— sino del prefijo del código, que es la única
+ * clasificación que el publicador entrega; `wdi-sectors.ts` explica el reparto.
+ *
+ * El valor anterior y la variación se calculan aquí y no en SQL. Para las
+ * series medidas los calcula la vista, porque allí hay una copia almacenada que
+ * los guarda; aquí no hay copia que llenar y son treinta mil filas ya ordenadas
+ * por indicador y periodo, sobre las que la resta es un solo recorrido.
+ */
+export async function readBoliviaPanel(): Promise<MacroPoint[]> {
+  const { rows } = await pool().query<{
+    indicator_code: string;
+    indicator_name: string | null;
+    period: string;
+    value: string;
+    publisher: string | null;
+    source_url: string | null;
+  }>(
+    `SELECT indicator_code,
+            max(indicator_name) AS indicator_name,
+            period::text        AS period,
+            avg(value)::text    AS value,
+            max(publisher)      AS publisher,
+            max(source_url)     AS source_url
+     FROM read_models.world_panel_reading
+     WHERE country = 'BOL'
+       AND status = 'PUBLISHED'
+       AND NOT superseded
+       AND value IS NOT NULL
+     GROUP BY indicator_code, period
+     ORDER BY indicator_code, period`,
+  );
+
+  const points: MacroPoint[] = [];
+  let previousCode: string | null = null;
+  let previousValue: number | null = null;
+
+  for (const row of rows) {
+    const value = Number(row.value);
+    // El anterior de la primera lectura de una serie no es la última de la
+    // serie de arriba: al cambiar de indicador el arrastre se corta.
+    const previous = row.indicator_code === previousCode ? previousValue : null;
+    points.push({
+      indicatorCode: row.indicator_code,
+      name: row.indicator_name,
+      sector: wdiSector(row.indicator_code),
+      period: row.period,
+      // El publicador da cada serie en la unidad que quiere —una razón, un
+      // recuento, un total en dólares constantes— y no publica cuál. Decir
+      // `NATIVE` es decir eso mismo, que es lo único honesto que se puede
+      // decir sin inventar una conversión.
+      unit: 'NATIVE',
+      value,
+      previousValue: previous,
+      changePercent:
+        previous === null || previous === 0
+          ? null
+          : Number((((value - previous) / Math.abs(previous)) * 100).toFixed(4)),
+      publisher: row.publisher,
+      sourceUrl: row.source_url,
+    });
+    previousCode = row.indicator_code;
+    previousValue = value;
+  }
+
+  return points;
 }
 
 export interface CompanyFiling {
