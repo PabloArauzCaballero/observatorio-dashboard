@@ -2576,21 +2576,20 @@ button.term-chip:hover {
  */
 @media (max-width: 720px) {
   /*
-   * El suelo de 460px no impedia que la tabla creciera: `min-width` es un piso,
-   * no un techo, y un nombre como «Account ownership at a financial institution
-   * or with a mobile-money-service provider, poorest 40%» la estiraba a 836px.
-   * La columna de la fuente quedaba cortada contra el borde —se leia «BANC»— y
-   * habia que arrastrar de lado para saber de donde sale el dato. Con el ancho
-   * repartido por la tabla y no por su contenido, las dos columnas entran y el
-   * nombre largo hace lo que tiene que hacer: bajar de linea.
+   * Repartir el ancho de la tabla entre sus columnas fue peor que el problema.
+   *
+   * `table-layout: fixed` sobre ocho columnas en 390px da cuarenta y tres
+   * pixeles a cada una, y el nombre de la serie salia UNA LETRA POR LINEA:
+   * «A c c e s o  a  a g u a». El desplazamiento lateral que quise evitar era
+   * incomodo; esto era ilegible. Vuelve el suelo, y que la tabla se desplace
+   * dentro de su caja como el resto de las anchas del informe.
+   *
+   * Lo que esta tabla necesita en vertical no es un reparto de anchos sino una
+   * vista de fichas —una serie por bloque, con su fuente debajo—, que es un
+   * cambio de marcado y no de hoja de estilos. Queda anotado, no improvisado.
    */
   .grid-table {
-    min-width: 0;
-    table-layout: fixed;
-  }
-  .grid-table th,
-  .grid-table td {
-    overflow-wrap: anywhere;
+    min-width: 460px;
   }
   .grid-table th:nth-child(3),
   .grid-table td:nth-child(3),
