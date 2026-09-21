@@ -195,7 +195,76 @@ export function readGap(): Promise<GapPoint[]> {
   return held('gap', buildGap);
 }
 
+/**
+ * La brecha, de la vista si la vista responde y derivada si no.
+ *
+ * La vista sigue siendo la definición y se pide primero: la brecha la publica
+ * el núcleo para que dos lectores no puedan discrepar sobre cuál fue la de un
+ * día, y recalcularla por gusto rompería eso.
+ *
+ * Pero en el servidor chico deja de responder. `exchange_rate_gap` filtra
+ * `economic_indicator_daily` por `indicator_code`, y ese filtro sobre una vista
+ * con funciones de ventana le da al planificador un plan que no termina dentro
+ * del `statement_timeout` — mientras que leer la **misma** vista entera, que es
+ * lo que hace `readObservatory`, sí entra. Medido el 2026-09-21 en Contabo:
+ * `observatory` bien, `gap` y `markets` cancelados con 57014; en pablo-h310, con
+ * la misma migración y los mismos datos, los quince lectores bien.
+ *
+ * Así que cuando la vista agota el plazo, la brecha se deriva de las series que
+ * ya están en memoria, con **la misma precedencia** que aplica la vista —tasa
+ * publicada, luego el lado vendedor— y el mismo punto medio. No es otra
+ * definición: es la misma cuenta sobre las mismas filas, hecha donde sí caben.
+ * Queda dicho en el registro del servidor para que nadie lo descubra por el
+ * número.
+ */
 async function buildGap(): Promise<GapPoint[]> {
+  try {
+    return await readGapFromView();
+  } catch (error) {
+    if (!isUnaffordableRead(error)) throw error;
+    console.warn('[observatorio] exchange_rate_gap agotó su plazo; la brecha se deriva del diario');
+    return deriveGap(await readObservatory());
+  }
+}
+
+/**
+ * La brecha derivada, sin volver a la base.
+ *
+ * `officialSeries` ya resuelve el lado oficial con la precedencia de la vista, y
+ * las dos puntas del paralelo ya vienen con la lectura observada preferida sobre
+ * la promediada, que es la otra cosa que la vista hace.
+ */
+function deriveGap(observatory: Observatory): GapPoint[] {
+  const official = new Map(officialSeries(observatory).map((point) => [point.date, point]));
+  const buy = observatory.series.get('FX_PARALLEL_USD_BOB:BUY') ?? [];
+  const sell = new Map(
+    (observatory.series.get('FX_PARALLEL_USD_BOB:SELL') ?? []).map((point) => [point.date, point]),
+  );
+
+  const out: GapPoint[] = [];
+  for (const low of buy) {
+    const high = sell.get(low.date);
+    const rate = official.get(low.date);
+    if (!high || !rate || rate.value === 0) continue;
+    const mid = (low.value + high.value) / 2;
+    out.push({
+      date: low.date,
+      official: rate.value,
+      parallelMid: mid,
+      gapPercent: (mid / rate.value - 1) * 100,
+      officialAggregation: rate.aggregation,
+      // Un día cubierto por los dos estadísticos se declara promediado, que es
+      // la lectura prudente y la que hace la vista con su `min(aggregation)`.
+      parallelAggregation:
+        low.aggregation === 'DAILY_AVERAGE' || high.aggregation === 'DAILY_AVERAGE'
+          ? 'DAILY_AVERAGE'
+          : 'POINT_IN_TIME',
+    });
+  }
+  return out.sort((left, right) => left.date.localeCompare(right.date));
+}
+
+async function readGapFromView(): Promise<GapPoint[]> {
   const { rows } = await pool().query<GapRow>(
     `SELECT event_date::text AS event_date, official_rate::text AS official_rate,
             parallel_mid::text AS parallel_mid, gap_mid_percent::text AS gap_mid_percent,
@@ -650,7 +719,49 @@ const MARKET_NAMES: Record<string, string> = {
  * bolivianos per dollar would be a category error, however tempting the shared
  * word "price" makes it.
  */
+/**
+ * La unidad de cada mercado, para cuando la fila no viaja con ella.
+ *
+ * Los tres se cotizan en dólares. Se escribe aquí porque el camino de respaldo
+ * lee las series del diario ya cargado, que guarda el valor y no la unidad, y
+ * un precio sin unidad no es reportable.
+ */
+const MARKET_UNITS: Record<string, string> = {
+  BTC_USD: 'USD',
+  USDT_USD: 'USD',
+  XAU_USD: 'USD',
+};
+
+/**
+ * Los mercados, de la vista si responde y del diario ya leído si no.
+ *
+ * Mismo problema y mismo remedio que la brecha: esta consulta filtra
+ * `economic_indicator_daily` por `indicator_code` y en el servidor chico ese
+ * filtro agota el plazo, mientras que la lectura entera de la misma vista entra.
+ * Aquí no hay siquiera una cuenta que rehacer —son las mismas filas, elegidas
+ * por su código— así que el respaldo no cambia ninguna cifra.
+ */
 export async function readMarkets(): Promise<MarketSeries[]> {
+  try {
+    return await readMarketsFromView();
+  } catch (error) {
+    if (!isUnaffordableRead(error)) throw error;
+    console.warn('[observatorio] los mercados agotaron su plazo; se leen del diario en memoria');
+    const observatory = await readObservatory();
+    return shapeMarkets(
+      Object.keys(MARKET_UNITS).flatMap((code) =>
+        (observatory.series.get(code) ?? []).map((point) => ({
+          code,
+          unit: MARKET_UNITS[code] ?? 'USD',
+          date: point.date,
+          value: point.value,
+        })),
+      ),
+    );
+  }
+}
+
+async function readMarketsFromView(): Promise<MarketSeries[]> {
   const { rows } = await pool().query<{
     indicator_code: string;
     event_date: string;
@@ -663,11 +774,33 @@ export async function readMarkets(): Promise<MarketSeries[]> {
      ORDER BY indicator_code, event_date`,
   );
 
+  return shapeMarkets(
+    rows.map((row) => ({
+      code: row.indicator_code,
+      unit: row.unit,
+      date: row.event_date,
+      value: Number(row.value_median),
+    })),
+  );
+}
+
+/**
+ * Las lecturas sueltas, agrupadas en la serie que la tarjeta dibuja.
+ *
+ * Compartida por los dos caminos a propósito: una tarjeta cuya variación se
+ * calculara distinto según de dónde vinieran las filas sería un error imposible
+ * de ver, porque las dos cifras son plausibles.
+ */
+function shapeMarkets(
+  readings: ReadonlyArray<{ code: string; unit: string; date: string; value: number }>,
+): MarketSeries[] {
   const grouped = new Map<string, { unit: string; points: MarketPoint[] }>();
-  for (const row of rows) {
-    const entry = grouped.get(row.indicator_code) ?? { unit: row.unit, points: [] };
-    entry.points.push({ date: row.event_date, value: Number(row.value_median) });
-    grouped.set(row.indicator_code, entry);
+  for (const reading of [...readings].sort(
+    (left, right) => left.code.localeCompare(right.code) || left.date.localeCompare(right.date),
+  )) {
+    const entry = grouped.get(reading.code) ?? { unit: reading.unit, points: [] };
+    entry.points.push({ date: reading.date, value: reading.value });
+    grouped.set(reading.code, entry);
   }
 
   return [...grouped.entries()].map(([code, entry]) => {
