@@ -43,7 +43,7 @@ const READERS: ReadonlyArray<readonly [string, () => Promise<unknown>]> = [
   ['sources', readSources],
   ['macroAnnual', readMacroAnnual],
   ['companyFilings', readCompanyFilings],
-  ['pressPage', () => readPressPage({ topic: 'ECONOMICOS' }, 60)],
+  ['pressPage', () => readPressPage({ topic: ['ECONOMICOS'] }, 60)],
   ['markets', readMarkets],
   ['pressCube', readPressCube],
   ['pressPulse', readPressPulse],

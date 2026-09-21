@@ -1,6 +1,20 @@
 'use client';
 
 import { useMemo, useState } from 'react';
+import {
+  ANY,
+  accepts,
+  additive,
+  counts,
+  describe,
+  list,
+  multiTitle,
+  picked,
+  toggle as toggleChoice,
+  without,
+} from '@/lib/choice';
+import type { Choice } from '@/lib/choice';
+import { FilterHint, PickedCount } from './filters';
 import { Icon } from './icons';
 import { Pager } from './pager';
 import type { IconName } from './icons';
@@ -86,8 +100,12 @@ export function SourcesExplorer({
   /** The day the parallel source swapped its two labels, when it did. */
   reversal: string | null;
 }) {
-  const [publisher, setPublisher] = useState('TODOS');
-  const [frequency, setFrequency] = useState('TODAS');
+  /*
+   * Publicador y frecuencia son conjuntos: «INE y BCB» es una pregunta tan
+   * corriente como «INE», y vacío sigue queriendo decir «todos».
+   */
+  const [publisher, setPublisher] = useState<Choice>(ANY);
+  const [frequency, setFrequency] = useState<Choice>(ANY);
   const [search, setSearch] = useState('');
   /**
    * Which page of rows is on screen, counted in series rather than pages.
@@ -105,8 +123,8 @@ export function SourcesExplorer({
   const matches = useMemo(() => {
     const term = search.trim().toLocaleLowerCase('es');
     return (source: SourceNote, except: 'publisher' | 'frequency' | null): boolean =>
-      (except === 'publisher' || publisher === 'TODOS' || source.publisher === publisher) &&
-      (except === 'frequency' || frequency === 'TODAS' || source.frequency === frequency) &&
+      (except === 'publisher' || accepts(publisher, source.publisher)) &&
+      (except === 'frequency' || accepts(frequency, source.frequency ?? '')) &&
       (!term ||
         source.indicator.toLocaleLowerCase('es').includes(term) ||
         (NAMES[source.indicator] ?? source.name ?? '').toLocaleLowerCase('es').includes(term));
@@ -154,8 +172,17 @@ export function SourcesExplorer({
 
   const readings = selected.reduce((sum, source) => sum + source.readings, 0);
   const documents = selected.reduce((sum, source) => sum + source.documents, 0);
-  const active =
-    (publisher === 'TODOS' ? 0 : 1) + (frequency === 'TODAS' ? 0 : 1) + (search.trim() ? 1 : 0);
+  const active = counts(publisher) + counts(frequency) + (search.trim() ? 1 : 0);
+
+  /** Los dos gestos, con el mismo reseteo de página que los demás filtros. */
+  const pickPublisher = (value: string, add: boolean): void => {
+    setOffset(0);
+    setPublisher((current) => toggleChoice(current, value, add));
+  };
+  const pickFrequency = (value: string, add: boolean): void => {
+    setOffset(0);
+    setFrequency((current) => toggleChoice(current, value, add));
+  };
 
   const notes: Note[] = [
     {
@@ -250,6 +277,8 @@ export function SourcesExplorer({
           </span>
         </div>
 
+        <FilterHint />
+
         {active ? (
           <div className="rail-sec">
             <div className="rail-head">
@@ -257,26 +286,36 @@ export function SourcesExplorer({
               Selección activa
             </div>
             <div className="rail-pills">
-              {publisher === 'TODOS' ? null : (
+              {list(publisher).map((value) => (
                 <button
+                  key={`publisher-${value}`}
                   type="button"
                   className="chip chip-on"
-                  onClick={() => setPublisher('TODOS')}
+                  title="Quitar este filtro"
+                  onClick={() => {
+                    setOffset(0);
+                    setPublisher((current) => without(current, value));
+                  }}
                 >
-                  <Icon name={PUBLISHER_ICON[publisher] ?? 'edificio'} size={12} />
-                  {publisher} ×
+                  <Icon name={PUBLISHER_ICON[value] ?? 'edificio'} size={12} />
+                  {value} ×
                 </button>
-              )}
-              {frequency === 'TODAS' ? null : (
+              ))}
+              {list(frequency).map((value) => (
                 <button
+                  key={`frequency-${value}`}
                   type="button"
                   className="chip chip-on"
-                  onClick={() => setFrequency('TODAS')}
+                  title="Quitar este filtro"
+                  onClick={() => {
+                    setOffset(0);
+                    setFrequency((current) => without(current, value));
+                  }}
                 >
-                  <Icon name={FREQUENCY_ICON[frequency] ?? 'calendario'} size={12} />
-                  {FREQUENCY_LABEL[frequency] ?? frequency} ×
+                  <Icon name={FREQUENCY_ICON[value] ?? 'calendario'} size={12} />
+                  {FREQUENCY_LABEL[value] ?? value} ×
                 </button>
-              )}
+              ))}
               {search.trim() ? (
                 <button type="button" className="chip chip-on" onClick={() => setSearch('')}>
                   <Icon name="buscar" size={12} />«{search.trim()}» ×
@@ -286,8 +325,9 @@ export function SourcesExplorer({
                 type="button"
                 className="chip"
                 onClick={() => {
-                  setPublisher('TODOS');
-                  setFrequency('TODAS');
+                  setOffset(0);
+                  setPublisher(ANY);
+                  setFrequency(ANY);
                   setSearch('');
                 }}
               >
@@ -301,34 +341,38 @@ export function SourcesExplorer({
           <div className="rail-head">
             <Icon name="edificio" size={13} />
             Publicador
+            <PickedCount choice={publisher} />
           </div>
           <button
             type="button"
-            className={publisher === 'TODOS' ? 'rail-item rail-item-on' : 'rail-item'}
+            className={publisher.size === 0 ? 'rail-item rail-item-on' : 'rail-item'}
+            aria-pressed={publisher.size === 0}
             onClick={() => {
               setOffset(0);
-              setPublisher('TODOS');
+              setPublisher(ANY);
             }}
           >
             <Icon name="capas" size={16} />
             <span className="rail-name">Todos los publicadores</span>
             <span className="rail-n">{publishers.reduce((sum, [, count]) => sum + count, 0)}</span>
           </button>
-          {publishers.map(([name, count]) => (
-            <button
-              key={name}
-              type="button"
-              className={publisher === name ? 'rail-item rail-item-on' : 'rail-item'}
-              onClick={() => {
-                setOffset(0);
-                setPublisher(publisher === name ? 'TODOS' : name);
-              }}
-            >
-              <Icon name={PUBLISHER_ICON[name] ?? 'edificio'} size={16} />
-              <span className="rail-name">{name}</span>
-              <span className="rail-n">{count}</span>
-            </button>
-          ))}
+          {publishers.map(([name, count]) => {
+            const on = picked(publisher, name);
+            return (
+              <button
+                key={name}
+                type="button"
+                className={on ? 'rail-item rail-item-on' : 'rail-item'}
+                aria-pressed={on}
+                title={multiTitle(name, on)}
+                onClick={(event) => pickPublisher(name, additive(event))}
+              >
+                <Icon name={PUBLISHER_ICON[name] ?? 'edificio'} size={16} />
+                <span className="rail-name">{name}</span>
+                <span className="rail-n">{count}</span>
+              </button>
+            );
+          })}
         </div>
 
         {frequencies.length > 1 ? (
@@ -336,22 +380,25 @@ export function SourcesExplorer({
             <div className="rail-head">
               <Icon name="calendario" size={13} />
               Frecuencia
+              <PickedCount choice={frequency} />
             </div>
-            {frequencies.map(([key, count]) => (
-              <button
-                key={key}
-                type="button"
-                className={frequency === key ? 'rail-item rail-item-on' : 'rail-item'}
-                onClick={() => {
-                  setOffset(0);
-                  setFrequency(frequency === key ? 'TODAS' : key);
-                }}
-              >
-                <Icon name={FREQUENCY_ICON[key] ?? 'calendario'} size={16} />
-                <span className="rail-name">{FREQUENCY_LABEL[key] ?? key}</span>
-                <span className="rail-n">{count}</span>
-              </button>
-            ))}
+            {frequencies.map(([key, count]) => {
+              const on = picked(frequency, key);
+              return (
+                <button
+                  key={key}
+                  type="button"
+                  className={on ? 'rail-item rail-item-on' : 'rail-item'}
+                  aria-pressed={on}
+                  title={multiTitle(FREQUENCY_LABEL[key] ?? key, on)}
+                  onClick={(event) => pickFrequency(key, additive(event))}
+                >
+                  <Icon name={FREQUENCY_ICON[key] ?? 'calendario'} size={16} />
+                  <span className="rail-name">{FREQUENCY_LABEL[key] ?? key}</span>
+                  <span className="rail-n">{count}</span>
+                </button>
+              );
+            })}
           </div>
         ) : null}
 
@@ -429,8 +476,8 @@ export function SourcesExplorer({
         </div>
 
         <div className="strap">
-          <Icon name={PUBLISHER_ICON[publisher] ?? 'capas'} size={17} />
-          <h2>{publisher === 'TODOS' ? 'Todas las fuentes' : publisher}</h2>
+          <Icon name={PUBLISHER_ICON[list(publisher)[0] ?? ''] ?? 'capas'} size={17} />
+          <h2>{describe(publisher, (value) => value, 'Todas las fuentes')}</h2>
           <span className="tile-hint">
             {selected.length} serie{selected.length === 1 ? '' : 's'} ·{' '}
             {readings.toLocaleString('es-BO')} lecturas

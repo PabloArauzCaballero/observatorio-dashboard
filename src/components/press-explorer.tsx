@@ -3,16 +3,28 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Icon } from './icons';
 import type { IconName } from './icons';
+import { FilterHint, PickedCount } from './filters';
 import { PressPulse } from './press-pulse';
 import {
   ECONOMIC_TOPICS,
   NO_SELECTION,
   activeCount,
   countsFor,
+  isUpperBound,
   pressQuery,
   totalFor,
 } from '@/lib/cross-filter';
-import type { PressSelection } from '@/lib/cross-filter';
+import type { PressDimension, PressSelection } from '@/lib/cross-filter';
+import {
+  additive,
+  describe,
+  list,
+  multiTitle,
+  picked,
+  same,
+  toggle as toggleChoice,
+  without,
+} from '@/lib/choice';
 import type { PressArticle, PressCube } from '@/lib/series';
 
 /**
@@ -128,68 +140,48 @@ const BAR_TONE = 'var(--official)';
 /** One page of the register; the API is asked for exactly this many. */
 const PAGE_SIZE = 60;
 
-/** What each active slicer is called, so it can be named and removed. */
-function chipsFor(
-  selection: PressSelection,
-  terms: PressCube['terms'],
-): Array<{ dimension: keyof PressSelection; value: string; label: string; icon: IconName }> {
-  const out: Array<{
-    dimension: keyof PressSelection;
-    value: string;
-    label: string;
-    icon: IconName;
-  }> = [];
-  if (selection.topic !== ECONOMIC_TOPICS) {
-    out.push({
-      dimension: 'topic',
-      value: selection.topic,
-      label:
-        selection.topic === 'TODOS'
-          ? 'Todos los temas'
-          : (TOPIC_LABEL[selection.topic] ?? selection.topic),
-      icon: TOPIC_ICON[selection.topic] ?? 'cajas',
-    });
-  }
-  if (selection.year !== 'TODOS') {
-    out.push({
-      dimension: 'year',
-      value: selection.year,
-      label: selection.year,
-      icon: 'calendario',
-    });
-  }
-  if (selection.tone !== 'TODOS') {
-    out.push({
-      dimension: 'tone',
-      value: selection.tone,
-      label: TONE_LABEL[selection.tone] ?? selection.tone,
-      icon: 'campana',
-    });
-  }
-  if (selection.region !== 'TODOS') {
-    out.push({
-      dimension: 'region',
-      value: selection.region,
-      label: REGION_LABEL[selection.region] ?? selection.region,
-      icon: 'globo',
-    });
-  }
-  if (selection.outlet !== 'TODOS') {
-    out.push({
-      dimension: 'outlet',
-      value: selection.outlet,
-      label: selection.outlet,
-      icon: 'ventana',
-    });
-  }
-  if (selection.term !== 'TODOS') {
-    out.push({
-      dimension: 'term',
-      value: selection.term,
-      label: terms.find((entry) => entry.term === selection.term)?.label ?? selection.term,
-      icon: 'etiqueta',
-    });
-  }
+interface Chip {
+  dimension: PressDimension;
+  value: string;
+  label: string;
+  icon: IconName;
+}
+
+/**
+ * Una pastilla por categoria elegida, no una por dimension.
+ *
+ * Con varias categorias en la misma dimension, una sola pastilla que dijera
+ * «Tono» no podria quitarse de a una, y quitar las cinco de un golpe no es lo
+ * que pide quien se equivoco en la quinta. Cada pastilla nombra un valor y lo
+ * quita solo a el.
+ */
+function chipsFor(selection: PressSelection, terms: PressCube['terms']): Chip[] {
+  const out: Chip[] = [];
+  const add = (
+    dimension: PressDimension,
+    label: (value: string) => string,
+    icon: (value: string) => IconName,
+  ): void => {
+    if (same(selection[dimension], NO_SELECTION[dimension])) return;
+    for (const value of list(selection[dimension])) {
+      out.push({ dimension, value, label: label(value), icon: icon(value) });
+    }
+  };
+
+  add(
+    'topic',
+    (value) => (value === ECONOMIC_TOPICS ? 'Solo economicos' : (TOPIC_LABEL[value] ?? value)),
+    (value) => TOPIC_ICON[value] ?? 'cajas',
+  );
+  add('year', (value) => value, () => 'calendario');
+  add('tone', (value) => TONE_LABEL[value] ?? value, () => 'campana');
+  add('region', (value) => REGION_LABEL[value] ?? value, () => 'globo');
+  add('outlet', (value) => value, () => 'ventana');
+  add(
+    'term',
+    (value) => terms.find((entry) => entry.term === value)?.label ?? value,
+    () => 'etiqueta',
+  );
   return out;
 }
 
@@ -241,11 +233,36 @@ export function PressExplorer({
       return next;
     });
 
-  const pick = (dimension: keyof PressSelection, value: string): void => {
+  /**
+   * Un clic sobre una categoria.
+   *
+   * `add` viene del modificador: sin el, la categoria reemplaza lo que hubiera
+   * en esa dimension; con el, se suma o se resta de lo elegido. Las dimensiones
+   * entre si siempre se acumularon y siguen igual.
+   */
+  const pick = (dimension: PressDimension, value: string, add = false): void => {
     // Page four of a selection that no longer has four pages is a blank screen
     // with nothing on it to explain itself.
     setOffset(0);
-    setSelection((current) => ({ ...current, [dimension]: value }));
+    setSelection((current) => ({
+      ...current,
+      [dimension]: toggleChoice(current[dimension], value, add, NO_SELECTION[dimension]),
+    }));
+  };
+
+  /** Volver una dimension a su valor por omision: los botones «todos los …». */
+  const reset = (dimension: PressDimension): void => {
+    setOffset(0);
+    setSelection((current) => ({ ...current, [dimension]: NO_SELECTION[dimension] }));
+  };
+
+  /** Quitar una sola categoria, que es lo que hace la × de cada pastilla. */
+  const drop = (dimension: PressDimension, value: string): void => {
+    setOffset(0);
+    setSelection((current) => ({
+      ...current,
+      [dimension]: without(current[dimension], value, NO_SELECTION[dimension]),
+    }));
   };
 
   const counting = searchCube ?? cube;
@@ -253,7 +270,7 @@ export function PressExplorer({
   const byOutlet = useMemo(() => countsFor(counting, selection, 'outlet'), [counting, selection]);
   const total = useMemo(() => totalFor(counting, selection), [counting, selection]);
   const economicTotal = useMemo(
-    () => totalFor(counting, { ...selection, topic: ECONOMIC_TOPICS }),
+    () => totalFor(counting, { ...selection, topic: NO_SELECTION.topic }),
     [counting, selection],
   );
 
@@ -323,9 +340,41 @@ export function PressExplorer({
 
   const pages = Math.max(1, Math.ceil(total / PAGE_SIZE));
   const page = Math.min(pages, Math.floor(offset / PAGE_SIZE) + 1);
+  /*
+   * La pagina que vino corta es la ultima, diga lo que diga el recuento.
+   *
+   * Con varios terminos el total es un techo, de modo que el numero de paginas
+   * calculado a partir de el puede prometer una pagina mas de las que la base
+   * tiene. Lo que llego manda: una pagina incompleta no tiene siguiente.
+   */
+  const atEnd = !loading && articles.length < PAGE_SIZE;
   const active = activeCount(selection, search);
   const chips = chipsFor(selection, cube.terms);
   const peakTopic = topics.length ? Math.max(...topics.map(([, count]) => count)) : 1;
+  /*
+   * Con mas de un termino elegido los recuentos son un techo y no un total.
+   *
+   * El cubo guarda una fila por nota y termino, y una nota que nombra dos de
+   * los terminos elegidos se suma dos veces; no lleva identificadores, asi que
+   * aqui no hay como descontarla. La base si la descuenta —el recorte de alla
+   * es sobre la nota— de modo que la lista de abajo trae menos notas que las
+   * que anuncia este numero. Se dice «hasta» en vez de presentar el techo como
+   * si fuera el total.
+   */
+  const bounded = isUpperBound(selection);
+  const chosenTopics = list(selection.topic);
+  const headingIcon: IconName = same(selection.topic, NO_SELECTION.topic)
+    ? 'tendencia'
+    : (TOPIC_ICON[chosenTopics[0] ?? ''] ?? 'tendencia');
+  const heading = same(selection.topic, NO_SELECTION.topic)
+    ? 'Cobertura económica'
+    : selection.topic.size === 0
+      ? 'Toda la cobertura'
+      : describe(
+          selection.topic,
+          (value) => (value === ECONOMIC_TOPICS ? 'Económicos' : (TOPIC_LABEL[value] ?? value)),
+          'Toda la cobertura',
+        );
 
   return (
     <div className="workspace">
@@ -337,6 +386,8 @@ export function PressExplorer({
             {active ? `${active} activo${active === 1 ? '' : 's'}` : 'sin filtro'}
           </span>
         </div>
+
+        <FilterHint />
 
         {chips.length || search.trim() ? (
           <div className="rail-sec">
@@ -355,7 +406,7 @@ export function PressExplorer({
                   key={`${chip.dimension}-${chip.value}`}
                   type="button"
                   className="chip chip-on"
-                  onClick={() => pick(chip.dimension, NO_SELECTION[chip.dimension])}
+                  onClick={() => drop(chip.dimension, chip.value)}
                   title="Quitar este filtro"
                 >
                   <Icon name={chip.icon} size={12} />
@@ -380,56 +431,72 @@ export function PressExplorer({
           <div className="rail-head">
             <Icon name="cajas" size={13} />
             Tema
+            <PickedCount choice={selection.topic} base={NO_SELECTION.topic} />
           </div>
           <button
             type="button"
-            className={selection.topic === ECONOMIC_TOPICS ? 'rail-item rail-item-on' : 'rail-item'}
-            onClick={() => pick('topic', ECONOMIC_TOPICS)}
+            className={
+              same(selection.topic, NO_SELECTION.topic) ? 'rail-item rail-item-on' : 'rail-item'
+            }
+            aria-pressed={same(selection.topic, NO_SELECTION.topic)}
+            onClick={() => reset('topic')}
           >
             <Icon name="tendencia" size={16} />
             <span className="rail-name">Sólo económicos</span>
             <span className="rail-n">{economicTotal.toLocaleString('es-BO')}</span>
           </button>
-          {topics.map(([key, count]) => (
-            <button
-              key={key}
-              type="button"
-              className={selection.topic === key ? 'rail-item rail-item-on' : 'rail-item'}
-              onClick={() => pick('topic', selection.topic === key ? ECONOMIC_TOPICS : key)}
-            >
-              <Icon name={TOPIC_ICON[key] ?? 'cajas'} size={16} />
-              <span className="rail-name">{TOPIC_LABEL[key] ?? key}</span>
-              <span className="rail-n">{count.toLocaleString('es-BO')}</span>
-            </button>
-          ))}
+          {topics.map(([key, count]) => {
+            const on = picked(selection.topic, key);
+            return (
+              <button
+                key={key}
+                type="button"
+                className={on ? 'rail-item rail-item-on' : 'rail-item'}
+                aria-pressed={on}
+                title={multiTitle(TOPIC_LABEL[key] ?? key, on)}
+                onClick={(event) => pick('topic', key, additive(event))}
+              >
+                <Icon name={TOPIC_ICON[key] ?? 'cajas'} size={16} />
+                <span className="rail-name">{TOPIC_LABEL[key] ?? key}</span>
+                <span className="rail-n">{count.toLocaleString('es-BO')}</span>
+              </button>
+            );
+          })}
         </div>
 
         <div className="rail-sec">
           <div className="rail-head">
             <Icon name="ventana" size={13} />
             Medio ({outlets.length})
+            <PickedCount choice={selection.outlet} />
           </div>
           <button
             type="button"
-            className={selection.outlet === 'TODOS' ? 'rail-item rail-item-on' : 'rail-item'}
-            onClick={() => pick('outlet', 'TODOS')}
+            className={selection.outlet.size === 0 ? 'rail-item rail-item-on' : 'rail-item'}
+            aria-pressed={selection.outlet.size === 0}
+            onClick={() => reset('outlet')}
           >
             <Icon name="ventana" size={16} />
             <span className="rail-name">Todos los medios</span>
             <span className="rail-n">{total.toLocaleString('es-BO')}</span>
           </button>
-          {outlets.map(([name, count]) => (
-            <button
-              key={name}
-              type="button"
-              className={selection.outlet === name ? 'rail-item rail-item-on' : 'rail-item'}
-              onClick={() => pick('outlet', selection.outlet === name ? 'TODOS' : name)}
-            >
-              <Icon name="ventana" size={16} />
-              <span className="rail-name">{name}</span>
-              <span className="rail-n">{count.toLocaleString('es-BO')}</span>
-            </button>
-          ))}
+          {outlets.map(([name, count]) => {
+            const on = picked(selection.outlet, name);
+            return (
+              <button
+                key={name}
+                type="button"
+                className={on ? 'rail-item rail-item-on' : 'rail-item'}
+                aria-pressed={on}
+                title={multiTitle(name, on)}
+                onClick={(event) => pick('outlet', name, additive(event))}
+              >
+                <Icon name="ventana" size={16} />
+                <span className="rail-name">{name}</span>
+                <span className="rail-n">{count.toLocaleString('es-BO')}</span>
+              </button>
+            );
+          })}
         </div>
 
         <div className="rail-sec">
@@ -505,15 +572,10 @@ export function PressExplorer({
         </div>
 
         <div className="strap">
-          <Icon name={TOPIC_ICON[selection.topic] ?? 'tendencia'} size={17} />
-          <h2>
-            {selection.topic === ECONOMIC_TOPICS
-              ? 'Cobertura económica'
-              : selection.topic === 'TODOS'
-                ? 'Toda la cobertura'
-                : (TOPIC_LABEL[selection.topic] ?? selection.topic)}
-          </h2>
+          <Icon name={headingIcon} size={17} />
+          <h2>{heading}</h2>
           <span className="tile-hint">
+            {bounded ? 'hasta ' : ''}
             {total.toLocaleString('es-BO')} de {span.total.toLocaleString('es-BO')} nota
             {span.total === 1 ? '' : 's'}
           </span>
@@ -552,13 +614,15 @@ export function PressExplorer({
             </div>
             <div className="barlist">
               {topics.map(([key, count]) => {
-                const on = selection.topic === key;
+                const on = picked(selection.topic, key);
                 return (
                   <button
                     key={key}
                     type="button"
                     className={on ? 'barlist-row barlist-row-on' : 'barlist-row'}
-                    onClick={() => pick('topic', on ? ECONOMIC_TOPICS : key)}
+                    aria-pressed={on}
+                    title={multiTitle(TOPIC_LABEL[key] ?? key, on)}
+                    onClick={(event) => pick('topic', key, additive(event))}
                   >
                     <Icon name={TOPIC_ICON[key] ?? 'cajas'} size={14} />
                     <span className="barlist-name">{TOPIC_LABEL[key] ?? key}</span>
@@ -590,8 +654,18 @@ export function PressExplorer({
           <p className="panel-sub register-note">
             <Icon name="reloj" size={13} /> El registro va de lo más reciente a lo más antiguo:
             página <b>{page}</b> de <b>{pages.toLocaleString('es-BO')}</b>,{' '}
-            <b>{total.toLocaleString('es-BO')}</b> notas en esta selección. La descarga trae la
-            selección completa.
+            <b>
+              {bounded ? 'hasta ' : ''}
+              {total.toLocaleString('es-BO')}
+            </b>{' '}
+            notas en esta selección. La descarga trae la selección completa.
+            {bounded ? (
+              <>
+                {' '}
+                Con varios términos elegidos esa cifra es un techo: una nota que nombra a dos se
+                cuenta dos veces aquí y una sola vez en el listado y en el archivo.
+              </>
+            ) : null}
           </p>
         ) : null}
 
@@ -669,7 +743,7 @@ export function PressExplorer({
               type="button"
               className="pager-step"
               onClick={() => setOffset(offset + PAGE_SIZE)}
-              disabled={page >= pages || loading}
+              disabled={page >= pages || loading || atEnd}
             >
               Más antiguas <Icon name="desplegar" size={14} />
             </button>

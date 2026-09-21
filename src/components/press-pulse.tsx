@@ -2,8 +2,9 @@
 
 import { Icon } from './icons';
 import type { IconName } from './icons';
+import { ANY, additive, multiTitle, picked } from '@/lib/choice';
 import { countsFor } from '@/lib/cross-filter';
-import type { PressSelection } from '@/lib/cross-filter';
+import type { PressDimension, PressSelection } from '@/lib/cross-filter';
 import type { PressCube } from '@/lib/series';
 
 /**
@@ -142,7 +143,13 @@ export interface PressPulseProps {
     lastDay: string | null;
     unmarked: { archive: number; live: number; archiveLength: number; liveLength: number };
   };
-  onPick: (dimension: keyof PressSelection, value: string) => void;
+  /**
+   * Lo que el lector acaba de tocar.
+   *
+   * `add` dice si el gesto traía un modificador: el panel no decide qué hacer
+   * con eso —esa regla vive entera en `toggle`— sólo reporta cómo se tocó.
+   */
+  onPick: (dimension: PressDimension, value: string, add: boolean) => void;
 }
 
 export function PressPulse({ cube, selection, span, onPick }: PressPulseProps) {
@@ -153,11 +160,11 @@ export function PressPulse({ cube, selection, span, onPick }: PressPulseProps) {
   // those are alarming — so it is counted with the year left open and the tone
   // read off the rows rather than asked for separately.
   const alarmByYear = (() => {
-    const open = { ...selection, tone: 'TODOS' };
+    const open = { ...selection, tone: ANY };
     const totals = countsFor(cube, open, 'year');
     const alarm = new Map<string, number>();
     for (const tone of ALARMING) {
-      for (const [year, count] of countsFor(cube, { ...open, tone }, 'year')) {
+      for (const [year, count] of countsFor(cube, { ...open, tone: new Set([tone]) }, 'year')) {
         alarm.set(year, (alarm.get(year) ?? 0) + count);
       }
     }
@@ -220,7 +227,8 @@ export function PressPulse({ cube, selection, span, onPick }: PressPulseProps) {
         <p className="panel-sub" style={{ marginBottom: 'var(--s2)' }}>
           Léxico, no modelo: cada categoría es una lista de palabras que podés revisar. No lee
           ironía ni distingue quién habla — un titular que cita la alarma de otro cuenta como
-          alarma. Tocá una y el resto del tablero se filtra con ella.
+          alarma. Tocá una y el resto del tablero se filtra con ella; con Ctrl+clic (⌘ en Mac)
+          sumás varias y el tablero se queda con las notas de cualquiera de ellas.
         </p>
         <p className="panel-sub" style={{ marginBottom: 'var(--s2)' }}>
           «Sin marca» no quiere decir calma: quiere decir que ninguna palabra de la lista apareció.
@@ -233,13 +241,15 @@ export function PressPulse({ cube, selection, span, onPick }: PressPulseProps) {
           {tones.map((key) => {
             const entry = TONE[key];
             const count = byTone.get(key) ?? 0;
-            const on = selection.tone === key;
+            const on = picked(selection.tone, key);
             return (
               <button
                 key={key}
                 type="button"
                 className={on ? 'tone-cell tone-cell-on' : 'tone-cell'}
-                onClick={() => onPick('tone', on ? 'TODOS' : key)}
+                aria-pressed={on}
+                title={multiTitle(entry?.label ?? key, on)}
+                onClick={(event) => onPick('tone', key, additive(event))}
                 style={{ borderTopColor: entry?.colour ?? 'var(--rule)' }}
               >
                 <span className="tone-top">
@@ -296,13 +306,15 @@ export function PressPulse({ cube, selection, span, onPick }: PressPulseProps) {
           </ul>
           <div className="barlist">
             {alarmByYear.map((row) => {
-              const on = selection.year === row.year;
+              const on = picked(selection.year, row.year);
               return (
                 <button
                   key={row.year}
                   type="button"
                   className={on ? 'barlist-row barlist-row-on' : 'barlist-row'}
-                  onClick={() => onPick('year', on ? 'TODOS' : row.year)}
+                  aria-pressed={on}
+                  title={multiTitle(row.year, on)}
+                  onClick={(event) => onPick('year', row.year, additive(event))}
                 >
                   <Icon name="calendario" size={13} />
                   <span className="barlist-name" style={{ width: 60 }}>
@@ -344,19 +356,25 @@ export function PressPulse({ cube, selection, span, onPick }: PressPulseProps) {
           </div>
           <p className="panel-sub" style={{ marginBottom: 'var(--s2)' }}>
             Tamaño por número de notas que lo mencionan. Tocá un término y el tablero entero se
-            queda con la cobertura que lo nombra.
+            queda con la cobertura que lo nombra; con Ctrl+clic sumás varios. Ojo: una nota que
+            nombra dos de los términos elegidos se cuenta dos veces en estas cifras y una sola vez
+            en el listado, así que los recuentos pasan a ser un techo.
           </p>
           <div className="term-map">
             {terms.slice(0, 24).map((term) => {
               const weight = term.mentions / peakTerm;
-              const on = selection.term === term.term;
+              const on = picked(selection.term, term.term);
               return (
                 <button
                   key={term.term}
                   type="button"
                   className={on ? 'term-chip term-chip-on' : 'term-chip'}
-                  title={`${term.mentions.toLocaleString('es-BO')} notas lo mencionan`}
-                  onClick={() => onPick('term', on ? 'TODOS' : term.term)}
+                  aria-pressed={on}
+                  title={`${term.mentions.toLocaleString('es-BO')} notas lo mencionan — ${multiTitle(
+                    term.label,
+                    on,
+                  )}`}
+                  onClick={(event) => onPick('term', term.term, additive(event))}
                   style={{
                     fontSize: `${0.72 + weight * 0.55}rem`,
                     background: on ? 'var(--ink)' : `rgb(27 79 156 / ${0.05 + weight * 0.16})`,
@@ -380,17 +398,19 @@ export function PressPulse({ cube, selection, span, onPick }: PressPulseProps) {
           </div>
           <p className="panel-sub" style={{ marginBottom: 'var(--s2)' }}>
             El departamento que la nota nombra. Las que no nombran ninguno quedan como nacionales,
-            en vez de asignarse a la ciudad del medio.
+            en vez de asignarse a la ciudad del medio. Ctrl+clic para comparar varios a la vez.
           </p>
           <div className="barlist">
             {regions.map(([key, count]) => {
-              const on = selection.region === key;
+              const on = picked(selection.region, key);
               return (
                 <button
                   key={key}
                   type="button"
                   className={on ? 'barlist-row barlist-row-on' : 'barlist-row'}
-                  onClick={() => onPick('region', on ? 'TODOS' : key)}
+                  aria-pressed={on}
+                  title={multiTitle(REGION[key] ?? key, on)}
+                  onClick={(event) => onPick('region', key, additive(event))}
                 >
                   <Icon name="globo" size={13} />
                   <span className="barlist-name">{REGION[key] ?? key}</span>

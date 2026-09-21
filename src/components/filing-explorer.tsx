@@ -1,6 +1,20 @@
 'use client';
 
 import { useMemo, useState } from 'react';
+import {
+  ANY,
+  accepts,
+  additive,
+  counts,
+  describe,
+  list,
+  multiTitle,
+  picked,
+  toggle as toggleChoice,
+  without,
+} from '@/lib/choice';
+import type { Choice } from '@/lib/choice';
+import { FilterHint, PickedCount } from './filters';
 import { Icon } from './icons';
 import type { IconName } from './icons';
 import type { CompanyFiling } from '@/lib/series';
@@ -130,9 +144,17 @@ const shortName = (name: string): string =>
   name.length > 26 ? `${name.slice(0, 25).trimEnd()}…` : name;
 
 export function FilingExplorer({ filings }: { filings: CompanyFiling[] }) {
-  const [sector, setSector] = useState('TODOS');
-  const [category, setCategory] = useState('TODOS');
-  const [filer, setFiler] = useState('TODOS');
+  /*
+   * Cada recorte es un conjunto y no un nombre.
+   *
+   * «Banca» y «Energía» a la vez es una pregunta corriente —son los dos rubros
+   * que mueven el registro— y con un filtro de uno solo hay que mirarlos por
+   * turnos y sumar de cabeza. Vacío quiere decir «todos», igual que el viejo
+   * centinela; el gesto que suma está en `toggle`.
+   */
+  const [sector, setSector] = useState<Choice>(ANY);
+  const [category, setCategory] = useState<Choice>(ANY);
+  const [filer, setFiler] = useState<Choice>(ANY);
   const [search, setSearch] = useState('');
   /** Which filings the reader has opened; collapsed is a clamp, never a cut. */
   const [open, setOpen] = useState<ReadonlySet<string>>(() => new Set());
@@ -150,13 +172,35 @@ export function FilingExplorer({ filings }: { filings: CompanyFiling[] }) {
   const matches = useMemo(() => {
     const term = search.trim().toLocaleLowerCase('es');
     return (filing: CompanyFiling, except: 'sector' | 'category' | 'filer' | null): boolean =>
-      (except === 'sector' || sector === 'TODOS' || filing.sector === sector) &&
-      (except === 'category' || category === 'TODOS' || filing.category === category) &&
-      (except === 'filer' || filer === 'TODOS' || filing.filer === filer) &&
+      (except === 'sector' || accepts(sector, filing.sector)) &&
+      (except === 'category' || accepts(category, filing.category)) &&
+      (except === 'filer' || accepts(filer, filing.filer)) &&
       (!term ||
         filing.subject.toLocaleLowerCase('es').includes(term) ||
         filing.filer.toLocaleLowerCase('es').includes(term));
   }, [sector, category, filer, search]);
+
+  /**
+   * Los tres gestos, escritos una vez.
+   *
+   * El rubro arrastra al emisor: elegir «Banca» en lugar de «Energía» puede
+   * dejar puesto un emisor que ya no existe en la selección, y un filtro que no
+   * devuelve nada sin decir por qué es peor que ninguno. Al *sumar* un rubro
+   * eso no pasa —la selección sólo se ensancha— así que ahí el emisor se queda.
+   */
+  const pickSector = (value: string, add: boolean): void => {
+    setOffset(0);
+    setSector((current) => toggleChoice(current, value, add));
+    if (!add) setFiler(ANY);
+  };
+  const pickCategory = (value: string, add: boolean): void => {
+    setOffset(0);
+    setCategory((current) => toggleChoice(current, value, add));
+  };
+  const pickFiler = (value: string, add: boolean): void => {
+    setOffset(0);
+    setFiler((current) => toggleChoice(current, value, add));
+  };
 
   /**
    * Each slicer counted under every other one, never under itself — choosing an
@@ -210,21 +254,55 @@ export function FilingExplorer({ filings }: { filings: CompanyFiling[] }) {
    * carries the same name, and the subject is the only thing left that says
    * which filing this is.
    */
-  const leadWithSubject = filer !== 'TODOS';
+  const leadWithSubject = filer.size > 0;
   const issuers = new Set(selected.map((filing) => filing.filer)).size;
-  const active =
-    (sector === 'TODOS' ? 0 : 1) +
-    (category === 'TODOS' ? 0 : 1) +
-    (filer === 'TODOS' ? 0 : 1) +
-    (search.trim() ? 1 : 0);
+  /*
+   * Una dimensión cuenta una vez aunque lleve cinco categorías: lo que el
+   * lector movió es un filtro, no cinco.
+   */
+  const active = counts(sector) + counts(category) + counts(filer) + (search.trim() ? 1 : 0);
 
   const query = new URLSearchParams({
     dataset: 'filings',
-    ...(sector === 'TODOS' ? {} : { sector }),
-    ...(category === 'TODOS' ? {} : { categoria: category }),
-    ...(filer === 'TODOS' ? {} : { emisor: filer }),
+    ...(sector.size ? { sector: list(sector).join(',') } : {}),
+    ...(category.size ? { categoria: list(category).join(',') } : {}),
+    ...(filer.size ? { emisor: list(filer).join(',') } : {}),
     ...(search.trim() ? { buscar: search.trim() } : {}),
   });
+
+  /** Una pastilla por categoría elegida, para poder quitarlas de a una. */
+  const chips = [
+    ...list(sector).map((value) => ({
+      key: `sector-${value}`,
+      icon: SECTOR_ICON[value] ?? 'cajas',
+      label: SECTOR_LABEL[value] ?? value,
+      title: 'Quitar este filtro',
+      remove: () => {
+        setOffset(0);
+        setSector((current) => without(current, value));
+      },
+    })),
+    ...list(category).map((value) => ({
+      key: `category-${value}`,
+      icon: CATEGORY_ICON[value] ?? 'cajas',
+      label: CATEGORY_LABEL[value] ?? value,
+      title: 'Quitar este filtro',
+      remove: () => {
+        setOffset(0);
+        setCategory((current) => without(current, value));
+      },
+    })),
+    ...list(filer).map((value) => ({
+      key: `filer-${value}`,
+      icon: 'edificio' as const,
+      label: shortName(value),
+      title: `${value} — tocá para quitar este filtro`,
+      remove: () => {
+        setOffset(0);
+        setFiler((current) => without(current, value));
+      },
+    })),
+  ];
 
   return (
     <div className="workspace">
@@ -237,6 +315,8 @@ export function FilingExplorer({ filings }: { filings: CompanyFiling[] }) {
           </span>
         </div>
 
+        <FilterHint />
+
         {active ? (
           <div className="rail-sec">
             <div className="rail-head">
@@ -244,48 +324,18 @@ export function FilingExplorer({ filings }: { filings: CompanyFiling[] }) {
               Selección activa
             </div>
             <div className="rail-pills">
-              {sector === 'TODOS' ? null : (
+              {chips.map((chip) => (
                 <button
+                  key={chip.key}
                   type="button"
                   className="chip chip-on"
-                  onClick={() => {
-                    setOffset(0);
-                    setSector('TODOS');
-                  }}
-                  title="Quitar este filtro"
+                  onClick={chip.remove}
+                  title={chip.title}
                 >
-                  <Icon name={SECTOR_ICON[sector] ?? 'cajas'} size={12} />
-                  {SECTOR_LABEL[sector] ?? sector} ×
+                  <Icon name={chip.icon} size={12} />
+                  {chip.label} ×
                 </button>
-              )}
-              {category === 'TODOS' ? null : (
-                <button
-                  type="button"
-                  className="chip chip-on"
-                  onClick={() => {
-                    setOffset(0);
-                    setCategory('TODOS');
-                  }}
-                  title="Quitar este filtro"
-                >
-                  <Icon name={CATEGORY_ICON[category] ?? 'cajas'} size={12} />
-                  {CATEGORY_LABEL[category] ?? category} ×
-                </button>
-              )}
-              {filer === 'TODOS' ? null : (
-                <button
-                  type="button"
-                  className="chip chip-on"
-                  onClick={() => {
-                    setOffset(0);
-                    setFiler('TODOS');
-                  }}
-                  title={`${filer} — tocá para quitar este filtro`}
-                >
-                  <Icon name="edificio" size={12} />
-                  {shortName(filer)} ×
-                </button>
-              )}
+              ))}
               {search.trim() ? (
                 <button type="button" className="chip chip-on" onClick={() => setSearch('')}>
                   <Icon name="buscar" size={12} />«{search.trim()}» ×
@@ -295,9 +345,10 @@ export function FilingExplorer({ filings }: { filings: CompanyFiling[] }) {
                 type="button"
                 className="chip"
                 onClick={() => {
-                  setSector('TODOS');
-                  setCategory('TODOS');
-                  setFiler('TODOS');
+                  setOffset(0);
+                  setSector(ANY);
+                  setCategory(ANY);
+                  setFiler(ANY);
                   setSearch('');
                 }}
               >
@@ -311,47 +362,54 @@ export function FilingExplorer({ filings }: { filings: CompanyFiling[] }) {
           <div className="rail-head">
             <Icon name="etiqueta" size={13} />
             Tipo de hecho
+            <PickedCount choice={category} />
           </div>
           <button
             type="button"
-            className={category === 'TODOS' ? 'rail-item rail-item-on' : 'rail-item'}
+            className={category.size === 0 ? 'rail-item rail-item-on' : 'rail-item'}
+            aria-pressed={category.size === 0}
             onClick={() => {
               setOffset(0);
-              setCategory('TODOS');
+              setCategory(ANY);
             }}
           >
             <Icon name="capas" size={16} />
             <span className="rail-name">Todos los tipos</span>
             <span className="rail-n">{categoryTotal.toLocaleString('es-BO')}</span>
           </button>
-          {categories.map(([key, count]) => (
-            <button
-              key={key}
-              type="button"
-              className={category === key ? 'rail-item rail-item-on' : 'rail-item'}
-              onClick={() => {
-                setOffset(0);
-                setCategory(category === key ? 'TODOS' : key);
-              }}
-            >
-              <Icon name={CATEGORY_ICON[key] ?? 'cajas'} size={16} />
-              <span className="rail-name">{CATEGORY_LABEL[key] ?? key}</span>
-              <span className="rail-n">{count.toLocaleString('es-BO')}</span>
-            </button>
-          ))}
+          {categories.map(([key, count]) => {
+            const on = picked(category, key);
+            return (
+              <button
+                key={key}
+                type="button"
+                className={on ? 'rail-item rail-item-on' : 'rail-item'}
+                aria-pressed={on}
+                title={multiTitle(CATEGORY_LABEL[key] ?? key, on)}
+                onClick={(event) => pickCategory(key, additive(event))}
+              >
+                <Icon name={CATEGORY_ICON[key] ?? 'cajas'} size={16} />
+                <span className="rail-name">{CATEGORY_LABEL[key] ?? key}</span>
+                <span className="rail-n">{count.toLocaleString('es-BO')}</span>
+              </button>
+            );
+          })}
         </div>
 
         <div className="rail-sec">
           <div className="rail-head">
             <Icon name="cajas" size={13} />
             Rubro del emisor
+            <PickedCount choice={sector} />
           </div>
           <button
             type="button"
-            className={sector === 'TODOS' ? 'rail-item rail-item-on' : 'rail-item'}
+            className={sector.size === 0 ? 'rail-item rail-item-on' : 'rail-item'}
+            aria-pressed={sector.size === 0}
             onClick={() => {
-              setSector('TODOS');
-              setFiler('TODOS');
+              setOffset(0);
+              setSector(ANY);
+              setFiler(ANY);
             }}
           >
             <Icon name="cajas" size={16} />
@@ -360,43 +418,72 @@ export function FilingExplorer({ filings }: { filings: CompanyFiling[] }) {
               {sectors.reduce((sum, [, count]) => sum + count, 0).toLocaleString('es-BO')}
             </span>
           </button>
-          {sectors.map(([key, count]) => (
-            <button
-              key={key}
-              type="button"
-              className={sector === key ? 'rail-item rail-item-on' : 'rail-item'}
-              onClick={() => {
-                setSector(sector === key ? 'TODOS' : key);
-                setFiler('TODOS');
-              }}
-            >
-              <Icon name={SECTOR_ICON[key] ?? 'cajas'} size={16} />
-              <span className="rail-name">{SECTOR_LABEL[key] ?? key}</span>
-              <span className="rail-n">{count}</span>
-            </button>
-          ))}
+          {sectors.map(([key, count]) => {
+            const on = picked(sector, key);
+            return (
+              <button
+                key={key}
+                type="button"
+                className={on ? 'rail-item rail-item-on' : 'rail-item'}
+                aria-pressed={on}
+                title={multiTitle(SECTOR_LABEL[key] ?? key, on)}
+                onClick={(event) => pickSector(key, additive(event))}
+              >
+                <Icon name={SECTOR_ICON[key] ?? 'cajas'} size={16} />
+                <span className="rail-name">{SECTOR_LABEL[key] ?? key}</span>
+                <span className="rail-n">{count}</span>
+              </button>
+            );
+          })}
         </div>
 
         <div className="rail-sec">
           <div className="rail-head">
             <Icon name="edificio" size={13} />
             Emisor ({filers.length})
+            <PickedCount choice={filer} />
           </div>
-          <div className="rail-field">
-            <select
-              value={filer}
-              onChange={(event) => {
+          {/*
+            Una lista y no un desplegable.
+
+            Un `select` nativo elige uno y sólo uno: no hay Ctrl+clic dentro de
+            un desplegable, y dejar el emisor como la única dimensión del
+            informe que no se puede sumar convertía el atajo en una regla con
+            excepciones que el lector descubre fallando. La lista se desplaza
+            dentro de su sección —son decenas de emisores— y el buscador de
+            abajo sigue sirviendo para llegar a uno por nombre.
+          */}
+          <div className={filers.length > 8 ? 'rail-list rail-list-cut' : 'rail-list'}>
+            <button
+              type="button"
+              className={filer.size === 0 ? 'rail-item rail-item-on' : 'rail-item'}
+              aria-pressed={filer.size === 0}
+              onClick={() => {
                 setOffset(0);
-                setFiler(event.target.value);
+                setFiler(ANY);
               }}
             >
-              <option value="TODOS">Todos los emisores</option>
-              {filers.map(([name, count]) => (
-                <option key={name} value={name}>
-                  {name} ({count})
-                </option>
-              ))}
-            </select>
+              <Icon name="capas" size={16} />
+              <span className="rail-name">Todos los emisores</span>
+              <span className="rail-n">{filers.reduce((sum, [, count]) => sum + count, 0)}</span>
+            </button>
+            {filers.map(([name, count]) => {
+              const on = picked(filer, name);
+              return (
+                <button
+                  key={name}
+                  type="button"
+                  className={on ? 'rail-item rail-item-on' : 'rail-item'}
+                  aria-pressed={on}
+                  title={multiTitle(name, on)}
+                  onClick={(event) => pickFiler(name, additive(event))}
+                >
+                  <Icon name="edificio" size={16} />
+                  <span className="rail-name">{name}</span>
+                  <span className="rail-n">{count}</span>
+                </button>
+              );
+            })}
           </div>
         </div>
 
@@ -439,9 +526,9 @@ export function FilingExplorer({ filings }: { filings: CompanyFiling[] }) {
             <h2>Hechos relevantes</h2>
             <p>
               Comunicados que los emisores registran en la Bolsa Boliviana de Valores. Elegí un
-              rubro a la izquierda para leer sólo ese sector; la bolsa no publica una clasificación
-              sectorial propia, así que el rubro se <strong>deriva de la razón social</strong> del
-              emisor.
+              rubro a la izquierda para leer sólo ese sector, o sumá varios con{' '}
+              <strong>Ctrl+clic</strong>; la bolsa no publica una clasificación sectorial propia,
+              así que el rubro se <strong>deriva de la razón social</strong> del emisor.
             </p>
             <div className="brief-points">
               <div className="brief-point">
@@ -476,8 +563,10 @@ export function FilingExplorer({ filings }: { filings: CompanyFiling[] }) {
         </div>
 
         <div className="strap">
-          <Icon name={SECTOR_ICON[sector] ?? 'cajas'} size={17} />
-          <h2>{sector === 'TODOS' ? 'Todos los rubros' : (SECTOR_LABEL[sector] ?? sector)}</h2>
+          <Icon name={SECTOR_ICON[list(sector)[0] ?? ''] ?? 'cajas'} size={17} />
+          <h2>
+            {describe(sector, (value) => SECTOR_LABEL[value] ?? value, 'Todos los rubros')}
+          </h2>
           <span className="tile-hint">
             {selected.length} hecho{selected.length === 1 ? '' : 's'}
           </span>
@@ -502,30 +591,32 @@ export function FilingExplorer({ filings }: { filings: CompanyFiling[] }) {
               </span>
             </div>
             <div className="barlist">
-              {categories.map(([key, count]) => (
-                <button
-                  key={key}
-                  type="button"
-                  className={category === key ? 'barlist-row barlist-row-on' : 'barlist-row'}
-                  onClick={() => {
-                    setOffset(0);
-                    setCategory(category === key ? 'TODOS' : key);
-                  }}
-                >
-                  <Icon name={CATEGORY_ICON[key] ?? 'cajas'} size={14} />
-                  <span className="barlist-name">{CATEGORY_LABEL[key] ?? key}</span>
-                  <span className="barlist-track">
-                    <span
-                      className="barlist-fill"
-                      style={{
-                        width: `${(count / categoryPeak) * 100}%`,
-                        background: category === key ? 'var(--ink)' : BAR_TONE,
-                      }}
-                    />
-                  </span>
-                  <span className="barlist-n">{count.toLocaleString('es-BO')}</span>
-                </button>
-              ))}
+              {categories.map(([key, count]) => {
+                const on = picked(category, key);
+                return (
+                  <button
+                    key={key}
+                    type="button"
+                    className={on ? 'barlist-row barlist-row-on' : 'barlist-row'}
+                    aria-pressed={on}
+                    title={multiTitle(CATEGORY_LABEL[key] ?? key, on)}
+                    onClick={(event) => pickCategory(key, additive(event))}
+                  >
+                    <Icon name={CATEGORY_ICON[key] ?? 'cajas'} size={14} />
+                    <span className="barlist-name">{CATEGORY_LABEL[key] ?? key}</span>
+                    <span className="barlist-track">
+                      <span
+                        className="barlist-fill"
+                        style={{
+                          width: `${(count / categoryPeak) * 100}%`,
+                          background: on ? 'var(--ink)' : BAR_TONE,
+                        }}
+                      />
+                    </span>
+                    <span className="barlist-n">{count.toLocaleString('es-BO')}</span>
+                  </button>
+                );
+              })}
             </div>
           </div>
         ) : null}
@@ -541,30 +632,32 @@ export function FilingExplorer({ filings }: { filings: CompanyFiling[] }) {
               </span>
             </div>
             <div className="barlist">
-              {sectors.map(([key, count]) => (
-                <button
-                  key={key}
-                  type="button"
-                  className={sector === key ? 'barlist-row barlist-row-on' : 'barlist-row'}
-                  onClick={() => {
-                    setOffset(0);
-                    setSector(sector === key ? 'TODOS' : key);
-                  }}
-                >
-                  <Icon name={SECTOR_ICON[key] ?? 'cajas'} size={14} />
-                  <span className="barlist-name">{SECTOR_LABEL[key] ?? key}</span>
-                  <span className="barlist-track">
-                    <span
-                      className="barlist-fill"
-                      style={{
-                        width: `${(count / peak) * 100}%`,
-                        background: sector === key ? 'var(--ink)' : BAR_TONE,
-                      }}
-                    />
-                  </span>
-                  <span className="barlist-n">{count.toLocaleString('es-BO')}</span>
-                </button>
-              ))}
+              {sectors.map(([key, count]) => {
+                const on = picked(sector, key);
+                return (
+                  <button
+                    key={key}
+                    type="button"
+                    className={on ? 'barlist-row barlist-row-on' : 'barlist-row'}
+                    aria-pressed={on}
+                    title={multiTitle(SECTOR_LABEL[key] ?? key, on)}
+                    onClick={(event) => pickSector(key, additive(event))}
+                  >
+                    <Icon name={SECTOR_ICON[key] ?? 'cajas'} size={14} />
+                    <span className="barlist-name">{SECTOR_LABEL[key] ?? key}</span>
+                    <span className="barlist-track">
+                      <span
+                        className="barlist-fill"
+                        style={{
+                          width: `${(count / peak) * 100}%`,
+                          background: on ? 'var(--ink)' : BAR_TONE,
+                        }}
+                      />
+                    </span>
+                    <span className="barlist-n">{count.toLocaleString('es-BO')}</span>
+                  </button>
+                );
+              })}
             </div>
           </div>
         ) : null}

@@ -63,14 +63,14 @@ const UNITS: Record<string, string> = {
  * was showing.
  */
 interface Selection {
-  sector?: string | undefined;
-  topic?: string | undefined;
-  outlet?: string | undefined;
-  tone?: string | undefined;
-  region?: string | undefined;
+  sector?: readonly string[] | undefined;
+  topic?: readonly string[] | undefined;
+  outlet?: readonly string[] | undefined;
+  tone?: readonly string[] | undefined;
+  region?: readonly string[] | undefined;
   /** Filings only: the issuer and the kind of filing the panel was slicing by. */
-  filer?: string | undefined;
-  category?: string | undefined;
+  filer?: readonly string[] | undefined;
+  category?: readonly string[] | undefined;
   /**
    * The calendar year the panel was slicing by, on press and on subjects.
    *
@@ -78,12 +78,12 @@ interface Selection {
    * and a «desde» alone cannot express it: that gives everything from 2024
    * onwards. It stays its own field so the file and the panel agree exactly.
    */
-  year?: string | undefined;
-  term?: string | undefined;
-  /** Subjects only: the family of watched terms the panel was slicing by. */
-  family?: string | undefined;
-  /** Places only: the city the map was showing. The family is `family` above. */
-  city?: string | undefined;
+  year?: readonly string[] | undefined;
+  term?: readonly string[] | undefined;
+  /** Subjects only: the families of watched terms the panel was slicing by. */
+  family?: readonly string[] | undefined;
+  /** Places only: the cities the map was showing. The family is `family` above. */
+  city?: readonly string[] | undefined;
   /** A year on the macro panel, a calendar date on the exchange-rate one. */
   from?: string | undefined;
   /** The far end of the same range, inclusive, where the panel offers one. */
@@ -91,13 +91,23 @@ interface Selection {
   search?: string | undefined;
 }
 
+/**
+ * Si un valor sobrevive al recorte de una dimension.
+ *
+ * Cada dimension llega como lista porque el tablero deja sumar categorias con
+ * Ctrl+clic; una lista vacia o ausente no recorta, que es lo que antes decia
+ * el valor sin poner.
+ */
+const inAny = (chosen: readonly string[] | undefined, value: string): boolean =>
+  !chosen || chosen.length === 0 || chosen.includes(value);
+
 async function collect(dataset: Dataset, selection: Selection): Promise<Row[]> {
   if (dataset === 'macro') {
     const term = selection.search?.trim().toLocaleLowerCase('es');
     return (await readMacroAnnual())
       .filter(
         (point) =>
-          (!selection.sector || point.sector === selection.sector) &&
+          inAny(selection.sector, point.sector) &&
           (selection.from === undefined || Number(point.period) >= Number(selection.from)) &&
           (!term ||
             (point.name ?? '').toLocaleLowerCase('es').includes(term) ||
@@ -121,8 +131,8 @@ async function collect(dataset: Dataset, selection: Selection): Promise<Row[]> {
     // The map draws at most four thousand premises because past that a drawing
     // is a blot; the file has no such reason to stop, so it carries the whole
     // selection. The panel says which of the two the reader is looking at.
-    if (!selection.city) return [];
-    return (await readPlacesForExport(selection.city, selection.family ?? null)).map((place) => ({
+    if (!selection.city || selection.city.length === 0) return [];
+    return (await readPlacesForExport(selection.city, selection.family ?? [])).map((place) => ({
       ciudad: place.city,
       nombre: place.name,
       grupo: place.entityGroup,
@@ -148,14 +158,16 @@ async function collect(dataset: Dataset, selection: Selection): Promise<Row[]> {
     const term = selection.search?.trim().toLocaleLowerCase('es');
     const wanted = WORLD_INDICATORS.filter(
       (indicator) =>
-        (!selection.topic || indicator.theme === selection.topic) &&
+        inAny(selection.topic, indicator.theme) &&
         (!term ||
           indicator.label.toLocaleLowerCase('es').includes(term) ||
           indicator.code.toLocaleLowerCase('es').includes(term)),
     );
     const byCode = new Map(wanted.map((indicator) => [indicator.code, indicator]));
-    const region = WORLD_PLACES.find((place) => place.code === selection.region)?.code;
-    const places = region ? [WORLD, region, BOLIVIA] : WORLD_PLACE_CODES;
+    const regions = WORLD_PLACES.filter(
+      (place) => selection.region?.includes(place.code) ?? false,
+    ).map((place) => place.code);
+    const places = regions.length ? [...new Set([WORLD, ...regions, BOLIVIA])] : WORLD_PLACE_CODES;
     const since = selection.from === undefined ? undefined : Number(selection.from.slice(0, 4));
     if (byCode.size === 0) return [];
     return (await readWorldBoard([...byCode.keys()], places)).flatMap((point) => {
@@ -194,13 +206,12 @@ async function collect(dataset: Dataset, selection: Selection): Promise<Row[]> {
         : selection.until.length === 4
           ? `${selection.until}-12`
           : selection.until.slice(0, 7);
-    const year = selection.year?.trim();
     return (await readTermMonths())
       .filter(
         (row) =>
-          (!selection.family || row.family === selection.family) &&
-          (!selection.term || row.term === selection.term) &&
-          (!year || row.month.slice(0, 4) === year) &&
+          inAny(selection.family, row.family) &&
+          inAny(selection.term, row.term) &&
+          inAny(selection.year, row.month.slice(0, 4)) &&
           (since === undefined || row.month >= since) &&
           (until === undefined || row.month <= until) &&
           (!search ||
@@ -263,9 +274,9 @@ async function collect(dataset: Dataset, selection: Selection): Promise<Row[]> {
     return (await readCompanyFilings(5_000))
       .filter(
         (filing) =>
-          (!selection.sector || filing.sector === selection.sector) &&
-          (!selection.category || filing.category === selection.category) &&
-          (!selection.filer || filing.filer === selection.filer) &&
+          inAny(selection.sector, filing.sector) &&
+          inAny(selection.category, filing.category) &&
+          inAny(selection.filer, filing.filer) &&
           (selection.from === undefined || filing.eventDate >= selection.from) &&
           (!term ||
             filing.subject.toLocaleLowerCase('es').includes(term) ||
@@ -305,6 +316,23 @@ async function collect(dataset: Dataset, selection: Selection): Promise<Row[]> {
     }
   }
   return rows.sort((left, right) => String(left['fecha']).localeCompare(String(right['fecha'])));
+}
+
+/**
+ * Las categorias de una dimension, tal como vienen en la direccion.
+ *
+ * Separadas por coma porque el tablero deja sumar varias con Ctrl+clic. Los
+ * centinelas de las direcciones viejas -TODOS, TODAS- siguen queriendo decir
+ * "sin recorte", de modo que un enlace guardado hace un ano sigue bajando el
+ * mismo archivo.
+ */
+function manyOf(raw: string | null): string[] | undefined {
+  if (!raw) return undefined;
+  const values = raw
+    .split(',')
+    .map((one) => one.trim().slice(0, 120))
+    .filter((one) => one.length > 0 && one !== 'TODOS' && one !== 'TODAS');
+  return values.length ? values.slice(0, 200) : undefined;
 }
 
 /** Quotes a field only when it needs it, so the file stays readable. */
@@ -395,18 +423,19 @@ export async function GET(request: Request): Promise<Response> {
     const dated = /^\d{4}(-\d{2}(-\d{2})?)?$/u;
     const from = url.searchParams.get('desde')?.trim();
     const until = url.searchParams.get('hasta')?.trim();
+    const many = (name: string): string[] | undefined => manyOf(url.searchParams.get(name));
     const rows = await collect(dataset, {
-      sector: url.searchParams.get('sector') ?? undefined,
-      topic: url.searchParams.get('tema') ?? undefined,
-      outlet: url.searchParams.get('medio') ?? undefined,
-      tone: url.searchParams.get('tono') ?? undefined,
-      region: url.searchParams.get('region') ?? undefined,
-      filer: url.searchParams.get('emisor') ?? undefined,
-      category: url.searchParams.get('categoria') ?? undefined,
-      year: url.searchParams.get('anio') ?? undefined,
-      term: url.searchParams.get('termino') ?? undefined,
-      family: url.searchParams.get('familia') ?? undefined,
-      city: url.searchParams.get('ciudad') ?? undefined,
+      sector: many('sector'),
+      topic: many('tema'),
+      outlet: many('medio'),
+      tone: many('tono'),
+      region: many('region'),
+      filer: many('emisor'),
+      category: many('categoria'),
+      year: many('anio'),
+      term: many('termino'),
+      family: many('familia'),
+      city: many('ciudad'),
       from: from && dated.test(from) ? from : undefined,
       until: until && dated.test(until) ? until : undefined,
       search: url.searchParams.get('buscar') ?? undefined,

@@ -994,13 +994,21 @@ async function buildPressCube(search?: string): Promise<PressCube> {
   };
 }
 
+/**
+ * El recorte que pide una página del registro.
+ *
+ * Cada dimensión lleva una lista y no un valor: el tablero dejó de filtrar por
+ * una categoría por dimensión y filtra por las que el lector haya sumado con
+ * Ctrl+clic. Una lista vacía o ausente quiere decir «todas», que es lo que
+ * quería decir el viejo `TODOS`.
+ */
 export interface PressQuery {
-  year?: string | undefined;
-  tone?: string | undefined;
-  topic?: string | undefined;
-  region?: string | undefined;
-  outlet?: string | undefined;
-  term?: string | undefined;
+  year?: readonly string[] | undefined;
+  tone?: readonly string[] | undefined;
+  topic?: readonly string[] | undefined;
+  region?: readonly string[] | undefined;
+  outlet?: readonly string[] | undefined;
+  term?: readonly string[] | undefined;
   search?: string | undefined;
 }
 
@@ -1024,16 +1032,45 @@ export async function readPressPage(
     return `$${values.length}`;
   };
 
-  if (query.year) where.push(`left(event_date::text, 4) = ${bind(query.year)}`);
-  if (query.tone) where.push(`tone = ${bind(query.tone)}`);
-  if (query.region) where.push(`region = ${bind(query.region)}`);
-  if (query.outlet) where.push(`outlet = ${bind(query.outlet)}`);
-  if (query.topic === 'ECONOMICOS') where.push(`topic <> 'OTROS'`);
-  else if (query.topic) where.push(`topic = ${bind(query.topic)}`);
-  if (query.term) {
+  /** Una dimensión con valores se vuelve una disyunción; sin ellos no recorta. */
+  const anyOf = (column: string, values: readonly string[] | undefined): void => {
+    if (values && values.length) where.push(`${column} = ANY(${bind([...values])})`);
+  };
+
+  anyOf(`left(event_date::text, 4)`, query.year);
+  anyOf('tone', query.tone);
+  anyOf('region', query.region);
+  anyOf('outlet', query.outlet);
+
+  /*
+   * «ECONOMICOS» no es un tema sino el complemento del residuo, así que se
+   * traduce a su propia condición y no a una pertenencia. Elegirlo junto a
+   * «OTROS» —que es lo que deja Ctrl+clic sobre el residuo— vuelve a ser el
+   * archivo entero, y entonces la condición sobra.
+   */
+  const topics = query.topic ?? [];
+  if (topics.length) {
+    const everythingButResidual = topics.includes('ECONOMICOS');
+    const named = topics.filter((topic) => topic !== 'ECONOMICOS');
+    if (everythingButResidual && named.includes('OTROS')) {
+      // Sin condición: el residuo y su complemento son el archivo completo.
+    } else if (everythingButResidual) {
+      where.push(`topic <> 'OTROS'`);
+    } else if (named.length) {
+      where.push(`topic = ANY(${bind(named)})`);
+    }
+  }
+
+  /*
+   * Los términos se cruzan contra la nota, no contra la mención: una nota que
+   * nombra dos de los términos elegidos entra una sola vez. Es la diferencia
+   * con el cubo del navegador, que no lleva identificadores y sólo puede dar
+   * un techo.
+   */
+  if (query.term && query.term.length) {
     where.push(
       `fact_claim_id IN (SELECT fact_claim_id FROM read_models.press_term_mention_snapshot
-                          WHERE term = ${bind(query.term)})`,
+                          WHERE term = ANY(${bind([...query.term])}))`,
     );
   }
   if (query.search) {

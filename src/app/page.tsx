@@ -338,7 +338,7 @@ export default async function Page() {
       seccion('sources', readSources, []),
       seccion('macro', readMacroAnnual, []),
       seccion('filings', () => readCompanyFilings(), []),
-      seccion('press', () => readPressPage({ topic: 'ECONOMICOS' }, 60).then((page) => page.articles), []),
+      seccion('press', () => readPressPage({ topic: ['ECONOMICOS'] }, 60).then((page) => page.articles), []),
       /*
        * El mismo archivo sin filtrar por tema, para el cuadro de mando.
        *

@@ -1,6 +1,7 @@
 'use client';
 
 import { Fragment, useState } from 'react';
+import { additive } from '@/lib/choice';
 import { Icon } from './icons';
 import {
   Area,
@@ -1334,6 +1335,15 @@ export interface ShareSlice {
   parts?: ReadonlyArray<{ name: string; value: number; unit?: string }>;
   /** One line under the numbers saying what the bar means. */
   note?: string;
+  /**
+   * La categoría que esta barra representa, cuando se puede filtrar por ella.
+   *
+   * `name` es el rótulo —«Comercio exterior»— y un recuento indexado por un
+   * texto de pantalla no se puede volver a convertir en un filtro. Esto es el
+   * código crudo, y su ausencia es lo que distingue una barra que se toca de
+   * una que sólo se lee: los tonos de un tema no son un recorte de nada.
+   */
+  pick?: string;
 }
 
 /**
@@ -1359,15 +1369,33 @@ export function ShareBars({
   tone = 'var(--official)',
   unit = '%',
   height = 220,
+  onPick,
 }: {
   data: ShareSlice[];
   tone?: string;
   unit?: string;
   height?: number;
+  /**
+   * Qué hacer cuando el lector toca una barra que lleva `pick`.
+   *
+   * El segundo argumento dice si el gesto traía Ctrl/⌘/Mayús, igual que en el
+   * resto del informe: el gráfico no decide qué significa sumar, sólo reporta
+   * cómo se tocó. Sin este prop las barras siguen siendo un dibujo.
+   */
+  onPick?: (value: string, additive: boolean) => void;
 }) {
   const rows = [...data].sort((left, right) => right.value - left.value);
   const peak = rows.reduce((highest, row) => Math.max(highest, row.value), 0);
   const marked = rows.some((row) => row.emphasis);
+  /*
+   * El dibujo se toca sólo si hay adónde ir.
+   *
+   * Un puntero de mano sobre una barra que no hace nada es una promesa que el
+   * gráfico no puede cumplir; y el teclado llega a estas mismas categorías por
+   * la lista del carril, que es donde vive el camino accesible. Esto es un
+   * atajo sobre el dibujo, nunca la única puerta.
+   */
+  const clickable = Boolean(onPick) && rows.some((row) => row.pick);
   /** Un decimal donde cambia algo, ninguno donde la cifra son miles. */
   const decimals = peak >= 100 ? 0 : 1;
   const say = (value: number): string =>
@@ -1418,6 +1446,21 @@ export function ShareBars({
             radius={[0, 4, 4, 0]}
             animationDuration={MOTION.duration}
             animationEasing={MOTION.easing}
+            {...(clickable
+              ? {
+                  cursor: 'pointer',
+                  onClick: (_entry: unknown, index: number, event: unknown) => {
+                    const row = rows[index];
+                    if (!row?.pick) return;
+                    const gesture = (event ?? {}) as {
+                      ctrlKey?: boolean;
+                      metaKey?: boolean;
+                      shiftKey?: boolean;
+                    };
+                    onPick?.(row.pick, additive(gesture));
+                  },
+                }
+              : {})}
           >
             <LabelList
               dataKey="value"

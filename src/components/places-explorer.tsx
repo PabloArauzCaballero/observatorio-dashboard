@@ -140,6 +140,10 @@ export function PlacesExplorer({
 
   // The first selection is the busiest place, so the detail panel below the map
   // is never an empty box waiting to be told what to say.
+  //
+  // Uno solo, a diferencia de los filtros del informe: esto no recorta el mapa
+  // —el mapa dibuja siempre los nueve departamentos— sino que elige de cuál se
+  // lee la ficha de abajo, y dos fichas a la vez no es una selección más ancha.
   const [selected, setSelected] = useState<string>(() => places[0]?.code ?? '');
   const [hovered, setHovered] = useState<string | null>(null);
   const svgRef = useRef<SVGSVGElement | null>(null);

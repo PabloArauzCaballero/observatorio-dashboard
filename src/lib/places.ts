@@ -151,7 +151,32 @@ export async function readPlaceFamilies(): Promise<PlaceFamily[]> {
 }
 
 /**
- * The places of one city, optionally narrowed to one family.
+ * El recorte del mapa, traducido a una condicion.
+ *
+ * Ciudad y familia dejaron de ser un valor cada una: el lector suma las que
+ * quiera con Ctrl+clic, y varias ciudades o varias familias son una disyuncion.
+ * Una lista vacia de familias no recorta; una lista vacia de ciudades no es un
+ * caso legal y quien llama la descarta antes, porque «todos los lugares del
+ * pais» son veintiseis mil filas que nadie pidio.
+ */
+function placeScope(
+  cities: readonly string[],
+  families: readonly string[],
+): { where: string; values: unknown[] } {
+  const values: unknown[] = [cities.map((city) => city.slice(0, 60))];
+  const conditions = ['locality = ANY($1)'];
+  if (families.length) {
+    values.push(families.map((family) => family.slice(0, 60)));
+    conditions.push(`entity_family = ANY($${values.length})`);
+  }
+  return {
+    where: `WHERE ${conditions.join(' AND ')} AND status = 'PUBLISHED' AND NOT superseded`,
+    values,
+  };
+}
+
+/**
+ * The places of the chosen cities, optionally narrowed to some families.
  *
  * Cuatro mil por defecto, y el tope no es arbitrario: una pagina que sirve
  * catorce mil lugares en cada cambio de ciudad son varios megas por clic, y el
@@ -162,18 +187,13 @@ export async function readPlaceFamilies(): Promise<PlaceFamily[]> {
  * de enseñar un mapa recortado como si fuera la ciudad entera.
  */
 export async function readPlaces(
-  city: string,
-  family: string | null,
+  cities: readonly string[],
+  families: readonly string[],
   limit = 4000,
 ): Promise<{ places: Place[]; total: number }> {
+  if (cities.length === 0) return { places: [], total: 0 };
   try {
-    const conditions = ['locality = $1'];
-    const values: unknown[] = [city.slice(0, 60)];
-    if (family) {
-      conditions.push(`entity_family = $${values.length + 1}`);
-      values.push(family.slice(0, 60));
-    }
-    const where = `WHERE ${conditions.join(' AND ')} AND status = 'PUBLISHED' AND NOT superseded`;
+    const { where, values } = placeScope(cities, families);
 
     const counted = await pool().query<{ total: string }>(
       `SELECT count(*)::text AS total FROM ${PLACE_UNION} ${where}`,
@@ -241,14 +261,13 @@ export async function readPlaces(
  * thousand best-measured ones. The panel says which of the two it is showing,
  * so the difference is stated rather than discovered.
  */
-export async function readPlacesForExport(city: string, family: string | null): Promise<Place[]> {
+export async function readPlacesForExport(
+  cities: readonly string[],
+  families: readonly string[],
+): Promise<Place[]> {
+  if (cities.length === 0) return [];
+  const { where, values } = placeScope(cities, families);
   try {
-    const conditions = ['locality = $1'];
-    const values: unknown[] = [city.slice(0, 60)];
-    if (family) {
-      conditions.push(`entity_family = $${values.length + 1}`);
-      values.push(family.slice(0, 60));
-    }
 
     const { rows } = await pool().query<{
       place_id: string;
@@ -270,8 +289,8 @@ export async function readPlacesForExport(city: string, family: string | null): 
               entity_group, entity_family, is_regulated, address, brand,
               confidence::text, quality_grade, official_validation_source
        FROM ${PLACE_UNION}
-       WHERE ${conditions.join(' AND ')} AND status = 'PUBLISHED' AND NOT superseded
-       ORDER BY entity_family, name
+       ${where}
+       ORDER BY city, entity_family, name
        LIMIT 60000`,
       values,
     );
