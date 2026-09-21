@@ -251,6 +251,7 @@ const EMPTY_PRESS_PULSE: PressPulseData = {
 
 /** El nombre que un lector reconoce, para cada lectura que puede faltar. */
 const NOMBRE_DE_SECCION: Record<string, string> = {
+  gap: 'brecha cambiaria',
   sources: 'fuentes',
   macro: 'macroeconomía anual',
   filings: 'hechos relevantes',
@@ -314,12 +315,24 @@ export default async function Page() {
 
   try {
     /*
-     * El tipo de cambio y la brecha son la espina del informe — la portada se
-     * construye sobre su ultima fecha — asi que no se perdonan: si esos dos no
-     * se leen no hay pagina que servir. Las demas secciones son tabs, y una
-     * pestaña que falta no es razon para no publicar las otras once.
+     * El tipo de cambio no se perdona: sin el no hay fecha sobre la que
+     * construir la portada ni cifra que publicar, y una pagina sin eso no es
+     * una pagina degradada, es una vacia.
+     *
+     * LA BRECHA SI SE PERDONA, y aprendimos por que. Estaba aqui, sin colador,
+     * con el argumento de que era la espina del informe. El 2026-09-21 su
+     * consulta empezo a agotar el plazo en el servidor mas flojo de los dos
+     * —solo en ese; en el otro la misma consulta devuelve sus setecientas
+     * noventa filas— y el resultado fue que el tablero publico entero
+     * desaparecio detras de «no fue posible leer la base de datos»: sin macro,
+     * sin prensa, sin empresas, sin ciudades. Trece lectores sanos borrados por
+     * uno agotado.
+     *
+     * Una seccion cara no puede llevarse las baratas. La brecha que falta se
+     * anuncia arriba como lo que es, y el resto del informe se sirve.
      */
-    [observatory, gap] = await Promise.all([readObservatory(), readGap()]);
+    observatory = await readObservatory();
+    gap = await seccion('gap', readGap, []);
 
     [
       sources,
@@ -471,7 +484,20 @@ export default async function Page() {
 
   const board = buildTodayBoard({ macro, gap, press: pressToday, currentYear });
 
-  const analysis = dailyAnalysis({
+  /*
+   * Lo que el analisis dice cuando no hay brecha, y por que aqui no vale.
+   *
+   * Sin brecha, `dailyAnalysis` publica una sola viñeta: «ninguna jornada tiene
+   * cotizacion oficial y de mercado a la vez». Eso es cierto cuando la serie
+   * esta vacia de verdad y es FALSO cuando la consulta se agoto — hay
+   * setecientas noventa jornadas con las dos cotizaciones, y el informe estaria
+   * afirmando lo contrario con la misma cara con que afirma lo que sabe.
+   *
+   * Asi que esa viñeta se retira cuando la ausencia es un fallo de lectura. El
+   * aviso de arriba ya nombra la seccion perdida, que es lo unico que aqui se
+   * puede sostener.
+   */
+  const analysisInput = dailyAnalysis({
     latestDate: observatory.latestDate,
     gap,
     parallelBuy: buy,
@@ -481,6 +507,10 @@ export default async function Page() {
     filings,
     macro,
   });
+
+  const analysis = perdidas.has('gap')
+    ? { ...analysisInput, bullets: analysisInput.bullets.filter((bullet) => bullet.key !== 'sin-brecha') }
+    : analysisInput;
 
   return (
     <main>
@@ -538,6 +568,7 @@ export default async function Page() {
         <section className="stack">
           <SummaryExplorer
             gap={gapSeries}
+            gapUnread={perdidas.has('gap')}
             figures={summaryFigures}
             coverage={[
               {
@@ -557,7 +588,7 @@ export default async function Page() {
               },
               {
                 label: 'Días con brecha',
-                count: gap.length.toLocaleString('es-BO'),
+                count: contar('gap', gap),
                 icon: 'balanza',
               },
             ]}
