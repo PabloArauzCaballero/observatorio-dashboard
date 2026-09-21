@@ -5289,3 +5289,386 @@ button.download-btn {
   width: 100%;
   pointer-events: none;
 }
+
+/* === cuadro de mando «Hoy» === */
+/*
+ * El tablero de arriba, escrito para quien no conoce el país.
+ *
+ * Una sola regla de color: el veredicto se dice con un token ya validado de la
+ * paleta de series —`--up` para lo adverso, `--down` para lo favorable,
+ * `--series-4` para lo intermedio— en lugar de una terna verde/ámbar/rojo
+ * nueva. Así el mismo hecho no sale de un color aquí y de otro en el gráfico
+ * que hay tres centímetros más abajo, y ningún valor entra sin haber pasado por
+ * el comprobador de contraste.
+ *
+ * El color nunca va solo: cada tarjeta dice su veredicto con palabras («Vigilar»)
+ * además del punto, porque un semáforo que solo es color no se lee ni en
+ * escala de grises ni con daltonismo.
+ *
+ * DOS COLORES POR VEREDICTO, y no uno. `--board-tone` pinta la banda y el punto,
+ * que son formas; `--board-ink` escribe la palabra. Se separan porque el ámbar
+ * de la paleta de series (#a87c00) da 3,79:1 sobre el panel claro: correcto
+ * para una marca de 7 px, por debajo del piso para una palabra. El ámbar de
+ * texto se oscureció hasta 5,01:1 sin salirse del tono. Medido, no estimado:
+ * cualquier valor nuevo se vuelve a medir contra `--panel` en los dos modos.
+ */
+
+:root {
+  --verdict-ink-vigilar: #8f6900; /* 5,01:1 sobre #ffffff */
+}
+
+/* En oscuro el ámbar de la paleta ya pasa: 5,69:1 sobre #151a21. */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --verdict-ink-vigilar: var(--series-4);
+  }
+}
+
+.board {
+  margin-bottom: var(--s4);
+}
+
+.board-intro {
+  max-width: 68ch;
+  margin-bottom: var(--s3);
+  color: var(--ink-soft);
+  font-size: 0.86rem;
+  line-height: 1.55;
+}
+
+.board-grid {
+  display: grid;
+  gap: var(--s2);
+  grid-template-columns: repeat(auto-fit, minmax(min(330px, 100%), 1fr));
+}
+
+.board-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  padding: var(--s2) var(--s3) var(--s3);
+  background: var(--panel);
+  border: 1px solid var(--rule);
+  /* El veredicto se lee antes que el título: la banda es lo primero que entra. */
+  border-top: 3px solid var(--board-tone, var(--ink-faint));
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+}
+
+.board-favorable {
+  --board-tone: var(--down);
+  --board-ink: var(--down);
+}
+.board-vigilar {
+  --board-tone: var(--series-4);
+  --board-ink: var(--verdict-ink-vigilar);
+}
+.board-adverso {
+  --board-tone: var(--up);
+  --board-ink: var(--up);
+}
+.board-sin-lectura {
+  --board-tone: var(--ink-faint);
+  --board-ink: var(--ink-soft);
+}
+
+.board-card-head {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  margin-bottom: 0.15rem;
+}
+
+.board-card-head h3 {
+  font-size: 0.92rem;
+  font-weight: 620;
+  letter-spacing: -0.01em;
+}
+
+.board-card-icon {
+  display: inline-flex;
+  color: var(--ink-faint);
+}
+
+.board-verdict {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  margin-left: auto;
+  font-family: var(--mono);
+  font-size: 0.62rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  white-space: nowrap;
+  color: var(--board-ink, var(--ink-soft));
+}
+
+.board-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--board-tone);
+}
+
+.board-figure {
+  display: flex;
+  align-items: baseline;
+  gap: 0.4rem;
+  flex-wrap: wrap;
+}
+
+.board-value {
+  font-family: var(--mono);
+  font-size: 1.85rem;
+  font-weight: 600;
+  line-height: 1.05;
+  letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums;
+}
+
+.board-unit {
+  font-size: 0.72rem;
+  color: var(--ink-soft);
+}
+
+.board-measure {
+  font-size: 0.74rem;
+  color: var(--ink-soft);
+  line-height: 1.35;
+}
+
+.board-spark {
+  margin: 0.15rem 0 0.1rem;
+}
+
+.board-reading {
+  font-size: 0.82rem;
+  line-height: 1.5;
+  color: var(--ink-soft);
+}
+
+.board-facts {
+  display: grid;
+  gap: 0.3rem;
+  margin-top: 0.15rem;
+  padding-top: var(--s1);
+  border-top: 1px solid var(--rule-soft);
+}
+
+.board-fact {
+  display: flex;
+  align-items: baseline;
+  gap: 0.5rem;
+  font-size: 0.75rem;
+}
+
+.board-fact dt {
+  flex: 1 1 auto;
+  min-width: 0;
+  color: var(--ink-soft);
+}
+
+.board-fact dd {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  align-items: baseline;
+  gap: 0.35rem;
+  margin-left: auto;
+  text-align: right;
+}
+
+.board-fact dd b {
+  font-family: var(--mono);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.board-fact dd span {
+  color: var(--ink-soft);
+  font-size: 0.66rem;
+}
+
+.board-rule {
+  margin-top: 0.2rem;
+  font-size: 0.74rem;
+}
+
+.board-rule summary {
+  cursor: pointer;
+  color: var(--ink-soft);
+  padding: 0.2rem 0;
+}
+
+.board-rule summary:hover {
+  color: var(--ink);
+}
+
+.board-rule p {
+  margin-top: 0.3rem;
+  padding: var(--s1);
+  background: var(--panel-tint);
+  border-radius: 6px;
+  color: var(--ink-soft);
+  line-height: 1.5;
+}
+
+.board-source {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.25rem;
+  margin-top: auto;
+  padding-top: var(--s1);
+  font-family: var(--mono);
+  font-size: 0.63rem;
+  color: var(--ink-soft);
+}
+
+.board-asof {
+  font-weight: 600;
+}
+
+.board-goes {
+  width: 100%;
+  margin-top: 0.15rem;
+}
+
+.board-news {
+  margin-top: var(--s2);
+  padding: var(--s2) var(--s3) var(--s3);
+  background: var(--panel);
+  border: 1px solid var(--rule);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+}
+
+.board-news-head {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  margin-bottom: var(--s1);
+}
+
+.board-news-head h3 {
+  font-size: 0.92rem;
+  font-weight: 620;
+}
+
+.board-news-head .tile-hint {
+  margin-left: auto;
+  font-family: var(--mono);
+  font-size: 0.66rem;
+  color: var(--ink-soft);
+}
+
+.board-news-list {
+  display: grid;
+  gap: var(--s2);
+  grid-template-columns: repeat(auto-fit, minmax(min(270px, 100%), 1fr));
+  list-style: none;
+}
+
+.board-news-list li {
+  padding-top: var(--s1);
+  border-top: 1px solid var(--rule-soft);
+}
+
+.board-news-list a {
+  font-size: 0.85rem;
+  font-weight: 560;
+  line-height: 1.4;
+}
+
+.board-news-list p {
+  margin-top: 0.25rem;
+  font-size: 0.75rem;
+  line-height: 1.45;
+  color: var(--ink-soft);
+}
+
+.board-news-meta {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin-top: 0.3rem;
+  font-family: var(--mono);
+  font-size: 0.63rem;
+  color: var(--ink-soft);
+}
+
+.board-chip {
+  padding: 0.1rem 0.35rem;
+  background: var(--panel-tint);
+  border: 1px solid var(--rule);
+  border-radius: 4px;
+  letter-spacing: 0.04em;
+}
+
+/*
+ * En un teléfono las tarjetas van una debajo de otra y la cifra ya no compite
+ * con nada, así que no necesita el tamaño que necesitaba en una rejilla de
+ * cuatro columnas.
+ */
+@media (max-width: 640px) {
+  .board-card {
+    padding: var(--s2);
+  }
+
+  .board-value {
+    font-size: 1.6rem;
+  }
+}
+
+/* Selección múltiple ------------------------------------------------------ */
+
+/*
+ * El gesto que no se ve.
+ *
+ * Clic sobre una categoría filtra por ella y eso lo descubre cualquiera. Que
+ * Ctrl+clic sume una segunda no lo descubre nadie: es una tecla que hay que
+ * saber que existe, y un tablero que la esconde tiene una función que sólo usa
+ * quien leyó el código. Por eso se dice una vez, arriba del todo del panel de
+ * filtros, donde el lector ya está mirando antes de tocar nada — y no dentro de
+ * cada lista, que serían siete avisos repitiendo lo mismo.
+ *
+ * Va en el mismo gris de las notas al margen porque es una instrucción, no un
+ * dato: compite con las categorías lo justo para ser leída una vez.
+ */
+.rail-hint-top {
+  padding: 0.5rem 0.875rem 0;
+  margin: 0;
+  font-size: 0.68rem;
+  line-height: 1.35;
+  color: var(--ink-soft);
+  border-bottom: 1px solid var(--rule-soft);
+  padding-bottom: 0.5rem;
+}
+
+/*
+ * Lo mismo para las secciones que no tienen riel: el registro de redes y los
+ * paneles que filtran con pastillas en línea.
+ */
+.chips-hint {
+  margin: 0 0 var(--s1);
+  font-size: 0.68rem;
+  color: var(--ink-soft);
+}
+
+/*
+ * Cuántas van elegidas, cuando son más de una.
+ *
+ * Con una sola categoría encendida el propio resalte lo dice todo. Con cuatro
+ * repartidas por una lista larga, el lector que bajó a mirar la cuarta ya no ve
+ * las tres de arriba y no tiene forma de saber que siguen puestas: el recuento
+ * del encabezado es el único lugar donde eso cabe sin repetirse.
+ */
+.rail-head .rail-picked {
+  margin-left: auto;
+  font-family: var(--mono);
+  font-size: 0.64rem;
+  letter-spacing: 0;
+  text-transform: none;
+  color: var(--official);
+}
