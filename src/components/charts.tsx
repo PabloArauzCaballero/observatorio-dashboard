@@ -2279,11 +2279,19 @@ export function YearlyBars({ data, height = 200 }: { data: YearBar[]; height?: n
               animationDuration={MOTION.duration}
               animationEasing={MOTION.easing}
             />
+            {/*
+             * El mismo tope que el tramo de abajo, y no es decorativo: sin él
+             * Recharts le da a este tramo la banda entera mientras el adverso
+             * se queda en 48 px, así que el apilado sale con el zócalo rojo
+             * estrecho y el bloque azul volado por encima —dos anchos, que se
+             * leen como dos gráficos mal pegados en vez de como una barra.
+             */}
             <Bar
               dataKey="calm"
               stackId="anio"
               fill="var(--official)"
               radius={[4, 4, 0, 0]}
+              maxBarSize={BAR_CAP * 2}
               {...STACK_GAP}
               animationDuration={0}
             />

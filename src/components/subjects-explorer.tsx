@@ -13,10 +13,14 @@ import type { TermMonth, TermTotal } from '@/lib/series';
  *
  * The section is read in that order on purpose. Two hundred watched subjects
  * cannot be understood one chart at a time, so the page opens on the whole
- * watchlist at once — the cloud, the families ranked against each other, the
- * archive month by month, and how adversely each family is covered — and only
- * then narrows to a single subject. Anything else asks the reader to choose a
- * subject before the page has given them a reason to prefer one.
+ * watchlist at once — the cloud, the subjects most named beside the archive
+ * month by month, and then the same twenty-four families twice over, ranked by
+ * how much they are named and by how badly they are covered — and only then
+ * narrows to a single subject. The two family rankings share a row because
+ * they are the same list read two ways, and the finding is where the two
+ * orders disagree: the most named family is almost never the worst covered.
+ * Anything else asks the reader to choose a subject before the page has given
+ * them a reason to prefer one.
  *
  * Every filter is in the docked pane on the left, where the rest of the report
  * keeps its filters, and every panel to the right of it obeys them. The one
@@ -823,6 +827,20 @@ export function SubjectsExplorer({ months, totals }: { months: TermMonth[]; tota
 
           <div className="panel">
             <div className="tile-head">
+              <Icon name="barras" size={17} />
+              <h2>El archivo, mes a mes</h2>
+              <span className="tile-hint">{archiveMonths.length} meses</span>
+            </div>
+            <MonthlyBars data={archiveMonths} height={240} />
+            <p className="panel-sub" style={{ marginTop: 'var(--s1)' }}>
+              Todas las menciones de la selección sumadas por mes; en rojo, la parte adversa. Los
+              años delgados son los que se reconstruyeron desde los mapas de sitio de cada medio, no
+              años sin economía.
+            </p>
+          </div>
+
+          <div className="panel">
+            <div className="tile-head">
               <Icon name="capas" size={17} />
               <h2>Las familias, comparadas</h2>
               <span className="tile-hint">{families.length} familias</span>
@@ -851,24 +869,12 @@ export function SubjectsExplorer({ months, totals }: { months: TermMonth[]; tota
               height={Math.max(200, familyAdverse.length * 22)}
             />
             <p className="panel-sub" style={{ marginTop: 'var(--s1)' }}>
-              Cada barra es una división: las menciones que la prensa cubrió con alarma, deterioro,
+              Las mismas familias del panel de al lado, ordenadas por tono en vez de por volumen:
+              cada barra es una división —las menciones que la prensa cubrió con alarma, deterioro,
               conflicto o incertidumbre, <strong>divididas entre todas</strong> las menciones de esa
-              familia. Pasá el puntero por una barra y el globo muestra los dos números. Es tono de
-              la cobertura, no estado de la economía.
-            </p>
-          </div>
-
-          <div className="panel">
-            <div className="tile-head">
-              <Icon name="barras" size={17} />
-              <h2>El archivo, mes a mes</h2>
-              <span className="tile-hint">{archiveMonths.length} meses</span>
-            </div>
-            <MonthlyBars data={archiveMonths} height={240} />
-            <p className="panel-sub" style={{ marginTop: 'var(--s1)' }}>
-              Todas las menciones de la selección sumadas por mes; en rojo, la parte adversa. Los
-              años delgados son los que se reconstruyeron desde los mapas de sitio de cada medio, no
-              años sin economía.
+              familia—, y las dos listas rara vez coinciden en quién va primero. Pasá el puntero por
+              una barra y el globo muestra los dos números. Es tono de la cobertura, no estado de la
+              economía.
             </p>
           </div>
         </div>
