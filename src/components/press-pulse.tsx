@@ -88,12 +88,19 @@ const TONE: Record<string, { label: string; colour: string; icon: IconName; note
   },
   NEUTRO: {
     /*
-     * The residual is the largest cell on the strip and must not read as a
-     * disabled one. `--rule` is the hairline colour: in dark mode it made the
-     * biggest category look switched off, which says the opposite of what four
-     * notes in ten deserve. `--series-rest` es el gris del «resto» de la
-     * paleta, que está medido para leerse (4,6:1) — `--ink-faint` es el gris de
-     * una nota al margen y no llegaba.
+     * «Sin marca» es la ausencia de una categoría, no una categoría: no le
+     * toca un color de la serie. Pero tampoco puede leerse como una celda
+     * apagada, porque es un resultado del léxico y no un hueco.
+     *
+     * Por eso `--series-rest`, el gris del «resto» de la paleta, que está
+     * medido para leerse (4,6:1). Los dos candidatos obvios fallan por lo
+     * mismo: `--rule` es el color de una línea de un pixel y `--ink-faint` el
+     * de una nota al margen — en oscuro los dos dejan la celda en apagada.
+     *
+     * Sin cifras a propósito: el peso de este residuo se movió seis veces en
+     * dieciocho días a medida que el léxico ganaba patrones, así que cualquier
+     * porcentaje escrito aquí caduca en la siguiente migración. La razón de
+     * arriba no depende de cuánto pese.
      */
     label: 'Sin marca',
     colour: 'var(--series-rest)',

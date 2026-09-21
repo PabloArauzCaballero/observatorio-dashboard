@@ -17,3 +17,11 @@ next-env.d.ts
 artifacts/
 test-results/
 playwright-report/
+
+# Directorio de salida de las compilaciones de verificación.
+#
+# Varias sesiones comparten este árbol, así que un `next build` normal pisa el
+# `.next` de quien esté trabajando. La receta es construir con `distDir`
+# apuntado aquí; son ~200 MB de artefactos de una comprobación puntual y no
+# pertenecen al historial.
+.next-verify/
