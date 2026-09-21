@@ -2493,6 +2493,24 @@ export interface DatedBand {
  * annual panels do the same: a segment drawn between two readings asserts the
  * days in between.
  */
+/**
+ * ¿Tiene esta serie alguna lectura sin vecina a ningún lado?
+ *
+ * Una línea necesita dos puntos contiguos para existir. Una serie que acaba de
+ * empezar —o que tiene un hueco de un día en medio— aporta valores que no
+ * forman ningún segmento, y sin marcador quedan invisibles. Se comprueba sobre
+ * las filas visibles, no sobre la serie entera: al acercar el zoom un tramo
+ * puede quedar reducido a un punto, y ahí también hay que verlo.
+ */
+function isolatedPoints(rows: readonly DatedLinePoint[], key: string): boolean {
+  return rows.some((row, index) => {
+    if (typeof row[key] !== 'number') return false;
+    const before = rows[index - 1]?.[key];
+    const after = rows[index + 1]?.[key];
+    return typeof before !== 'number' && typeof after !== 'number';
+  });
+}
+
 export function DatedLines({
   data,
   series,
@@ -2516,9 +2534,7 @@ export function DatedLines({
   const zoom = useRangeZoom(data.map((point) => point.date));
   const shown = zoom.visible(data);
   const values = shown.flatMap((row) =>
-    series
-      .map((one) => row[one.key])
-      .filter((value): value is number => typeof value === 'number'),
+    series.map((one) => row[one.key]).filter((value): value is number => typeof value === 'number'),
   );
   const domain = values.length
     ? fittedDomain(referenceLine === undefined ? values : [...values, referenceLine])
@@ -2605,7 +2621,19 @@ export function DatedLines({
                 stroke={one.tone}
                 strokeWidth={one.emphasis ? 2.4 : 1.6}
                 {...(one.dashed ? { strokeDasharray: '4 3' } : {})}
-                dot={false}
+                /*
+                 * Un punto sin vecinos se dibuja; el resto, no.
+                 *
+                 * `connectNulls` está apagado a propósito, así que un tramo de
+                 * una sola lectura no tiene segmento que trazar y con
+                 * `dot={false}` no se pinta nada en absoluto: la serie aparece
+                 * en la leyenda y no en el gráfico, que es peor que no estar,
+                 * porque parece un fallo. Pasó con la primera jornada de una
+                 * ficha estable recién incorporada. El punto solo aparece donde
+                 * hace falta —una lectura aislada—, no en toda la serie, que
+                 * volvería ilegibles las ochocientas jornadas de al lado.
+                 */
+                dot={isolatedPoints(shown, one.key) ? { r: 2.8, strokeWidth: 0 } : false}
                 connectNulls={false}
                 animationDuration={index === 0 ? MOTION.duration : 0}
                 animationEasing={MOTION.easing}
