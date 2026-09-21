@@ -1,5 +1,7 @@
 'use client';
 
+import { useState } from 'react';
+
 import { DatedLines, SeriesChart } from './charts';
 import type { DatedBand, DatedLinePoint, DatedLineSeries } from './charts';
 import { Icon } from './icons';
@@ -19,6 +21,10 @@ import type { FxConclusion, FxSnapshot, StablecoinReading } from '@/lib/fx-snaps
  * `fxSnapshot`, derived from the same series the charts draw, so a reader can
  * check any claim against the plot beside it and neither can go stale while the
  * other updates.
+ *
+ * Las frases llegan plegadas: siguen siendo lo primero del capítulo, pero como
+ * una cabecera que se abre y no como seis párrafos delante de los gráficos. El
+ * porqué está en `FxConclusions`.
  */
 
 const number = (value: number, decimals = 2): string =>
@@ -51,37 +57,69 @@ const CONCLUSION_ICON: Record<string, IconName> = {
 const toneClass = (tone: FxConclusion['tone']): string =>
   tone === 'adverse' ? 'up' : tone === 'favourable' ? 'down' : 'flat';
 
+/**
+ * La lectura de los datos, plegada hasta que alguien la pide.
+ *
+ * Abierta ocupa la primera pantalla entera del capítulo y empuja por debajo del
+ * pliegue a los gráficos de los que sale, de modo que la sección abría con seis
+ * párrafos y ninguna serie. Plegada, la cabecera dice cuántas lecturas hay y el
+ * lector decide: el orden sigue siendo respuestas primero, pero el texto ya no
+ * se cobra la pantalla antes de que nadie lo haya pedido.
+ *
+ * El estado no se recuerda entre cargas a propósito. Guardarlo obliga a decidir
+ * qué ve quien llega por primera vez desde otro aparato, y esa respuesta ya
+ * está tomada aquí: cerrado.
+ */
 export function FxConclusions({ conclusions }: { conclusions: readonly FxConclusion[] }) {
+  const [open, setOpen] = useState(false);
   if (!conclusions.length) return null;
   return (
-    <div className="analysis">
-      <div className="tile-head">
+    <div className={open ? 'analysis' : 'analysis analysis-folded'}>
+      <div className="tile-head card-head">
         <Icon name="sigma" size={17} />
         <h2>Qué dicen estos datos</h2>
-        <span className="tile-hint">derivado, no redactado</span>
+        <span className="tile-hint">
+          {open
+            ? 'derivado, no redactado'
+            : `${conclusions.length} lectura${conclusions.length === 1 ? '' : 's'}`}
+        </span>
+        <button
+          type="button"
+          className={open ? 'card-toggle card-toggle-on' : 'card-toggle'}
+          onClick={() => setOpen(!open)}
+          title={open ? 'Plegar la lectura de los datos' : 'Ver qué dicen estos datos'}
+          aria-expanded={open}
+        >
+          <Icon name={open ? 'plegar' : 'desplegar'} size={16} />
+        </button>
       </div>
-      <p className="analysis-note">
-        Cada frase sale de las series de esta misma sección y se recalcula con cada carga. Dice qué
-        nivel hay, contra qué referencia y bajo qué régimen; no dice por qué ni qué va a pasar.
-      </p>
-      <ul className="bullets">
-        {conclusions.map((conclusion) => (
-          <li className="bullet" key={conclusion.key}>
-            <span className={`bullet-mark bullet-mark-${toneClass(conclusion.tone)}`}>
-              <Icon name={CONCLUSION_ICON[conclusion.key] ?? 'info'} size={16} />
-            </span>
-            <div className="bullet-body">
-              <div className="bullet-line">
-                <b className="bullet-label">{conclusion.claim}</b>
-                <span className={`bullet-value bullet-value-${toneClass(conclusion.tone)}`}>
-                  {conclusion.figure}
+      {!open ? null : (
+        <>
+          <p className="analysis-note">
+            Cada frase sale de las series de esta misma sección y se recalcula con cada carga. Dice
+            qué nivel hay, contra qué referencia y bajo qué régimen; no dice por qué ni qué va a
+            pasar.
+          </p>
+          <ul className="bullets">
+            {conclusions.map((conclusion) => (
+              <li className="bullet" key={conclusion.key}>
+                <span className={`bullet-mark bullet-mark-${toneClass(conclusion.tone)}`}>
+                  <Icon name={CONCLUSION_ICON[conclusion.key] ?? 'info'} size={16} />
                 </span>
-              </div>
-              <p className="bullet-detail">{conclusion.detail}</p>
-            </div>
-          </li>
-        ))}
-      </ul>
+                <div className="bullet-body">
+                  <div className="bullet-line">
+                    <b className="bullet-label">{conclusion.claim}</b>
+                    <span className={`bullet-value bullet-value-${toneClass(conclusion.tone)}`}>
+                      {conclusion.figure}
+                    </span>
+                  </div>
+                  <p className="bullet-detail">{conclusion.detail}</p>
+                </div>
+              </li>
+            ))}
+          </ul>
+        </>
+      )}
     </div>
   );
 }
