@@ -25,9 +25,23 @@ import {
 import type { Observation } from '@/lib/econometrics';
 
 /**
- * The exchange-rate panel, with the reader's questions asked before the charts.
+ * The exchange-rate panel: the level, its sides, and the statistics on request.
  *
- * Two things were missing here. The section opened straight into a volatility
+ * What this panel is *for* changed once the macro reading moved above it (see
+ * `fx-macro-panels.tsx`). It used to be the whole section and therefore had to
+ * carry the interpretation too, which it did by leading with an annualised
+ * volatility and a value at risk — the description of a traded asset, offered
+ * before the reader had been told what the rate did. Those figures are still
+ * here and still correct; they are now folded away behind a disclosure that says
+ * what they answer and, more to the point, that none of them separates the two
+ * exchange-rate regimes. Computed over the whole history they average a pegged
+ * rate with a moving one and describe neither.
+ *
+ * What is left in front is the part that needs no interpreting: the level, the
+ * two sides the source publishes, and the controls that decide which reading of
+ * the rate every figure below is computed on.
+ *
+ * Two things were missing when it was built. It opened straight into a volatility
  * estimate without saying what was being measured or on which series, which
  * asks the reader to reverse-engineer the method from the axis labels. And it
  * had no controls at all: every statistic was computed once, on the whole
@@ -170,6 +184,12 @@ export function FxExplorer({ rows, official, readingCount }: FxExplorerProps) {
   const [pointInTimeOnly, setPointInTimeOnly] = useState(false);
   /** Whether the level is read as a line or as one candle per session. */
   const [candles, setCandles] = useState(false);
+  /*
+   * Folded away by default. The section used to open on these, which asks the
+   * reader to work out what a value at risk is for before they have been told
+   * what the exchange rate did.
+   */
+  const [technical, setTechnical] = useState(false);
 
   /** Every reading of one series, before the period filter narrows it. */
   const build = useMemo(() => {
@@ -369,27 +389,31 @@ export function FxExplorer({ rows, official, readingCount }: FxExplorerProps) {
         <div>
           <h2>Qué muestra esta sección</h2>
           <p>
-            Bolivia tiene dos precios para el dólar —el oficial que fija el Banco Central y el
-            paralelo del mercado—; la distancia entre ellos es la <strong>brecha cambiaria</strong>,
-            el indicador más directo de la tensión sobre las reservas y sobre el poder de compra.
+            Bolivia tiene dos precios para el dólar: el oficial, que administra el Banco Central, y
+            el paralelo del mercado. La distancia entre ellos es la{' '}
+            <strong>brecha cambiaria</strong>, y mide la escasez de divisas. Cuando la brecha se
+            cierra la pregunta no desaparece, cambia de sitio: pasa a ser{' '}
+            <strong>si el dólar está caro o barato de verdad</strong> una vez descontada la
+            inflación, que es algo que el precio nominal no puede contestar. Las dos cifras están
+            arriba, en la lectura.
           </p>
           <div className="brief-points">
             <div className="brief-point">
               <span className="brief-point-mark">
-                <Icon name="sigma" size={17} />
+                <Icon name="monedas" size={17} />
               </span>
               <div>
-                <b>Retornos logarítmicos</b>
-                <span>se mide la variación diaria, no el nivel</span>
+                <b>Nivel real, no nominal</b>
+                <span>deflactado por la UFV, que se publica a diario</span>
               </div>
             </div>
             <div className="brief-point">
               <span className="brief-point-mark">
-                <Icon name="campana" size={17} />
+                <Icon name="banco" size={17} />
               </span>
               <div>
-                <b>Volatilidad y cola</b>
-                <span>qué tan violento es el movimiento</span>
+                <b>Separado por régimen</b>
+                <span>un tramo fijo y uno en movimiento no se promedian</span>
               </div>
             </div>
             <div className="brief-point">
@@ -439,6 +463,16 @@ export function FxExplorer({ rows, official, readingCount }: FxExplorerProps) {
               <Icon name="capas" size={13} />
               Serie medida
             </div>
+            {/*
+              Una a la vez, y a propósito.
+
+              El resto del informe deja sumar categorías con Ctrl+clic porque
+              ahí las categorías son recortes de un mismo conjunto de filas.
+              Esto no es un recorte: es qué estadístico se mide. El análisis de
+              abajo —volatilidad, quiebres, la brecha— se calcula sobre una
+              serie, y dos a la vez no son un filtro más ancho sino dos
+              análisis distintos pisándose en el mismo panel.
+            */}
             {SERIES.map((entry) => (
               <button
                 key={entry.key}
@@ -598,143 +632,173 @@ export function FxExplorer({ rows, official, readingCount }: FxExplorerProps) {
                 )}
               </div>
 
-              <div className="stat-strip">
-                <Stat
-                  label="Volatilidad anualizada"
-                  icon="pulso"
-                  value={`${number(stats.volatilityAnnual, 1)} %`}
-                  hint="desviación típica de los retornos diarios, √365"
-                />
-                <Stat
-                  label="Retorno medio diario"
-                  icon="sigma"
-                  value={signed(stats.meanDaily)}
-                  hint={`${stats.observations.toLocaleString('es-BO')} observaciones`}
-                />
-                <Stat
-                  label="Asimetría"
-                  icon="area"
-                  value={number(stats.skewness, 2)}
-                  hint={stats.skewness > 0 ? 'sesgo a depreciaciones' : 'sesgo a apreciaciones'}
-                />
-                <Stat
-                  label="Curtosis en exceso"
-                  icon="barras"
-                  value={number(stats.excessKurtosis, 2)}
-                  hint={
-                    stats.excessKurtosis > 0 ? 'colas más gruesas que la normal' : 'colas más finas'
-                  }
-                />
-                <Stat
-                  label="VaR 95 % diario"
-                  icon="escudo"
-                  value={`${number(stats.valueAtRisk95, 2)} %`}
-                  hint="pérdida no superada en 19 de cada 20 días"
-                />
-                {stats.worstDay ? (
-                  <Stat
-                    label="Peor jornada"
-                    icon="rayo"
-                    value={signed(stats.worstDay.ret)}
-                    hint={stats.worstDay.date}
-                  />
-                ) : null}
-              </div>
-
               <div className="panel">
                 <div className="panel-head">
-                  <h2>Retornos diarios</h2>
+                  <h2>Estadística técnica de la serie</h2>
                   <p className="panel-sub">
-                    Variación logarítmica de {chosen?.label.toLocaleLowerCase('es')}. Las barras
-                    hacen visibles los saltos que una línea de nivel suaviza.
+                    Las medidas con las que se describe un activo que cotiza: cuánto se mueve al
+                    día, qué tan gruesa es la cola de los días malos y cuánto se aparta del máximo.
+                    Están aquí y no arriba porque responden «qué tan violento fue el movimiento»,
+                    que no es la pregunta que se le hace a una moneda administrada, y porque{' '}
+                    <b>ninguna de ellas distingue los dos regímenes</b>: calculadas sobre toda la
+                    historia mezclan un tramo fijo con uno en movimiento y describen un promedio que
+                    no existió. Para leerlas de una en una, acotá el periodo a la izquierda.
                   </p>
                 </div>
-                <SeriesChart
-                  data={returnSeries}
-                  kind="bar"
-                  tone="var(--parallel)"
-                  unit="%"
-                  zeroLine
-                  {...(boundary ? { boundary } : {})}
-                />
+                <button
+                  type="button"
+                  className={technical ? 'chip chip-on' : 'chip'}
+                  onClick={() => setTechnical(!technical)}
+                  aria-expanded={technical}
+                >
+                  <Icon name={technical ? 'plegar' : 'desplegar'} size={14} />
+                  {technical ? 'Ocultar la estadística técnica' : 'Ver la estadística técnica'}
+                </button>
               </div>
 
-              <div className="grid-two">
-                <div className="panel">
-                  <div className="panel-head">
-                    <h2>Volatilidad realizada</h2>
-                    <p className="panel-sub">
-                      Ventana móvil de {span} días, anualizada. Responde a «¿está el mercado más
-                      nervioso ahora que hace un mes?».
-                    </p>
+              {technical ? (
+                <>
+                  <div className="stat-strip">
+                    <Stat
+                      label="Volatilidad anualizada"
+                      icon="pulso"
+                      value={`${number(stats.volatilityAnnual, 1)} %`}
+                      hint="desviación típica de los retornos diarios, √365"
+                    />
+                    <Stat
+                      label="Retorno medio diario"
+                      icon="sigma"
+                      value={signed(stats.meanDaily)}
+                      hint={`${stats.observations.toLocaleString('es-BO')} observaciones`}
+                    />
+                    <Stat
+                      label="Asimetría"
+                      icon="area"
+                      value={number(stats.skewness, 2)}
+                      hint={stats.skewness > 0 ? 'sesgo a depreciaciones' : 'sesgo a apreciaciones'}
+                    />
+                    <Stat
+                      label="Curtosis en exceso"
+                      icon="barras"
+                      value={number(stats.excessKurtosis, 2)}
+                      hint={
+                        stats.excessKurtosis > 0
+                          ? 'colas más gruesas que la normal'
+                          : 'colas más finas'
+                      }
+                    />
+                    <Stat
+                      label="VaR 95 % diario"
+                      icon="escudo"
+                      value={`${number(stats.valueAtRisk95, 2)} %`}
+                      hint="pérdida no superada en 19 de cada 20 días"
+                    />
+                    {stats.worstDay ? (
+                      <Stat
+                        label="Peor jornada"
+                        icon="rayo"
+                        value={signed(stats.worstDay.ret)}
+                        hint={stats.worstDay.date}
+                      />
+                    ) : null}
                   </div>
-                  {volatility.length >= 2 ? (
+
+                  <div className="panel">
+                    <div className="panel-head">
+                      <h2>Retornos diarios</h2>
+                      <p className="panel-sub">
+                        Variación logarítmica de {chosen?.label.toLocaleLowerCase('es')}. Las barras
+                        hacen visibles los saltos que una línea de nivel suaviza.
+                      </p>
+                    </div>
                     <SeriesChart
-                      data={volatility}
-                      kind="area"
-                      tone="var(--gap)"
+                      data={returnSeries}
+                      kind="bar"
+                      tone="var(--parallel)"
                       unit="%"
-                      decimals={1}
+                      zeroLine
                       {...(boundary ? { boundary } : {})}
                     />
-                  ) : (
-                    <div className="callout">
-                      Se necesitan más de {span} jornadas para una primera estimación.
+                  </div>
+
+                  <div className="grid-two">
+                    <div className="panel">
+                      <div className="panel-head">
+                        <h2>Volatilidad realizada</h2>
+                        <p className="panel-sub">
+                          Ventana móvil de {span} días, anualizada. Responde a «¿está el mercado más
+                          nervioso ahora que hace un mes?».
+                        </p>
+                      </div>
+                      {volatility.length >= 2 ? (
+                        <SeriesChart
+                          data={volatility}
+                          kind="area"
+                          tone="var(--gap)"
+                          unit="%"
+                          decimals={1}
+                          {...(boundary ? { boundary } : {})}
+                        />
+                      ) : (
+                        <div className="callout">
+                          Se necesitan más de {span} jornadas para una primera estimación.
+                        </div>
+                      )}
                     </div>
-                  )}
-                </div>
 
-                <div className="panel">
-                  <div className="panel-head">
-                    <h2>Distribución de retornos</h2>
-                    <p className="panel-sub">
-                      Días por tramo; en rojo, la cola inferior del 5 %. Si las barras extremas son
-                      más altas de lo que sería normal, los días excepcionales no son tan
-                      excepcionales.
-                    </p>
-                  </div>
-                  <Histogram data={buckets} />
-                </div>
-              </div>
-
-              <div className="grid-two">
-                <div className="panel">
-                  <div className="panel-head">
-                    <h2>Correlación oficial–paralelo</h2>
-                    <p className="panel-sub">
-                      Ventana móvil de {Math.max(span, 60)} días. Cerca de cero mientras el oficial
-                      estuvo fijo: un precio que no se mueve no puede acompañar a otro. Se despega
-                      cuando empieza a seguir al mercado.
-                    </p>
-                  </div>
-                  {correlation.length >= 2 ? (
-                    <SeriesChart
-                      data={correlation}
-                      kind="line"
-                      tone="var(--official)"
-                      unit=""
-                      zeroLine
-                      domain={[-1, 1]}
-                    />
-                  ) : (
-                    <div className="callout">
-                      Se necesitan al menos {Math.max(span, 60)} jornadas con ambas series para
-                      estimarla.
+                    <div className="panel">
+                      <div className="panel-head">
+                        <h2>Distribución de retornos</h2>
+                        <p className="panel-sub">
+                          Días por tramo; en rojo, la cola inferior del 5 %. Si las barras extremas
+                          son más altas de lo que sería normal, los días excepcionales no son tan
+                          excepcionales.
+                        </p>
+                      </div>
+                      <Histogram data={buckets} />
                     </div>
-                  )}
-                </div>
-
-                <div className="panel">
-                  <div className="panel-head">
-                    <h2>Caída desde el máximo</h2>
-                    <p className="panel-sub">
-                      Distancia respecto al mayor nivel alcanzado hasta cada fecha. En un tipo de
-                      cambio que se deprecia, volver a cero significa un nuevo récord.
-                    </p>
                   </div>
-                  <SeriesChart data={fall} kind="area" tone="var(--up)" unit="%" zeroLine />
-                </div>
-              </div>
+
+                  <div className="grid-two">
+                    <div className="panel">
+                      <div className="panel-head">
+                        <h2>Correlación oficial–paralelo</h2>
+                        <p className="panel-sub">
+                          Ventana móvil de {Math.max(span, 60)} días. Cerca de cero mientras el
+                          oficial estuvo fijo: un precio que no se mueve no puede acompañar a otro.
+                          Se despega cuando empieza a seguir al mercado.
+                        </p>
+                      </div>
+                      {correlation.length >= 2 ? (
+                        <SeriesChart
+                          data={correlation}
+                          kind="line"
+                          tone="var(--official)"
+                          unit=""
+                          zeroLine
+                          domain={[-1, 1]}
+                        />
+                      ) : (
+                        <div className="callout">
+                          Se necesitan al menos {Math.max(span, 60)} jornadas con ambas series para
+                          estimarla.
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="panel">
+                      <div className="panel-head">
+                        <h2>Caída desde el máximo</h2>
+                        <p className="panel-sub">
+                          Distancia respecto al mayor nivel alcanzado hasta cada fecha. En un tipo
+                          de cambio que se deprecia, volver a cero significa un nuevo récord.
+                        </p>
+                      </div>
+                      <SeriesChart data={fall} kind="area" tone="var(--up)" unit="%" zeroLine />
+                    </div>
+                  </div>
+                </>
+              ) : null}
             </>
           )}
 

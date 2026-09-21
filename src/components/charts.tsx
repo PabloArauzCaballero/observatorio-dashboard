@@ -2439,3 +2439,184 @@ export function WorldLines({
     </div>
   );
 }
+
+export interface DatedLinePoint {
+  date: string;
+  [key: string]: string | number | null;
+}
+
+export interface DatedLineSeries {
+  /** The key each point carries this series' value under. */
+  key: string;
+  label: string;
+  tone: string;
+  /** Drawn heavier: the figure the panel is about. */
+  emphasis?: boolean;
+  /** Drawn dashed: a reference the others are read against. */
+  dashed?: boolean;
+}
+
+/** A stretch of the axis worth naming, shaded behind the lines. */
+export interface DatedBand {
+  from: string;
+  to: string;
+  label: string;
+}
+
+/**
+ * Several series against a calendar axis, with the regime shaded behind them.
+ *
+ * The report already had a line chart per shape of question and none of them fit
+ * this one. `RateChart` knows about two named rates and their sides; `SeriesChart`
+ * draws exactly one series; `WorldLines` is keyed on the year. What the
+ * exchange-rate analysis needs is arbitrary series over days, a reference line
+ * that means something when crossed, and the ability to say *which regime* a
+ * stretch belongs to — because a real index read across a change of regime is
+ * two different measurements sharing a line.
+ *
+ * The bands are drawn rather than described because the alternative is a caption
+ * asking the reader to hold a date in their head while looking at a curve. They
+ * sit behind the grid at low opacity and are mixed with the panel colour rather
+ * than with `transparent`: a translucent fill over an unknown backdrop changes
+ * shade with whatever is beneath it, which in dark mode turns a neutral wash
+ * into a tint.
+ *
+ * A missing day breaks the line instead of joining across it, for the reason the
+ * annual panels do the same: a segment drawn between two readings asserts the
+ * days in between.
+ */
+export function DatedLines({
+  data,
+  series,
+  unit,
+  decimals = 1,
+  referenceLine,
+  referenceLabel,
+  bands,
+  height,
+}: {
+  data: DatedLinePoint[];
+  series: readonly DatedLineSeries[];
+  unit: string;
+  decimals?: number;
+  /** Level where crossing carries meaning — 100 on an index, 0 on a change. */
+  referenceLine?: number;
+  referenceLabel?: string;
+  bands?: readonly DatedBand[];
+  height?: 'small' | 'normal' | 'tall';
+}) {
+  const zoom = useRangeZoom(data.map((point) => point.date));
+  const shown = zoom.visible(data);
+  const values = shown.flatMap((row) =>
+    series
+      .map((one) => row[one.key])
+      .filter((value): value is number => typeof value === 'number'),
+  );
+  const domain = values.length
+    ? fittedDomain(referenceLine === undefined ? values : [...values, referenceLine])
+    : undefined;
+
+  const renderTooltip = ({ active, payload, label }: TooltipRender) => {
+    if (!active || !payload?.length || typeof label !== 'string') return null;
+    const point = payload[0]?.payload as DatedLinePoint | undefined;
+    if (!point) return null;
+    const rows = series
+      .map((one) => ({ name: one.label, value: point[one.key] }))
+      .filter((row): row is { name: string; value: number } => typeof row.value === 'number')
+      .map((row) => ({ name: row.name, value: `${number(row.value, decimals)} ${unit}` }));
+    return rows.length ? <TooltipShell label={longDate.format(asDate(label))} rows={rows} /> : null;
+  };
+
+  const frameClass =
+    height === 'tall'
+      ? 'chart-frame chart-frame-tall'
+      : height === 'small'
+        ? 'chart-frame chart-frame-small'
+        : 'chart-frame';
+
+  return (
+    <>
+      <ZoomExit zoom={zoom} format={(label) => longDate.format(asDate(label))} />
+      <div className={frameClass} onContextMenu={(event) => event.preventDefault()}>
+        <ResponsiveContainer width="100%" height="100%">
+          <ComposedChart
+            data={shown}
+            margin={{ top: 10, right: 14, bottom: 4, left: 4 }}
+            onMouseDown={(event) => zoom.begin(event?.activeLabel)}
+            onMouseMove={(event) => zoom.drag(event?.activeLabel)}
+            onMouseUp={zoom.finish}
+            onMouseLeave={zoom.finish}
+          >
+            <CartesianGrid {...GRID} />
+            <XAxis dataKey="date" tickFormatter={shortLabel} minTickGap={52} {...AXIS} />
+            <YAxis
+              {...(domain ? { domain } : {})}
+              width={54}
+              tickFormatter={(value: number) => number(value, decimals === 0 ? 0 : 1)}
+              {...AXIS}
+            />
+            <Tooltip content={renderTooltip} cursor={{ stroke: 'var(--rule)', strokeWidth: 1 }} />
+            {(bands ?? []).map((band) => (
+              <ReferenceArea
+                key={`${band.from}-${band.to}`}
+                x1={band.from}
+                x2={band.to}
+                fill="color-mix(in srgb, var(--axis-ink) 8%, var(--panel))"
+                fillOpacity={1}
+                label={{
+                  value: band.label,
+                  position: 'insideTopLeft',
+                  fontSize: 10,
+                  fill: 'var(--axis-ink)',
+                }}
+              />
+            ))}
+            {referenceLine === undefined ? null : (
+              <ReferenceLine
+                y={referenceLine}
+                stroke="var(--axis-rule)"
+                strokeWidth={1}
+                {...(referenceLabel
+                  ? {
+                      label: {
+                        value: referenceLabel,
+                        position: 'insideBottomRight',
+                        fontSize: 10,
+                        fill: 'var(--axis-ink)',
+                      },
+                    }
+                  : {})}
+              />
+            )}
+            {series.map((one, index) => (
+              <Line
+                key={one.key}
+                type="monotone"
+                dataKey={one.key}
+                name={one.label}
+                stroke={one.tone}
+                strokeWidth={one.emphasis ? 2.4 : 1.6}
+                {...(one.dashed ? { strokeDasharray: '4 3' } : {})}
+                dot={false}
+                connectNulls={false}
+                animationDuration={index === 0 ? MOTION.duration : 0}
+                animationEasing={MOTION.easing}
+              />
+            ))}
+            <ZoomBand zoom={zoom} />
+          </ComposedChart>
+        </ResponsiveContainer>
+      </div>
+      {series.length > 1 ? (
+        <ChartLegend
+          items={series.map((one) => ({
+            color: one.tone,
+            label: one.label,
+            shape: 'line' as const,
+            ...(one.dashed ? { dashed: true } : {}),
+          }))}
+        />
+      ) : null}
+    </>
+  );
+}
