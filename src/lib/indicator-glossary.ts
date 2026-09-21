@@ -196,6 +196,116 @@ export const GLOSSARY: Record<string, Definition> = {
     howToRead:
       'Igual que la del gas, pero para minerales. Sigue de cerca los precios internacionales.',
   },
+  EFW_SUMMARY_INDEX: {
+    what: 'Índice de libertad económica del Fraser Institute: promedio de cinco áreas, de 0 a 10.',
+    howToRead:
+      'Diez es la economía más libre. Es una calificación construida por una institución, no una medición; se lee junto con las cinco áreas, que discrepan más de lo que el resumen deja ver.',
+  },
+  EFW_SIZE_OF_GOVERNMENT: {
+    what: 'Área 1 del índice de Fraser: gasto público, transferencias, empresas estatales y tasas impositivas.',
+    howToRead:
+      'Más alto significa un Estado que ocupa menos espacio en la economía. No juzga si eso es bueno; mide tamaño.',
+  },
+  EFW_LEGAL_SYSTEM_PROPERTY_RIGHTS: {
+    what: 'Área 2 del índice de Fraser: independencia judicial, imparcialidad de los tribunales, protección de la propiedad y cumplimiento de contratos.',
+    howToRead: 'Es el área donde Bolivia puntúa más bajo. De 0 a 10.',
+  },
+  EFW_SOUND_MONEY: {
+    what: 'Área 3 del índice de Fraser: crecimiento monetario, inflación y libertad para tener cuentas en moneda extranjera.',
+    howToRead:
+      'De 0 a 10. Es el área donde Bolivia puntúa más alto; un año de inflación alta la baja con retraso.',
+  },
+  EFW_FREEDOM_TO_TRADE: {
+    what: 'Área 4 del índice de Fraser: aranceles, barreras regulatorias al comercio, controles de capital y de tipo de cambio.',
+    howToRead: 'De 0 a 10. Un tipo de cambio administrado con brecha pesa en esta área.',
+  },
+  EFW_REGULATION: {
+    what: 'Área 5 del índice de Fraser: regulación del crédito, del mercado laboral y de los negocios.',
+    howToRead: 'De 0 a 10. Más alto es menos regulación restrictiva.',
+  },
+  FH_TOTAL_SCORE: {
+    what: 'Puntaje total de «Freedom in the World» de Freedom House, de 0 a 100.',
+    howToRead:
+      'Suma de derechos políticos (hasta 40) y libertades civiles (hasta 60). Cada lectura se archiva bajo el año que evalúa, no el de la edición.',
+  },
+  FH_POLITICAL_RIGHTS_SCORE: {
+    what: 'Derechos políticos según Freedom House, de 0 a 40.',
+    howToRead:
+      'Suma de proceso electoral, pluralismo y participación, y funcionamiento del gobierno.',
+  },
+  FH_CIVIL_LIBERTIES_SCORE: {
+    what: 'Libertades civiles según Freedom House, de 0 a 60.',
+    howToRead: 'Suma de expresión y creencia, asociación, estado de derecho y autonomía personal.',
+  },
+  FH_ELECTORAL_PROCESS_SCORE: {
+    what: 'Subcategoría A de Freedom House: si el Ejecutivo y el Legislativo se eligen en elecciones libres y justas.',
+    howToRead: 'De 0 a 12. Leerla contra su techo, no contra 100.',
+  },
+  FH_POLITICAL_PLURALISM_SCORE: {
+    what: 'Subcategoría B de Freedom House: derecho a organizar partidos, oposición con posibilidad real, libertad frente a poderes no electos.',
+    howToRead: 'De 0 a 16.',
+  },
+  FH_GOVERNMENT_FUNCTIONING_SCORE: {
+    what: 'Subcategoría C de Freedom House: si los electos deciden de verdad, si hay controles a la corrupción y rendición de cuentas.',
+    howToRead: 'De 0 a 12.',
+  },
+  FH_EXPRESSION_BELIEF_SCORE: {
+    what: 'Subcategoría D de Freedom House: prensa, religión, academia y conversación privada.',
+    howToRead: 'De 0 a 16.',
+  },
+  FH_ASSOCIATION_RIGHTS_SCORE: {
+    what: 'Subcategoría E de Freedom House: reunión, organizaciones civiles y sindicatos.',
+    howToRead: 'De 0 a 12.',
+  },
+  FH_RULE_OF_LAW_SCORE: {
+    what: 'Subcategoría F de Freedom House: independencia judicial, debido proceso, protección frente a la fuerza ilegítima, igualdad ante la ley.',
+    howToRead: 'De 0 a 16. Es la subcategoría más baja de Bolivia frente a su techo.',
+  },
+  FH_PERSONAL_AUTONOMY_SCORE: {
+    what: 'Subcategoría G de Freedom House: movimiento, propiedad y empresa, libertades sociales, igualdad de oportunidades.',
+    howToRead: 'De 0 a 16.',
+  },
+  FH_POLITICAL_RIGHTS_RATING: {
+    what: 'Calificación histórica de derechos políticos de Freedom House, de 1 a 7, publicada desde 1972.',
+    howToRead:
+      'Aquí 1 es la más libre y 7 la menos: la serie sube cuando la libertad baja. El promedio con la de libertades civiles define el estado «libre», «parcialmente libre» o «no libre».',
+  },
+  FH_CIVIL_LIBERTIES_RATING: {
+    what: 'Calificación histórica de libertades civiles de Freedom House, de 1 a 7, publicada desde 1972.',
+    howToRead: 'Aquí 1 es la más libre y 7 la menos. Se lee junto con la de derechos políticos.',
+  },
+  VDEM_LIBERAL_DEMOCRACY_INDEX: {
+    what: 'Índice de democracia liberal de V-Dem, de 0 a 1.',
+    howToRead:
+      'Elecciones limpias más contrapesos: libertades individuales y control judicial y legislativo del Ejecutivo. La distancia con el índice electoral es cuánto pesan los contrapesos.',
+  },
+  VDEM_ELECTORAL_DEMOCRACY_INDEX: {
+    what: 'Índice de democracia electoral de V-Dem, de 0 a 1.',
+    howToRead:
+      'Solo la parte electoral: sufragio, elecciones limpias, libertad de expresión y de asociación. Puede ser alto con contrapesos débiles.',
+  },
+  VDEM_FREEDOM_OF_EXPRESSION_INDEX: {
+    what: 'Índice de libertad de expresión de V-Dem, de 0 a 1.',
+    howToRead: 'Prensa, discusión académica y privada, censura.',
+  },
+  VDEM_FREEDOM_OF_ASSOCIATION_INDEX: {
+    what: 'Índice de libertad de asociación de V-Dem, de 0 a 1.',
+    howToRead: 'Partidos y organizaciones de la sociedad civil.',
+  },
+  VDEM_JUDICIAL_CONSTRAINTS_INDEX: {
+    what: 'Control judicial del Ejecutivo según V-Dem, de 0 a 1.',
+    howToRead:
+      'Si el Ejecutivo acata a los tribunales y estos son independientes. Es el componente más bajo de la democracia boliviana.',
+  },
+  VDEM_LEGISLATIVE_CONSTRAINTS_INDEX: {
+    what: 'Control legislativo del Ejecutivo según V-Dem, de 0 a 1.',
+    howToRead: 'Si el Legislativo investiga y frena al Ejecutivo en la práctica.',
+  },
+  VDEM_POLITICAL_CORRUPTION_INDEX: {
+    what: 'Índice de corrupción política de V-Dem, de 0 a 1.',
+    howToRead:
+      'Corrupción en el Ejecutivo, el Legislativo, el Judicial y la administración. Aquí más alto es peor, al revés que los demás índices de V-Dem.',
+  },
 };
 
 /** Units, said as a reader would say them rather than as the source stores them. */
