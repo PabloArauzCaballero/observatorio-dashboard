@@ -2,7 +2,10 @@ import type { GapChartPoint, RatePoint } from '@/components/charts';
 import { Download } from '@/components/download';
 import { Donate } from '@/components/donate';
 import { FilingExplorer } from '@/components/filing-explorer';
+import { EnergySection } from '@/components/energy-section';
+import { FxEconometricsSection } from '@/components/fx-econometrics-section';
 import { FxSection } from '@/components/fx-section';
+import { InstitutionsExplorer } from '@/components/institutions-explorer';
 import { MacroExplorer } from '@/components/macro-explorer';
 import { PanelSection } from '@/components/panel-section';
 import { MarketCards } from '@/components/market-cards';
@@ -21,6 +24,7 @@ import { readPlaceFamilies } from '@/lib/places';
 import type { PlaceFamily } from '@/lib/places';
 import { packMacro } from '@/lib/macro-transport';
 import { dailyAnalysis } from '@/lib/daily-analysis';
+import { buildInstitutionsBoard } from '@/lib/institutions-board';
 import { buildTodayBoard } from '@/lib/today-board';
 import {
   isUnaffordableRead,
@@ -308,7 +312,9 @@ export default async function Page() {
     } catch (error) {
       if (!isUnaffordableRead(error)) throw error;
       // El codigo va al registro; el mensaje puede llevar el host y el rol.
-      console.warn(`[observatorio] seccion sin leer: ${nombre} (${(error as { code?: string }).code})`);
+      console.warn(
+        `[observatorio] seccion sin leer: ${nombre} (${(error as { code?: string }).code})`,
+      );
       perdidas.add(nombre);
       return vacio;
     }
@@ -351,7 +357,11 @@ export default async function Page() {
       seccion('sources', readSources, []),
       seccion('macro', readMacroAnnual, []),
       seccion('filings', () => readCompanyFilings(), []),
-      seccion('press', () => readPressPage({ topic: ['ECONOMICOS'] }, 60).then((page) => page.articles), []),
+      seccion(
+        'press',
+        () => readPressPage({ topic: ['ECONOMICOS'] }, 60).then((page) => page.articles),
+        [],
+      ),
       /*
        * El mismo archivo sin filtrar por tema, para el cuadro de mando.
        *
@@ -510,7 +520,10 @@ export default async function Page() {
   });
 
   const analysis = perdidas.has('gap')
-    ? { ...analysisInput, bullets: analysisInput.bullets.filter((bullet) => bullet.key !== 'sin-brecha') }
+    ? {
+        ...analysisInput,
+        bullets: analysisInput.bullets.filter((bullet) => bullet.key !== 'sin-brecha'),
+      }
     : analysisInput;
 
   return (
@@ -549,8 +562,8 @@ export default async function Page() {
       {perdidas.size > 0 ? (
         <div className="callout">
           No se pudieron leer a tiempo estas secciones: {SECCIONES_PERDIDAS(perdidas)}. El resto del
-          informe es correcto y esta al dia; lo que falta volvera cuando la consulta que lo arma deje
-          de agotar su plazo.
+          informe es correcto y esta al dia; lo que falta volvera cuando la consulta que lo arma
+          deje de agotar su plazo.
         </div>
       ) : null}
 
@@ -559,12 +572,14 @@ export default async function Page() {
           'Hoy',
           'Tipo de cambio',
           'Macroeconomía',
+          'Energía',
+          'Instituciones',
           'Empresas',
           'Ciudades',
           'Prensa',
           'Método',
         ]}
-        icons={['diana', 'linea', 'globo', 'edificio', 'mapa', 'ventana', 'info']}
+        icons={['diana', 'linea', 'globo', 'rayo', 'escudo', 'edificio', 'mapa', 'ventana', 'info']}
       >
         <section className="stack">
           <SummaryExplorer
@@ -602,6 +617,13 @@ export default async function Page() {
 
         <section className="stack">
           <FxSection />
+          {/*
+            Las pruebas formales van después de la lectura y de los gráficos, y
+            se montan aparte a propósito: el capítulo del tipo de cambio lee sus
+            series y las dibuja; este lee las mismas series y las somete a
+            prueba. Dos preguntas, dos componentes.
+          */}
+          <FxEconometricsSection />
         </section>
 
         <section className="stack">
@@ -621,6 +643,28 @@ export default async function Page() {
             <PanelSection />
             <WorldExplorer />
           </SubTabs>
+        </section>
+
+        <section className="stack">
+          {/*
+            La matriz energética estaba en la base —veintisiete series del
+            panel del Banco Mundial— y no llegaba a ningún panel. Ahora tiene
+            el suyo.
+          */}
+          <EnergySection />
+        </section>
+
+        <section className="stack">
+          {/*
+            Los índices que califican la libertad económica y política, con
+            las partes que los componen. Salen del mismo panel anual que la
+            pestaña de macroeconomía, filtrado a su rubro.
+          */}
+          <InstitutionsExplorer
+            board={buildInstitutionsBoard(
+              macro.filter((point) => point.sector === 'INSTITUCIONAL'),
+            )}
+          />
         </section>
 
         <section className="stack">
