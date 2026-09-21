@@ -3,7 +3,7 @@ import { FxMacroPanels } from './fx-macro-panels';
 import type { RatePoint } from './charts';
 import { officialSeries, readObservatory, readStablecoins } from '@/lib/series';
 import type { Observatory } from '@/lib/series';
-import { impliedInflation, realIndex, toMacroPoints } from '@/lib/fx-macro';
+import { realIndex, toMacroPoints } from '@/lib/fx-macro';
 import type { MacroPoint } from '@/lib/fx-macro';
 import { readFxSnapshot } from '@/lib/fx-reader';
 import type { Observation } from '@/lib/econometrics';
@@ -41,34 +41,39 @@ export async function FxSection() {
   const parallelMid = midSeries(buy, sell);
   const base = parallelMid.at(0)?.date;
   const realParallel = base ? realIndex(parallelMid, ufv, base) : [];
-  const realOfficial = base
-    ? realIndex(
-        toMacroPoints(asObservations(official)).filter((point) => point.date >= base),
-        ufv,
-        base,
-      )
-    : [];
 
   /*
-   * The inflation line is cut to the window the exchange rate covers rather
-   * than drawn over all twenty-five years the UFV has. The long view belongs in
-   * the macro chapter; here it sits beside a rate that starts in 2024, and two
-   * charts on one screen with different time axes invite exactly the comparison
-   * neither supports.
+   * Las fichas, sobre la misma ventana que el oficial y el paralelo.
+   *
+   * El archivo no registró el instrumento hasta 2026, así que la serie por ficha
+   * empieza ahí y dibujada sola arrancaba dos años después que las otras dos
+   * líneas del capítulo. Lo que el archivo sí tiene antes de esa fecha es el
+   * paralelo, y el paralelo es USDT: son las mismas plazas cotizando la misma
+   * ficha, solo que sin que nadie escribiera su nombre en la lectura. La línea
+   * de USDT se empalma con el punto medio del paralelo hasta el día en que la
+   * lectura por instrumento existe; de ahí en adelante es la ficha leída, y la
+   * franja sombreada marca dónde pasa una cosa a ser la otra.
+   *
+   * Ninguna otra ficha se empalma. USDC no estaba en ese archivo bajo ningún
+   * nombre, y prolongarla hacia atrás con el paralelo sería inventarle historia.
    */
-  const inflation = impliedInflation(ufv).filter((point) => !base || point.date >= base);
+  const labelled = stablecoins.find((entry) => entry.token === 'USDT')?.points.at(0)?.date;
+  const tokens = stablecoins.map((entry) => {
+    const own = entry.points.map((point) => ({ date: point.date, value: point.mid }));
+    const spliced =
+      entry.token === 'USDT' && labelled
+        ? [...parallelMid.filter((point) => point.date < labelled), ...own]
+        : own;
+    return { token: entry.token, points: spliced };
+  });
 
   return (
     <>
       <FxMacroPanels
         snapshot={snapshot}
         realParallel={realParallel}
-        realOfficial={realOfficial}
-        inflation={inflation}
-        tokens={stablecoins.map((entry) => ({
-          token: entry.token,
-          points: entry.points.map((point) => ({ date: point.date, value: point.mid })),
-        }))}
+        tokens={tokens}
+        labelledFrom={labelled}
       />
       <FxExplorer
         rows={buildRateSeries(observatory, official)}

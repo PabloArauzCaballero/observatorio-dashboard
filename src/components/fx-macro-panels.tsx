@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 
-import { DatedLines, SeriesChart } from './charts';
+import { DatedLines } from './charts';
 import type { DatedBand, DatedLinePoint, DatedLineSeries } from './charts';
 import { Icon } from './icons';
 import type { IconName } from './icons';
@@ -124,6 +124,19 @@ export function FxConclusions({ conclusions }: { conclusions: readonly FxConclus
   );
 }
 
+/**
+ * La franja del tramo leído por instrumento.
+ *
+ * Es la misma herramienta que marca el tramo de tipo de cambio fijo y por la
+ * misma razón: el cambio de qué se está midiendo ocurre en una fecha, y un pie
+ * de figura obliga al lector a sostener esa fecha en la cabeza mientras mira la
+ * curva. Sombreada, la costura se ve donde está.
+ */
+function labelledBand(from: string | undefined, dates: readonly string[]): DatedBand[] {
+  const last = dates.at(-1);
+  return from && last && from <= last ? [{ from, to: last, label: 'leído por ficha' }] : [];
+}
+
 /** The regime stretches, shaded behind whichever series is drawn over them. */
 function regimeBands(regimes: readonly RegimeSegment[]): DatedBand[] {
   return regimes
@@ -131,37 +144,18 @@ function regimeBands(regimes: readonly RegimeSegment[]): DatedBand[] {
     .map((segment) => ({ from: segment.from, to: segment.to, label: 'oficial fijo' }));
 }
 
-/** Joins two dated series into the rows the multi-line chart takes. */
-function pair(
-  left: readonly MacroPoint[],
-  right: readonly MacroPoint[],
-  leftKey: string,
-  rightKey: string,
-): DatedLinePoint[] {
-  const rightByDate = new Map(right.map((point) => [point.date, point.value]));
-  const dates = [...new Set([...left.map((p) => p.date), ...right.map((p) => p.date)])].sort();
-  const leftByDate = new Map(left.map((point) => [point.date, point.value]));
-  return dates.map((date) => ({
-    date,
-    [leftKey]: leftByDate.get(date) ?? null,
-    [rightKey]: rightByDate.get(date) ?? null,
-  }));
-}
-
 export interface FxMacroPanelsProps {
   snapshot: FxSnapshot;
-  /** Real indices, base 100 at the first day both series and the UFV exist. */
+  /** The parallel in real terms, base 100 at the first day it and the UFV exist. */
   realParallel: readonly MacroPoint[];
-  realOfficial: readonly MacroPoint[];
-  /** Annualised inflation implied by the UFV, over the trailing year. */
-  inflation: readonly MacroPoint[];
-  /** One entry per token, with the mid-point series each one has so far. */
+  /** One entry per token; USDT carries the parallel before the split begins. */
   tokens: ReadonlyArray<{ token: string; points: readonly MacroPoint[] }>;
+  /** First day a reading names its instrument, where the token line stops being spliced. */
+  labelledFrom?: string | undefined;
 }
 
 const REAL_SERIES: readonly DatedLineSeries[] = [
   { key: 'paralelo', label: 'Paralelo, real', tone: 'var(--parallel)', emphasis: true },
-  { key: 'oficial', label: 'Oficial, real', tone: 'var(--official)' },
 ];
 
 /**
@@ -191,12 +185,14 @@ const TOKEN_TONE: Record<string, string> = {
 export function FxMacroPanels({
   snapshot,
   realParallel,
-  realOfficial,
-  inflation,
   tokens,
+  labelledFrom,
 }: FxMacroPanelsProps) {
   const bands = regimeBands(snapshot.regimes);
-  const realRows = pair(realParallel, realOfficial, 'paralelo', 'oficial');
+  const realRows: DatedLinePoint[] = realParallel.map((point) => ({
+    date: point.date,
+    paralelo: point.value,
+  }));
 
   const tokenSeries: DatedLineSeries[] = tokens.map((entry) => ({
     key: entry.token,
@@ -207,10 +203,21 @@ export function FxMacroPanels({
   const tokenDates = [
     ...new Set(tokens.flatMap((entry) => entry.points.map((point) => point.date))),
   ].sort();
+  /*
+   * Por índice y no por búsqueda lineal.
+   *
+   * Con USDT empalmado al paralelo, la ficha larga pasa de unas decenas de
+   * puntos a las ochocientas jornadas del capítulo, y un `find` por fecha y por
+   * ficha recorre esa serie entera cada vez: armar la tabla pasaba de miles de
+   * comparaciones a casi dos millones, en la página más lenta del tablero.
+   */
+  const byToken = new Map(
+    tokens.map((entry) => [entry.token, new Map(entry.points.map((p) => [p.date, p.value]))]),
+  );
   const tokenRows: DatedLinePoint[] = tokenDates.map((date) => {
     const row: DatedLinePoint = { date };
     for (const entry of tokens) {
-      row[entry.token] = entry.points.find((point) => point.date === date)?.value ?? null;
+      row[entry.token] = byToken.get(entry.token)?.get(date) ?? null;
     }
     return row;
   });
@@ -221,14 +228,14 @@ export function FxMacroPanels({
 
       <div className="panel">
         <div className="panel-head">
-          <h2>Nivel real del tipo de cambio</h2>
+          <h2>Lo que la inflación le quitó al dólar</h2>
           <p className="panel-sub">
-            Cada serie sobre <b>su propio</b> nivel del {sayShort(snapshot.real?.base)} = 100,
-            deflactada por la UFV. Por encima de 100 el dólar se encareció de verdad; por debajo, su
-            subida nominal no alcanzó a los precios y cuesta menos en poder de compra que al
-            empezar. Los dos números <b>no se comparan entre sí</b> —cada uno mide su propia serie
-            contra su propio arranque—; lo que se lee es la dirección y el cruce de 100. La franja
-            sombreada es el tramo en que el oficial estuvo fijo.
+            El paralelo deflactado por la UFV, con su nivel del {sayShort(snapshot.real?.base)} ={' '}
+            <b>100</b>. Más abajo, «Nivel» dibuja el mismo dólar en bolivianos corrientes; esta
+            línea lo dibuja en poder de compra, que es lo único que el nivel nominal no puede decir.
+            Por encima de 100 el dólar se encareció de verdad; por debajo, su subida no alcanzó a
+            los precios y hoy cuesta menos que al empezar. La franja sombreada es el tramo en que el
+            oficial estuvo fijo.
           </p>
         </div>
         {realRows.length > 1 ? (
@@ -249,45 +256,36 @@ export function FxMacroPanels({
         )}
       </div>
 
-      <div className="grid-two">
-        <div className="panel">
-          <div className="panel-head">
-            <h2>Inflación a frecuencia diaria</h2>
-            <p className="panel-sub">
-              Variación de la UFV en los últimos doce meses, anualizada. La UFV es la unidad a la
-              que se indexan contratos y créditos y el Banco Central la publica{' '}
-              <b>todos los días</b> desde 2001, así que es la única medida de precios que este
-              informe puede leer sin esperar al cierre del año.
-            </p>
-          </div>
-          {inflation.length > 1 ? (
-            <SeriesChart
-              data={inflation.map((point) => ({ date: point.date, value: point.value }))}
-              kind="area"
-              tone="var(--gap)"
-              unit="%"
-              decimals={1}
-            />
-          ) : (
-            <div className="callout">Sin suficientes lecturas de la UFV para estimarla.</div>
-          )}
+      <div className="panel">
+        <div className="panel-head">
+          <h2>El dólar por cada riel</h2>
+          <p className="panel-sub">
+            Punto medio en bolivianos por dólar de cada ficha estable, que es la vía por la que se
+            compran dólares cuando el mercado formal no los da. Están ancladas al mismo dólar, de
+            modo que la diferencia entre ellas es el costo del riel y no otro precio.
+            {labelledFrom ? (
+              <>
+                {' '}
+                Antes del {sayLong(labelledFrom)} el archivo no anotaba el instrumento, y lo que
+                cotizaba era USDT: hasta esa fecha la línea es el punto medio del paralelo, y{' '}
+                <b>la franja sombreada</b> es el tramo en que cada lectura ya viene con el nombre de
+                su ficha.
+              </>
+            ) : null}
+          </p>
         </div>
-
-        <div className="panel">
-          <div className="panel-head">
-            <h2>El dólar por cada riel</h2>
-            <p className="panel-sub">
-              Punto medio en bolivianos por dólar de cada ficha estable, que es la vía por la que se
-              compran dólares cuando el mercado formal no los da. Las dos están ancladas al mismo
-              dólar, de modo que la diferencia entre ellas es el costo del riel y no otro precio.
-            </p>
-          </div>
-          {tokenRows.length >= TOKEN_CHART_MINIMUM ? (
-            <DatedLines data={tokenRows} series={tokenSeries} unit="Bs/USD" decimals={3} />
-          ) : (
-            <StablecoinTable readings={snapshot.stablecoins} />
-          )}
-        </div>
+        {tokenRows.length >= TOKEN_CHART_MINIMUM ? (
+          <DatedLines
+            data={tokenRows}
+            series={tokenSeries}
+            unit="Bs/USD"
+            decimals={3}
+            bands={labelledBand(labelledFrom, tokenDates)}
+            height="tall"
+          />
+        ) : (
+          <StablecoinTable readings={snapshot.stablecoins} />
+        )}
       </div>
     </>
   );
@@ -341,5 +339,14 @@ const shortDate = new Intl.DateTimeFormat('es-BO', {
   year: 'numeric',
   timeZone: 'UTC',
 });
+const longDate = new Intl.DateTimeFormat('es-BO', {
+  day: 'numeric',
+  month: 'long',
+  year: 'numeric',
+  timeZone: 'UTC',
+});
+/** La fecha de la costura, dicha entera: es un dato del texto, no un rotulo de eje. */
+const sayLong = (value: string): string => longDate.format(new Date(value + 'T12:00:00Z'));
+
 const sayShort = (value: string | undefined): string =>
   value ? shortDate.format(new Date(`${value}T12:00:00Z`)) : 'inicio de la serie';
