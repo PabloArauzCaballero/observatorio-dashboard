@@ -387,6 +387,21 @@ a:hover {
   .stack > .briefcard {
     order: 2;
   }
+  /*
+   * La tarjeta vive en dos sitios distintos y hay que alcanzarla en ambos.
+   *
+   * En «Tipo de cambio» es hermana de `.workspace`, dentro del `.stack`. En
+   * «Prensa», «Macroeconomia», «Empresas» y «Metodo» esta DENTRO de
+   * `.workspace-main`, de primera. Ordenar solo el primer caso dejaba a los
+   * otros cuatro exactamente como estaban —que es lo que seguia viendose en el
+   * telefono—, asi que se ordena tambien dentro de la columna de contenido.
+   */
+  .workspace-main > .briefcard {
+    order: 2;
+  }
+  .workspace-main > *:not(.briefcard) {
+    order: 1;
+  }
 }
 
 h2 {
@@ -2524,8 +2539,22 @@ button.term-chip:hover {
  * width the name needs.
  */
 @media (max-width: 720px) {
+  /*
+   * El suelo de 460px no impedia que la tabla creciera: `min-width` es un piso,
+   * no un techo, y un nombre como «Account ownership at a financial institution
+   * or with a mobile-money-service provider, poorest 40%» la estiraba a 836px.
+   * La columna de la fuente quedaba cortada contra el borde —se leia «BANC»— y
+   * habia que arrastrar de lado para saber de donde sale el dato. Con el ancho
+   * repartido por la tabla y no por su contenido, las dos columnas entran y el
+   * nombre largo hace lo que tiene que hacer: bajar de linea.
+   */
   .grid-table {
-    min-width: 460px;
+    min-width: 0;
+    table-layout: fixed;
+  }
+  .grid-table th,
+  .grid-table td {
+    overflow-wrap: anywhere;
   }
   .grid-table th:nth-child(3),
   .grid-table td:nth-child(3),
