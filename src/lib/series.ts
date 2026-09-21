@@ -1864,3 +1864,97 @@ export async function readWorldBoard(
     throw error;
   }
 }
+
+export interface StablecoinPoint {
+  date: string;
+  /** Mid-point across the venues quoting this token, in bolivianos per dollar. */
+  mid: number;
+  /** What the market buys a dollar for, only where the source resolves sides. */
+  bid: number | null;
+  /** What it sells one for, on the same condition. */
+  ask: number | null;
+  venues: number;
+  /** Spread between the highest and lowest venue mid-point that day. */
+  venueSpread: number | null;
+  changePercent: number | null;
+}
+
+export interface StablecoinSeries {
+  /** The token itself — USDT, USDC — not the pair. */
+  token: string;
+  /** False where every source for the day labels its sides unreliably. */
+  sidesResolved: boolean;
+  points: StablecoinPoint[];
+}
+
+/**
+ * The parallel rate split by the token actually traded.
+ *
+ * Read from its own model rather than derived here, for the reason the gap is:
+ * the pooling this needs is not a mean. A venue quoting three times a day must
+ * weigh once, the cross-venue figure has to be a median of venue mid-points,
+ * and the sides may only come from the source that resolves them. Recomputing
+ * that in the report would let two readers disagree about what a dollar cost.
+ *
+ * The series is short by construction and the panel says so: the historical
+ * backfill recorded no instrument, so this begins where the collector began
+ * naming the pair. It is additive — `readObservatory` and `readGap` are
+ * untouched, and a deployment where the model does not exist yet loses this
+ * panel and nothing else.
+ */
+export async function readStablecoins(): Promise<StablecoinSeries[]> {
+  try {
+    const { rows } = await pool().query<{
+      token: string;
+      event_date: string;
+      mid_median: string;
+      bid_median: string | null;
+      ask_median: string | null;
+      venue_count: string;
+      mid_spread: string | null;
+      sides_resolved: boolean;
+      change_percent: string | null;
+    }>(
+      `SELECT token, event_date::text AS event_date, mid_median::text,
+              bid_median::text, ask_median::text, venue_count::text,
+              mid_spread::text, sides_resolved, change_percent::text
+       FROM read_models.stablecoin_parallel_daily
+       WHERE aggregation = 'POINT_IN_TIME'
+       ORDER BY token, event_date`,
+    );
+
+    const grouped = new Map<string, StablecoinSeries>();
+    for (const row of rows) {
+      const entry = grouped.get(row.token) ?? {
+        token: row.token,
+        sidesResolved: false,
+        points: [],
+      };
+      entry.sidesResolved = entry.sidesResolved || row.sides_resolved;
+      entry.points.push({
+        date: row.event_date,
+        mid: Number(row.mid_median),
+        bid: numberOrNull(row.bid_median),
+        ask: numberOrNull(row.ask_median),
+        venues: Number(row.venue_count),
+        venueSpread: numberOrNull(row.mid_spread),
+        changePercent: numberOrNull(row.change_percent),
+      });
+      grouped.set(row.token, entry);
+    }
+
+    /*
+     * USD last. It is the residue — a venue that reported a dollar without
+     * saying which one — so it belongs after the tokens that named themselves
+     * rather than mixed in among them by alphabet.
+     */
+    return [...grouped.values()].sort((left, right) =>
+      left.token === 'USD' ? 1 : right.token === 'USD' ? -1 : left.token.localeCompare(right.token),
+    );
+  } catch (error) {
+    if (isUnreadableModel(error)) {
+      return unreadable<StablecoinSeries>('read_models.stablecoin_parallel_daily', error);
+    }
+    throw error;
+  }
+}
