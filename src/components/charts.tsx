@@ -2633,7 +2633,15 @@ export function DatedLines({
                  * hace falta —una lectura aislada—, no en toda la serie, que
                  * volvería ilegibles las ochocientas jornadas de al lado.
                  */
-                dot={isolatedPoints(shown, one.key) ? { r: 2.8, strokeWidth: 0 } : false}
+                dot={
+                  isolatedPoints(shown, one.key)
+                    ? // El relleno va explícito: por defecto el marcador es
+                      // blanco con el borde del color de la serie, y sin borde
+                      // —que es lo que hace falta aquí— queda un disco blanco
+                      // invisible sobre el panel claro.
+                      { r: 2.8, strokeWidth: 0, fill: one.tone }
+                    : false
+                }
                 connectNulls={false}
                 animationDuration={index === 0 ? MOTION.duration : 0}
                 animationEasing={MOTION.easing}
