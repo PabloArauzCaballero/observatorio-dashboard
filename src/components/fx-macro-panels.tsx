@@ -235,7 +235,7 @@ export function FxMacroPanels({
         <div className="panel-head">
           <h2>Lo que la inflación le quitó al dólar</h2>
           <p className="panel-sub">
-            El paralelo deflactado por la UFV, con su nivel del {sayShort(snapshot.real?.base)} ={' '}
+            El paralelo deflactado por la UFV, con su nivel de {sayShort(snapshot.real?.base)} ={' '}
             <b>100</b>. Más abajo, «Nivel» dibuja el mismo dólar en bolivianos corrientes; esta
             línea lo dibuja en poder de compra, que es lo único que el nivel nominal no puede decir.
             Por encima de 100 el dólar se encareció de verdad; por debajo, su subida no alcanzó a
