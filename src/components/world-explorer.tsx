@@ -19,6 +19,7 @@ import { WorldLines } from './charts';
 import type { WorldLinePoint, WorldLineSeries } from './charts';
 import { Icon } from './icons';
 import type { IconName } from './icons';
+import { InfoPopover } from './info-popover';
 import { Pager } from './pager';
 import { DEFINITION_AUTHOR } from '@/lib/indicator-glossary';
 import type { WorldPoint } from '@/lib/series';
@@ -617,7 +618,6 @@ function WorldCard({
   region: string;
   from: number;
 }) {
-  const [explained, setExplained] = useState(false);
   const world = byPlace?.get(WORLD);
   const zone = byPlace?.get(region);
   const bolivia = byPlace?.get(BOLIVIA);
@@ -700,15 +700,22 @@ function WorldCard({
           <Icon name={THEME_ICON[indicator.theme]} size={12} /> {THEME_LABEL[indicator.theme]}
         </span>
         <span className="card-tools">
-          <button
-            type="button"
-            className={explained ? 'card-toggle card-toggle-on' : 'card-toggle'}
-            onClick={() => setExplained(!explained)}
-            title={explained ? 'Ocultar la explicación' : '¿Qué mide este indicador?'}
-            aria-pressed={explained}
-          >
-            <Icon name="info" size={16} />
-          </button>
+          <InfoPopover>
+            <p>
+              <b>Qué mide.</b> {indicator.what}
+            </p>
+            <p>
+              <b>Cómo leerlo.</b> {indicator.howToRead}
+            </p>
+            <p className="card-note-source">
+              <b>Dato:</b> Banco Mundial, World Development Indicators ·{' '}
+              <code>{indicator.code}</code>
+            </p>
+            <p className="card-note-source">
+              <b>Definición:</b> redactada por el {DEFINITION_AUTHOR} a partir del concepto
+              estándar. No es la del publicador.
+            </p>
+          </InfoPopover>
         </span>
         <h3>{indicator.label}</h3>
         <p className="world-unit">{indicator.unit}</p>
@@ -743,23 +750,6 @@ function WorldCard({
         </p>
       ) : null}
 
-      {explained ? (
-        <div className="card-note">
-          <p>
-            <b>Qué mide.</b> {indicator.what}
-          </p>
-          <p>
-            <b>Cómo leerlo.</b> {indicator.howToRead}
-          </p>
-          <p className="card-note-source">
-            <b>Dato:</b> Banco Mundial, World Development Indicators · <code>{indicator.code}</code>
-          </p>
-          <p className="card-note-source">
-            <b>Definición:</b> redactada por el {DEFINITION_AUTHOR} a partir del concepto estándar.
-            No es la del publicador.
-          </p>
-        </div>
-      ) : null}
 
       {series.length && data.length ? (
         <>
