@@ -193,41 +193,90 @@ interface Verdict {
   readonly name: string;
   readonly ok: boolean;
   readonly rows?: number | null;
+  /**
+   * Cuanto tardo, que es la pregunta que este endpoint no sabia contestar.
+   *
+   * El 2026-09-22 hubo que averiguar cual de las lecturas de la portada se
+   * comia dieciseis segundos en Contabo, y no habia forma de preguntarlo: el
+   * unico cronometro disponible era `/api/export?dataset=X`, que mide la
+   * lectura mas el armado de un fichero de descarga con un techo de filas
+   * distinto, asi que sus numeros no son los de la portada. Se acabo
+   * deduciendolo. Un diagnostico que dice «ok» sin decir «en cuanto» deja
+   * fuera la mitad de los fallos que se ven de verdad.
+   *
+   * Cuidado al leerlo: con la lectura sostenida en memoria esto sale en
+   * milisegundos, y eso NO quiere decir que la consulta sea rapida — quiere
+   * decir que ya estaba hecha. Para medir en frio hay que dejar pasar los cinco
+   * minutos del plazo sin tocar el tablero.
+   */
+  readonly ms?: number;
   readonly code?: string;
   readonly que?: string;
 }
 
-export async function GET(): Promise<Response> {
+/** Una lectura, cronometrada, sin dejar que su fallo se lleve las demas. */
+async function time(name: string, read: () => Promise<unknown>): Promise<Verdict> {
+  const started = Date.now();
+  try {
+    const value = await read();
+    /*
+     * Un lector que cuenta devuelve el numero; uno que trae filas devuelve
+     * el array. Antes solo se miraba el array, asi que los que contaban
+     * —los de lugares— salian con `rows: null` y no se podia distinguir
+     * «leible y vacio» de «leible y lleno».
+     */
+    const rows = typeof value === 'number' ? value : Array.isArray(value) ? value.length : null;
+    return { name, ok: true, rows, ms: Date.now() - started };
+  } catch (error) {
+    const code = String((error as { code?: unknown })?.code ?? '');
+    return {
+      name,
+      ok: false,
+      ms: Date.now() - started,
+      code: code || 'sin codigo',
+      que: SQLSTATE[code] ?? 'no clasificado',
+    };
+  }
+}
+
+export async function GET(request: Request): Promise<Response> {
+  /*
+   * `?serie=1` las corre de una en una.
+   *
+   * A la vez es como las pide la portada, y es el numero que hay que mirar para
+   * saber cuanto espera un lector. Pero entonces cada tiempo lleva dentro la
+   * espera por las otras catorce —diez conexiones de pool en seis nucleos
+   * compartidos— y ninguno dice lo que cuesta su consulta. En serie tarda la
+   * suma, y a cambio cada cifra es la de su propia lectura, que es lo que hace
+   * falta para saber cual arreglar.
+   */
+  const serie = new URL(request.url).searchParams.get('serie') === '1';
+
   const base = await describeDatabase();
   const copias = await describeSnapshots();
-  const lectores: Verdict[] = await Promise.all(
-    READERS.map(async ([name, read]): Promise<Verdict> => {
-      try {
-        const value = await read();
-        /*
-         * Un lector que cuenta devuelve el numero; uno que trae filas devuelve
-         * el array. Antes solo se miraba el array, asi que los que contaban
-         * —los de lugares— salian con `rows: null` y no se podia distinguir
-         * «leible y vacio» de «leible y lleno».
-         */
-        const rows =
-          typeof value === 'number' ? value : Array.isArray(value) ? value.length : null;
-        return { name, ok: true, rows };
-      } catch (error) {
-        const code = String((error as { code?: unknown })?.code ?? '');
-        return {
-          name,
-          ok: false,
-          code: code || 'sin codigo',
-          que: SQLSTATE[code] ?? 'no clasificado',
-        };
-      }
-    }),
-  );
+
+  const started = Date.now();
+  let lectores: Verdict[];
+  if (serie) {
+    lectores = [];
+    for (const [name, read] of READERS) lectores.push(await time(name, read));
+  } else {
+    lectores = await Promise.all(READERS.map(([name, read]) => time(name, read)));
+  }
+  const ms = Date.now() - started;
 
   const fallidos = lectores.filter((verdict) => !verdict.ok);
   return Response.json(
-    { base, copias, total: lectores.length, fallidos: fallidos.length, lectores },
+    {
+      base,
+      copias,
+      total: lectores.length,
+      fallidos: fallidos.length,
+      /** En paralelo, lo que espera un lector; en serie, la suma de las quince. */
+      ms,
+      como: serie ? 'en serie' : 'a la vez',
+      lectores: [...lectores].sort((left, right) => (right.ms ?? 0) - (left.ms ?? 0)),
+    },
     { headers: { 'cache-control': 'no-store' } },
   );
 }
