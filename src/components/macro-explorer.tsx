@@ -108,8 +108,10 @@ const CHAPTER: Record<'medidas' | 'catalogo', Chapter> = {
         y el banco central—, desde 1960 y hasta el último año publicado. Elegí un rubro a la
         izquierda: las tarjetas, el conteo y la descarga siguen esa selección. Tocá el <b>ⓘ</b> de
         una tarjeta para saber qué mide, y el <b>desplegar</b> para ver sus observaciones año por
-        año. Al pie de esa lista, bajo «Panel», está <b>Energía</b>: la matriz energética del país,
-        leída del panel del Banco Mundial.
+        año. Al pie de esa lista, bajo «Paneles», hay tres capítulos enteros leídos del panel del
+        Banco Mundial: <b>Energía</b>, la matriz energética; <b>Recursos naturales</b>, lo que el
+        subsuelo deja y lo que se agota al sacarlo; y <b>Medio ambiente</b>, el bosque, las
+        emisiones, el aire y el agua.
       </>
     ),
     points: [
@@ -153,7 +155,7 @@ const CHAPTER: Record<'medidas' | 'catalogo', Chapter> = {
  * rubro con Ctrl+clic: lo que hace es reemplazar la retícula, no recortarla.
  */
 export type GuestRubro = {
-  /** Cómo se llama en la lista de rubros. */
+  /** Cómo se llama en la lista de rubros, y con qué se lo identifica al abrirlo. */
   label: string;
   icon: IconName;
   /** El panel que reemplaza a las tarjetas cuando se lo elige. */
@@ -163,11 +165,22 @@ export type GuestRubro = {
 export function MacroExplorer({
   bundle,
   corpus = 'medidas',
-  guest,
+  guests,
 }: {
   bundle: MacroBundle;
   corpus?: keyof typeof CHAPTER;
-  guest?: GuestRubro;
+  /**
+   * Los paneles invitados, que empezaron siendo uno.
+   *
+   * Eran uno porque había uno: la matriz energética colgada de «Series de
+   * Bolivia». Los capítulos de recursos naturales y de medio ambiente son dos
+   * lecturas más del mismo corpus que este panel recorre, y ponerlos en
+   * pestañas propias arriba era volver al problema que resolvió bajarlos aquí
+   * —nueve pestañas no caben en una pantalla y las que se pierden son
+   * justamente las que nadie sabe que existen—. Una lista, y el rótulo
+   * «Panel» separa el grupo de los rubros que sí recortan la retícula.
+   */
+  guests?: readonly GuestRubro[];
 }) {
   const chapter = CHAPTER[corpus];
   /**
@@ -209,8 +222,22 @@ export function MacroExplorer({
    * tiene que reaparecer es la serie recortada, no la que estaba cuando entró.
    */
   const [opened, setOpened] = useState<string | null>(null);
-  /** Si el rubro invitado está abierto, que es cuando su panel ocupa el cuerpo. */
-  const [guestOpen, setGuestOpen] = useState(false);
+  /**
+   * Cuál de los rubros invitados está abierto, por su rótulo, o ninguno.
+   *
+   * Era un booleano cuando había un solo invitado. Con varios hace falta saber
+   * cuál, y el rótulo alcanza: es lo que el lector pulsó y lo que la lista
+   * dibuja, así que no hay un segundo identificador que mantener en dos sitios.
+   */
+  const [openGuest, setOpenGuest] = useState<string | null>(null);
+  /**
+   * El invitado abierto, resuelto de su rótulo.
+   *
+   * Se resuelve y no se guarda el objeto en el estado: el panel de un invitado
+   * es un `ReactNode` que la sección de arriba rearma en cada dibujo, y
+   * guardarlo dejaría en pantalla el de la carga anterior.
+   */
+  const shownGuest = guests?.find((one) => one.label === openGuest) ?? null;
 
   const years = useMemo(() => points.map((point) => Number(point.period)), [points]);
   const minYear = years.length ? Math.min(...years) : 1960;
@@ -330,12 +357,14 @@ export function MacroExplorer({
           </div>
           <button
             type="button"
-            className={sector.size === 0 && !guestOpen ? 'rail-item rail-item-on' : 'rail-item'}
-            aria-pressed={sector.size === 0 && !guestOpen}
+            className={
+              sector.size === 0 && openGuest === null ? 'rail-item rail-item-on' : 'rail-item'
+            }
+            aria-pressed={sector.size === 0 && openGuest === null}
             onClick={() => {
               setOffset(0);
               setSector(ANY);
-              setGuestOpen(false);
+              setOpenGuest(null);
             }}
           >
             <Icon name="cajas" size={16} />
@@ -353,7 +382,7 @@ export function MacroExplorer({
                 title={multiTitle(SECTOR_LABEL[key] ?? key, on)}
                 onClick={(event) => {
                   setOffset(0);
-                  setGuestOpen(false);
+                  setOpenGuest(null);
                   setSector((current) => toggleChoice(current, key, additive(event)));
                 }}
               >
@@ -363,7 +392,7 @@ export function MacroExplorer({
               </button>
             );
           })}
-          {guest ? (
+          {guests?.length ? (
             <>
               {/*
                 Bajo su propio rótulo y no al final de la lista sin más.
@@ -372,26 +401,33 @@ export function MacroExplorer({
                 misma columna se leen como un error. Separadas en dos grupos
                 dicen lo que son: una recorta la retícula, la otra la
                 reemplaza.
+
+                El rótulo va en plural o en singular según cuántos cuelguen,
+                porque «Paneles» sobre una sola entrada promete una lista que
+                no está.
               */}
               <div className="rail-split">
                 <Icon name="capas" size={12} />
-                Panel
+                {guests.length === 1 ? 'Panel' : 'Paneles'}
               </div>
-              <button
-                type="button"
-                className={guestOpen ? 'rail-item rail-item-on' : 'rail-item'}
-                aria-pressed={guestOpen}
-                title={`Abrir el panel de ${guest.label}`}
-                onClick={() => {
-                  setOffset(0);
-                  setOpened(null);
-                  setGuestOpen(true);
-                }}
-              >
-                <Icon name={guest.icon} size={16} />
-                <span className="rail-name">{guest.label}</span>
-                <span className="rail-n rail-n-word">abrir</span>
-              </button>
+              {guests.map((one) => (
+                <button
+                  key={one.label}
+                  type="button"
+                  className={openGuest === one.label ? 'rail-item rail-item-on' : 'rail-item'}
+                  aria-pressed={openGuest === one.label}
+                  title={`Abrir el panel de ${one.label}`}
+                  onClick={() => {
+                    setOffset(0);
+                    setOpened(null);
+                    setOpenGuest(one.label);
+                  }}
+                >
+                  <Icon name={one.icon} size={16} />
+                  <span className="rail-name">{one.label}</span>
+                  <span className="rail-n rail-n-word">abrir</span>
+                </button>
+              ))}
             </>
           ) : null}
         </div>
@@ -456,9 +492,9 @@ export function MacroExplorer({
             Con el panel invitado abierto, la retícula no está en pantalla: un
             recuento de la selección ahí describiría algo que el lector no ve.
           */}
-          {guestOpen && guest ? (
+          {shownGuest ? (
             <>
-              Panel abierto: <b>{guest.label}</b>
+              Panel abierto: <b>{shownGuest.label}</b>
               <br />
               Elegí un rubro para volver a los indicadores
             </>
@@ -481,14 +517,14 @@ export function MacroExplorer({
           convierte la vista en una lectura del mismo tablero y no en otra
           página a la que hay que volver.
         */}
-        {guestOpen && guest ? (
+        {shownGuest ? (
           /*
             El panel invitado ocupa el cuerpo entero y la barra de filtros
             queda viva a la izquierda: se vuelve eligiendo cualquier otro
             rubro, igual que se vuelve de un indicador abierto. Lleva su
             propio encabezado, así que no se le pone otro encima.
           */
-          <div className="stack">{guest.panel}</div>
+          <div className="stack">{shownGuest.panel}</div>
         ) : analysed ? (
           <MacroAnalysis
             point={analysed.latest}

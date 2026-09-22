@@ -19,7 +19,7 @@ import type { MacroBundle } from '@/lib/macro-transport';
  * los filtros, la paginación, la tabla y la descarga se comportan igual en los
  * dos, que es lo que permite compararlos sin volver a aprender la herramienta.
  */
-export function PanelSection({ guest }: { guest?: GuestRubro }) {
+export function PanelSection({ guests }: { guests?: readonly GuestRubro[] }) {
   const [bundle, setBundle] = useState<MacroBundle | null>(null);
   const [failed, setFailed] = useState(false);
 
@@ -52,6 +52,6 @@ export function PanelSection({ guest }: { guest?: GuestRubro }) {
   // llegar, y una pantalla en blanco durante ese rato se lee como un fallo.
   if (!bundle) return <div className="callout">Cargando Social Info…</div>;
 
-  /* `exactOptionalPropertyTypes`: un `guest` ausente se omite, no se pasa vacío. */
-  return <MacroExplorer bundle={bundle} corpus="catalogo" {...(guest ? { guest } : {})} />;
+  /* `exactOptionalPropertyTypes`: una lista ausente se omite, no se pasa vacía. */
+  return <MacroExplorer bundle={bundle} corpus="catalogo" {...(guests ? { guests } : {})} />;
 }

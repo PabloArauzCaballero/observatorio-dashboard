@@ -1,10 +1,12 @@
 'use client';
 
 import { EnergySection } from './energy-section';
+import { EnvironmentSection } from './environment-section';
 import { InstitutionsExplorer } from './institutions-explorer';
 import { MacroExplorer } from './macro-explorer';
 import { OnOpenNotice, useOnOpen } from './on-open';
 import { PanelSection } from './panel-section';
+import { ResourcesSection } from './resources-section';
 import { SubTabs } from './tabs';
 import { WorldExplorer } from './world-explorer';
 import type { InstitutionsBoard } from '@/lib/institutions-board';
@@ -38,13 +40,27 @@ export function MacroSection() {
       icons={['linea', 'capas', 'globo']}
     >
       <MeasuresPanel />
-      <PanelSection guest={{ label: 'Instituciones', icon: 'escudo', panel: <InstitutionsPanel /> }} />
+      <PanelSection
+        guests={[{ label: 'Instituciones', icon: 'escudo', panel: <InstitutionsPanel /> }]}
+      />
       <WorldExplorer />
     </SubTabs>
   );
 }
 
-/** Lo que el observatorio mide de Bolivia, con la energía como rubro invitado. */
+/**
+ * Lo que el observatorio mide de Bolivia, con tres rubros invitados.
+ *
+ * Los tres cuelgan juntos porque son tres preguntas sobre la misma cosa: qué
+ * saca el país de su territorio, qué quema con ello y qué deja a cambio. Un
+ * lector que encuentra uno encuentra los otros dos, que es exactamente lo que
+ * no pasaba cuando la energía vivía en una pestaña propia arriba.
+ *
+ * Los tres leen el panel del Banco Mundial y ninguno toca el paquete de
+ * medidas anuales que este panel dibuja: cada uno pide su propia dirección al
+ * abrirse, y la lectura del panel está sostenida en memoria con una clave que
+ * lleva los códigos pedidos, así que no se pisan entre ellos.
+ */
 function MeasuresPanel() {
   const { payload, failed } = useOnOpen<{ bundle: MacroBundle }>('/api/medidas');
 
@@ -53,7 +69,11 @@ function MeasuresPanel() {
   return (
     <MacroExplorer
       bundle={payload.bundle}
-      guest={{ label: 'Energía', icon: 'rayo', panel: <EnergySection /> }}
+      guests={[
+        { label: 'Energía', icon: 'rayo', panel: <EnergySection /> },
+        { label: 'Recursos naturales', icon: 'gema', panel: <ResourcesSection /> },
+        { label: 'Medio ambiente', icon: 'hoja', panel: <EnvironmentSection /> },
+      ]}
     />
   );
 }
