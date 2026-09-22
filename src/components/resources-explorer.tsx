@@ -6,9 +6,14 @@ import { DerivedReading } from './derived-reading';
 import { Icon } from './icons';
 import type { IconName } from './icons';
 import {
+  COMMODITY_CHAPTER_TOTAL,
+  FUEL_SLUGS,
+  LITHIUM_SLUG,
+  MINERAL_SLUGS,
   RESOURCE_GROUP_LABEL,
   RESOURCE_INDICATORS,
   RESOURCE_PLACES,
+  type CommodityExport,
   type ResourceBoard,
   type ResourceGroup,
   type YearValue,
@@ -33,6 +38,8 @@ const number = (value: number, decimals = 1): string =>
 const CONCLUSION_ICON: Record<string, IconName> = {
   relevo: 'gema',
   canasta: 'camion',
+  productos: 'cajas',
+  litio: 'chip',
   ahorro: 'balanza',
   agotamiento: 'capas',
   transformacion: 'fabrica',
@@ -119,6 +126,44 @@ function GroupHead({ group, children }: { group: ResourceGroup; children: string
 const percent = (value: number): string => `${number(value, 2)} %`;
 const share = (value: number): string => `${number(value, 1)} %`;
 const tick = (value: number): string => number(value, 0);
+const millions = (value: number): string => `${number(value, 0)} M`;
+
+/**
+ * Varias partidas sobre un eje de años, en la medida que se pida.
+ *
+ * Los dólares se dibujan en millones y los kilos en toneladas porque un eje de
+ * mil millones imprime números que nadie lee; la conversión va aquí y no en el
+ * tablero para que la cifra que viaja sea la declarada.
+ */
+function commodityLines(
+  commodities: readonly CommodityExport[],
+  slugs: readonly string[],
+  measure: 'value' | 'weight',
+): { data: WorldLinePoint[]; series: WorldLineSeries[] } {
+  const divisor = measure === 'value' ? 1_000_000 : 1_000;
+  const wanted = slugs
+    .map((slug) => commodities.find((one) => one.slug === slug))
+    .filter((one): one is CommodityExport => one !== undefined && one[measure].length > 1);
+  const years = new Set<number>();
+  for (const one of wanted) for (const point of one[measure]) years.add(point.year);
+  const data = [...years]
+    .sort((left, right) => left - right)
+    .map((year) => {
+      const row: WorldLinePoint = { year: String(year) };
+      for (const one of wanted) {
+        const found = one[measure].find((point) => point.year === year);
+        row[one.slug] = found ? found.value / divisor : null;
+      }
+      return row;
+    });
+  const series = wanted.map((one, index) => ({
+    key: one.slug,
+    label: one.label,
+    tone: seriesTone(index),
+    emphasis: index === 0,
+  }));
+  return { data, series };
+}
 
 /**
  * El último dato de cada país en las series que distinguen un caso del otro.
@@ -201,6 +246,19 @@ export function ResourcesExplorer({ board }: { board: ResourceBoard }) {
     period: String(point.year),
     value: point.value,
   }));
+  const mineralValue = commodityLines(board.commodities, MINERAL_SLUGS, 'value');
+  const mineralWeight = commodityLines(board.commodities, MINERAL_SLUGS, 'weight');
+  const fuelValue = commodityLines(board.commodities, FUEL_SLUGS, 'value');
+  const lithium = board.commodities.find((one) => one.slug === LITHIUM_SLUG);
+  const lithiumWeight = (lithium?.weight ?? []).map((point) => ({
+    period: String(point.year),
+    value: point.value / 1_000,
+  }));
+  const oreTotal = board.commodities.find((one) => one.slug === COMMODITY_CHAPTER_TOTAL);
+  const oreValue = (oreTotal?.value ?? []).map((point) => ({
+    period: String(point.year),
+    value: point.value / 1_000_000,
+  }));
 
   return (
     <>
@@ -208,11 +266,13 @@ export function ResourcesExplorer({ board }: { board: ResourceBoard }) {
         <div className="panel-head">
           <h2>Recursos naturales</h2>
           <p className="panel-sub">
-            Qué deja el subsuelo, cuánto patrimonio se consume al sacarlo y en qué se convierte. Las
-            cifras son del Banco Mundial con la misma definición para Bolivia y para cada vecino, así
-            que se pueden poner en un mismo eje. El dato más reciente es de {board.asOfYear ?? '—'};
-            las rentas y las cuentas ajustadas cierran con dos o tres años de retraso, que es lo que
-            tarda el compilador en valorarlas.
+            Qué sale del país, qué deja el subsuelo, cuánto patrimonio se consume al sacarlo y en
+            qué se convierte. Dos fuentes: la declaración aduanera ante Naciones Unidas, que da el
+            detalle por producto —de ahí sale el litio—, y el Banco Mundial, que da las rentas y las
+            cuentas ajustadas con la misma definición para Bolivia y para cada vecino. El dato más
+            reciente es de {board.asOfYear ?? '—'}; las aduanas cierran un año después y las cuentas
+            ajustadas dos o tres, así que no todos los paneles terminan igual y cada uno lleva su
+            año escrito.
           </p>
         </div>
         <DerivedReading
@@ -222,6 +282,119 @@ export function ResourcesExplorer({ board }: { board: ResourceBoard }) {
           icons={CONCLUSION_ICON}
         />
       </div>
+
+      {/*
+        El desglose por producto sólo se dibuja si el núcleo ya lo cargó.
+
+        El tablero se despliega desde un repositorio distinto del que migra y
+        siembra, así que entre un despliegue y el otro estas series no están.
+        Un panel vacío con su leyenda sin líneas se lee como una avería; que el
+        capítulo empiece por las rentas, no.
+      */}
+      {mineralValue.data.length > 1 ? (
+        <div className="panel">
+          <div className="panel-head">
+            <h2>Minerales exportados por producto (millones de US$)</h2>
+            <p className="panel-sub">
+              Lo que de verdad sale del país, partida por partida, tal como Bolivia lo declaró en
+              aduana ante Naciones Unidas desde 1992. Las rentas de arriba dicen cuánto deja el
+              subsuelo; esto dice qué se vende. El concentrado de cinc y los minerales de oro y
+              plata son dos negocios distintos y aquí se ven separados por primera vez.
+            </p>
+          </div>
+          <WorldLines
+            data={mineralValue.data}
+            series={mineralValue.series}
+            format={(value) => `${number(value, 1)} millones de US$`}
+            tick={millions}
+          />
+        </div>
+      ) : null}
+
+      {mineralWeight.data.length > 1 || lithiumWeight.length > 1 ? (
+        <div className="grid-pair">
+          {mineralWeight.data.length > 1 ? (
+            <div className="panel">
+              <div className="panel-head">
+                <h2>Peso exportado por mineral (miles de toneladas)</h2>
+                <p className="panel-sub">
+                  La misma canasta medida en peso y no en plata. Es la diferencia entre «subió el
+                  precio» y «salió más»: el valor de una exportación de oro se duplica con el precio
+                  sin que salga un gramo más, y sólo esta medida lo distingue.
+                </p>
+              </div>
+              <WorldLines
+                data={mineralWeight.data}
+                series={mineralWeight.series}
+                format={(value) => `${number(value, 0)} mil t`}
+                tick={tick}
+              />
+            </div>
+          ) : null}
+          {lithiumWeight.length > 1 ? (
+            <div className="panel">
+              <div className="panel-head">
+                <h2>Carbonato de litio exportado (toneladas)</h2>
+                <p className="panel-sub">
+                  El litio no tiene partida de mineral: lo que cruza la frontera es carbonato, que el
+                  Sistema Armonizado clasifica entre los productos químicos (2836.91) y no entre los
+                  minerales. Buscarlo en el capítulo de minería es no encontrarlo nunca, que es la
+                  razón por la que este informe no tenía una sola cifra suya. Hay años sin
+                  declaración en el registro y la línea une los puntos que existen: donde el tramo
+                  es largo y recto no hay dato intermedio, hay un hueco.
+                </p>
+              </div>
+              <MacroChart
+                data={lithiumWeight}
+                unit="t"
+                tone="var(--series-4)"
+                label="Carbonato de litio"
+              />
+            </div>
+          ) : null}
+        </div>
+      ) : null}
+
+      {fuelValue.data.length > 1 || oreValue.length > 1 ? (
+        <div className="grid-pair">
+          {fuelValue.data.length > 1 ? (
+            <div className="panel">
+              <div className="panel-head">
+                <h2>Hidrocarburos exportados (millones de US$)</h2>
+                <p className="panel-sub">
+                  El gas y sus compañeros, en la misma unidad y sobre el mismo registro que los
+                  minerales, para que la comparación entre los dos no dependa de dos fuentes
+                  distintas.
+                </p>
+              </div>
+              <WorldLines
+                data={fuelValue.data}
+                series={fuelValue.series}
+                format={(value) => `${number(value, 1)} millones de US$`}
+                tick={millions}
+              />
+            </div>
+          ) : null}
+          {oreValue.length > 1 ? (
+            <div className="panel">
+              <div className="panel-head">
+                <h2>Minerales metalíferos, capítulo entero (millones de US$)</h2>
+                <p className="panel-sub">
+                  El agregado que el registro publica para todo el capítulo 26. Va aparte del
+                  desglose y no encima de él: sumarlo con las partidas que lo componen contaría lo
+                  mismo dos veces.
+                </p>
+              </div>
+              <MacroChart
+                data={oreValue}
+                unit="millones de US$"
+                tone="var(--series-2)"
+                label="Minerales metalíferos"
+              />
+            </div>
+          ) : null}
+        </div>
+      ) : null}
 
       <div className="panel">
         <GroupHead group="RENTA">
@@ -377,11 +550,12 @@ export function ResourcesExplorer({ board }: { board: ResourceBoard }) {
       </div>
 
       <p className="panel-sub">
-        <Icon name="info" size={12} /> Series del Banco Mundial (Indicadores del Desarrollo Mundial),
-        leídas del panel de treinta economías que recoge el núcleo del observatorio. Las rentas y el
-        agotamiento salen de las cuentas de riqueza del banco, no de la contabilidad nacional
-        boliviana, y por eso cierran más tarde. Las definiciones de cada serie están en «Social
-        Info».
+        <Icon name="info" size={12} /> Las rentas, el agotamiento y la comparación regional salen
+        del Banco Mundial (Indicadores del Desarrollo Mundial), leídos del panel de treinta
+        economías que recoge el núcleo del observatorio; vienen de sus cuentas de riqueza y no de la
+        contabilidad nacional boliviana, y por eso cierran más tarde. El detalle por producto es la
+        declaración aduanera de Bolivia ante Naciones Unidas (UN Comtrade), por partida del Sistema
+        Armonizado, desde 1992. Las definiciones de cada serie del panel están en «Social Info».
       </p>
     </>
   );

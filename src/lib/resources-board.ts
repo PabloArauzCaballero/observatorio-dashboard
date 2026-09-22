@@ -31,7 +31,7 @@
  */
 
 import type { FxConclusion } from './fx-snapshot';
-import type { WorldPoint } from './series';
+import type { MacroPoint, WorldPoint } from './series';
 
 export type ResourceGroup = 'RENTA' | 'CANASTA' | 'AGOTAMIENTO' | 'TRANSFORMACION';
 
@@ -263,9 +263,94 @@ export interface YearValue {
   value: number;
 }
 
+/**
+ * Lo que sale del país, producto por producto.
+ *
+ * Las rentas del Banco Mundial dicen cuánto deja el subsuelo y no cuánto sale
+ * de él: son un porcentaje del PIB que no distingue el zinc del oro y cierra en
+ * 2021. Esto es la declaración aduanera ante Naciones Unidas partida por
+ * partida, que el núcleo recoge desde 1992 y archiva bajo el mismo rubro.
+ *
+ * **Dos medidas por producto.** El valor en dólares mezcla precio y volumen —el
+ * mismo oro con el precio duplicado vale el doble—, y el peso neto separa las
+ * dos cosas. La pregunta «cuánto se está sacando» sólo la responde el peso.
+ *
+ * **El litio está aquí y en ninguna otra parte del informe.** El Sistema
+ * Armonizado clasifica el carbonato de litio entre los productos químicos
+ * (2836.91) y no entre los minerales, así que un capítulo de minería que mire
+ * sólo el capítulo 26 no lo encuentra nunca.
+ */
+export interface CommodityExport {
+  /** El tramo del código que nombra el producto: `ZINC_ORE`, `LITHIUM_CARBONATE`. */
+  slug: string;
+  label: string;
+  /** Dólares corrientes declarados, año a año. */
+  value: YearValue[];
+  /** Kilos de peso neto, donde el registro los declara. */
+  weight: YearValue[];
+}
+
+/** Cómo se llama cada partida en el tablero, por su tramo del código. */
+export const COMMODITY_LABEL: Record<string, string> = {
+  METAL_ORES: 'Minerales metalíferos (todo el capítulo)',
+  ZINC_ORE: 'Minerales de cinc',
+  PRECIOUS_ORE: 'Minerales de oro y plata',
+  LEAD_ORE: 'Minerales de plomo',
+  TIN_ORE: 'Minerales de estaño',
+  OTHER_ORE: 'Otros minerales (antimonio, wólfram)',
+  GOLD: 'Oro en bruto',
+  SILVER: 'Plata en bruto',
+  TIN_METAL: 'Estaño en bruto',
+  LEAD_METAL: 'Plomo en bruto',
+  ZINC_METAL: 'Cinc en bruto',
+  LITHIUM_CARBONATE: 'Carbonato de litio',
+  NATURAL_GAS: 'Gas natural',
+  CRUDE_OIL: 'Petróleo crudo',
+  OIL_PRODUCTS: 'Derivados del petróleo',
+};
+
+/** El prefijo con el que el núcleo nombra estas series. */
+const COMMODITY_PREFIX = 'COMMODITY_EXPORTS_';
+
+/**
+ * El capítulo 26 entero, que no se dibuja junto a sus propias partidas.
+ *
+ * Está en el corpus porque es la magnitud —cuánto mineral sale en total— y
+ * porque su peso no lo declara nadie, así que no compite con el desglose en el
+ * panel físico. Sumarlo con las partidas que lo componen contaría lo mismo dos
+ * veces, y por eso el dibujo lo trata aparte.
+ */
+export const COMMODITY_CHAPTER_TOTAL = 'METAL_ORES';
+
+/** Los productos del subsuelo, en el orden en que se leen. */
+export const MINERAL_SLUGS: readonly string[] = [
+  'ZINC_ORE',
+  'PRECIOUS_ORE',
+  'GOLD',
+  'TIN_METAL',
+  'LEAD_ORE',
+  'SILVER',
+  'TIN_ORE',
+  'OTHER_ORE',
+];
+
+/** Los hidrocarburos, que se leen contra los minerales y no entre ellos. */
+export const FUEL_SLUGS: readonly string[] = ['NATURAL_GAS', 'OIL_PRODUCTS', 'CRUDE_OIL'];
+
+export const LITHIUM_SLUG = 'LITHIUM_CARBONATE';
+
 export interface ResourceBoard {
   /** Las series de Bolivia, por código, del año más viejo al más nuevo. */
   series: Record<string, YearValue[]>;
+  /**
+   * Lo exportado por partida arancelaria, si el núcleo ya lo tiene cargado.
+   *
+   * Vacío no es un fallo. El tablero se despliega desde un repositorio distinto
+   * del que migra y siembra: entre un despliegue y el otro estas series
+   * sencillamente no están todavía, y el capítulo tiene que seguir dibujando
+   * todo lo demás en vez de caerse o mostrar un panel en blanco.
+   */
+  commodities: CommodityExport[];
   /** La última lectura de cada lugar para cada indicador. */
   latest: Record<string, Record<string, YearValue>>;
   /** La historia de cada lugar, sólo en los indicadores que se dibujan contra los vecinos. */
@@ -521,8 +606,129 @@ function neighboursConclusion(board: Pick<ResourceBoard, 'series' | 'latest'>): 
   };
 }
 
-/** El tablero, armado con las filas del panel para los lugares y códigos pedidos. */
-export function buildResourceBoard(points: readonly WorldPoint[]): ResourceBoard {
+/**
+ * Lo exportado por producto, sacado de las series medidas del observatorio.
+ *
+ * Se reconocen por prefijo y no por una lista escrita aquí: el catálogo de
+ * partidas vive en el núcleo y crece, y una lista en el tablero sería una
+ * segunda copia que hay que acordarse de ampliar. Lo que el tablero sí decide
+ * es cómo se llama cada una y en qué panel entra.
+ */
+function readCommodities(measured: readonly MacroPoint[]): CommodityExport[] {
+  const byCommodity = new Map<string, CommodityExport>();
+  for (const point of measured) {
+    if (!point.indicatorCode.startsWith(COMMODITY_PREFIX)) continue;
+    if (!Number.isFinite(point.value)) continue;
+    const tail = point.indicatorCode.slice(COMMODITY_PREFIX.length);
+    const measure = tail.endsWith('_KG') ? 'KG' : tail.endsWith('_USD') ? 'USD' : null;
+    if (measure === null) continue;
+    const slug = tail.slice(0, -(measure.length + 1));
+    const own = byCommodity.get(slug) ?? {
+      slug,
+      label: COMMODITY_LABEL[slug] ?? point.name ?? slug,
+      value: [],
+      weight: [],
+    };
+    const year = Number(point.period);
+    if (Number.isFinite(year)) {
+      (measure === 'USD' ? own.value : own.weight).push({ year, value: point.value });
+    }
+    byCommodity.set(slug, own);
+  }
+  for (const commodity of byCommodity.values()) {
+    commodity.value.sort((left, right) => left.year - right.year);
+    commodity.weight.sort((left, right) => left.year - right.year);
+  }
+  return [...byCommodity.values()];
+}
+
+/**
+ * El litio, que hasta ahora no estaba en ninguna cifra del informe.
+ *
+ * Se mide en toneladas y no en dólares porque el precio del carbonato hizo un
+ * pico en 2022 que multiplica el valor sin que salga un gramo más: la serie en
+ * dinero cuenta el mercado mundial, la serie en peso cuenta lo que Bolivia
+ * produce. Las dos van en la frase, en ese orden.
+ */
+function lithiumConclusion(commodities: readonly CommodityExport[]): FxConclusion | null {
+  const lithium = commodities.find((one) => one.slug === LITHIUM_SLUG);
+  const weight = last(lithium?.weight);
+  const value = last(lithium?.value);
+  if (!lithium || !weight || !value) return null;
+  const firstWeight = lithium.weight[0];
+  const tonnes = weight.value / 1_000;
+  const heaviest = peak(lithium.weight);
+  const perTonne = tonnes > 0 ? value.value / tonnes : null;
+  return {
+    key: 'litio',
+    claim:
+      heaviest && heaviest.year === weight.year
+        ? 'El litio ya sale del país, y nunca salió tanto como el último año medido'
+        : 'El litio ya sale del país, por debajo de su propio máximo',
+    figure: `${say(tonnes, 0)} t`,
+    detail:
+      `En ${weight.year} Bolivia exportó ${say(tonnes, 0)} toneladas de carbonato de litio por ` +
+      `${say(value.value / 1_000_000, 1)} millones de dólares` +
+      (perTonne ? `, unos ${say(perTonne, 0)} dólares la tonelada` : '') +
+      `.` +
+      (firstWeight && firstWeight.year !== weight.year
+        ? ` La primera declaración de la serie es de ${firstWeight.year}, con ` +
+          `${say(firstWeight.value / 1_000, 0)} toneladas.`
+        : '') +
+      ` Es una partida química (2836.91) y no mineral, que es la razón por la que no aparece en ` +
+      `ninguna cuenta de minería.`,
+    tone: 'neutral',
+  };
+}
+
+/**
+ * Qué mineral pesa más en lo que se vende, y cuál lo desplazó.
+ *
+ * En valor y no en peso: aquí la pregunta es de qué vive el país, y una
+ * tonelada de concentrado de zinc y una de oro no son la misma plata.
+ */
+function mineralMixConclusion(commodities: readonly CommodityExport[]): FxConclusion | null {
+  const ranked = commodities
+    .filter((one) => MINERAL_SLUGS.includes(one.slug))
+    .flatMap((one) => {
+      const reading = last(one.value);
+      return reading ? [{ label: one.label, year: reading.year, value: reading.value }] : [];
+    })
+    .sort((left, right) => right.value - left.value);
+  const leader = ranked[0];
+  if (!leader) return null;
+  const total = ranked.reduce((sum, entry) => sum + entry.value, 0);
+  const second = ranked[1];
+  return {
+    key: 'productos',
+    claim: `La primera partida minera del país es «${leader.label}»`,
+    figure: `${say(leader.value / 1_000_000, 0)} millones de US$`,
+    detail:
+      `En ${leader.year} esa partida sumó ${say(leader.value / 1_000_000, 0)} millones de dólares` +
+      (total > 0
+        ? `, ${say((leader.value / total) * 100, 0)} % de las ${ranked.length} partidas mineras`
+        : '') +
+      (second
+        ? `; detrás va «${second.label}», con ${say(second.value / 1_000_000, 0)} millones`
+        : '') +
+      `. Son cifras declaradas en aduana, no estimaciones.`,
+    tone: 'neutral',
+  };
+}
+
+/**
+ * El tablero, armado con el panel del Banco Mundial y las series medidas.
+ *
+ * Dos corpus y no uno porque responden a dos preguntas distintas: el panel dice
+ * cuánto deja el subsuelo y con qué se compara en la región; la declaración
+ * aduanera dice cuánto sale y de qué producto. `measured` es opcional porque
+ * esas series llegan al tablero desde el otro repositorio y puede no haberlas
+ * todavía.
+ */
+export function buildResourceBoard(
+  points: readonly WorldPoint[],
+  measured: readonly MacroPoint[] = [],
+): ResourceBoard {
   const series: Record<string, YearValue[]> = {};
   const latest: Record<string, Record<string, YearValue>> = {};
   const history: Record<string, Array<{ place: string; year: number; value: number }>> = {};
@@ -549,19 +755,28 @@ export function buildResourceBoard(points: readonly WorldPoint[]): ResourceBoard
     series[code]?.sort((left, right) => left.year - right.year);
   }
 
+  const commodities = readCommodities(measured);
   const partial = { series, latest };
+  /*
+   * El relevo primero y el litio en tercer lugar, no por importancia sino por
+   * escala: el litio son veintidós millones de dólares al lado de una renta
+   * minera de miles, y abrir con él daría la proporción al revés.
+   */
   const conclusions = [
     relayConclusion(series),
     basketConclusion(series),
+    mineralMixConclusion(commodities),
+    lithiumConclusion(commodities),
     savingsConclusion(series),
     depletionConclusion(series),
     transformationConclusion(series),
     neighboursConclusion(partial),
   ].filter((entry): entry is FxConclusion => entry !== null);
 
-  const asOfYear = Object.values(series)
-    .map((own) => own.at(-1)?.year ?? 0)
-    .reduce((best, year) => Math.max(best, year), 0);
+  const asOfYear = [
+    ...Object.values(series).map((own) => own.at(-1)?.year ?? 0),
+    ...commodities.map((one) => one.value.at(-1)?.year ?? 0),
+  ].reduce((best, year) => Math.max(best, year), 0);
 
-  return { series, latest, history, conclusions, asOfYear: asOfYear || null };
+  return { series, latest, history, commodities, conclusions, asOfYear: asOfYear || null };
 }
