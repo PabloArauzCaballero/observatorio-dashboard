@@ -9,6 +9,7 @@ import type { IconName } from './icons';
 import type { MacroPoint, RegimeSegment } from '@/lib/fx-macro';
 import type { FxConclusion, FxSnapshot, StablecoinReading } from '@/lib/fx-snapshot';
 import {
+  isPlottable,
   STABLECOIN_MARKET_SURVEY_DATE,
   STABLECOIN_MARKET_SURVEY_VENUES,
   stablecoinsWithoutSeries,
@@ -223,14 +224,20 @@ export function FxMacroPanels({
     paralelo: point.value,
   }));
 
-  const tokenSeries: DatedLineSeries[] = tokens.map((entry) => ({
+  /*
+   * Las fichas que el censo declara sin precio no se dibujan, aunque tengan
+   * lecturas. El porqué está en `isPlottable`; el efecto visible es que la
+   * ficha baja a la nota del censo y allí se explica sola.
+   */
+  const plotted = tokens.filter((entry) => isPlottable(entry.token));
+  const tokenSeries: DatedLineSeries[] = plotted.map((entry) => ({
     key: entry.token,
     label: `${entry.token} (Bs/USD)`,
     tone: TOKEN_TONE[entry.token] ?? 'var(--series-rest)',
     emphasis: entry.token === 'USDT',
   }));
   const tokenDates = [
-    ...new Set(tokens.flatMap((entry) => entry.points.map((point) => point.date))),
+    ...new Set(plotted.flatMap((entry) => entry.points.map((point) => point.date))),
   ].sort();
   /*
    * Por índice y no por búsqueda lineal.
@@ -241,11 +248,11 @@ export function FxMacroPanels({
    * comparaciones a casi dos millones, en la página más lenta del tablero.
    */
   const byToken = new Map(
-    tokens.map((entry) => [entry.token, new Map(entry.points.map((p) => [p.date, p.value]))]),
+    plotted.map((entry) => [entry.token, new Map(entry.points.map((p) => [p.date, p.value]))]),
   );
   const tokenRows: DatedLinePoint[] = tokenDates.map((date) => {
     const row: DatedLinePoint = { date };
-    for (const entry of tokens) {
+    for (const entry of plotted) {
       row[entry.token] = byToken.get(entry.token)?.get(date) ?? null;
     }
     return row;
@@ -330,7 +337,7 @@ export function FxMacroPanels({
           ) : (
             <StablecoinTable readings={snapshot.stablecoins} />
           )}
-          <StablecoinCensus plotted={tokens.map((entry) => entry.token)} />
+          <StablecoinCensus plotted={plotted.map((entry) => entry.token)} />
         </div>
       </div>
     </>

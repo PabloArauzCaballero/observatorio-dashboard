@@ -73,3 +73,22 @@ export function stablecoinsWithoutSeries(
     .filter(([token]) => !drawn.has(token))
     .map(([, entry]) => entry);
 }
+
+/**
+ * ¿Se puede dibujar esta ficha, según lo que el censo sabe de su mercado?
+ *
+ * Existe porque una lectura puede sobrevivir a la regla que la habría impedido.
+ * El libro de FDUSD se leyó con un aviso de venta y dos de compra antes de que
+ * hubiera un mínimo de profundidad; la lectura entró al archivo, el archivo es
+ * inmutable —las correcciones crean revisiones, no borran— y el panel se puso a
+ * publicar el dólar a 10,15 por ese riel mientras las otras líneas decían doce.
+ *
+ * Quitarla del archivo no es una opción ni debería serlo. No dibujarla sí: el
+ * censo ya dice que ese libro no tiene precio, y la ficha pasa a la nota de
+ * abajo, que explica por qué no tiene línea. La cifra sigue en la base para
+ * quien audite; lo que no hace es afirmar algo falso en un gráfico.
+ */
+export function isPlottable(token: string): boolean {
+  const entry = STABLECOIN_MARKET_SURVEY[token.toLocaleUpperCase('en')];
+  return entry?.state !== 'TOO_THIN';
+}
