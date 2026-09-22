@@ -1600,6 +1600,26 @@ code {
 }
 
 /*
+ * El rótulo que separa los rubros del panel.
+ *
+ * Lleva una línea arriba porque lo de abajo no es un rubro más: «Social Info»
+ * ya tiene un rubro «Instituciones» con sus 51 series, y sin esta separación
+ * el mismo nombre aparecía dos veces en la misma columna.
+ */
+.rail-split {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin-top: 0.5rem;
+  padding: 0.5rem 0.875rem 0.35rem;
+  border-top: 1px solid var(--rule);
+  font-size: 0.62rem;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+}
+
+/*
  * El rubro que abre un panel en vez de recortar la lista.
  *
  * Donde los demás dicen cuántas series tienen, este dice «panel»: no se puede
