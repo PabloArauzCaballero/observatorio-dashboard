@@ -152,25 +152,25 @@ function midpoint(row: RateRow): number | null {
 }
 
 /**
- * Filings as a time line rather than a grid.
+ * Cuando el resumen no se pudo leer.
  *
- * What matters about a filing is when it landed relative to the others, which a
- * row in a table hides and a spine down the page makes obvious.
+ * Va dentro del informe y no en lugar de el. Antes reemplazaba la pagina entera
+ * —cabecera, pestañas y todo— porque la pagina ERA el resumen; ahora el resumen
+ * es la primera pestaña de siete, y las otras seis leen por su cuenta. Que la
+ * lectura del resumen falle no es razon para esconderle al lector los seis
+ * capitulos que si se pueden servir, ni para quitarle las pestañas con que
+ * llegar a ellos.
  */
 function Unreadable() {
   return (
-    <main>
-      <div className="masthead">
-        <h1>Observatorio económico de Bolivia</h1>
-      </div>
-      <div className="error">
-        <strong>No fue posible leer la base de datos.</strong>
-        <p>
-          Esta página no muestra cifras que no pudo verificar, así que no muestra ninguna. El
-          detalle del fallo queda en el registro del servidor.
-        </p>
-      </div>
-    </main>
+    <div className="error">
+      <strong>No fue posible leer la base de datos.</strong>
+      <p>
+        Este resumen no muestra cifras que no pudo verificar, así que no muestra ninguna. El
+        detalle del fallo queda en el registro del servidor; las demás pestañas leen aparte y
+        pueden estar al día.
+      </p>
+    </div>
   );
 }
 
@@ -202,7 +202,7 @@ function Armando({ que }: { que: string }) {
   return <div className="callout">Armando {que}…</div>;
 }
 
-export default async function Page() {
+async function TodaySection() {
   let observatory: Observatory;
   let gap: GapPoint[];
   let macro: MacroPoint[];
@@ -437,6 +437,113 @@ export default async function Page() {
     : analysisInput;
 
   return (
+    <>
+      {/*
+        Una seccion que falta se dice, no se disimula. Sin este aviso un
+        explorador vacio se lee como «no hay nada cargado», que es justo lo
+        contrario de lo que pasa: hay datos y el servidor no termino de leerlos.
+        Van los nombres de las secciones y nada mas — ni el codigo, ni el host,
+        ni el rol —, que es lo que puede publicarse en una direccion abierta.
+
+        Va dentro del resumen y ya no sobre las pestañas, porque solo nombra lo
+        que el resumen lee. Las que se piden al abrirse avisan cada una en su
+        sitio, que es donde el lector esta mirando cuando se entera.
+      */}
+      {perdidas.size > 0 ? (
+        <div className="callout">
+          No se pudieron leer a tiempo estas secciones: {SECCIONES_PERDIDAS(perdidas)}. El resto del
+          informe es correcto y esta al dia; lo que falta volvera cuando la consulta que lo arma
+          deje de agotar su plazo.
+        </div>
+      ) : null}
+
+      <SummaryExplorer
+        gap={gapSeries}
+        gapUnread={perdidas.has('gap')}
+        figures={summaryFigures}
+        coverage={[
+          {
+            label: 'Series diarias',
+            count: observatory.readingCount.toLocaleString('es-BO'),
+            icon: 'linea',
+          },
+          {
+            label: 'Macro anuales',
+            count: contar('macro', macro),
+            icon: 'globo',
+          },
+          {
+            label: 'Hechos relevantes',
+            count: contar('filings', filings),
+            icon: 'edificio',
+          },
+          {
+            label: 'Días con brecha',
+            count: contar('gap', gap),
+            icon: 'balanza',
+          },
+        ]}
+        analysis={analysis.bullets}
+        latestDate={observatory.latestDate}
+        markets={<MarketCards markets={packMarketCards(markets)} />}
+        board={<TodayBoardPanel board={board} />}
+      />
+    </>
+  );
+}
+
+/**
+ * La fecha del dato mas reciente, en la cabecera.
+ *
+ * Aparte del resto de la cabecera a proposito, y es el detalle que decide si la
+ * pagina se ve en un segundo o en dieciseis. El nombre, el rotulo y las siete
+ * pestañas no dependen de ninguna lectura; esta linea si, y mientras estuvo en
+ * el mismo componente que ellos los retenia a todos: la cabecera no podia
+ * emitirse hasta que el observatorio hubiera contestado. Medido contra Contabo
+ * con la memoria vencida, eso eran quince segundos de pagina en blanco por una
+ * frase.
+ *
+ * Detras de su propio `Suspense`, la cabecera y las pestañas salen enseguida y
+ * la fecha llega cuando el observatorio contesta. La lectura esta sostenida
+ * cinco minutos y el resumen pide la misma, asi que no es una consulta mas.
+ *
+ * Si no se puede leer, dice «Sin datos» y no se lleva la cabecera: un `Suspense`
+ * atrapa una espera, no un fallo, asi que lo que aqui no se recoja tumbaria la
+ * pagina entera por una frase de fecha.
+ */
+async function Stamp() {
+  let observatory: Observatory;
+  try {
+    observatory = await readObservatory();
+  } catch (error) {
+    // The message can carry the host, the user and the port. It belongs in the
+    // log, not in a page served to the public.
+    console.error('[observatorio] fecha de cabecera sin leer', error);
+    return <span>Sin datos</span>;
+  }
+
+  return (
+    <span>
+      {observatory.latestDate ? `Datos al ${longDate(observatory.latestDate)}` : 'Sin datos'}
+      {observatory.lastReceivedAt ? ` · carga ${instant(observatory.lastReceivedAt)}` : ''}
+    </span>
+  );
+}
+
+/**
+ * El informe: una cabecera, siete pestañas y ni una lectura.
+ *
+ * No lee nada, y eso es el arreglo. Mientras esta funcion era el resumen, el
+ * servidor no emitia una linea de contenido hasta tener todas sus consultas
+ * hechas: contra Contabo con la memoria vencida eso median dieciseis segundos
+ * con la conexion muda, y el lector no tenia ni las pestañas con que irse a otro
+ * capitulo mientras esperaba. Ahora la cabecera y la lista de pestañas salen con
+ * el primer byte —medido en 0,9 s en el servidor lento— y cada capitulo llega
+ * cuando lo suyo esta: el resumen y el tipo de cambio por el mismo flujo, detras
+ * de un `Suspense`; los otros cinco pidiendo su direccion al abrirse.
+ */
+export default function Page() {
+  return (
     <main>
       {/* The pane holds a hundred controls; this is the way past them. */}
       <a className="skip-link" href="#tablero">
@@ -454,32 +561,12 @@ export default async function Page() {
         </div>
         <div className="topbar-stamp">
           <Icon name="reloj" size={14} />
-          <span>
-            {observatory.latestDate ? `Datos al ${longDate(observatory.latestDate)}` : 'Sin datos'}
-            {observatory.lastReceivedAt ? ` · carga ${instant(observatory.lastReceivedAt)}` : ''}
-          </span>
+          <Suspense fallback={<span>Leyendo la fecha del último dato…</span>}>
+            <Stamp />
+          </Suspense>
         </div>
         <Donate />
       </header>
-
-      {/*
-        Una seccion que falta se dice, no se disimula. Sin este aviso un
-        explorador vacio se lee como «no hay nada cargado», que es justo lo
-        contrario de lo que pasa: hay datos y el servidor no termino de leerlos.
-        Van los nombres de las secciones y nada mas — ni el codigo, ni el host,
-        ni el rol —, que es lo que puede publicarse en una direccion abierta.
-
-        Sólo nombra lo que ESTA página lee. Las pestañas que se piden solas
-        avisan cada una en su sitio, que es donde el lector está mirando cuando
-        se entera.
-      */}
-      {perdidas.size > 0 ? (
-        <div className="callout">
-          No se pudieron leer a tiempo estas secciones: {SECCIONES_PERDIDAS(perdidas)}. El resto del
-          informe es correcto y esta al dia; lo que falta volvera cuando la consulta que lo arma
-          deje de agotar su plazo.
-        </div>
-      ) : null}
 
       <Tabs
         labels={[
@@ -494,37 +581,9 @@ export default async function Page() {
         icons={['diana', 'linea', 'globo', 'edificio', 'mapa', 'ventana', 'info']}
       >
         <section className="stack">
-          <SummaryExplorer
-            gap={gapSeries}
-            gapUnread={perdidas.has('gap')}
-            figures={summaryFigures}
-            coverage={[
-              {
-                label: 'Series diarias',
-                count: observatory.readingCount.toLocaleString('es-BO'),
-                icon: 'linea',
-              },
-              {
-                label: 'Macro anuales',
-                count: contar('macro', macro),
-                icon: 'globo',
-              },
-              {
-                label: 'Hechos relevantes',
-                count: contar('filings', filings),
-                icon: 'edificio',
-              },
-              {
-                label: 'Días con brecha',
-                count: contar('gap', gap),
-                icon: 'balanza',
-              },
-            ]}
-            analysis={analysis.bullets}
-            latestDate={observatory.latestDate}
-            markets={<MarketCards markets={packMarketCards(markets)} />}
-            board={<TodayBoardPanel board={board} />}
-          />
+          <Suspense fallback={<Armando que="el resumen de hoy" />}>
+            <TodaySection />
+          </Suspense>
         </section>
 
         <section className="stack">
@@ -533,11 +592,6 @@ export default async function Page() {
             se montan aparte a propósito: el capítulo del tipo de cambio lee sus
             series y las dibuja; este lee las mismas series y las somete a
             prueba. Dos preguntas, dos componentes.
-
-            Los dos van detrás de un `Suspense` por la razón que da `Armando`:
-            leen en el servidor —sobre el observatorio que el resumen ya tiene
-            en memoria— y antes de esto la primera pantalla esperaba a que
-            terminaran.
           */}
           <Suspense fallback={<Armando que="el capítulo del tipo de cambio" />}>
             <FxSection />
