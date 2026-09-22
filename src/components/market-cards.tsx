@@ -3,7 +3,7 @@
 import { Sparkline } from './charts';
 import { Icon } from './icons';
 import type { IconName } from './icons';
-import type { MarketSeries } from '@/lib/series';
+import type { MarketCard } from '@/lib/market-transport';
 
 /**
  * The markets a Bolivian reader has to watch, and why each one is here.
@@ -63,20 +63,20 @@ const number = (value: number, decimals: number): string =>
     maximumFractionDigits: decimals,
   });
 
-function headline(series: MarketSeries): string {
+function headline(series: MarketCard): string {
   if (series.code === 'USDT_USD') return number(series.latest, 4);
   if (series.latest >= 1_000) return number(series.latest, 0);
   return number(series.latest, 2);
 }
 
 /** A peg is read in basis points; a percentage of a percent rounds to nothing. */
-function deviation(series: MarketSeries): string | null {
+function deviation(series: MarketCard): string | null {
   if (series.code !== 'USDT_USD') return null;
   const points = (series.latest - 1) * 10_000;
   return `${points > 0 ? '+' : ''}${number(points, 1)} pb entre estables`;
 }
 
-export function MarketCards({ markets }: { markets: MarketSeries[] }) {
+export function MarketCards({ markets }: { markets: MarketCard[] }) {
   if (!markets.length) return null;
 
   return (
@@ -113,16 +113,16 @@ export function MarketCards({ markets }: { markets: MarketSeries[] }) {
               {series.windowPercent === null ? null : (
                 <>
                   <br />
-                  {series.points.length} días ·{' '}
+                  {series.days} días ·{' '}
                   <b>
                     {series.windowPercent > 0 ? '+' : ''}
                     {number(series.windowPercent, 1)} %
                   </b>{' '}
-                  desde {series.points[0]?.date}
+                  desde {series.firstDate}
                 </>
               )}
             </div>
-            <Sparkline data={series.points.map((point) => point.value)} tone={tone.accent} />
+            <Sparkline data={series.spark} tone={tone.accent} />
           </article>
         );
       })}

@@ -16,6 +16,7 @@ import type { SummaryFigure } from '@/components/summary-explorer';
 import { Tabs } from '@/components/tabs';
 import { dailyAnalysis } from '@/lib/daily-analysis';
 import { buildTodayBoard } from '@/lib/today-board';
+import { packMarketCards } from '@/lib/market-transport';
 import {
   isUnaffordableRead,
   officialSeries,
@@ -521,7 +522,7 @@ export default async function Page() {
             ]}
             analysis={analysis.bullets}
             latestDate={observatory.latestDate}
-            markets={<MarketCards markets={markets} />}
+            markets={<MarketCards markets={packMarketCards(markets)} />}
             board={<TodayBoardPanel board={board} />}
           />
         </section>
