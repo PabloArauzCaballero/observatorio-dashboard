@@ -54,7 +54,7 @@ export const STABLECOIN_MARKET_SURVEY_VENUES = [
   'Binance',
   'Bybit',
   'OKX',
-  'y un agregador que cubre billeteras sin libro propio',
+  'un agregador que cubre billeteras sin libro propio',
 ] as const;
 
 /**
