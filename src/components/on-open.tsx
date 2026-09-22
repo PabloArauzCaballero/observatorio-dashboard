@@ -58,11 +58,28 @@ export function useOnOpen<T>(url: string): { payload: T | null; failed: boolean 
  * lo es, se dice qué sección falta y que el resto del informe no está afectado —
  * que es lo único que puede publicarse en una dirección abierta: ni el código
  * del error, ni el servidor, ni el rol.
+ *
+ * La espera es un `role="status"` con `aria-live`, que es la forma que «Economía
+ * mundial» ya usaba y la que hay que usar ahora que seis de las siete pestañas
+ * llegan así: sin eso, quien navega con lector de pantalla abre un capítulo, no
+ * oye nada, y no tiene manera de distinguir «está leyendo» de «está vacío».
+ *
+ * El fallo NO es un estado: es una advertencia, y va como aviso con su texto,
+ * sin girar nada ni prometer que algo viene en camino.
  */
 export function OnOpenNotice({ what, failed }: { what: string; failed: boolean }) {
-  return failed ? (
-    <div className="callout">No se pudo leer {what}. El resto del informe sigue al día.</div>
-  ) : (
-    <div className="callout">Cargando {what}…</div>
+  if (failed) {
+    return (
+      <div className="callout">No se pudo leer {what}. El resto del informe sigue al día.</div>
+    );
+  }
+
+  return (
+    <div className="loading-note" role="status" aria-live="polite">
+      <span className="loading-spin" aria-hidden="true" />
+      <div>
+        <b>Leyendo {what}…</b>
+      </div>
+    </div>
   );
 }

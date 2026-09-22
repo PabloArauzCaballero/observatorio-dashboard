@@ -45,10 +45,12 @@ const SUBTABS: Partial<Record<(typeof TABS)[number]['label'], string[]>> = {
  * justamente el caso que UI-02 existe para atrapar.
  */
 async function settle(page: import('@playwright/test').Page): Promise<void> {
-  await expect(page.locator('.callout').filter({ hasText: /^(Cargando|Armando) / })).toHaveCount(
-    0,
-    { timeout: 120_000 },
-  );
+  // El giro con `role=status` de las que se piden al abrirse, y el aviso de las
+  // que llegan por el flujo detras de un `Suspense`.
+  await expect(page.locator('.loading-note')).toHaveCount(0, { timeout: 120_000 });
+  await expect(page.locator('.callout').filter({ hasText: /^Armando / })).toHaveCount(0, {
+    timeout: 120_000,
+  });
 }
 
 async function openTab(page: import('@playwright/test').Page, label: string): Promise<void> {
