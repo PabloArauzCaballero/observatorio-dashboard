@@ -43,10 +43,13 @@ const signed = (value: number, decimals = 2): string =>
 
 /** The icon each conclusion carries, chosen for what the figure is about. */
 const CONCLUSION_ICON: Record<string, IconName> = {
+  refugio: 'escudo',
   brecha: 'balanza',
   regimen: 'banco',
   real: 'monedas',
-  ancla: 'diana',
+  paridad: 'diana',
+  ritmo: 'tendencia',
+  ancla: 'reloj',
   inflacion: 'etiqueta',
   riel: 'chip',
 };
@@ -103,7 +106,8 @@ export function FxConclusions({ conclusions }: { conclusions: readonly FxConclus
         <>
           <p className="analysis-note">
             Cada frase sale de las series de esta misma sección y se recalcula con cada carga. Dice
-            qué nivel hay, contra qué referencia y bajo qué régimen; no dice por qué ni qué va a
+            qué nivel hay, contra qué referencia y bajo qué régimen, y qué vale esa cifra en
+            bolivianos para quien tiene que decidir algo con ella; no dice por qué pasó ni qué va a
             pasar.
           </p>
           <ul className="bullets">

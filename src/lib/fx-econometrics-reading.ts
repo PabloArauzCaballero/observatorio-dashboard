@@ -45,7 +45,9 @@ function unitRoot(result: FxEconometrics): FxConclusion | null {
       `Schwarz, ${say(levelTest.n, 0)} jornadas: valor crítico al 5 % de ${say(levelTest.critical.p5)}, ` +
       `así que la raíz unitaria ${level(levelTest.rejects)}. ` +
       (randomWalk
-        ? 'Un salto de hoy queda incorporado al nivel de mañana en vez de corregirse. '
+        ? 'Un salto de hoy queda incorporado al nivel de mañana en vez de corregirse: la mejor ' +
+          'estimación del precio de mañana es el de hoy, y como no hay un nivel al que la serie ' +
+          'deba volver, esperar a que un salto se deshaga solo no es una cobertura. '
         : 'Una desviación de hoy tiende a corregirse en las jornadas siguientes. ') +
       `La variación diaria sí es estacionaria (t = ${say(returnsTest.statistic)}, rechazo al 1 %), ` +
       `que es lo que permite estimar sobre ella lo que sigue.`,
@@ -216,7 +218,9 @@ function volatility(result: FxEconometrics): FxConclusion | null {
             `de un choque de volatilidad de ${say(g.volHalfLifeDays, 1)} días`
           : '') +
       `. La volatilidad condicional de la última jornada es ${say(g.currentVolAnnual, 1)} % anualizada; ` +
-      `la lectura sin modelo (RiskMetrics, λ = 0,94) da ${say(g.ewmaVolAnnual, 1)} %.` +
+      `la lectura sin modelo (RiskMetrics, λ = 0,94) da ${say(g.ewmaVolAnnual, 1)} %. A ese ritmo, ` +
+      `una desviación típica a treinta días son ${say(g.currentVolAnnual / Math.sqrt(12), 1)} % del ` +
+      `precio, que es el orden de lo que se juega quien deja una posición sin cubrir un mes.` +
       (arch ? ` ARCH-LM con ${arch.lags} rezagos: ${pValue(arch.pValue)}` : '') +
       (squares
         ? `; Ljung–Box sobre los cuadrados: Q = ${say(squares.statistic, 1)} (${pValue(squares.pValue)}).`
