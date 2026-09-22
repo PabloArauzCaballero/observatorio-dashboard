@@ -108,7 +108,8 @@ const CHAPTER: Record<'medidas' | 'catalogo', Chapter> = {
         y el banco central—, desde 1960 y hasta el último año publicado. Elegí un rubro a la
         izquierda: las tarjetas, el conteo y la descarga siguen esa selección. Tocá el <b>ⓘ</b> de
         una tarjeta para saber qué mide, y el <b>desplegar</b> para ver sus observaciones año por
-        año. El último rubro de la lista no filtra: abre el panel de <b>Energía</b>.
+        año. Al pie de esa lista, bajo «Panel», está <b>Energía</b>: la matriz energética del país,
+        leída del panel del Banco Mundial.
       </>
     ),
     points: [
@@ -126,7 +127,8 @@ const CHAPTER: Record<'medidas' | 'catalogo', Chapter> = {
         les da el publicador: salud, educación, pobreza, empleo, población y todo lo demás que el
         Banco Mundial mide del país. Es un catálogo de consulta —se entra buscando una cifra, no se
         lee de corrido—, así que el buscador de la izquierda es el atajo corto y el rubro el largo.
-        El último rubro de la lista no filtra: abre el panel de <b>Instituciones</b>.
+        Al pie de esa lista, bajo «Panel», está <b>Instituciones</b>: los índices que califican la
+        libertad económica y política, con las partes que los componen.
       </>
     ),
     points: [
@@ -362,21 +364,35 @@ export function MacroExplorer({
             );
           })}
           {guest ? (
-            <button
-              type="button"
-              className={guestOpen ? 'rail-item rail-item-on' : 'rail-item'}
-              aria-pressed={guestOpen}
-              title={`Abrir el panel de ${guest.label}`}
-              onClick={() => {
-                setOffset(0);
-                setOpened(null);
-                setGuestOpen(true);
-              }}
-            >
-              <Icon name={guest.icon} size={16} />
-              <span className="rail-name">{guest.label}</span>
-              <span className="rail-n rail-n-word">panel</span>
-            </button>
+            <>
+              {/*
+                Bajo su propio rótulo y no al final de la lista sin más.
+                «Social Info» ya tiene un rubro llamado Instituciones —51
+                series del catálogo— y dos entradas del mismo nombre en la
+                misma columna se leen como un error. Separadas en dos grupos
+                dicen lo que son: una recorta la retícula, la otra la
+                reemplaza.
+              */}
+              <div className="rail-split">
+                <Icon name="capas" size={12} />
+                Panel
+              </div>
+              <button
+                type="button"
+                className={guestOpen ? 'rail-item rail-item-on' : 'rail-item'}
+                aria-pressed={guestOpen}
+                title={`Abrir el panel de ${guest.label}`}
+                onClick={() => {
+                  setOffset(0);
+                  setOpened(null);
+                  setGuestOpen(true);
+                }}
+              >
+                <Icon name={guest.icon} size={16} />
+                <span className="rail-name">{guest.label}</span>
+                <span className="rail-n rail-n-word">abrir</span>
+              </button>
+            </>
           ) : null}
         </div>
 
