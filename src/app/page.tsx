@@ -1,67 +1,40 @@
+import { Suspense } from 'react';
 import type { GapChartPoint, RatePoint } from '@/components/charts';
-import { Download } from '@/components/download';
 import { Donate } from '@/components/donate';
-import { FilingExplorer } from '@/components/filing-explorer';
-import { EnergySection } from '@/components/energy-section';
+import { CitiesSection } from '@/components/cities-section';
+import { FilingsSection } from '@/components/filings-section';
 import { FxEconometricsSection } from '@/components/fx-econometrics-section';
 import { FxSection } from '@/components/fx-section';
-import { InstitutionsExplorer } from '@/components/institutions-explorer';
-import { MacroExplorer } from '@/components/macro-explorer';
-import { PanelSection } from '@/components/panel-section';
+import { MacroSection } from '@/components/macro-section';
 import { MarketCards } from '@/components/market-cards';
-import { WorldExplorer } from '@/components/world-explorer';
-import { CityPlacesExplorer } from '@/components/city-places-explorer';
-import { PressExplorer } from '@/components/press-explorer';
-import { SourcesExplorer } from '@/components/sources-explorer';
-import { SubjectsExplorer } from '@/components/subjects-explorer';
-import { SubTabs } from '@/components/tabs';
+import { PressSection } from '@/components/press-section';
+import { SourcesSection } from '@/components/sources-section';
 import { Icon } from '@/components/icons';
 import { SummaryExplorer } from '@/components/summary-explorer';
 import { TodayBoardPanel } from '@/components/today-board';
 import type { SummaryFigure } from '@/components/summary-explorer';
 import { Tabs } from '@/components/tabs';
-import { readPlaceFamilies } from '@/lib/places';
-import type { PlaceFamily } from '@/lib/places';
-import { packMacro } from '@/lib/macro-transport';
 import { dailyAnalysis } from '@/lib/daily-analysis';
-import { buildInstitutionsBoard } from '@/lib/institutions-board';
 import { buildTodayBoard } from '@/lib/today-board';
+import { packMarketCards } from '@/lib/market-transport';
 import {
   isUnaffordableRead,
   officialSeries,
   readCompanyFilings,
   readMarkets,
-  readPressCube,
   readPressPage,
-  readPressPulse,
   readGap,
   readMacroAnnual,
   readObservatory,
-  readSources,
-  readTermMonths,
-  readTermTotals,
-  readChannelMix,
-  readTradeCoverage,
-  readTradeGap,
-  readTradeReadings,
 } from '@/lib/series';
 import type {
   CompanyFiling,
   MarketSeries,
   PressArticle,
-  PressPulseData,
-  PressCube,
   DailyPoint,
   GapPoint,
   MacroPoint,
   Observatory,
-  SourceNote,
-  TermMonth,
-  TermTotal,
-  ChannelMix,
-  TradeCoverage,
-  TradeGap,
-  TradeReading,
 } from '@/lib/series';
 
 /**
@@ -78,6 +51,23 @@ import type {
  * that row"; an analyst is asking "where has this been going", and only a line
  * answers that. The numbers behind every line are one click away in both
  * formats, from the same control in the same place on every section.
+ *
+ * ESTA PÁGINA ES LA PRIMERA PESTAÑA Y NADA MÁS. Fue las siete durante meses, y
+ * lo que eso costaba se midió el 2026-09-22 contra `test`: la portada respondía
+ * la cabecera al segundo 1 y después la conexión quedaba **muda hasta el
+ * segundo 16**, con el informe completo entre los 16 y los 23 s. Ni la red ni el
+ * peso lo explicaban —el mismo servidor entrega un megabyte en dos segundos—:
+ * era que el servidor esperaba a que las veinte lecturas de las siete pestañas
+ * terminaran antes de emitir una línea de contenido, y después serializaba 7,9
+ * MB de los que unos 6,3 eran de pestañas que el lector no había abierto.
+ *
+ * `Tabs` ya dibujaba sólo la pestaña activa **en el navegador**. Ahora las otras
+ * seis tampoco se leen en el servidor: cada una pide lo suyo al montarse, que es
+ * lo que «Social Info» y «Economía mundial» llevaban haciendo desde que se vio
+ * que mil quinientas series no caben en una primera pantalla. Aquí quedan las
+ * lecturas que el resumen necesita para existir, y de ellas viaja lo que el
+ * resumen enseña —el cuadro de mando, el análisis, los contadores— y no el
+ * corpus del que salen.
  */
 
 // The exchange rate in force is not a cacheable fact.
@@ -122,17 +112,6 @@ const SIDE_LABEL: Record<string, string> = {
   SELL: 'lado «sell»',
 };
 
-/** One statistic, stated with the unit it is measured in. */
-function Stat({ label, value, hint }: { label: string; value: string; hint?: string }) {
-  return (
-    <div className="stat">
-      <span className="stat-label">{label}</span>
-      <span className="stat-value">{value}</span>
-      {hint ? <span className="stat-hint">{hint}</span> : null}
-    </div>
-  );
-}
-
 /** A headline number with the shape of its own history under it. */
 function buildRateSeries(buy: DailyPoint[], sell: DailyPoint[], official: DailyPoint[]): RateRow[] {
   const byDate = new Map<string, RateRow>();
@@ -173,36 +152,6 @@ function midpoint(row: RateRow): number | null {
 }
 
 /**
- * The date on which the ordering of the two published sides reverses.
- *
- * A bid and an ask cannot swap places. That this happens in the series is the
- * evidence that the two fields do not carry the meaning a Spanish
- * «compra/venta» pair would.
- */
-function sideOrderReversal(rows: RateRow[]): string | null {
-  let previous: boolean | null = null;
-  for (const row of rows) {
-    if (typeof row.parallelBuy !== 'number' || typeof row.parallelSell !== 'number') continue;
-    const buyAbove = row.parallelBuy > row.parallelSell;
-    if (previous !== null && buyAbove !== previous) return row.date;
-    previous = buyAbove;
-  }
-  return null;
-}
-
-/** Latest published year of each indicator, which is not the same for all. */
-function latestByIndicator(points: MacroPoint[]): MacroPoint[] {
-  const latest = new Map<string, MacroPoint>();
-  for (const point of points) {
-    const current = latest.get(point.indicatorCode);
-    if (!current || point.period > current.period) latest.set(point.indicatorCode, point);
-  }
-  return [...latest.values()].sort((left, right) =>
-    (left.name ?? left.indicatorCode).localeCompare(right.name ?? right.indicatorCode),
-  );
-}
-
-/**
  * Filings as a time line rather than a grid.
  *
  * What matters about a filing is when it landed relative to the others, which a
@@ -225,49 +174,13 @@ function Unreadable() {
   );
 }
 
-/**
- * Un archivo de prensa vacio, para cuando el servidor no termino de leerlo.
- *
- * Solo se usa como relleno de tipo: la portada mira `press.length` antes de
- * dibujar nada de prensa, asi que estas dos constantes no llegan a pintarse.
- * Existen para que la seccion que falta sea una seccion que falta y no un
- * `undefined` suelto recorriendo el resto del informe.
- */
-const EMPTY_PRESS_CUBE: PressCube = {
-  years: [],
-  tones: [],
-  topics: [],
-  regions: [],
-  outlets: [],
-  terms: [],
-  cells: [],
-  termCells: [],
-};
-
-const EMPTY_PRESS_PULSE: PressPulseData = {
-  total: 0,
-  outlets: 0,
-  firstDay: null,
-  lastDay: null,
-  toneByYear: [],
-  regions: [],
-  unmarked: { archive: 0, live: 0, archiveLength: 0, liveLength: 0 },
-};
-
 /** El nombre que un lector reconoce, para cada lectura que puede faltar. */
 const NOMBRE_DE_SECCION: Record<string, string> = {
   gap: 'brecha cambiaria',
-  sources: 'fuentes',
   macro: 'macroeconomía anual',
   filings: 'hechos relevantes',
-  press: 'prensa',
   pressToday: 'prensa',
   markets: 'mercados',
-  pressCube: 'prensa',
-  pressPulse: 'prensa',
-  termMonths: 'temas de prensa',
-  termTotals: 'temas de prensa',
-  placeFamilies: 'lugares de las ciudades',
 };
 
 /** Las secciones perdidas en castellano, sin repetir las que comparten nombre. */
@@ -276,24 +189,30 @@ function SECCIONES_PERDIDAS(perdidas: ReadonlySet<string>): string {
   return nombres.sort((left, right) => left.localeCompare(right, 'es')).join(', ');
 }
 
+/**
+ * El esqueleto de una pestaña que el servidor todavía está armando.
+ *
+ * El capítulo del tipo de cambio sigue leyéndose en el servidor —son pruebas
+ * formales sobre las mismas series que el resumen ya tiene, y hacerlas aquí
+ * evita mandarlas dos veces— pero ya no retiene la página: va detrás de un
+ * `Suspense`, así que la primera pantalla se emite en cuanto el resumen está y
+ * el capítulo llega detrás, por el mismo flujo, sin una petición más.
+ */
+function Armando({ que }: { que: string }) {
+  return <div className="callout">Armando {que}…</div>;
+}
+
 export default async function Page() {
   let observatory: Observatory;
   let gap: GapPoint[];
-  let sources: SourceNote[];
   let macro: MacroPoint[];
   let filings: CompanyFiling[];
-  let press: PressArticle[];
   let pressToday: PressArticle[];
   let markets: MarketSeries[];
-  let pressCube: PressCube;
-  let pressPulse: PressPulseData;
-  let termMonths: TermMonth[];
-  let termTotals: TermTotal[];
-  let placeFamilies: PlaceFamily[];
   /*
    * Las secciones que no llegan se cuentan, para no publicar su ausencia como
    * un cero. «Macro anuales: 0» y «Macro anuales: no se pudo leer» dicen cosas
-   * opuestas, y la primera es falsa: hay cincuenta y nueve mil filas ahi.
+   * opuestas, y la primera es falsa: hay nueve mil filas ahi.
    */
   const perdidas = new Set<string>();
 
@@ -341,44 +260,36 @@ export default async function Page() {
     observatory = await readObservatory();
     gap = await seccion('gap', readGap, []);
 
-    [
-      sources,
-      macro,
-      filings,
-      press,
-      pressToday,
-      markets,
-      pressCube,
-      pressPulse,
-      termMonths,
-      termTotals,
-      placeFamilies,
-    ] = await Promise.all([
-      seccion('sources', readSources, []),
+    /*
+     * Las cuatro que el resumen necesita para existir, y ninguna más.
+     *
+     * Eran once. Las otras siete —fuentes, el cubo de prensa, su pulso, los dos
+     * recuentos de temas, las familias de lugares y el panel empaquetado— sólo
+     * alimentaban pestañas que esta página ya no dibuja, y cada una era una
+     * consulta en el camino crítico del primer pintado. Ahora las pide la
+     * pestaña que las enseña, cuando alguien la abre.
+     *
+     * De estas cuatro no viaja el corpus: macro y los hechos relevantes se leen
+     * para fechar el cuadro de mando y citar el comunicado del día, y lo que
+     * llega al navegador son esas conclusiones. La lectura queda sostenida cinco
+     * minutos, así que cuando el lector abre «Macroeconomía» o «Empresas» su
+     * petición la encuentra hecha en vez de volver a la base.
+     */
+    [macro, filings, pressToday, markets] = await Promise.all([
       seccion('macro', readMacroAnnual, []),
       seccion('filings', () => readCompanyFilings(), []),
-      seccion(
-        'press',
-        () => readPressPage({ topic: ['ECONOMICOS'] }, 60).then((page) => page.articles),
-        [],
-      ),
       /*
-       * El mismo archivo sin filtrar por tema, para el cuadro de mando.
+       * El archivo sin filtrar por tema, para el cuadro de mando.
        *
-       * La lectura de arriba deja fuera `OTROS`, que es lo correcto para la
-       * pestaña de prensa economica y lo contrario de lo que necesita la
-       * portada: un bloqueo de caminos o una medida de combustible entran por
-       * ahi, y son exactamente las novedades que un inversor externo busca. El
-       * limite alcanza para los ultimos dias con holgura, que es lo unico que
-       * el tablero mira.
+       * La pestaña de prensa lee lo mismo dejando fuera `OTROS`, que es lo
+       * correcto para un capítulo de prensa económica y lo contrario de lo que
+       * necesita la portada: un bloqueo de caminos o una medida de combustible
+       * entran por ahí, y son exactamente las novedades que un inversor externo
+       * busca. El limite alcanza para los ultimos dias con holgura, que es lo
+       * unico que el tablero mira.
        */
       seccion('pressToday', () => readPressPage({}, 120).then((page) => page.articles), []),
       seccion('markets', readMarkets, []),
-      seccion('pressCube', readPressCube, EMPTY_PRESS_CUBE),
-      seccion('pressPulse', readPressPulse, EMPTY_PRESS_PULSE),
-      seccion('termMonths', readTermMonths, []),
-      seccion('termTotals', readTermTotals, []),
-      seccion('placeFamilies', readPlaceFamilies, []),
     ]);
   } catch (error) {
     // The message can carry the host, the user and the port. It belongs in the
@@ -409,7 +320,6 @@ export default async function Page() {
     null,
   );
 
-  const reversal = sideOrderReversal(rows);
   const gapSeries: GapChartPoint[] = gap.map((point) => ({
     date: point.date,
     gapPercent: point.gapPercent,
@@ -558,6 +468,10 @@ export default async function Page() {
         contrario de lo que pasa: hay datos y el servidor no termino de leerlos.
         Van los nombres de las secciones y nada mas — ni el codigo, ni el host,
         ni el rol —, que es lo que puede publicarse en una direccion abierta.
+
+        Sólo nombra lo que ESTA página lee. Las pestañas que se piden solas
+        avisan cada una en su sitio, que es donde el lector está mirando cuando
+        se entera.
       */}
       {perdidas.size > 0 ? (
         <div className="callout">
@@ -608,105 +522,49 @@ export default async function Page() {
             ]}
             analysis={analysis.bullets}
             latestDate={observatory.latestDate}
-            markets={<MarketCards markets={markets} />}
+            markets={<MarketCards markets={packMarketCards(markets)} />}
             board={<TodayBoardPanel board={board} />}
           />
         </section>
 
         <section className="stack">
-          <FxSection />
           {/*
             Las pruebas formales van después de la lectura y de los gráficos, y
             se montan aparte a propósito: el capítulo del tipo de cambio lee sus
             series y las dibuja; este lee las mismas series y las somete a
             prueba. Dos preguntas, dos componentes.
+
+            Los dos van detrás de un `Suspense` por la razón que da `Armando`:
+            leen en el servidor —sobre el observatorio que el resumen ya tiene
+            en memoria— y antes de esto la primera pantalla esperaba a que
+            terminaran.
           */}
-          <FxEconometricsSection />
+          <Suspense fallback={<Armando que="el capítulo del tipo de cambio" />}>
+            <FxSection />
+          </Suspense>
+          <Suspense fallback={<Armando que="las pruebas del tipo de cambio" />}>
+            <FxEconometricsSection />
+          </Suspense>
         </section>
 
         <section className="stack">
-          {/*
-            Tres lecturas y no una. «Series de Bolivia» son las que el
-            observatorio mide una por una; «Social Info» es el WDI entero
-            recortado a Bolivia —salud, educación, pobreza, empleo—, para la
-            cifra que las primeras no tienen; «Economía mundial» pone a Bolivia
-            al lado del mundo y de su región. Las dos primeras estuvieron
-            mezcladas —promediadas, de hecho— hasta la migración 0077.
-
-            La matriz energética y los índices que califican la libertad
-            tuvieron su propia pestaña arriba durante un día. No la necesitan:
-            cada uno es una lectura del corpus que su panel ya recorre, así que
-            entran como el último rubro de la lista de la izquierda, donde el
-            lector ya está eligiendo de qué quiere leer. Nueve pestañas arriba
-            eran más de las que caben en una pantalla, y las dos nuevas —las
-            que nadie sabía que existían— eran justo las que se perdían.
-          */}
-          <SubTabs
-            labels={['Series de Bolivia', 'Social Info', 'Economía mundial']}
-            icons={['linea', 'capas', 'globo']}
-          >
-            <MacroExplorer
-              bundle={packMacro(macro)}
-              guest={{ label: 'Energía', icon: 'rayo', panel: <EnergySection /> }}
-            />
-            <PanelSection
-              guest={{
-                label: 'Instituciones',
-                icon: 'escudo',
-                panel: (
-                  <InstitutionsExplorer
-                    board={buildInstitutionsBoard(
-                      macro.filter((point) => point.sector === 'INSTITUCIONAL'),
-                    )}
-                  />
-                ),
-              }}
-            />
-            <WorldExplorer />
-          </SubTabs>
+          <MacroSection />
         </section>
 
         <section className="stack">
-          {filings.length ? (
-            <FilingExplorer filings={filings} />
-          ) : (
-            <div className="callout">Todavía no hay hechos relevantes cargados.</div>
-          )}
+          <FilingsSection />
         </section>
 
         <section className="stack">
-          <CityPlacesExplorer families={placeFamilies} />
+          <CitiesSection />
         </section>
 
         <section className="stack">
-          {press.length ? (
-            // Two readings of one archive: the notes themselves, and what the
-            // country talked about in them, month by month.
-            <SubTabs labels={['Cobertura', 'Temas']} icons={['ventana', 'etiqueta']}>
-              <PressExplorer
-                cube={pressCube}
-                initialArticles={press}
-                span={{
-                  total: pressPulse.total,
-                  outlets: pressPulse.outlets,
-                  firstDay: pressPulse.firstDay,
-                  lastDay: pressPulse.lastDay,
-                  unmarked: pressPulse.unmarked,
-                }}
-              />
-              <SubjectsExplorer months={termMonths} totals={termTotals} />
-            </SubTabs>
-          ) : (
-            <div className="callout">Todavía no hay cobertura de prensa cargada.</div>
-          )}
+          <PressSection />
         </section>
 
         <section className="stack">
-          <SourcesExplorer
-            sources={sources}
-            readingCount={observatory.readingCount}
-            reversal={reversal}
-          />
+          <SourcesSection />
         </section>
       </Tabs>
     </main>

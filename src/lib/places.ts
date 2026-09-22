@@ -1,5 +1,6 @@
 import 'server-only';
 import { pool } from './db';
+import { held } from './hold';
 
 /**
  * The places of Santa Cruz de la Sierra, La Paz and Cochabamba.
@@ -114,7 +115,11 @@ function unreadable<T>(model: string, error: unknown): T[] {
 }
 
 /** How many places of each family each city holds. */
-export async function readPlaceFamilies(): Promise<PlaceFamily[]> {
+export function readPlaceFamilies(): Promise<PlaceFamily[]> {
+  return held('placeFamilies', buildPlaceFamilies);
+}
+
+async function buildPlaceFamilies(): Promise<PlaceFamily[]> {
   try {
     const { rows } = await pool().query<{
       city: string;

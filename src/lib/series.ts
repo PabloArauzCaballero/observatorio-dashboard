@@ -1,5 +1,6 @@
 import 'server-only';
 import { pool } from './db';
+import { held } from './hold';
 import { wdiSector } from './wdi-sectors';
 
 /**
@@ -16,21 +17,12 @@ import { wdiSector } from './wdi-sectors';
  * promise itself is cached rather than its result, so ten simultaneous readers
  * wait on one query instead of starting ten.
  */
-const HELD = new Map<string, { at: number; value: Promise<unknown> }>();
-const HOLD_MS = 5 * 60 * 1000;
-
-function held<T>(key: string, build: () => Promise<T>): Promise<T> {
-  const now = Date.now();
-  const entry = HELD.get(key);
-  if (entry && now - entry.at < HOLD_MS) return entry.value as Promise<T>;
-  const value = build().catch((error: unknown) => {
-    // A failed read must not be remembered as the answer for five minutes.
-    HELD.delete(key);
-    throw error;
-  });
-  HELD.set(key, { at: now, value });
-  return value;
-}
+/*
+ * `held` vive ahora en `./hold`, porque no es sólo de este módulo: las familias
+ * de lugares se leen en `places.ts` y la portada sostiene ahí sus dos páginas de
+ * prensa. El comentario que explicaba por qué se guarda la promesa y no el
+ * resultado está en ese fichero, junto a la función.
+ */
 
 /**
  * Reads the observatory's daily series and shapes them for reporting.
@@ -367,7 +359,11 @@ async function readSourcesFrom(relation: string): Promise<SourceRow[]> {
   return rows;
 }
 
-export async function readSources(): Promise<SourceNote[]> {
+export function readSources(): Promise<SourceNote[]> {
+  return held('sources', buildSources);
+}
+
+async function buildSources(): Promise<SourceNote[]> {
   const rows = await firstThatAnswers([
     () => readSourcesFrom('read_models.indicator_source_note_snapshot'),
     () => readSourcesFrom('read_models.indicator_source_note'),
@@ -459,7 +455,11 @@ async function readMacroAnnualFrom(relation: string): Promise<MacroRow[]> {
   return rows;
 }
 
-export async function readMacroAnnual(): Promise<MacroPoint[]> {
+export function readMacroAnnual(): Promise<MacroPoint[]> {
+  return held('macroAnnual', buildMacroAnnual);
+}
+
+async function buildMacroAnnual(): Promise<MacroPoint[]> {
   const rows = await firstThatAnswers([
     () => readMacroAnnualFrom('read_models.macro_indicator_annual_snapshot'),
     () => readMacroAnnualFrom('read_models.macro_indicator_annual'),
@@ -500,7 +500,11 @@ export async function readMacroAnnual(): Promise<MacroPoint[]> {
  * los guarda; aquí no hay copia que llenar y son treinta mil filas ya ordenadas
  * por indicador y periodo, sobre las que la resta es un solo recorrido.
  */
-export async function readBoliviaPanel(): Promise<MacroPoint[]> {
+export function readBoliviaPanel(): Promise<MacroPoint[]> {
+  return held('boliviaPanel', buildBoliviaPanel);
+}
+
+async function buildBoliviaPanel(): Promise<MacroPoint[]> {
   const { rows } = await pool().query<{
     indicator_code: string;
     indicator_name: string | null;
@@ -665,7 +669,11 @@ async function readFilingsFrom(relation: string, limit: number): Promise<FilingR
   return rows;
 }
 
-export async function readCompanyFilings(limit = 1_000): Promise<CompanyFiling[]> {
+export function readCompanyFilings(limit = 1_000): Promise<CompanyFiling[]> {
+  return held(`filings:${limit}`, () => buildCompanyFilings(limit));
+}
+
+async function buildCompanyFilings(limit: number): Promise<CompanyFiling[]> {
   const rows = await firstThatAnswers([
     () => readFilingsFrom('read_models.company_filing_snapshot', limit),
     () => readFilingsFrom('read_models.company_filing', limit),
@@ -724,7 +732,11 @@ export interface PressArticle {
  * the dollar moved is not a reading of the dollar, and the report keeps the two
  * apart so a reader always knows which they are looking at.
  */
-export async function readPressArticles(limit = 1_000): Promise<PressArticle[]> {
+export function readPressArticles(limit = 1_000): Promise<PressArticle[]> {
+  return held(`pressArticles:${limit}`, () => buildPressArticles(limit));
+}
+
+async function buildPressArticles(limit: number): Promise<PressArticle[]> {
   const { rows } = await pool().query<{
     fact_claim_id: string;
     event_date: string;
@@ -822,7 +834,11 @@ const MARKET_UNITS: Record<string, string> = {
  * Aquí no hay siquiera una cuenta que rehacer —son las mismas filas, elegidas
  * por su código— así que el respaldo no cambia ninguna cifra.
  */
-export async function readMarkets(): Promise<MarketSeries[]> {
+export function readMarkets(): Promise<MarketSeries[]> {
+  return held('markets', buildMarkets);
+}
+
+async function buildMarkets(): Promise<MarketSeries[]> {
   try {
     return await readMarketsFromView();
   } catch (error) {
@@ -925,7 +941,11 @@ export interface TermMention {
  * a term one paper repeats is that paper's campaign, a term six papers use is
  * the country's conversation.
  */
-export async function readPressTerms(): Promise<TermMention[]> {
+export function readPressTerms(): Promise<TermMention[]> {
+  return held('pressTerms', buildPressTerms);
+}
+
+async function buildPressTerms(): Promise<TermMention[]> {
   const { rows } = await pool().query<{
     term: string;
     label: string;
@@ -1392,7 +1412,11 @@ export interface SocialAudience {
  * instead of averaging a household panel and a platform's ad planner into one
  * voice.
  */
-export async function readSocialReadings(): Promise<SocialReading[]> {
+export function readSocialReadings(): Promise<SocialReading[]> {
+  return held('socialReadings', buildSocialReadings);
+}
+
+async function buildSocialReadings(): Promise<SocialReading[]> {
   const { rows } = await pool().query<{
     metric: string;
     platform: string;
@@ -1447,7 +1471,11 @@ export async function readSocialReadings(): Promise<SocialReading[]> {
  * reason this table is not a ranking: TikTok declares more reachable adults
  * than Bolivia has people online.
  */
-export async function readSocialAudience(): Promise<SocialAudience[]> {
+export function readSocialAudience(): Promise<SocialAudience[]> {
+  return held('socialAudience', buildSocialAudience);
+}
+
+async function buildSocialAudience(): Promise<SocialAudience[]> {
   const { rows } = await pool().query<{
     platform: string;
     metric: string;
@@ -1664,7 +1692,11 @@ function unreadable<T>(model: string, error: unknown): T[] {
 }
 
 /** What the register can and cannot say about each form of doing business. */
-export async function readTradeCoverage(): Promise<TradeCoverage[]> {
+export function readTradeCoverage(): Promise<TradeCoverage[]> {
+  return held('tradeCoverage', buildTradeCoverage);
+}
+
+async function buildTradeCoverage(): Promise<TradeCoverage[]> {
   try {
     const { rows } = await pool().query<{
       business_form: string;
@@ -1711,7 +1743,11 @@ export async function readTradeCoverage(): Promise<TradeCoverage[]> {
  * with its counts rather than dropping it: a group that cannot be summed is
  * still a group somebody measured.
  */
-export async function readChannelMix(): Promise<ChannelMix[]> {
+export function readChannelMix(): Promise<ChannelMix[]> {
+  return held('channelMix', buildChannelMix);
+}
+
+async function buildChannelMix(): Promise<ChannelMix[]> {
   try {
     const { rows } = await pool().query<{
       goods_class: string;
@@ -1762,7 +1798,11 @@ export async function readChannelMix(): Promise<ChannelMix[]> {
 }
 
 /** Every commerce reading, filed by the way the trade is actually done. */
-export async function readTradeReadings(): Promise<TradeReading[]> {
+export function readTradeReadings(): Promise<TradeReading[]> {
+  return held('tradeReadings', buildTradeReadings);
+}
+
+async function buildTradeReadings(): Promise<TradeReading[]> {
   try {
     const { rows } = await pool().query<{
       metric: string;
@@ -1823,7 +1863,11 @@ export async function readTradeReadings(): Promise<TradeReading[]> {
  * Two measurements of one economy by different houses with different methods.
  * The distance is never an error term, and the panel that draws it says so.
  */
-export async function readTradeGap(): Promise<TradeGap[]> {
+export function readTradeGap(): Promise<TradeGap[]> {
+  return held('tradeGap', buildTradeGap);
+}
+
+async function buildTradeGap(): Promise<TradeGap[]> {
   try {
     const { rows } = await pool().query<{
       label: string;
@@ -1911,7 +1955,11 @@ export interface TermTotal {
  * deploys this view does not exist. Throwing would take every tab down, because
  * the page loads its sections in one `Promise.all`.
  */
-export async function readTermMonths(): Promise<TermMonth[]> {
+export function readTermMonths(): Promise<TermMonth[]> {
+  return held('termMonths', buildTermMonths);
+}
+
+async function buildTermMonths(): Promise<TermMonth[]> {
   try {
     const { rows } = await pool().query<{
       term: string;
@@ -1966,7 +2014,11 @@ export async function readTermMonths(): Promise<TermMonth[]> {
  * browser: the peak needs an ordering over every month of every subject, and
  * doing that client-side on each render is work the database already did once.
  */
-export async function readTermTotals(): Promise<TermTotal[]> {
+export function readTermTotals(): Promise<TermTotal[]> {
+  return held('termTotals', buildTermTotals);
+}
+
+async function buildTermTotals(): Promise<TermTotal[]> {
   try {
     const { rows } = await pool().query<{
       term: string;
@@ -2051,7 +2103,21 @@ export interface WorldPoint {
  * the regions from the file the core collects for this board alone. Until that
  * file has been loaded the query simply returns Bolivia, and the board says so.
  */
-export async function readWorldBoard(
+export function readWorldBoard(
+  indicatorCodes: readonly string[],
+  places: readonly string[],
+): Promise<WorldPoint[]> {
+  /*
+   * La clave lleva los códigos pedidos porque hay dos tableros sobre esta
+   * misma consulta —el mundial y la matriz energética— y piden listas
+   * distintas. Sostener «el tablero mundial» sin más le daría a uno la
+   * respuesta del otro.
+   */
+  const key = `worldBoard:${indicatorCodes.join(',')}|${places.join(',')}`;
+  return held(key, () => buildWorldBoard(indicatorCodes, places));
+}
+
+async function buildWorldBoard(
   indicatorCodes: readonly string[],
   places: readonly string[],
 ): Promise<WorldPoint[]> {
