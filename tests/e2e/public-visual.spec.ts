@@ -35,12 +35,29 @@ const SUBTABS: Partial<Record<(typeof TABS)[number]['label'], string[]>> = {
   Prensa: ['Cobertura', 'Temas'],
 };
 
+/**
+ * Una pestaña abierta no esta lista hasta que su aviso desaparece.
+ *
+ * Desde que la portada dejo de leer las siete pestañas, seis piden lo suyo al
+ * montarse y la septima —el tipo de cambio— llega por el flujo detras de un
+ * `Suspense`. Medir el desbordamiento o pasar axe sobre el aviso de «Cargando»
+ * comprueba la disposicion de un parrafo, no la del capitulo, y ese es
+ * justamente el caso que UI-02 existe para atrapar.
+ */
+async function settle(page: import('@playwright/test').Page): Promise<void> {
+  await expect(page.locator('.callout').filter({ hasText: /^(Cargando|Armando) / })).toHaveCount(
+    0,
+    { timeout: 120_000 },
+  );
+}
+
 async function openTab(page: import('@playwright/test').Page, label: string): Promise<void> {
   await page.getByRole('tab', { name: label, exact: true }).click();
   await expect(page.getByRole('tab', { name: label, exact: true })).toHaveAttribute(
     'aria-selected',
     'true',
   );
+  await settle(page);
 }
 
 function overflowOf(page: import('@playwright/test').Page): Promise<number> {
@@ -71,6 +88,7 @@ test.describe('sitio público · revisión visual y de accesibilidad', () => {
             'aria-selected',
             'true',
           );
+          await settle(page);
           const subOverflow = await overflowOf(page);
           expect(
             subOverflow,
