@@ -5764,3 +5764,45 @@ button.download-btn {
   text-transform: none;
   color: var(--official);
 }
+
+/* Ranked lists ----------------------------------------------------------- */
+
+/*
+ * Un ránking corto se lee como lista y no como tabla.
+ *
+ * Diez filas con dos datos —puesto y nombre— en una tabla gastan una cabecera
+ * y tres reglas para decir lo que el orden ya dice. La lista numerada lo dice
+ * con el número, que además es el dato. El puesto va en monoespaciada y con
+ * ancho fijo para que los nombres queden alineados aunque el puesto pase de
+ * una cifra a dos.
+ */
+.rank-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  background: var(--rule);
+  border: 1px solid var(--rule);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+
+.rank-list li {
+  display: flex;
+  align-items: baseline;
+  gap: 0.6rem;
+  background: var(--panel);
+  padding: 0.4rem 0.75rem;
+  font-size: 0.87rem;
+}
+
+.rank-position {
+  font-family: var(--mono);
+  font-size: 0.78rem;
+  font-variant-numeric: tabular-nums;
+  color: var(--ink-soft);
+  min-width: 1.5rem;
+  text-align: right;
+}

@@ -523,10 +523,15 @@ export function FilingExplorer({ filings }: { filings: CompanyFiling[] }) {
             <Icon name="edificio" size={20} />
           </span>
           <div>
-            <h2>Hechos relevantes</h2>
+            <h2>Hechos relevantes de la Bolsa Boliviana de Valores</h2>
             <p>
-              Comunicados que los emisores registran en la Bolsa Boliviana de Valores. Elegí un
-              rubro a la izquierda para leer sólo ese sector, o sumá varios con{' '}
+              Comunicados que los emisores registran en la <strong>Bolsa Boliviana de Valores</strong>{' '}
+              (BBV), que es la bolsa de valores de Bolivia y la única fuente de este registro.
+              Aquí no está el universo de empresas del país: están{' '}
+              <strong>las que cotizan o emiten deuda en la BBV</strong> y, de ellas, sólo lo que la
+              normativa las obliga a comunicar. Una empresa grande que no acude al mercado de
+              valores no aparece en ninguna de estas filas, y su ausencia no dice nada sobre ella.
+              Elegí un rubro a la izquierda para leer sólo ese sector, o sumá varios con{' '}
               <strong>Ctrl+clic</strong>; la bolsa no publica una clasificación sectorial propia,
               así que el rubro se <strong>deriva de la razón social</strong> del emisor.
             </p>
