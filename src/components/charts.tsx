@@ -762,8 +762,21 @@ export function MacroChart({
   const zoom = useRangeZoom(data.map((point) => point.period));
   const shown = zoom.visible(data);
   const domain = fittedDomain(shown.map((point) => point.value));
+  /*
+   * Una magnitud grande se abrevia lleve la unidad que lleve.
+   *
+   * Sólo se abreviaba en dólares, porque hasta ahora las demás series de este
+   * gráfico eran porcentajes y tasas. El primer panel con una magnitud grande
+   * en otra unidad —el PIB departamental, en miles de bolivianos— destapó lo
+   * que faltaba: el eje tiene un ancho fijo y una etiqueta de doce caracteres
+   * se **recorta por la izquierda**, así que «10.830.820,6» salía dibujado como
+   * «30.820,6». Tres marcas distintas del eje mostraban el mismo número y
+   * ninguna era el suyo, que es peor que no rotular. El ancho subió de 46 a 54
+   * en el mismo arreglo, porque abreviar acorta la etiqueta pero no la hace
+   * corta.
+   */
   const compact = (value: number): string =>
-    unit === 'USD'
+    unit === 'USD' || Math.abs(value) >= 1_000_000
       ? Math.abs(value) >= 1_000_000_000
         ? `${number(value / 1_000_000_000, 1)} MM`
         : `${number(value / 1_000_000, 0)} M`
@@ -799,7 +812,7 @@ export function MacroChart({
           >
             <CartesianGrid {...GRID} />
             <XAxis dataKey="period" minTickGap={34} {...AXIS} />
-            <YAxis domain={domain} width={46} tickFormatter={compact} {...AXIS} />
+            <YAxis domain={domain} width={54} tickFormatter={compact} {...AXIS} />
             <Tooltip content={renderTooltip} cursor={{ stroke: 'var(--rule)', strokeWidth: 1 }} />
             {domain[0] < 0 ? (
               <ReferenceLine y={0} stroke="var(--axis-rule)" strokeWidth={1} />

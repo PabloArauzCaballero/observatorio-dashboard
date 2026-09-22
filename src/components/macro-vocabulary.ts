@@ -58,6 +58,18 @@ export const SECTOR_LABEL: Record<string, string> = {
   EMPRESAS: 'Empresas e innovación',
   INSTITUCIONAL: 'Instituciones',
   SOCIAL: 'Desarrollo humano',
+  /*
+   * Los dos rubros que no miden al país entero.
+   *
+   * `DEPARTAMENTAL` cambia el sitio —nueve departamentos y el país, en las
+   * cuentas regionales del INE y en su comercio exterior— y `EMPRESARIAL`
+   * cambia el sujeto: ahí la fila es una empresa y no una magnitud nacional.
+   * Tienen su propio panel en la lista de la izquierda, y aparecen además aquí
+   * porque este índice es de todo lo que el observatorio guarda, no sólo de lo
+   * que tiene una figura dibujada.
+   */
+  DEPARTAMENTAL: 'Departamentos',
+  EMPRESARIAL: 'Registro empresarial',
   OTROS: 'Otros',
 };
 
@@ -84,6 +96,8 @@ export const SECTOR_ICON: Record<string, IconName> = {
   EMPRESAS: 'tienda',
   INSTITUCIONAL: 'escudo',
   SOCIAL: 'pulso',
+  DEPARTAMENTAL: 'mapa',
+  EMPRESARIAL: 'edificio',
   OTROS: 'cajas',
 };
 

@@ -1,5 +1,6 @@
 'use client';
 
+import { DepartmentsSection } from './departments-section';
 import { EnergySection } from './energy-section';
 import { EnvironmentSection } from './environment-section';
 import { InstitutionsExplorer } from './institutions-explorer';
@@ -70,6 +71,14 @@ function MeasuresPanel() {
     <MacroExplorer
       bundle={payload.bundle}
       guests={[
+        /*
+         * «Departamentos» va primero de los cuatro, y no por orden alfabético.
+         * Los otros tres son recortes temáticos del panel del Banco Mundial
+         * sobre el mismo país; este cambia la unidad de análisis. Un lector que
+         * llega a «Series de Bolivia» y no encuentra arriba la pregunta «¿dónde?»
+         * asume que el tablero no la contesta, que es lo que pasaba hasta hoy.
+         */
+        { label: 'Departamentos', icon: 'mapa', panel: <DepartmentsSection /> },
         { label: 'Energía', icon: 'rayo', panel: <EnergySection /> },
         { label: 'Recursos naturales', icon: 'gema', panel: <ResourcesSection /> },
         { label: 'Medio ambiente', icon: 'hoja', panel: <EnvironmentSection /> },
