@@ -17,7 +17,7 @@
  * repositorios y por eso son dos copias; la del núcleo manda, y la fecha de
  * abajo dice de cuándo es este recuento.
  */
-export type StablecoinMarketState = 'QUOTED' | 'QUOTED_THIN' | 'ONE_SIDED' | 'NO_MARKET';
+export type StablecoinMarketState = 'QUOTED' | 'QUOTED_THIN' | 'TOO_THIN' | 'NO_MARKET';
 
 export interface StablecoinMarketEntry {
   /** La ficha, como la escribe quien la nombra: USDe, no USDE. */
@@ -38,7 +38,7 @@ export interface StablecoinMarketEntry {
 export const STABLECOIN_MARKET_SURVEY: Readonly<Record<string, StablecoinMarketEntry>> = {
   USDT: { label: 'USDT', state: 'QUOTED', bids: 146, asks: 266 },
   USDC: { label: 'USDC', state: 'QUOTED_THIN', bids: 13, asks: 33 },
-  FDUSD: { label: 'FDUSD', state: 'ONE_SIDED', bids: 0, asks: 7 },
+  FDUSD: { label: 'FDUSD', state: 'TOO_THIN', bids: 2, asks: 1 },
   USDS: { label: 'USDS', state: 'NO_MARKET', bids: 0, asks: 0 },
   USDE: { label: 'USDe', state: 'NO_MARKET', bids: 0, asks: 0 },
   PYUSD: { label: 'PYUSD', state: 'NO_MARKET', bids: 0, asks: 0 },
@@ -47,10 +47,15 @@ export const STABLECOIN_MARKET_SURVEY: Readonly<Record<string, StablecoinMarketE
 };
 
 /** El día del recuento, que es lo que se cita junto a las cifras. */
-export const STABLECOIN_MARKET_SURVEY_DATE = '2026-09-21';
+export const STABLECOIN_MARKET_SURVEY_DATE = '2026-09-22';
 
 /** Las plazas donde se buscó cada libro, dichas para que el lector las repita. */
-export const STABLECOIN_MARKET_SURVEY_VENUES = ['Binance', 'Bybit', 'OKX'] as const;
+export const STABLECOIN_MARKET_SURVEY_VENUES = [
+  'Binance',
+  'Bybit',
+  'OKX',
+  'y un agregador que cubre billeteras sin libro propio',
+] as const;
 
 /**
  * Las fichas comprobadas que hoy no tienen línea, y por qué no la tienen.

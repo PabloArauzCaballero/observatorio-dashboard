@@ -576,7 +576,7 @@ export function FxExplorer({ rows, official, readingCount }: FxExplorerProps) {
               <div className="panel">
                 <div className="tile-head card-head">
                   <Icon name={candles ? 'velas' : 'linea'} size={17} />
-                  <h2>Nivel</h2>
+                  <h2>Tipo de cambio en bolivianos por dólar</h2>
                   <span className="tile-hint">
                     {first && last ? `${first.date} → ${last.date}` : 'sin datos'}
                   </span>
@@ -705,7 +705,7 @@ export function FxExplorer({ rows, official, readingCount }: FxExplorerProps) {
 
                   <div className="panel">
                     <div className="panel-head">
-                      <h2>Retornos diarios</h2>
+                      <h2>Variación diaria del tipo de cambio (%)</h2>
                       <p className="panel-sub">
                         Variación logarítmica de {chosen?.label.toLocaleLowerCase('es')}. Las barras
                         hacen visibles los saltos que una línea de nivel suaviza.
@@ -716,6 +716,7 @@ export function FxExplorer({ rows, official, readingCount }: FxExplorerProps) {
                       kind="bar"
                       tone="var(--parallel)"
                       unit="%"
+                      label="Variación diaria"
                       zeroLine
                       {...(boundary ? { boundary } : {})}
                     />
@@ -724,7 +725,7 @@ export function FxExplorer({ rows, official, readingCount }: FxExplorerProps) {
                   <div className="grid-two">
                     <div className="panel">
                       <div className="panel-head">
-                        <h2>Volatilidad realizada</h2>
+                        <h2>Volatilidad anualizada del tipo de cambio (%)</h2>
                         <p className="panel-sub">
                           Ventana móvil de {span} días, anualizada. Responde a «¿está el mercado más
                           nervioso ahora que hace un mes?».
@@ -736,6 +737,7 @@ export function FxExplorer({ rows, official, readingCount }: FxExplorerProps) {
                           kind="area"
                           tone="var(--gap)"
                           unit="%"
+                          label={`Volatilidad anualizada, ventana de ${span} días`}
                           decimals={1}
                           {...(boundary ? { boundary } : {})}
                         />
@@ -748,7 +750,7 @@ export function FxExplorer({ rows, official, readingCount }: FxExplorerProps) {
 
                     <div className="panel">
                       <div className="panel-head">
-                        <h2>Distribución de retornos</h2>
+                        <h2>Jornadas por tramo de variación diaria</h2>
                         <p className="panel-sub">
                           Días por tramo; en rojo, la cola inferior del 5 %. Si las barras extremas
                           son más altas de lo que sería normal, los días excepcionales no son tan
@@ -762,7 +764,7 @@ export function FxExplorer({ rows, official, readingCount }: FxExplorerProps) {
                   <div className="grid-two">
                     <div className="panel">
                       <div className="panel-head">
-                        <h2>Correlación oficial–paralelo</h2>
+                        <h2>Correlación entre el oficial y el paralelo (−1 a 1)</h2>
                         <p className="panel-sub">
                           Ventana móvil de {Math.max(span, 60)} días. Cerca de cero mientras el
                           oficial estuvo fijo: un precio que no se mueve no puede acompañar a otro.
@@ -775,6 +777,7 @@ export function FxExplorer({ rows, official, readingCount }: FxExplorerProps) {
                           kind="line"
                           tone="var(--official)"
                           unit=""
+                          label={`Correlación móvil, ventana de ${Math.max(span, 60)} días`}
                           zeroLine
                           domain={[-1, 1]}
                         />
@@ -788,13 +791,20 @@ export function FxExplorer({ rows, official, readingCount }: FxExplorerProps) {
 
                     <div className="panel">
                       <div className="panel-head">
-                        <h2>Caída desde el máximo</h2>
+                        <h2>Distancia al máximo alcanzado (%)</h2>
                         <p className="panel-sub">
                           Distancia respecto al mayor nivel alcanzado hasta cada fecha. En un tipo
                           de cambio que se deprecia, volver a cero significa un nuevo récord.
                         </p>
                       </div>
-                      <SeriesChart data={fall} kind="area" tone="var(--up)" unit="%" zeroLine />
+                      <SeriesChart
+                        data={fall}
+                        kind="area"
+                        tone="var(--up)"
+                        unit="%"
+                        label="Distancia al máximo alcanzado"
+                        zeroLine
+                      />
                     </div>
                   </div>
                 </>

@@ -23,14 +23,27 @@ import type { WorldPoint } from './series';
 export type EnergyGroup =
   'ELECTRICIDAD' | 'FUENTES' | 'CONSUMO' | 'COMERCIO' | 'RENTA' | 'ACCESO' | 'EMISIONES';
 
+/**
+ * El título de cada panel dice qué se está mirando y en qué unidad.
+ *
+ * Antes decía de qué iba el panel —«Lo que el subsuelo deja», «Quién tiene
+ * energía»—, que es una entradilla, no un título de figura: puesto encima de un
+ * dibujo de siete líneas obliga a bajar al párrafo para saber qué mide el eje, y
+ * en una fila de dos paneles no ata ninguno de los dos títulos a su gráfico. La
+ * frase que había no se perdió: abre el párrafo de debajo, que es su sitio.
+ *
+ * La unidad va en el título porque es la mitad de la respuesta a «qué estoy
+ * viendo»: un 30 de «por ciento de la generación» y un 30 de «por ciento del
+ * PIB» son dos afirmaciones distintas y el eje solo imprime el número.
+ */
 export const ENERGY_GROUP_LABEL: Record<EnergyGroup, string> = {
-  ELECTRICIDAD: 'De dónde sale la electricidad',
-  FUENTES: 'Con qué se mueve el país',
-  CONSUMO: 'Cuánta energía se usa',
-  COMERCIO: 'Lo que se vende y lo que se compra',
-  RENTA: 'Lo que el subsuelo deja',
-  ACCESO: 'Quién tiene energía',
-  EMISIONES: 'Lo que se emite',
+  ELECTRICIDAD: 'Generación eléctrica por fuente (% del total)',
+  FUENTES: 'Renovables y biomasa en el consumo de energía (%)',
+  CONSUMO: 'Energía por habitante, Bolivia y vecinos (kg equivalentes de petróleo)',
+  COMERCIO: 'Combustible en el comercio exterior (% de lo exportado y lo importado)',
+  RENTA: 'Renta de gas, petróleo y minerales (% del PIB)',
+  ACCESO: 'Acceso a electricidad y a cocina limpia (% de la población)',
+  EMISIONES: 'CO₂ del transporte y de las centrales eléctricas (millones de toneladas)',
 };
 
 export interface EnergyIndicator {
