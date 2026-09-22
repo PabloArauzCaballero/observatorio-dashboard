@@ -139,6 +139,9 @@ const SECTOR_BY_GROUP: Record<string, PlaceSector> = {
   COMERCIO_DEPORTE: 'COMERCIO',
   COMERCIO_EDUCACION: 'COMERCIO',
   SALUD_COMERCIO: 'COMERCIO',
+  // Sesenta y dos de sus sesenta y siete lugares son tiendas de bicicletas, y
+  // el resto concesionarias: venden, no transportan.
+  COMERCIO_TRANSPORTE: 'COMERCIO',
 
   SALUD: 'SALUD',
   HEALTH_CARE: 'SALUD',
@@ -197,6 +200,7 @@ const SECTOR_BY_GROUP: Record<string, PlaceSector> = {
   MEDIOS_ENTRETENIMIENTO: 'CULTURA',
 
   GOBIERNO: 'PUBLICO',
+  GOBIERNO_DIPLOMACIA: 'PUBLICO',
   COMMUNITY_AND_GOVERNMENT: 'PUBLICO',
   ESPACIO_PUBLICO: 'PUBLICO',
   RELIGION: 'PUBLICO',
