@@ -572,14 +572,12 @@ export default async function Page() {
           'Hoy',
           'Tipo de cambio',
           'Macroeconomía',
-          'Energía',
-          'Instituciones',
           'Empresas',
           'Ciudades',
           'Prensa',
           'Método',
         ]}
-        icons={['diana', 'linea', 'globo', 'rayo', 'escudo', 'edificio', 'mapa', 'ventana', 'info']}
+        icons={['diana', 'linea', 'globo', 'edificio', 'mapa', 'ventana', 'info']}
       >
         <section className="stack">
           <SummaryExplorer
@@ -629,42 +627,43 @@ export default async function Page() {
         <section className="stack">
           {/*
             Tres lecturas y no una. «Series de Bolivia» son las que el
-            observatorio mide una por una; «Catálogo del Banco Mundial» es el
-            WDI entero recortado a Bolivia, para la cifra que las primeras no
-            tienen; «Economía mundial» pone a Bolivia al lado del mundo y de su
-            región. Las dos primeras estuvieron mezcladas —promediadas, de
-            hecho— hasta la migración 0077.
+            observatorio mide una por una; «Social Info» es el WDI entero
+            recortado a Bolivia —salud, educación, pobreza, empleo—, para la
+            cifra que las primeras no tienen; «Economía mundial» pone a Bolivia
+            al lado del mundo y de su región. Las dos primeras estuvieron
+            mezcladas —promediadas, de hecho— hasta la migración 0077.
+
+            La matriz energética y los índices que califican la libertad
+            tuvieron su propia pestaña arriba durante un día. No la necesitan:
+            cada uno es una lectura del corpus que su panel ya recorre, así que
+            entran como el último rubro de la lista de la izquierda, donde el
+            lector ya está eligiendo de qué quiere leer. Nueve pestañas arriba
+            eran más de las que caben en una pantalla, y las dos nuevas —las
+            que nadie sabía que existían— eran justo las que se perdían.
           */}
           <SubTabs
-            labels={['Series de Bolivia', 'Catálogo del Banco Mundial', 'Economía mundial']}
+            labels={['Series de Bolivia', 'Social Info', 'Economía mundial']}
             icons={['linea', 'capas', 'globo']}
           >
-            <MacroExplorer bundle={packMacro(macro)} />
-            <PanelSection />
+            <MacroExplorer
+              bundle={packMacro(macro)}
+              guest={{ label: 'Energía', icon: 'rayo', panel: <EnergySection /> }}
+            />
+            <PanelSection
+              guest={{
+                label: 'Instituciones',
+                icon: 'escudo',
+                panel: (
+                  <InstitutionsExplorer
+                    board={buildInstitutionsBoard(
+                      macro.filter((point) => point.sector === 'INSTITUCIONAL'),
+                    )}
+                  />
+                ),
+              }}
+            />
             <WorldExplorer />
           </SubTabs>
-        </section>
-
-        <section className="stack">
-          {/*
-            La matriz energética estaba en la base —veintisiete series del
-            panel del Banco Mundial— y no llegaba a ningún panel. Ahora tiene
-            el suyo.
-          */}
-          <EnergySection />
-        </section>
-
-        <section className="stack">
-          {/*
-            Los índices que califican la libertad económica y política, con
-            las partes que los componen. Salen del mismo panel anual que la
-            pestaña de macroeconomía, filtrado a su rubro.
-          */}
-          <InstitutionsExplorer
-            board={buildInstitutionsBoard(
-              macro.filter((point) => point.sector === 'INSTITUCIONAL'),
-            )}
-          />
         </section>
 
         <section className="stack">

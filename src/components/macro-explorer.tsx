@@ -108,7 +108,7 @@ const CHAPTER: Record<'medidas' | 'catalogo', Chapter> = {
         y el banco central—, desde 1960 y hasta el último año publicado. Elegí un rubro a la
         izquierda: las tarjetas, el conteo y la descarga siguen esa selección. Tocá el <b>ⓘ</b> de
         una tarjeta para saber qué mide, y el <b>desplegar</b> para ver sus observaciones año por
-        año.
+        año. El último rubro de la lista no filtra: abre el panel de <b>Energía</b>.
       </>
     ),
     points: [
@@ -119,12 +119,14 @@ const CHAPTER: Record<'medidas' | 'catalogo', Chapter> = {
   },
   catalogo: {
     dataset: 'panel',
-    title: 'Catálogo del Banco Mundial',
+    title: 'Social Info',
     lead: (
       <>
         series del World Development Indicators, recortadas a Bolivia, con el nombre y la unidad que
-        les da el publicador. Es un catálogo de consulta —se entra buscando una cifra, no se lee de
-        corrido—, así que el buscador de la izquierda es el atajo corto y el rubro el largo.
+        les da el publicador: salud, educación, pobreza, empleo, población y todo lo demás que el
+        Banco Mundial mide del país. Es un catálogo de consulta —se entra buscando una cifra, no se
+        lee de corrido—, así que el buscador de la izquierda es el atajo corto y el rubro el largo.
+        El último rubro de la lista no filtra: abre el panel de <b>Instituciones</b>.
       </>
     ),
     points: [
@@ -135,12 +137,35 @@ const CHAPTER: Record<'medidas' | 'catalogo', Chapter> = {
   },
 };
 
+/**
+ * Un rubro que no filtra: abre un panel entero.
+ *
+ * La matriz energética y los índices que califican la libertad eran dos
+ * capítulos propios en la barra de arriba, y ninguno de los dos es un capítulo:
+ * son dos lecturas del mismo corpus que este panel ya recorre —la energía, del
+ * panel del Banco Mundial; las instituciones, del rubro institucional del panel
+ * anual—. Puestos donde el lector ya elige de qué quiere leer, se encuentran; en
+ * una pestaña propia había que saber que existían.
+ *
+ * No lleva conteo sino la palabra «panel», porque no se puede sumar a otro
+ * rubro con Ctrl+clic: lo que hace es reemplazar la retícula, no recortarla.
+ */
+export type GuestRubro = {
+  /** Cómo se llama en la lista de rubros. */
+  label: string;
+  icon: IconName;
+  /** El panel que reemplaza a las tarjetas cuando se lo elige. */
+  panel: ReactNode;
+};
+
 export function MacroExplorer({
   bundle,
   corpus = 'medidas',
+  guest,
 }: {
   bundle: MacroBundle;
   corpus?: keyof typeof CHAPTER;
+  guest?: GuestRubro;
 }) {
   const chapter = CHAPTER[corpus];
   /**
@@ -182,6 +207,8 @@ export function MacroExplorer({
    * tiene que reaparecer es la serie recortada, no la que estaba cuando entró.
    */
   const [opened, setOpened] = useState<string | null>(null);
+  /** Si el rubro invitado está abierto, que es cuando su panel ocupa el cuerpo. */
+  const [guestOpen, setGuestOpen] = useState(false);
 
   const years = useMemo(() => points.map((point) => Number(point.period)), [points]);
   const minYear = years.length ? Math.min(...years) : 1960;
@@ -301,11 +328,12 @@ export function MacroExplorer({
           </div>
           <button
             type="button"
-            className={sector.size === 0 ? 'rail-item rail-item-on' : 'rail-item'}
-            aria-pressed={sector.size === 0}
+            className={sector.size === 0 && !guestOpen ? 'rail-item rail-item-on' : 'rail-item'}
+            aria-pressed={sector.size === 0 && !guestOpen}
             onClick={() => {
               setOffset(0);
               setSector(ANY);
+              setGuestOpen(false);
             }}
           >
             <Icon name="cajas" size={16} />
@@ -323,6 +351,7 @@ export function MacroExplorer({
                 title={multiTitle(SECTOR_LABEL[key] ?? key, on)}
                 onClick={(event) => {
                   setOffset(0);
+                  setGuestOpen(false);
                   setSector((current) => toggleChoice(current, key, additive(event)));
                 }}
               >
@@ -332,6 +361,23 @@ export function MacroExplorer({
               </button>
             );
           })}
+          {guest ? (
+            <button
+              type="button"
+              className={guestOpen ? 'rail-item rail-item-on' : 'rail-item'}
+              aria-pressed={guestOpen}
+              title={`Abrir el panel de ${guest.label}`}
+              onClick={() => {
+                setOffset(0);
+                setOpened(null);
+                setGuestOpen(true);
+              }}
+            >
+              <Icon name={guest.icon} size={16} />
+              <span className="rail-name">{guest.label}</span>
+              <span className="rail-n rail-n-word">panel</span>
+            </button>
+          ) : null}
         </div>
 
         <div className="rail-sec">
@@ -390,11 +436,25 @@ export function MacroExplorer({
         </div>
 
         <div className="rail-foot">
-          Selección: <b>{cards.length}</b> de <b>{catalogue}</b> indicadores
-          <br />
-          <b>{selected.length.toLocaleString('es-BO')}</b> observaciones anuales
-          <br />
-          Desde <b>{from}</b>
+          {/*
+            Con el panel invitado abierto, la retícula no está en pantalla: un
+            recuento de la selección ahí describiría algo que el lector no ve.
+          */}
+          {guestOpen && guest ? (
+            <>
+              Panel abierto: <b>{guest.label}</b>
+              <br />
+              Elegí un rubro para volver a los indicadores
+            </>
+          ) : (
+            <>
+              Selección: <b>{cards.length}</b> de <b>{catalogue}</b> indicadores
+              <br />
+              <b>{selected.length.toLocaleString('es-BO')}</b> observaciones anuales
+              <br />
+              Desde <b>{from}</b>
+            </>
+          )}
         </div>
       </aside>
 
@@ -405,7 +465,15 @@ export function MacroExplorer({
           convierte la vista en una lectura del mismo tablero y no en otra
           página a la que hay que volver.
         */}
-        {analysed ? (
+        {guestOpen && guest ? (
+          /*
+            El panel invitado ocupa el cuerpo entero y la barra de filtros
+            queda viva a la izquierda: se vuelve eligiendo cualquier otro
+            rubro, igual que se vuelve de un indicador abierto. Lleva su
+            propio encabezado, así que no se le pone otro encima.
+          */
+          <div className="stack">{guest.panel}</div>
+        ) : analysed ? (
           <MacroAnalysis
             point={analysed.latest}
             series={analysed.rows}

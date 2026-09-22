@@ -2,10 +2,11 @@
 
 import { useEffect, useState } from 'react';
 import { MacroExplorer } from './macro-explorer';
+import type { GuestRubro } from './macro-explorer';
 import type { MacroBundle } from '@/lib/macro-transport';
 
 /**
- * El catálogo del Banco Mundial, traído cuando se abre su pestaña.
+ * «Social Info»: el catálogo del Banco Mundial, traído cuando se abre su pestaña.
  *
  * Son treinta mil lecturas de mil quinientas series. Puestas en la portada
  * serían más peso que todo el resto del informe junto, para un capítulo al que
@@ -18,7 +19,7 @@ import type { MacroBundle } from '@/lib/macro-transport';
  * los filtros, la paginación, la tabla y la descarga se comportan igual en los
  * dos, que es lo que permite compararlos sin volver a aprender la herramienta.
  */
-export function PanelSection() {
+export function PanelSection({ guest }: { guest?: GuestRubro }) {
   const [bundle, setBundle] = useState<MacroBundle | null>(null);
   const [failed, setFailed] = useState(false);
 
@@ -42,14 +43,15 @@ export function PanelSection() {
   if (failed) {
     return (
       <div className="callout">
-        No se pudo leer el catálogo del Banco Mundial. El resto del capítulo sigue al día.
+        No se pudo leer Social Info. El resto del capítulo sigue al día.
       </div>
     );
   }
 
   // Un aviso y no una retícula vacía: mil quinientas series tardan lo suyo en
   // llegar, y una pantalla en blanco durante ese rato se lee como un fallo.
-  if (!bundle) return <div className="callout">Cargando el catálogo del Banco Mundial…</div>;
+  if (!bundle) return <div className="callout">Cargando Social Info…</div>;
 
-  return <MacroExplorer bundle={bundle} corpus="catalogo" />;
+  /* `exactOptionalPropertyTypes`: un `guest` ausente se omite, no se pasa vacío. */
+  return <MacroExplorer bundle={bundle} corpus="catalogo" {...(guest ? { guest } : {})} />;
 }

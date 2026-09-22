@@ -1599,6 +1599,25 @@ code {
   color: var(--official);
 }
 
+/*
+ * El rubro que abre un panel en vez de recortar la lista.
+ *
+ * Donde los demás dicen cuántas series tienen, este dice «panel»: no se puede
+ * sumar a otro con Ctrl+clic ni se le puede contar la selección, así que un
+ * número ahí prometería una aritmética que no existe. Va en versalitas para que
+ * se lea como una etiqueta y no como una cifra que no cupo.
+ */
+.rail-item .rail-n-word {
+  font-size: 0.6rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+}
+
+.rail-item-on .rail-n-word {
+  color: var(--official);
+}
+
 .rail-foot {
   padding: 0.7rem 0.875rem;
   background: var(--panel-tint);

@@ -358,7 +358,7 @@ export function EnergyExplorer({ board }: { board: EnergyBoard }) {
       <p className="panel-sub">
         <Icon name="info" size={12} /> Series del Banco Mundial (Indicadores del Desarrollo
         Mundial), leídas del panel de treinta economías que recoge el núcleo del observatorio. Las
-        definiciones de cada serie están en la pestaña «Catálogo del Banco Mundial».
+        definiciones de cada serie están en «Social Info».
       </p>
     </>
   );
