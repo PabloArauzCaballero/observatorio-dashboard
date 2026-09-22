@@ -222,8 +222,9 @@ export function EnergyExplorer({ board }: { board: EnergyBoard }) {
 
       <div className="panel">
         <GroupHead group="ELECTRICIDAD">
-          Parte de la generación eléctrica por fuente, año a año. Las cuatro no suman cien porque el
-          carbón y lo no clasificado quedan fuera; el gas y el agua son casi todo.
+          De dónde sale la electricidad: parte de la generación por fuente, año a año. Las cuatro no
+          suman cien porque el carbón y lo no clasificado quedan fuera; el gas y el agua son casi
+          todo.
         </GroupHead>
         <div className="stat-strip">
           <Latest code="EG.ELC.NGAS.ZS" board={board} />
@@ -239,9 +240,10 @@ export function EnergyExplorer({ board }: { board: EnergyBoard }) {
 
       <div className="panel">
         <div className="panel-head">
-          <h2>Bolivia entre sus vecinos</h2>
+          <h2>Bolivia y sus vecinos: último dato de cada serie</h2>
           <p className="panel-sub">
-            El último dato de cada país en las series que distinguen una matriz de otra. Una
+            El último dato de cada país en las series que distinguen una matriz de otra. Cada
+            columna lleva su unidad en la cabecera y el año del dato entre paréntesis. Una
             importación neta negativa es un exportador de energía.
           </p>
         </div>
@@ -251,8 +253,9 @@ export function EnergyExplorer({ board }: { board: EnergyBoard }) {
       <div className="grid-two">
         <div className="panel">
           <GroupHead group="COMERCIO">
-            Peso del combustible en lo que se exporta y en lo que se importa. Donde la segunda línea
-            cruza a la primera, el diésel que entra empieza a pesar más que el gas que sale.
+            Lo que se vende y lo que se compra: peso del combustible en lo que se exporta y en lo
+            que se importa. Donde la segunda línea cruza a la primera, el diésel que entra empieza a
+            pesar más que el gas que sale.
           </GroupHead>
           {trade.data.length > 1 ? (
             <WorldLines data={trade.data} series={trade.series} format={percent} tick={tick} />
@@ -260,21 +263,24 @@ export function EnergyExplorer({ board }: { board: EnergyBoard }) {
         </div>
         <div className="panel">
           <div className="panel-head">
-            <h2>Energía importada neta</h2>
+            <h2>Energía importada neta (% del uso total)</h2>
             <p className="panel-sub">
               Importaciones menos exportaciones de energía, como parte del uso. Por debajo de cero
               el país exporta más de lo que consume; cuanto más abajo, más excedente.
             </p>
           </div>
-          {net.length > 1 ? <MacroChart data={net} unit="%" tone="var(--gap)" /> : null}
+          {net.length > 1 ? (
+            <MacroChart data={net} unit="%" tone="var(--gap)" label="Energía importada neta" />
+          ) : null}
         </div>
       </div>
 
       <div className="grid-two">
         <div className="panel">
           <GroupHead group="RENTA">
-            Lo que cada recurso deja por encima de su costo de extracción, como parte del PIB. La
-            renta cae con el precio y con la producción, y arrastra al fisco con ella.
+            Lo que el subsuelo deja: lo que cada recurso rinde por encima de su costo de extracción,
+            como parte del PIB. La renta cae con el precio y con la producción, y arrastra al fisco
+            con ella.
           </GroupHead>
           {rents.data.length > 1 ? (
             <WorldLines data={rents.data} series={rents.series} format={percent} tick={tick} />
@@ -282,8 +288,9 @@ export function EnergyExplorer({ board }: { board: EnergyBoard }) {
         </div>
         <div className="panel">
           <GroupHead group="FUENTES">
-            De toda la energía que se consume —no solo la eléctrica—, qué parte es renovable, qué
-            parte es leña y biomasa, y qué parte son hidro y otras alternativas.
+            Con qué se mueve el país: de toda la energía que se consume —no solo la eléctrica—, qué
+            parte es renovable, qué parte es leña y biomasa, y qué parte son hidro y otras
+            alternativas.
           </GroupHead>
           {sources.data.length > 1 ? (
             <WorldLines data={sources.data} series={sources.series} format={percent} tick={tick} />
@@ -294,8 +301,8 @@ export function EnergyExplorer({ board }: { board: EnergyBoard }) {
       <div className="grid-two">
         <div className="panel">
           <GroupHead group="CONSUMO">
-            Kilos de petróleo equivalente por habitante y año, Bolivia contra sus vecinos. La línea
-            gruesa es Bolivia; las demás dan la escala.
+            Cuánta energía se usa: kilos de petróleo equivalente por habitante y año, Bolivia contra
+            sus vecinos. La línea gruesa es Bolivia; las demás dan la escala.
           </GroupHead>
           <div className="stat-strip">
             <Latest code="EG.USE.PCAP.KG.OE" board={board} />
@@ -312,7 +319,7 @@ export function EnergyExplorer({ board }: { board: EnergyBoard }) {
         </div>
         <div className="panel">
           <div className="panel-head">
-            <h2>Intensidad energética</h2>
+            <h2>Intensidad energética (MJ por dólar de PIB)</h2>
             <p className="panel-sub">
               Megajulios por dólar de PIB a paridad de compra. Baja cuando la misma producción
               necesita menos energía; sube cuando la economía se mueve hacia sectores que queman
@@ -320,7 +327,12 @@ export function EnergyExplorer({ board }: { board: EnergyBoard }) {
             </p>
           </div>
           {intensity.length > 1 ? (
-            <MacroChart data={intensity} unit="MJ/$" tone="var(--series-3)" />
+            <MacroChart
+              data={intensity}
+              unit="MJ/$"
+              tone="var(--series-3)"
+              label="Intensidad energética"
+            />
           ) : null}
         </div>
       </div>
@@ -328,8 +340,9 @@ export function EnergyExplorer({ board }: { board: EnergyBoard }) {
       <div className="grid-two">
         <div className="panel">
           <GroupHead group="ACCESO">
-            Quién tiene conexión eléctrica y quién cocina con gas o electricidad en vez de leña, en
-            el país y en el campo. La distancia entre las dos líneas de cada par es la brecha rural.
+            Quién tiene energía: quién tiene conexión eléctrica y quién cocina con gas o
+            electricidad en vez de leña, en el país y en el campo. La distancia entre las dos líneas
+            de cada par es la brecha rural.
           </GroupHead>
           {access.data.length > 1 ? (
             <WorldLines data={access.data} series={access.series} format={percent} tick={tick} />
@@ -337,8 +350,9 @@ export function EnergyExplorer({ board }: { board: EnergyBoard }) {
         </div>
         <div className="panel">
           <GroupHead group="EMISIONES">
-            Dióxido de carbono del transporte y de las centrales eléctricas, en millones de
-            toneladas. Sin el cambio de uso del suelo, que en Bolivia pesa más que las dos juntas.
+            Lo que se emite: dióxido de carbono del transporte y de las centrales eléctricas, en
+            millones de toneladas. Sin el cambio de uso del suelo, que en Bolivia pesa más que las
+            dos juntas.
           </GroupHead>
           <div className="stat-strip">
             <Latest code="EN.GHG.CO2.PC.CE.AR5" board={board} />

@@ -141,12 +141,16 @@ export interface LegendItem {
 /**
  * La clave que nombra cada color, bajo el dibujo.
  *
- * Está SIEMPRE que haya dos o más series, y no como adorno: el color es el
- * único canal que puede fallarle a un lector: daltonismo, una impresión en
- * gris, una captura de pantalla recomprimida. La leyenda es el canal que no
- * falla, y las etiquetas directas sobre las marcas la complementan en lugar de
- * sustituirla. Una serie sola NO lleva leyenda —el título ya la nombra y una
- * caja con un solo cuadrito repite el título y gasta sitio.
+ * Está SIEMPRE, y no como adorno: el color es el único canal que puede fallarle
+ * a un lector —daltonismo, una impresión en gris, una captura de pantalla
+ * recomprimida—. La leyenda es el canal que no falla, y las etiquetas directas
+ * sobre las marcas la complementan en lugar de sustituirla.
+ *
+ * También cuando la serie es una sola. Antes se omitía ahí, con el argumento de
+ * que el título ya la nombra; no la nombra. El título dice de qué trata el
+ * panel —«Nivel», «Intensidad energética»— y la leyenda dice qué es esa línea y
+ * en qué unidad, que es lo que hace falta para leerla. Un cuadrito de más gasta
+ * una línea de texto; una línea anónima cuesta releer el párrafo de arriba.
  *
  * La marca imita la marca del gráfico: cuadrado para un relleno, trazo para una
  * línea, discontinuo si la línea lo es.
@@ -171,6 +175,26 @@ function ChartLegend({ items }: { items: ReadonlyArray<LegendItem> }) {
       ))}
     </ul>
   );
+}
+
+/**
+ * Los renglones de la leyenda de un gráfico de líneas, a partir de sus series.
+ *
+ * Tres gráficos distintos armaban la misma lista a mano y uno de ellos —el de
+ * años, el que dibuja la mitad del capítulo de Energía— se quedó sin armarla:
+ * siete líneas de colores y ninguna clave, con los nombres escondidos en el
+ * emergente, que no existe al imprimir ni en una captura. Es la misma lista
+ * siempre, así que se escribe una vez.
+ */
+function lineLegend(
+  series: ReadonlyArray<{ label: string; tone: string; dashed?: boolean }>,
+): ReadonlyArray<LegendItem> {
+  return series.map((one) => ({
+    color: one.tone,
+    label: one.label,
+    shape: 'line' as const,
+    ...(one.dashed ? { dashed: true } : {}),
+  }));
 }
 
 export interface RatePoint {
@@ -719,10 +743,21 @@ export function MacroChart({
   data,
   unit,
   tone,
+  label: seriesName,
 }: {
   data: MacroSeriesPoint[];
   unit: string;
   tone: string;
+  /**
+   * Cómo se llama la línea, para la clave de abajo y para el emergente.
+   *
+   * Sin él el emergente decía «Valor», que es lo que ya se sabe de cualquier
+   * número de un gráfico, y la línea no tenía nombre en ninguna parte: en una
+   * fila de dos paneles el lector no puede decir cuál de los dos títulos manda
+   * sobre cuál dibujo. Opcional porque los paneles macro más viejos llevan el
+   * nombre en su propio pie; donde se pasa, se dibuja la clave.
+   */
+  label?: string;
 }) {
   const zoom = useRangeZoom(data.map((point) => point.period));
   const shown = zoom.visible(data);
@@ -738,11 +773,16 @@ export function MacroChart({
     if (!active || !payload?.length || typeof label !== 'string') return null;
     const point = payload[0]?.payload as MacroSeriesPoint | undefined;
     if (!point) return null;
-    return <TooltipShell label={label} rows={[{ name: 'Valor', value: compact(point.value) }]} />;
+    return (
+      <TooltipShell
+        label={label}
+        rows={[{ name: seriesName ?? 'Valor', value: compact(point.value) }]}
+      />
+    );
   };
 
   return (
-    <>
+    <div className="chart-stack">
       <ZoomExit zoom={zoom} />
       <div
         className="chart-frame chart-frame-small"
@@ -777,7 +817,10 @@ export function MacroChart({
           </ComposedChart>
         </ResponsiveContainer>
       </div>
-    </>
+      {seriesName ? (
+        <ChartLegend items={lineLegend([{ label: `${seriesName} (${unit})`, tone }])} />
+      ) : null}
+    </div>
   );
 }
 
@@ -828,6 +871,7 @@ export function SeriesChart({
   kind,
   tone,
   unit,
+  label: seriesName,
   decimals = 2,
   zeroLine,
   boundary,
@@ -838,6 +882,16 @@ export function SeriesChart({
   kind: 'line' | 'area' | 'bar';
   tone: string;
   unit: string;
+  /**
+   * Qué es esta serie, para la clave de abajo y para el emergente.
+   *
+   * Sin él el emergente decía «Valor» y el dibujo no decía nada: en una fila de
+   * dos paneles —volatilidad al lado de distribución, correlación al lado de
+   * caída— nada ataba cada trazo a su título, y menos al imprimir, donde el
+   * emergente no existe. Opcional para no romper las llamadas que aún no lo
+   * pasan; donde se pasa, se dibuja la clave.
+   */
+  label?: string;
   decimals?: number;
   /** Draw the zero reference, where crossing it means something. */
   zeroLine?: boolean;
@@ -859,7 +913,7 @@ export function SeriesChart({
     return (
       <TooltipShell
         label={longDate.format(asDate(label))}
-        rows={[{ name: 'Valor', value: `${number(point.value, decimals)} ${unit}` }]}
+        rows={[{ name: seriesName ?? 'Valor', value: `${number(point.value, decimals)} ${unit}` }]}
       />
     );
   };
@@ -876,7 +930,7 @@ export function SeriesChart({
         : 'chart-frame';
 
   return (
-    <>
+    <div className="chart-stack">
       <ZoomExit zoom={zoom} format={(label) => longDate.format(asDate(label))} />
       <div className={frameClass} onContextMenu={(event) => event.preventDefault()}>
         <ResponsiveContainer width="100%" height="100%">
@@ -959,7 +1013,12 @@ export function SeriesChart({
           </ComposedChart>
         </ResponsiveContainer>
       </div>
-    </>
+      {seriesName ? (
+        <ChartLegend
+          items={lineLegend([{ label: unit ? `${seriesName} (${unit})` : seriesName, tone }])}
+        />
+      ) : null}
+    </div>
   );
 }
 
@@ -2407,35 +2466,47 @@ export function WorldLines({
   };
 
   return (
-    <div className="chart-frame" style={{ height: framed(190) }}>
-      <ResponsiveContainer width="100%" height="100%">
-        <ComposedChart data={data} margin={{ top: 8, right: 10, bottom: 0, left: 0 }}>
-          <CartesianGrid {...GRID} />
-          <XAxis dataKey="year" minTickGap={26} {...AXIS} />
-          <YAxis
-            {...(domain ? { domain } : {})}
-            width={axisWidth}
-            tickFormatter={(value: number) => tick(value)}
-            {...AXIS}
-          />
-          <Tooltip content={renderTooltip} cursor={{ stroke: 'var(--rule)', strokeWidth: 1 }} />
-          {series.map((one, index) => (
-            <Line
-              key={one.key}
-              type="monotone"
-              dataKey={one.key}
-              name={one.label}
-              stroke={one.tone}
-              strokeWidth={one.emphasis ? 2.4 : 1.6}
-              {...(one.dashed ? { strokeDasharray: '4 3' } : {})}
-              dot={false}
-              connectNulls={false}
-              animationDuration={index === 0 ? MOTION.duration : 0}
-              animationEasing={MOTION.easing}
+    <div className="chart-stack">
+      <div className="chart-frame" style={{ height: framed(190) }}>
+        <ResponsiveContainer width="100%" height="100%">
+          <ComposedChart data={data} margin={{ top: 8, right: 10, bottom: 0, left: 0 }}>
+            <CartesianGrid {...GRID} />
+            <XAxis dataKey="year" minTickGap={26} {...AXIS} />
+            <YAxis
+              {...(domain ? { domain } : {})}
+              width={axisWidth}
+              tickFormatter={(value: number) => tick(value)}
+              {...AXIS}
             />
-          ))}
-        </ComposedChart>
-      </ResponsiveContainer>
+            <Tooltip content={renderTooltip} cursor={{ stroke: 'var(--rule)', strokeWidth: 1 }} />
+            {series.map((one, index) => (
+              <Line
+                key={one.key}
+                type="monotone"
+                dataKey={one.key}
+                name={one.label}
+                stroke={one.tone}
+                strokeWidth={one.emphasis ? 2.4 : 1.6}
+                {...(one.dashed ? { strokeDasharray: '4 3' } : {})}
+                dot={false}
+                connectNulls={false}
+                animationDuration={index === 0 ? MOTION.duration : 0}
+                animationEasing={MOTION.easing}
+              />
+            ))}
+          </ComposedChart>
+        </ResponsiveContainer>
+      </div>
+      {/*
+       * La clave, que este gráfico no tenía.
+       *
+       * Es el que dibuja siete líneas de colores en Energía, cinco países en
+       * Consumo y las seis áreas del índice de Fraser, y hasta ahora el único
+       * sitio donde estaba escrito cuál era cuál era el emergente del ratón:
+       * no existe al imprimir, no existe en una captura y no existe para quien
+       * no distingue el naranja del verde.
+       */}
+      {series.length ? <ChartLegend items={lineLegend(series)} /> : null}
     </div>
   );
 }
@@ -2559,7 +2630,7 @@ export function DatedLines({
         : 'chart-frame';
 
   return (
-    <>
+    <div className="chart-stack">
       <ZoomExit zoom={zoom} format={(label) => longDate.format(asDate(label))} />
       <div className={frameClass} onContextMenu={(event) => event.preventDefault()}>
         <ResponsiveContainer width="100%" height="100%">
@@ -2651,16 +2722,13 @@ export function DatedLines({
           </ComposedChart>
         </ResponsiveContainer>
       </div>
-      {series.length > 1 ? (
-        <ChartLegend
-          items={series.map((one) => ({
-            color: one.tone,
-            label: one.label,
-            shape: 'line' as const,
-            ...(one.dashed ? { dashed: true } : {}),
-          }))}
-        />
-      ) : null}
-    </>
+      {/*
+       * La clave va también con una sola serie. El panel del dólar real dibuja
+       * una línea y su título dice de qué trata el panel, no qué es la línea ni
+       * en qué unidad está; la leyenda lo dice, y es el mismo renglón que
+       * llevan los gráficos de al lado.
+       */}
+      {series.length ? <ChartLegend items={lineLegend(series)} /> : null}
+    </div>
   );
 }

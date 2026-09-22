@@ -170,7 +170,12 @@ export interface FxMacroPanelsProps {
 }
 
 const REAL_SERIES: readonly DatedLineSeries[] = [
-  { key: 'paralelo', label: 'Paralelo, real', tone: 'var(--parallel)', emphasis: true },
+  {
+    key: 'paralelo',
+    label: 'Dólar paralelo en poder de compra (índice)',
+    tone: 'var(--parallel)',
+    emphasis: true,
+  },
 ];
 
 /**
@@ -220,7 +225,7 @@ export function FxMacroPanels({
 
   const tokenSeries: DatedLineSeries[] = tokens.map((entry) => ({
     key: entry.token,
-    label: entry.token,
+    label: `${entry.token} (Bs/USD)`,
     tone: TOKEN_TONE[entry.token] ?? 'var(--series-rest)',
     emphasis: entry.token === 'USDT',
   }));
@@ -250,67 +255,83 @@ export function FxMacroPanels({
     <>
       <FxConclusions conclusions={snapshot.conclusions} />
 
-      <div className="panel">
-        <div className="panel-head">
-          <h2>Lo que la inflación le quitó al dólar</h2>
-          <p className="panel-sub">
-            El paralelo deflactado por la UFV, con su nivel de {sayShort(snapshot.real?.base)} ={' '}
-            <b>100</b>. Más abajo, «Nivel» dibuja el mismo dólar en bolivianos corrientes; esta
-            línea lo dibuja en poder de compra, que es lo único que el nivel nominal no puede decir.
-            Por encima de 100 el dólar se encareció de verdad; por debajo, su subida no alcanzó a
-            los precios y hoy cuesta menos que al empezar. La franja sombreada es el tramo en que el
-            oficial estuvo fijo.
-          </p>
-        </div>
-        {realRows.length > 1 ? (
-          <DatedLines
-            data={realRows}
-            series={REAL_SERIES}
-            unit="índice"
-            decimals={1}
-            referenceLine={100}
-            referenceLabel="nivel del inicio"
-            bands={bands}
-            height="tall"
-          />
-        ) : (
-          <div className="callout">
-            Hace falta que el tipo de cambio y la UFV coincidan en al menos dos jornadas.
+      {/*
+       * Las dos series de tiempo del capítulo, en una fila y no una debajo de
+       * otra.
+       *
+       * Son la misma clase de dibujo —bolivianos por dólar contra el
+       * calendario, sobre la misma ventana de fechas— y apiladas a lo alto de
+       * la pantalla obligaban a recordar la primera para mirar la segunda,
+       * cuando la pregunta que resuelven juntas es si el dólar sube por sí
+       * mismo o porque suben todos los precios. Lado a lado, el eje de fechas
+       * de las dos empieza a la misma altura y la comparación se hace con los
+       * ojos. `grid-pair` es la rejilla de exactamente dos y se pliega a una
+       * columna por debajo de 1180 px, que es donde media pantalla deja de dar
+       * para un eje de ochocientas jornadas.
+       */}
+      <div className="grid-pair">
+        <div className="panel">
+          <div className="panel-head">
+            <h2>Dólar paralelo descontada la inflación (índice, base 100)</h2>
+            <p className="panel-sub">
+              Lo que la inflación le quitó al dólar: el paralelo deflactado por la UFV, con su nivel
+              de {sayShort(snapshot.real?.base)} = <b>100</b>. Más abajo, «Tipo de cambio en
+              bolivianos por dólar» dibuja el mismo dólar en bolivianos corrientes; esta línea lo
+              dibuja en poder de compra, que es lo único que el nivel nominal no puede decir. Por
+              encima de 100 el dólar se encareció de verdad; por debajo, su subida no alcanzó a los
+              precios y hoy cuesta menos que al empezar. La franja sombreada es el tramo en que el
+              oficial estuvo fijo.
+            </p>
           </div>
-        )}
-      </div>
-
-      <div className="panel">
-        <div className="panel-head">
-          <h2>El dólar por cada riel</h2>
-          <p className="panel-sub">
-            Punto medio en bolivianos por dólar de cada ficha estable, que es la vía por la que se
-            compran dólares cuando el mercado formal no los da. Están ancladas al mismo dólar, de
-            modo que la diferencia entre ellas es el costo del riel y no otro precio.
-            {labelledFrom ? (
-              <>
-                {' '}
-                Antes del {sayLong(labelledFrom)} el archivo no anotaba el instrumento, y lo que
-                cotizaba era USDT: hasta esa fecha la línea es el punto medio del paralelo, y{' '}
-                <b>la franja sombreada</b> es el tramo en que cada lectura ya viene con el nombre de
-                su ficha.
-              </>
-            ) : null}
-          </p>
+          {realRows.length > 1 ? (
+            <DatedLines
+              data={realRows}
+              series={REAL_SERIES}
+              unit="índice"
+              decimals={1}
+              referenceLine={100}
+              referenceLabel="nivel del inicio"
+              bands={bands}
+            />
+          ) : (
+            <div className="callout">
+              Hace falta que el tipo de cambio y la UFV coincidan en al menos dos jornadas.
+            </div>
+          )}
         </div>
-        {tokenRows.length >= TOKEN_CHART_MINIMUM ? (
-          <DatedLines
-            data={tokenRows}
-            series={tokenSeries}
-            unit="Bs/USD"
-            decimals={3}
-            bands={labelledBand(labelledFrom, tokenDates)}
-            height="tall"
-          />
-        ) : (
-          <StablecoinTable readings={snapshot.stablecoins} />
-        )}
-        <StablecoinCensus plotted={tokens.map((entry) => entry.token)} />
+
+        <div className="panel">
+          <div className="panel-head">
+            <h2>Precio del dólar por ficha estable (Bs/USD)</h2>
+            <p className="panel-sub">
+              El dólar por cada riel: punto medio en bolivianos por dólar de cada ficha estable, que
+              es la vía por la que se compran dólares cuando el mercado formal no los da. Están
+              ancladas al mismo dólar, de modo que la diferencia entre ellas es el costo del riel y
+              no otro precio.
+              {labelledFrom ? (
+                <>
+                  {' '}
+                  Antes del {sayLong(labelledFrom)} el archivo no anotaba el instrumento, y lo que
+                  cotizaba era USDT: hasta esa fecha la línea es el punto medio del paralelo, y{' '}
+                  <b>la franja sombreada</b> es el tramo en que cada lectura ya viene con el nombre
+                  de su ficha.
+                </>
+              ) : null}
+            </p>
+          </div>
+          {tokenRows.length >= TOKEN_CHART_MINIMUM ? (
+            <DatedLines
+              data={tokenRows}
+              series={tokenSeries}
+              unit="Bs/USD"
+              decimals={3}
+              bands={labelledBand(labelledFrom, tokenDates)}
+            />
+          ) : (
+            <StablecoinTable readings={snapshot.stablecoins} />
+          )}
+          <StablecoinCensus plotted={tokens.map((entry) => entry.token)} />
+        </div>
       </div>
     </>
   );
@@ -340,7 +361,7 @@ function StablecoinCensus({ plotted }: { plotted: readonly string[] }) {
    * quedó descrito como «de un solo lado» por compartir rama con FDUSD.
    */
   const empty = missing.filter((entry) => entry.state === 'NO_MARKET');
-  const oneSided = missing.filter((entry) => entry.state === 'ONE_SIDED');
+  const tooThin = missing.filter((entry) => entry.state === 'TOO_THIN');
   const awaiting = missing.filter(
     (entry) => entry.state === 'QUOTED' || entry.state === 'QUOTED_THIN',
   );
@@ -358,11 +379,12 @@ function StablecoinCensus({ plotted }: { plotted: readonly string[] }) {
           y no se inventa uno.
         </>
       ) : null}
-      {oneSided.map((entry) => (
+      {tooThin.map((entry) => (
         <span key={entry.label}>
           {' '}
-          <b>{entry.label}</b> cotiza de un solo lado, {oneOrOther(entry)} y ninguno del contrario:
-          medio libro no tiene punto medio, y media cotización no es un precio.
+          <b>{entry.label}</b> cotiza de los dos lados, pero con {entry.asks} aviso de venta y{' '}
+          {entry.bids} de compra en todo el libro. La mediana de un aviso es ese aviso, el precio
+          que pidió una persona y no el del mercado, así que no se publica.
         </span>
       ))}
       {awaiting.map((entry) => (
@@ -377,13 +399,6 @@ function StablecoinCensus({ plotted }: { plotted: readonly string[] }) {
       su línea empieza sola el día que aparezca el primer aviso.
     </p>
   );
-}
-
-/** «7 avisos de compra» / «7 de venta», según qué lado sea el que existe. */
-function oneOrOther(entry: StablecoinMarketEntry): string {
-  const count = entry.asks || entry.bids;
-  const side = entry.asks ? 'de venta' : 'de compra';
-  return `${count} aviso${count === 1 ? '' : 's'} ${side}`;
 }
 
 /** «USDS, USDe y PYUSD» — la lista como se dice en voz alta, no separada por comas hasta el final. */
