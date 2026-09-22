@@ -1,5 +1,5 @@
 import { RESOURCE_CODES, RESOURCE_PLACE_CODES, buildResourceBoard } from '@/lib/resources-board';
-import { isUnaffordableRead, readWorldBoard } from '@/lib/series';
+import { isUnaffordableRead, readMacroAnnual, readWorldBoard } from '@/lib/series';
 
 /**
  * El capítulo de recursos naturales, pedido al abrir su rubro.
@@ -12,15 +12,24 @@ import { isUnaffordableRead, readWorldBoard } from '@/lib/series';
  * de siete pestañas: la mayoría de las visitas no lo abre nunca, y una consulta
  * que corre en cada carga de la portada para nadie es la que hacía que el
  * informe tardara veinte segundos en decir la primera palabra.
+ *
+ * Dos lecturas y no una porque el capítulo tiene dos corpus: el panel del Banco
+ * Mundial dice cuánto deja el subsuelo y con qué se compara en la región, y las
+ * series medidas traen la declaración aduanera partida por partida —de ahí sale
+ * el litio—. Las dos están sostenidas en memoria y las comparte con el panel de
+ * medidas, así que abrir este rubro no cuesta una consulta nueva.
  */
 
 export const dynamic = 'force-dynamic';
 
 export async function GET(): Promise<Response> {
   try {
-    const points = await readWorldBoard(RESOURCE_CODES, RESOURCE_PLACE_CODES);
+    const [points, measured] = await Promise.all([
+      readWorldBoard(RESOURCE_CODES, RESOURCE_PLACE_CODES),
+      readMacroAnnual(),
+    ]);
     return Response.json(
-      { board: buildResourceBoard(points) },
+      { board: buildResourceBoard(points, measured) },
       { headers: { 'Cache-Control': 'private, max-age=600' } },
     );
   } catch (error) {
