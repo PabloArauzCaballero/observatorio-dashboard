@@ -175,23 +175,29 @@ export function EnvironmentExplorer({ board }: { board: EnvironmentBoard }) {
         />
       </div>
 
-      <div className="panel">
-        <GroupHead group="BOSQUE">
-          El bosque y el suelo: qué parte del país está cubierta de bosque y qué parte es tierra
-          agrícola. Las dos líneas se mueven en espejo, que es lo que quiere decir frontera agrícola.
-        </GroupHead>
-        <div className="stat-strip">
-          <Latest code="AG.LND.FRST.ZS" board={board} />
-          <Latest code="AG.LND.FRST.K2" board={board} />
-          <Latest code="AG.LND.AGRI.ZS" board={board} />
-          <Latest code="AG.LND.ARBL.ZS" board={board} />
+      {/*
+        Diez paneles, de tres en tres: el bosque con sus dos vistas; las
+        emisiones con la comparación por habitante y el agro; el aire, la
+        intensidad y el agua; y lo protegido al final, ensanchado por la
+        rejilla, que son cinco cifras sin gráfico y leen bien a lo ancho.
+      */}
+      <div className="grid-three">
+        <div className="panel">
+          <GroupHead group="BOSQUE">
+            El bosque y el suelo: qué parte del país está cubierta de bosque y qué parte es tierra
+            agrícola. Las dos líneas se mueven en espejo, que es lo que quiere decir frontera
+            agrícola.
+          </GroupHead>
+          <div className="stat-strip">
+            <Latest code="AG.LND.FRST.ZS" board={board} />
+            <Latest code="AG.LND.FRST.K2" board={board} />
+            <Latest code="AG.LND.AGRI.ZS" board={board} />
+            <Latest code="AG.LND.ARBL.ZS" board={board} />
+          </div>
+          {land.data.length > 1 ? (
+            <WorldLines data={land.data} series={land.series} format={share} tick={tick} />
+          ) : null}
         </div>
-        {land.data.length > 1 ? (
-          <WorldLines data={land.data} series={land.series} format={share} tick={tick} />
-        ) : null}
-      </div>
-
-      <div className="grid-pair">
         <div className="panel">
           <div className="panel-head">
             <h2>Bosque que queda (km²)</h2>
@@ -221,32 +227,29 @@ export function EnvironmentExplorer({ board }: { board: EnvironmentBoard }) {
             />
           ) : null}
         </div>
-      </div>
 
-      <div className="panel">
-        <GroupHead group="EMISIONES">
-          Lo que el país emite, en las dos medidas que existen: sin contar el cambio de uso del suelo
-          y contándolo. Van juntas a propósito — dar sólo la primera, que es la que suelen citar los
-          informes, dice casi lo contrario de lo que pasa.
-        </GroupHead>
-        <div className="stat-strip">
-          <Latest code="EN.GHG.ALL.LU.MT.CE.AR5" board={board} />
-          <Latest code="EN.GHG.ALL.MT.CE.AR5" board={board} />
-          <Latest code="EN.GHG.CO2.LU.DF.MT.CE.AR5" board={board} />
-          <Latest code="EN.GHG.ALL.PC.CE.AR5" board={board} />
-          <Latest code="EN.GHG.TOT.ZG.AR5" board={board} />
+        <div className="panel">
+          <GroupHead group="EMISIONES">
+            Lo que el país emite, en las dos medidas que existen: sin contar el cambio de uso del
+            suelo y contándolo. Van juntas a propósito — dar sólo la primera, que es la que suelen
+            citar los informes, dice casi lo contrario de lo que pasa.
+          </GroupHead>
+          <div className="stat-strip">
+            <Latest code="EN.GHG.ALL.LU.MT.CE.AR5" board={board} />
+            <Latest code="EN.GHG.ALL.MT.CE.AR5" board={board} />
+            <Latest code="EN.GHG.CO2.LU.DF.MT.CE.AR5" board={board} />
+            <Latest code="EN.GHG.ALL.PC.CE.AR5" board={board} />
+            <Latest code="EN.GHG.TOT.ZG.AR5" board={board} />
+          </div>
+          {emissions.data.length > 1 ? (
+            <WorldLines
+              data={emissions.data}
+              series={emissions.series}
+              format={megatonnes}
+              tick={tick}
+            />
+          ) : null}
         </div>
-        {emissions.data.length > 1 ? (
-          <WorldLines
-            data={emissions.data}
-            series={emissions.series}
-            format={megatonnes}
-            tick={tick}
-          />
-        ) : null}
-      </div>
-
-      <div className="grid-pair">
         <div className="panel">
           <div className="panel-head">
             <h2>Emisiones por habitante, Bolivia y vecinos (t de CO₂ equivalente)</h2>
@@ -282,9 +285,7 @@ export function EnvironmentExplorer({ board }: { board: EnvironmentBoard }) {
             />
           ) : null}
         </div>
-      </div>
 
-      <div className="grid-pair">
         <div className="panel">
           <GroupHead group="AIRE">
             El aire que se respira, medido como exposición media de la población a partículas finas.
@@ -323,9 +324,6 @@ export function EnvironmentExplorer({ board }: { board: EnvironmentBoard }) {
             />
           ) : null}
         </div>
-      </div>
-
-      <div className="grid-pair">
         <div className="panel">
           <GroupHead group="AGUA">
             El agua extraída y el agua disponible. La cifra nacional es engañosa y conviene decirlo
@@ -343,6 +341,7 @@ export function EnvironmentExplorer({ board }: { board: EnvironmentBoard }) {
             <WorldLines data={water.data} series={water.series} format={share} tick={tick} />
           ) : null}
         </div>
+
         <div className="panel">
           <GroupHead group="PROTECCION">
             Lo que está declarado protegido y lo que la lista roja de la UICN cuenta aparte. La
@@ -360,16 +359,16 @@ export function EnvironmentExplorer({ board }: { board: EnvironmentBoard }) {
 
       <p className="panel-sub">
         <Icon name="info" size={12} /> El cuadro «Bolivia y sus vecinos» —el último dato de cada
-        país en las series que distinguen un territorio de otro— está ahora en la pestaña «Bolivia ante el
-        mundo», junto a los de energía y recursos naturales.
+        país en las series que distinguen un territorio de otro— está ahora en la pestaña «Bolivia
+        ante el mundo», junto a los de energía y recursos naturales.
       </p>
 
       <p className="panel-sub">
-        <Icon name="info" size={12} /> Series del Banco Mundial (Indicadores del Desarrollo Mundial),
-        leídas del panel de treinta economías que recoge el núcleo del observatorio. El bosque viene
-        del inventario de la FAO, las emisiones del inventario EDGAR bajo las métricas del quinto
-        informe del IPCC, y las especies amenazadas de la lista roja de la UICN. Las definiciones de
-        cada serie están en «Social Info».
+        <Icon name="info" size={12} /> Series del Banco Mundial (Indicadores del Desarrollo
+        Mundial), leídas del panel de treinta economías que recoge el núcleo del observatorio. El
+        bosque viene del inventario de la FAO, las emisiones del inventario EDGAR bajo las métricas
+        del quinto informe del IPCC, y las especies amenazadas de la lista roja de la UICN. Las
+        definiciones de cada serie están en «Social Info».
       </p>
     </>
   );

@@ -178,25 +178,31 @@ export function EnergyExplorer({ board }: { board: EnergyBoard }) {
         />
       </div>
 
-      <div className="panel">
-        <GroupHead group="ELECTRICIDAD">
-          De dónde sale la electricidad: parte de la generación por fuente, año a año. Las cuatro no
-          suman cien porque el carbón y lo no clasificado quedan fuera; el gas y el agua son casi
-          todo.
-        </GroupHead>
-        <div className="stat-strip">
-          <Latest code="EG.ELC.NGAS.ZS" board={board} />
-          <Latest code="EG.ELC.HYRO.ZS" board={board} />
-          <Latest code="EG.ELC.RNWX.ZS" board={board} />
-          <Latest code="EG.ELC.PETR.ZS" board={board} />
-          <Latest code="EG.ELC.LOSS.ZS" board={board} />
-        </div>
-        {mix.data.length > 1 ? (
-          <WorldLines data={mix.data} series={mix.series} format={percent} tick={tick} />
-        ) : null}
-      </div>
+      {/*
+        Nueve gráficos, de tres en tres: tres filas justas.
 
-      <div className="grid-two">
+        El orden sigue siendo el de las preguntas —de dónde sale la
+        electricidad, qué se comercia, qué deja el subsuelo, cuánta energía se
+        usa y quién la tiene— y cada fila junta tres que se leen seguidas.
+      */}
+      <div className="grid-three">
+        <div className="panel">
+          <GroupHead group="ELECTRICIDAD">
+            De dónde sale la electricidad: parte de la generación por fuente, año a año. Las cuatro
+            no suman cien porque el carbón y lo no clasificado quedan fuera; el gas y el agua son
+            casi todo.
+          </GroupHead>
+          <div className="stat-strip">
+            <Latest code="EG.ELC.NGAS.ZS" board={board} />
+            <Latest code="EG.ELC.HYRO.ZS" board={board} />
+            <Latest code="EG.ELC.RNWX.ZS" board={board} />
+            <Latest code="EG.ELC.PETR.ZS" board={board} />
+            <Latest code="EG.ELC.LOSS.ZS" board={board} />
+          </div>
+          {mix.data.length > 1 ? (
+            <WorldLines data={mix.data} series={mix.series} format={percent} tick={tick} />
+          ) : null}
+        </div>
         <div className="panel">
           <GroupHead group="COMERCIO">
             Lo que se vende y lo que se compra: peso del combustible en lo que se exporta y en lo
@@ -219,9 +225,7 @@ export function EnergyExplorer({ board }: { board: EnergyBoard }) {
             <MacroChart data={net} unit="%" tone="var(--gap)" label="Energía importada neta" />
           ) : null}
         </div>
-      </div>
 
-      <div className="grid-two">
         <div className="panel">
           <GroupHead group="RENTA">
             Lo que el subsuelo deja: lo que cada recurso rinde por encima de su costo de extracción,
@@ -242,9 +246,6 @@ export function EnergyExplorer({ board }: { board: EnergyBoard }) {
             <WorldLines data={sources.data} series={sources.series} format={percent} tick={tick} />
           ) : null}
         </div>
-      </div>
-
-      <div className="grid-two">
         <div className="panel">
           <GroupHead group="CONSUMO">
             Cuánta energía se usa: kilos de petróleo equivalente por habitante y año, Bolivia contra
@@ -263,6 +264,7 @@ export function EnergyExplorer({ board }: { board: EnergyBoard }) {
             />
           ) : null}
         </div>
+
         <div className="panel">
           <div className="panel-head">
             <h2>Intensidad energética (MJ por dólar de PIB)</h2>
@@ -281,9 +283,6 @@ export function EnergyExplorer({ board }: { board: EnergyBoard }) {
             />
           ) : null}
         </div>
-      </div>
-
-      <div className="grid-two">
         <div className="panel">
           <GroupHead group="ACCESO">
             Quién tiene energía: quién tiene conexión eléctrica y quién cocina con gas o
@@ -317,8 +316,8 @@ export function EnergyExplorer({ board }: { board: EnergyBoard }) {
 
       <p className="panel-sub">
         <Icon name="info" size={12} /> El cuadro «Bolivia y sus vecinos» —el último dato de cada
-        país en las series que distinguen una matriz de otra— está ahora en la pestaña «Bolivia ante el
-        mundo», junto a los de recursos naturales y medio ambiente.
+        país en las series que distinguen una matriz de otra— está ahora en la pestaña «Bolivia ante
+        el mundo», junto a los de recursos naturales y medio ambiente.
       </p>
       <p className="panel-sub">
         <Icon name="info" size={12} /> Series del Banco Mundial (Indicadores del Desarrollo
