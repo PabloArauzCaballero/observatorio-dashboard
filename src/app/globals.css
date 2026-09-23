@@ -5876,3 +5876,82 @@ button.download-btn {
     padding: 0;
   }
 }
+
+/* Departments choropleth ------------------------------------------------- */
+
+/*
+ * El mapa de «Departamentos» es el selector del capítulo y su primera figura:
+ * nueve contornos pintados con la rampa de magnitud y un rótulo en el centro
+ * de cada uno. Cada contorno es un botón con foco de teclado; el foco y la
+ * elección se pintan sobre el propio trazo, porque una forma sin borde propio
+ * no tiene dónde más enseñarlos. El color de relleno y el de la tinta del
+ * rótulo los pone el componente, paso a paso, desde `--seq-*`.
+ */
+
+.choro {
+  cursor: pointer;
+  outline: none;
+}
+
+.choro-shape {
+  stroke: var(--panel);
+  stroke-width: 2.2;
+  stroke-linejoin: round;
+  transition:
+    stroke var(--fast) var(--ease),
+    stroke-width var(--fast) var(--ease),
+    filter var(--fast) var(--ease);
+}
+
+.choro:hover .choro-shape {
+  stroke: var(--ink);
+  stroke-width: 3;
+}
+
+.choro-on .choro-shape {
+  stroke: var(--parallel);
+  stroke-width: 5;
+}
+
+.choro:focus-visible .choro-shape {
+  stroke: var(--parallel);
+  stroke-width: 6;
+  stroke-dasharray: 10 6;
+}
+
+.choro-name,
+.choro-value {
+  pointer-events: none;
+  text-anchor: middle;
+  font-family: var(--sans);
+  font-size: 30px;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+}
+
+.choro-value {
+  font-family: var(--mono);
+  font-size: 26px;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+}
+
+/*
+ * La rejilla de tres, para filas de figuras del mismo tipo. Se pliega a dos y
+ * a una columna sola con el ancho, como `grid-two`, y por debajo de 300 px de
+ * columna no baja: una figura más estrecha que eso no tiene eje que leer.
+ */
+.grid-three {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(300px, 100%), 1fr));
+  gap: var(--s2);
+}
+
+/* La clave del mapa departamental: cada extremo en una línea, y se parte entera. */
+.map-frame + .heat-scale {
+  flex-wrap: wrap;
+}
+
+.map-frame + .heat-scale > span {
+  white-space: nowrap;
+}
