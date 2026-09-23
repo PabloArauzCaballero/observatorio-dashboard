@@ -2,14 +2,16 @@
 
 import { useMemo, useState } from 'react';
 import { MacroChart, ShareBars, WorldLines, seriesTone } from './charts';
-import type { WorldLinePoint, WorldLineSeries } from './charts';
+import { DepartmentActivities } from './department-activities-panel';
+import { BENCHMARK, indexBase, indexed, onOneAxis, trio } from './department-lines';
+import type { NamedLine } from './department-lines';
 import { DepartmentsMap } from './departments-map';
 import { DerivedReading } from './derived-reading';
 import { Icon } from './icons';
 import type { IconName } from './icons';
 import { DEPARTMENTS, MEASURES, placeName } from '@/lib/departments';
 import type { Measure } from '@/lib/departments';
-import { medianAcross, placeRank, productMix, topProducts } from '@/lib/departments-board';
+import { placeRank, productMix, topProducts } from '@/lib/departments-board';
 import type { DepartmentBoard, ProductLine, YearValue } from '@/lib/departments-board';
 
 /**
@@ -47,6 +49,8 @@ const CONCLUSION_ICON: Record<string, IconName> = {
   ganador: 'tendencia',
   perdedor: 'balanza',
   exportador: 'camion',
+  rubro: 'fabrica',
+  hundida: 'area',
 };
 
 /** Las seis medidas de cuentas regionales; las otras dos son comercio. */
@@ -56,16 +60,28 @@ const ACCOUNTS = MEASURES.filter((one) => !one.slug.startsWith('EXPORTS_'));
 const DEFAULT_MEASURE = 'GDP_SHARE';
 
 /**
- * Las medidas en las que la fila de Bolivia cabe en el mismo eje que un
- * departamento.
+ * Las medidas que se dibujan en índice y no en su unidad.
  *
  * Un crecimiento, un índice de precios o un producto por habitante se comparan
- * con el país de tú a tú. Un producto en bolivianos no: la fila de Bolivia es
- * la suma de las nueve y dibujarla al lado aplasta al departamento contra el
- * eje. En esas la comparación con el país va en la tabla, con la cifra, y en la
- * figura queda la mediana de los nueve, que sí está a escala.
+ * con el país de tú a tú. Un nivel en bolivianos o en dólares no: la fila del
+ * país es la suma de los nueve, así que en su escala Pando es una raya pegada
+ * al cero. Llevarlas a índice con el primer año común valiendo cien deja las
+ * tres líneas legibles y cambia la pregunta por la que de verdad se hace —quién
+ * creció más—; la cifra en su unidad sigue en la ficha y en la tabla.
  */
-const COUNTRY_ON_AXIS = new Set(['GDP_GROWTH', 'GDP_PER_CAPITA', 'GDP_DEFLATOR']);
+const AS_INDEX = new Set(['GDP_CONSTANT', 'GDP_CURRENT', 'EXPORTS_USD', 'EXPORTS_TONNES']);
+
+/**
+ * La participación no lleva la línea del país: es cien por definición.
+ *
+ * Dibujar una recta en cien al lado de dos series que valen entre uno y treinta
+ * aplasta las dos contra el eje para decir algo que ya dice el título.
+ */
+const WITHOUT_COUNTRY = new Set(['GDP_SHARE']);
+
+/** Con qué fila cierra el país cada corpus: el comercio no la llama «Bolivia». */
+const countryKey = (measure: string): string | false =>
+  WITHOUT_COUNTRY.has(measure) ? false : measure.startsWith('EXPORTS_') ? 'NATIONAL' : 'BOLIVIA';
 
 /** Cuántos productos se siguen en el tiempo. Más de cinco líneas no se leen. */
 const TOP = 5;
@@ -77,93 +93,38 @@ const last = (values: readonly YearValue[] | undefined): YearValue | undefined =
 const at = (values: readonly YearValue[] | undefined, year: number): YearValue | undefined =>
   values?.find((point) => point.year === year);
 
-/** Una serie con nombre y color, lista para compartir eje con otras. */
-interface NamedLine {
-  key: string;
-  label: string;
-  values: readonly YearValue[];
-  tone: string;
-  emphasis?: boolean;
-  dashed?: boolean;
+/**
+ * Una medida del departamento elegido, contra Santa Cruz y contra el país.
+ *
+ * Tres líneas y siempre las mismas tres. Antes eran las nueve con la elegida
+ * resaltada, y eso tenía dos problemas: nueve líneas no se leen, y elegir un
+ * departamento no cambiaba nada de lo que había en pantalla. Las tres de ahora
+ * son las que contestan la pregunta que se hace delante de una cifra
+ * departamental —cuánto es eso en el país, cuánto en la economía más grande y
+ * cuánto aquí— y `department-lines.ts` explica por qué Santa Cruz y no la
+ * mediana.
+ */
+function compare(board: DepartmentBoard, measure: string, place: string) {
+  const byPlace = board.series[measure] ?? {};
+  const lines = trio((one) => byPlace[one] ?? [], place, { country: countryKey(measure) });
+  const scaled = AS_INDEX.has(measure) ? indexed(lines) : lines;
+  return {
+    ...onOneAxis(scaled),
+    base: AS_INDEX.has(measure) ? indexBase(lines) : null,
+    drawn: lines.map((line) => line.label),
+  };
 }
 
 /**
- * Varias series anuales sobre un mismo eje de años.
+ * «Tarija, Santa Cruz y Bolivia», o las dos que queden.
  *
- * Un año sin dato queda en `null` y corta la línea en vez de unirla, porque
- * unir dos años publicados afirma el de en medio, que nadie publicó.
+ * El título nombra las líneas que hay, no las que debería haber: en la
+ * participación el país no entra —es cien por definición— y con Santa Cruz
+ * elegida no hay vara que dibujar. Un título que prometiera tres series y
+ * dibujara dos sería un error de lectura, no de redacción.
  */
-function onOneAxis(lines: readonly NamedLine[]): {
-  data: WorldLinePoint[];
-  series: WorldLineSeries[];
-} {
-  const years = new Set<number>();
-  for (const line of lines) for (const point of line.values) years.add(point.year);
-
-  const data: WorldLinePoint[] = [...years]
-    .sort((left, right) => left - right)
-    .map((year) => {
-      const row: WorldLinePoint = { year: String(year) };
-      for (const line of lines) row[line.key] = at(line.values, year)?.value ?? null;
-      return row;
-    });
-
-  const series: WorldLineSeries[] = lines.map((line) => ({
-    key: line.key,
-    label: line.label,
-    tone: line.tone,
-    ...(line.emphasis ? { emphasis: true } : {}),
-    ...(line.dashed ? { dashed: true } : {}),
-  }));
-
-  return { data, series };
-}
-
-/** Las nueve series de una medida en un mismo eje, con la elegida resaltada. */
-function acrossPlaces(board: DepartmentBoard, measure: string, highlight: string) {
-  const byPlace = board.series[measure] ?? {};
-  return onOneAxis(
-    DEPARTMENTS.map((department, index) => ({
-      key: department.slug,
-      label: department.name,
-      values: byPlace[department.slug] ?? [],
-      tone: department.slug === highlight ? 'var(--parallel)' : seriesTone(index),
-      emphasis: department.slug === highlight,
-    })),
-  );
-}
-
-/** Una medida de un departamento contra la mediana y, si cabe, contra el país. */
-function againstPeers(board: DepartmentBoard, measure: string, place: string) {
-  const byPlace = board.series[measure] ?? {};
-  const lines: NamedLine[] = [
-    {
-      key: place,
-      label: placeName(place),
-      values: byPlace[place] ?? [],
-      tone: 'var(--parallel)',
-      emphasis: true,
-    },
-    {
-      key: 'MEDIANA',
-      label: 'Mediana de los nueve',
-      values: medianAcross(board, measure),
-      tone: 'var(--gap)',
-      dashed: true,
-    },
-  ];
-  const country = byPlace['BOLIVIA'];
-  if (COUNTRY_ON_AXIS.has(measure) && country?.length) {
-    lines.push({
-      key: 'BOLIVIA',
-      label: 'Bolivia',
-      values: country,
-      tone: 'var(--official)',
-      dashed: true,
-    });
-  }
-  return onOneAxis(lines);
-}
+const listed = (names: readonly string[]): string =>
+  names.length > 1 ? `${names.slice(0, -1).join(', ')} y ${names.at(-1)}` : (names[0] ?? '');
 
 /** Los productos principales de un departamento, en el tiempo, en una unidad. */
 function productLines(lines: readonly ProductLine[], unit: 'usd' | 'tonnes') {
@@ -205,11 +166,13 @@ function Headline({
 }
 
 /**
- * Las seis medidas de cuentas regionales, en su último año, contra el país y
- * contra la mediana de los nueve.
+ * Las seis medidas de cuentas regionales, en su último año, contra Santa Cruz y
+ * contra el país.
  *
- * La tabla es donde la comparación con Bolivia cabe siempre: una cifra al lado
- * de otra no tiene el problema de escala que tiene una línea al lado de otra.
+ * La tabla es donde la comparación con Bolivia cabe siempre y en su unidad: una
+ * cifra al lado de otra no tiene el problema de escala que tiene una línea al
+ * lado de otra, así que aquí no hace falta llevar nada a índice. Es el sitio
+ * donde el nivel en bolivianos sigue escrito.
  */
 function AccountsTable({ board, place }: { board: DepartmentBoard; place: string }) {
   return (
@@ -219,8 +182,8 @@ function AccountsTable({ board, place }: { board: DepartmentBoard; place: string
           <tr>
             <th>Medida</th>
             <th className="num">{placeName(place)}</th>
+            <th className="num">{placeName(BENCHMARK)}</th>
             <th className="num">Bolivia</th>
-            <th className="num">Mediana de los nueve</th>
             <th className="num">Puesto</th>
             <th className="num">Año</th>
           </tr>
@@ -231,7 +194,7 @@ function AccountsTable({ board, place }: { board: DepartmentBoard; place: string
             const own = last(byPlace[place]);
             if (!own) return null;
             const country = at(byPlace['BOLIVIA'], own.year);
-            const median = at(medianAcross(board, measure.slug), own.year);
+            const bench = at(byPlace[BENCHMARK], own.year);
             const rank = placeRank(board, measure.slug, place);
             return (
               <tr key={measure.slug}>
@@ -243,8 +206,8 @@ function AccountsTable({ board, place }: { board: DepartmentBoard; place: string
                 <td className="num">
                   <code>{number(own.value, measure.decimals)}</code>
                 </td>
+                <td className="num">{bench ? number(bench.value, measure.decimals) : '—'}</td>
                 <td className="num">{country ? number(country.value, measure.decimals) : '—'}</td>
-                <td className="num">{median ? number(median.value, measure.decimals) : '—'}</td>
                 <td className="num">{rank ? ordinal(rank) : '—'}</td>
                 <td className="num">{own.year}</td>
               </tr>
@@ -270,13 +233,13 @@ function DepartmentDetail({
 }: {
   board: DepartmentBoard;
   place: string;
-  /** La medida que pinta el mapa, para la figura de los nueve juntos. */
+  /** La medida que pinta el mapa, para la figura que la sigue en el tiempo. */
   measure: Measure;
 }) {
   const name = placeName(place);
-  const compared = useMemo(() => acrossPlaces(board, measure.slug, place), [board, measure, place]);
+  const compared = useMemo(() => compare(board, measure.slug, place), [board, measure, place]);
   const accounts = useMemo(
-    () => ACCOUNTS.map((one) => ({ measure: one, ...againstPeers(board, one.slug, place) })),
+    () => ACCOUNTS.map((one) => ({ measure: one, ...compare(board, one.slug, place) })),
     [board, place],
   );
   const soldUsd = useMemo(() => productMix(board, place, board.tradeYear, 'usd'), [board, place]);
@@ -319,12 +282,14 @@ function DepartmentDetail({
       <div className="grid-two">
         <div className="panel">
           <div className="panel-head">
-            <h2>{name} frente a Bolivia y a la mediana de los nueve</h2>
+            <h2>
+              Las ocho medidas de {name}, {placeName(BENCHMARK)} y Bolivia (cada una en su unidad)
+            </h2>
             <p className="panel-sub">
-              La mediana y no el promedio: el promedio de nueve departamentos con Santa Cruz dentro
-              es Santa Cruz diluida. En participación la fila de Bolivia es cien por definición y en
-              producto es la suma de las nueve, así que ahí la cifra del país sitúa al departamento
-              pero no lo califica.
+              La tabla es donde la comparación con el país cabe siempre y en su unidad: una cifra al
+              lado de otra no tiene el problema de escala que tiene una línea al lado de otra. En
+              participación la fila de Bolivia es cien por definición y en producto es la suma de
+              las nueve, así que ahí la cifra del país sitúa al departamento pero no lo califica.
             </p>
           </div>
           <AccountsTable board={board} place={place} />
@@ -332,11 +297,14 @@ function DepartmentDetail({
         <div className="panel">
           <div className="panel-head">
             <h2>
-              {measure.label}: los nueve departamentos ({measure.unit})
+              {measure.label} de {listed(compared.drawn)} (
+              {compared.base === null ? measure.unit : `índice, ${compared.base} = 100`})
             </h2>
             <p className="panel-sub">
-              La medida que pinta el mapa, con {name} resaltado. Un año sin dato corta la línea en
-              vez de unirla: unir dos años publicados afirmaría el de en medio, que nadie publicó.
+              La medida que pinta el mapa, seguida en el tiempo. Tres líneas y no nueve: nueve es un
+              peine en el que se ve que hay dispersión y no se ve ninguna de las nueve. Un año sin
+              dato corta la línea en vez de unirla, porque unir dos años publicados afirmaría el de
+              en medio, que nadie publicó.
             </p>
           </div>
           {compared.data.length > 1 ? (
@@ -351,13 +319,19 @@ function DepartmentDetail({
       </div>
 
       <div className="grid-three">
-        {accounts.map(({ measure: one, data, series }) => (
+        {accounts.map(({ measure: one, data, series, base, drawn }) => (
           <div className="panel" key={one.slug}>
             <div className="panel-head">
               <h2>
-                {one.label} de {name} ({one.unit})
+                {one.label} de {listed(drawn)} ({base === null ? one.unit : `índice, ${base} = 100`}
+                )
               </h2>
-              <p className="panel-sub">{one.what}</p>
+              <p className="panel-sub">
+                {one.what}
+                {base === null
+                  ? ''
+                  : ' Va en índice porque la fila del país es la suma de los nueve y en su escala un departamento chico no se ve; el nivel en su unidad está en la tabla de arriba.'}
+              </p>
             </div>
             {data.length > 1 ? (
               <WorldLines
@@ -372,6 +346,8 @@ function DepartmentDetail({
           </div>
         ))}
       </div>
+
+      <DepartmentActivities board={board} place={place} />
 
       <div className="grid-three">
         <div className="panel">

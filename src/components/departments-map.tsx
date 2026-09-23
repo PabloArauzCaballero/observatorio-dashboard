@@ -16,6 +16,13 @@ import { DEPARTMENTS as SHAPES, MAP_BOX, PLACE_POINTS } from '@/lib/bolivia-map'
  * vez— así que aquí no se proyecta nada: el mapa es nueve trazados en una caja
  * y un rótulo en el centro de cada uno.
  *
+ * **Dentro del mapa va la sigla, no el nombre.** «Cochabamba» no cabe en
+ * Cochabamba y «Chuquisaca» se salía sobre Potosí: dos nombres largos y una
+ * cifra en cada forma convertían el dibujo en un cartel. La sigla es la del
+ * departamento —la de la placa: CH, LP, CB…— y el nombre completo sigue en los
+ * tres sitios donde sí cabe: el `aria-label` del control, la lista de al lado y
+ * la línea que dice cuál está abierto.
+ *
  * **El color es la rampa de magnitud del informe**, en los mismos cinco pasos
  * que la retícula de calor: un solo tono de claro a oscuro, con la tinta del
  * rótulo emparejada paso a paso, que es lo único que aguanta el modo oscuro
@@ -26,8 +33,10 @@ import { DEPARTMENTS as SHAPES, MAP_BOX, PLACE_POINTS } from '@/lib/bolivia-map'
  * **Cada departamento es un botón.** No uno visual: un grupo con `role="button"`,
  * su nombre y su cifra en `aria-label`, foco de teclado y las dos teclas que un
  * botón responde. El foco se pinta sobre el propio contorno, porque una forma
- * sin borde propio no tiene dónde más enseñarlo. Y hay una lista al lado con
- * botones de verdad: el mapa es el atajo, nunca la única puerta.
+ * sin borde propio no tiene dónde más enseñarlo. La elección tampoco se dice
+ * sólo con color: cambia el relleno, cambia el trazo y se nombra en la línea de
+ * debajo de la lista. Y esa lista son botones de verdad: el mapa es el atajo,
+ * nunca la única puerta.
  */
 
 /** Una lectura por departamento, o `null` si esa medida no lo tiene. */
@@ -50,6 +59,24 @@ const STEPS = [
 ] as const;
 
 const NONE = { fill: 'var(--rule-soft)', ink: 'var(--ink-soft)' } as const;
+
+/**
+ * La sigla de cada departamento, que es la de su placa.
+ *
+ * No es una abreviatura inventada aquí: es la que llevan las matrículas y los
+ * formularios del Estado, así que quien vive en Bolivia la lee sin traducirla.
+ */
+const INITIALS: Record<string, string> = {
+  CHUQUISACA: 'CH',
+  LA_PAZ: 'LP',
+  COCHABAMBA: 'CB',
+  ORURO: 'OR',
+  POTOSI: 'PT',
+  TARIJA: 'TJ',
+  SANTA_CRUZ: 'SC',
+  BENI: 'BE',
+  PANDO: 'PD',
+};
 
 const CENTRE = new Map(
   PLACE_POINTS.filter((point) => point.kind === 'departamento').map((point) => [point.code, point]),
@@ -105,9 +132,9 @@ export function DepartmentsMap({
   };
 
   return (
-    <div>
+    <div className="choro-map">
       <div
-        className="map-frame"
+        className="map-frame map-frame-compact"
         style={{
           aspectRatio: `${MAP_BOX.width} / ${MAP_BOX.height}`,
           ['--map-aspect' as string]: String(MAP_BOX.width / MAP_BOX.height),
@@ -147,7 +174,8 @@ export function DepartmentsMap({
           {/*
            * Los rótulos van en su propia capa, después de los nueve contornos:
            * dentro de cada grupo, el contorno que se pinta después tapaba el
-           * rótulo del anterior, y «Chuquisaca» salía cortado por Potosí.
+           * rótulo del anterior, y la cifra de Chuquisaca salía cortada por
+           * Potosí.
            */}
           <g aria-hidden="true">
             {SHAPES.map((shape) => {
@@ -158,17 +186,17 @@ export function DepartmentsMap({
               return (
                 <g key={shape.code}>
                   <text
-                    className="choro-name"
+                    className="choro-initials"
                     x={centre.x}
-                    y={centre.y - 6}
+                    y={centre.y - 10}
                     style={{ fill: step.ink }}
                   >
-                    {shape.name}
+                    {INITIALS[shape.code] ?? shape.name.slice(0, 2).toLocaleUpperCase('es')}
                   </text>
                   <text
                     className="choro-value"
                     x={centre.x}
-                    y={centre.y + 26}
+                    y={centre.y + 20}
                     style={{ fill: step.ink }}
                   >
                     {value === null ? '—' : short(value, decimals)}
