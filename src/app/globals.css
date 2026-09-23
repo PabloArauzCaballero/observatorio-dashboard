@@ -6096,6 +6096,8 @@ button.download-btn {
 
 .map-frame + .heat-scale > span {
   white-space: nowrap;
+}
+
 /* Carreteras --------------------------------------------------------------- */
 
 .roads-map-wrap {
