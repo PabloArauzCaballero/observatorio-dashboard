@@ -489,9 +489,9 @@ export function WorldExplorer() {
               Todas las cifras son del Banco Mundial y usan la misma definición para el mundo, las
               regiones y el país, así que las tasas se leen sobre un solo eje sin convertir nada.
               Los dos totales —el PIB en dólares y la población— se dibujan como índice, porque
-              junto al mundo Bolivia no se vería. Al pie, <a href="#vecinos">Bolivia y sus vecinos</a>:
-              el último dato de cada país de al lado en energía, recursos naturales y medio
-              ambiente.
+              junto al mundo Bolivia no se vería. Al pie,{' '}
+              <a href="#vecinos">Bolivia y sus vecinos</a>: el último dato de cada país de al lado
+              en energía, recursos naturales y medio ambiente.
             </p>
             <div className="brief-points">
               <div className="brief-point">
@@ -556,7 +556,9 @@ export function WorldExplorer() {
 
         <div className="strap">
           <Icon
-            name={theme.size === 0 ? 'globo' : (THEME_ICON[list(theme)[0] as WorldTheme] ?? 'globo')}
+            name={
+              theme.size === 0 ? 'globo' : (THEME_ICON[list(theme)[0] as WorldTheme] ?? 'globo')
+            }
             size={17}
           />
           <h2>
@@ -781,7 +783,6 @@ function WorldCard({
               })} puntos porcentuales ${gap > 0 ? 'por encima' : 'por debajo'} del mundo.`}
         </p>
       ) : null}
-
 
       {series.length && data.length ? (
         <>
