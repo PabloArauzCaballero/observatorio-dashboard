@@ -1,5 +1,6 @@
 import { readBoliviaPanel } from '@/lib/series';
 import { packMacro } from '@/lib/macro-transport';
+import { jsonResponse } from '@/lib/respond';
 
 /**
  * El catálogo del Banco Mundial para Bolivia, pedido al abrir su pestaña.
@@ -20,9 +21,10 @@ import { packMacro } from '@/lib/macro-transport';
 
 export const dynamic = 'force-dynamic';
 
-export async function GET(): Promise<Response> {
+export async function GET(request: Request): Promise<Response> {
   try {
-    return Response.json(
+    return jsonResponse(
+      request,
       { bundle: packMacro(await readBoliviaPanel()) },
       { headers: { 'Cache-Control': 'private, max-age=600' } },
     );

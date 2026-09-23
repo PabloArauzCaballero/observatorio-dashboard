@@ -1,6 +1,7 @@
 import { buildInstitutionsBoard } from '@/lib/institutions-board';
 import { packMacro } from '@/lib/macro-transport';
 import { isUnaffordableRead, readMacroAnnual } from '@/lib/series';
+import { jsonResponse } from '@/lib/respond';
 
 /**
  * Las medidas anuales de Bolivia, pedidas al abrir «Macroeconomía».
@@ -23,10 +24,11 @@ import { isUnaffordableRead, readMacroAnnual } from '@/lib/series';
 
 export const dynamic = 'force-dynamic';
 
-export async function GET(): Promise<Response> {
+export async function GET(request: Request): Promise<Response> {
   try {
     const macro = await readMacroAnnual();
-    return Response.json(
+    return jsonResponse(
+      request,
       {
         bundle: packMacro(macro),
         institutions: buildInstitutionsBoard(

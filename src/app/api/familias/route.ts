@@ -1,5 +1,6 @@
 import { readPlaceFamilies } from '@/lib/places';
 import { isUnaffordableRead } from '@/lib/series';
+import { jsonResponse } from '@/lib/respond';
 
 /**
  * El catálogo de familias de lugares, pedido al abrir «Ciudades».
@@ -16,9 +17,10 @@ import { isUnaffordableRead } from '@/lib/series';
 
 export const dynamic = 'force-dynamic';
 
-export async function GET(): Promise<Response> {
+export async function GET(request: Request): Promise<Response> {
   try {
-    return Response.json(
+    return jsonResponse(
+      request,
       { families: await readPlaceFamilies() },
       { headers: { 'Cache-Control': 'private, max-age=600' } },
     );

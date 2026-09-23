@@ -1,5 +1,6 @@
 import { buildDepartmentBoard } from '@/lib/departments-board';
 import { isUnaffordableRead, readMacroAnnual } from '@/lib/series';
+import { jsonResponse } from '@/lib/respond';
 
 /**
  * El capítulo departamental, pedido al abrir su rubro.
@@ -17,10 +18,11 @@ import { isUnaffordableRead, readMacroAnnual } from '@/lib/series';
 
 export const dynamic = 'force-dynamic';
 
-export async function GET(): Promise<Response> {
+export async function GET(request: Request): Promise<Response> {
   try {
     const macro = await readMacroAnnual();
-    return Response.json(
+    return jsonResponse(
+      request,
       { board: buildDepartmentBoard(macro.filter((point) => point.sector === 'DEPARTAMENTAL')) },
       { headers: { 'Cache-Control': 'private, max-age=600' } },
     );
