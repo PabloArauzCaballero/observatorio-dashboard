@@ -3,7 +3,7 @@ import type { GapChartPoint, RatePoint } from '@/components/charts';
 import { Donate } from '@/components/donate';
 import { CitiesSection } from '@/components/cities-section';
 import { FilingsSection } from '@/components/filings-section';
-import { FxEconometricsSection } from '@/components/fx-econometrics-section';
+import { FxEconometricsCard } from '@/components/fx-econometrics-card';
 import { FxSection } from '@/components/fx-section';
 import { MacroSection } from '@/components/macro-section';
 import { MarketCards } from '@/components/market-cards';
@@ -166,9 +166,9 @@ function Unreadable() {
     <div className="error">
       <strong>No fue posible leer la base de datos.</strong>
       <p>
-        Este resumen no muestra cifras que no pudo verificar, así que no muestra ninguna. El
-        detalle del fallo queda en el registro del servidor; las demás pestañas leen aparte y
-        pueden estar al día.
+        Este resumen no muestra cifras que no pudo verificar, así que no muestra ninguna. El detalle
+        del fallo queda en el registro del servidor; las demás pestañas leen aparte y pueden estar
+        al día.
       </p>
     </div>
   );
@@ -588,17 +588,15 @@ export default function Page() {
 
         <section className="stack">
           {/*
-            Las pruebas formales van después de la lectura y de los gráficos, y
-            se montan aparte a propósito: el capítulo del tipo de cambio lee sus
-            series y las dibuja; este lee las mismas series y las somete a
-            prueba. Dos preguntas, dos componentes.
+            Las pruebas formales van después de la lectura y de los gráficos,
+            pero ya no se leen aquí: se descargan como informe. La tarjeta no
+            lee nada, así que no necesita su propio `Suspense`; el cálculo corre
+            en `/api/econometria` cuando alguien pide el documento.
           */}
           <Suspense fallback={<Armando que="el capítulo del tipo de cambio" />}>
             <FxSection />
           </Suspense>
-          <Suspense fallback={<Armando que="las pruebas del tipo de cambio" />}>
-            <FxEconometricsSection />
-          </Suspense>
+          <FxEconometricsCard />
         </section>
 
         <section className="stack">
