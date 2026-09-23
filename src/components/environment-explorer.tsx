@@ -14,7 +14,6 @@ import {
   WHO_PM25_GUIDELINE,
   type EnvironmentBoard,
   type EnvironmentGroup,
-  type YearValue,
 } from '@/lib/environment-board';
 
 /**
@@ -26,6 +25,10 @@ import {
  * sola—; después el aire, que es donde vive la gente; y al final el agua y lo
  * protegido, que son las dos cifras que peor se leen solas y llevan su
  * advertencia escrita al lado.
+ *
+ * El cuadro del último dato de cada vecino ya no cierra este capítulo: está en
+ * «Bolivia ante el mundo», con los de energía y recursos naturales, que es la
+ * pestaña que compara países. Aquí queda el aviso de dónde fue.
  */
 
 const number = (value: number, decimals = 1): string =>
@@ -125,50 +128,6 @@ function GroupHead({ group, children }: { group: EnvironmentGroup; children: Rea
 const share = (value: number): string => `${number(value, 1)} %`;
 const megatonnes = (value: number): string => `${number(value, 1)} Mt`;
 const tick = (value: number): string => number(value, 0);
-
-/** El último dato de cada país en las series que distinguen un territorio de otro. */
-function NeighboursTable({ board }: { board: EnvironmentBoard }) {
-  const columns: ReadonlyArray<{ code: string; label: string; decimals: number; unit: string }> = [
-    { code: 'AG.LND.FRST.ZS', label: 'Bosque', decimals: 1, unit: ' %' },
-    { code: 'AG.LND.AGRI.ZS', label: 'Tierra agrícola', decimals: 1, unit: ' %' },
-    { code: 'EN.GHG.ALL.PC.CE.AR5', label: 'Emisiones por hab.', decimals: 2, unit: ' t' },
-    { code: 'EN.GHG.CO2.RT.GDP.KD', label: 'Intensidad de carbono', decimals: 3, unit: ' kg/$' },
-    { code: 'EN.ATM.PM25.MC.M3', label: 'PM2,5', decimals: 1, unit: ' µg/m³' },
-    { code: 'ER.H2O.FWST.ZS', label: 'Estrés hídrico', decimals: 2, unit: ' %' },
-    { code: 'ER.LND.PTLD.ZS', label: 'Áreas protegidas', decimals: 1, unit: ' %' },
-  ];
-  const cell = (place: string, column: (typeof columns)[number]): string => {
-    const reading: YearValue | undefined = board.latest[column.code]?.[place];
-    if (!reading) return '—';
-    return `${number(reading.value, column.decimals)}${column.unit} (${reading.year})`;
-  };
-  return (
-    <div className="table-wrap">
-      <table className="grid-table">
-        <thead>
-          <tr>
-            <th>País</th>
-            {columns.map((column) => (
-              <th key={column.code}>{column.label}</th>
-            ))}
-          </tr>
-        </thead>
-        <tbody>
-          {ENVIRONMENT_PLACES.map((place) => (
-            <tr key={place.code}>
-              <td>
-                <b>{place.label}</b>
-              </td>
-              {columns.map((column) => (
-                <td key={column.code}>{cell(place.code, column)}</td>
-              ))}
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
-  );
-}
 
 export function EnvironmentExplorer({ board }: { board: EnvironmentBoard }) {
   const land = lines(board, ['AG.LND.FRST.ZS', 'AG.LND.AGRI.ZS', 'AG.LND.ARBL.ZS']);
@@ -399,17 +358,11 @@ export function EnvironmentExplorer({ board }: { board: EnvironmentBoard }) {
         </div>
       </div>
 
-      <div className="panel">
-        <div className="panel-head">
-          <h2>Bolivia entre sus vecinos</h2>
-          <p className="panel-sub">
-            El último dato de cada país en las series que distinguen un territorio de otro. Un
-            estrés hídrico bajo y un bosque alto son, los dos, herencia de la geografía; lo que
-            compara de verdad es cómo se mueven.
-          </p>
-        </div>
-        <NeighboursTable board={board} />
-      </div>
+      <p className="panel-sub">
+        <Icon name="info" size={12} /> El cuadro «Bolivia y sus vecinos» —el último dato de cada
+        país en las series que distinguen un territorio de otro— está ahora en la pestaña «Bolivia ante el
+        mundo», junto a los de energía y recursos naturales.
+      </p>
 
       <p className="panel-sub">
         <Icon name="info" size={12} /> Series del Banco Mundial (Indicadores del Desarrollo Mundial),
