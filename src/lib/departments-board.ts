@@ -258,18 +258,108 @@ export function buildDepartmentBoard(points: readonly MacroPoint[]): DepartmentB
   return { ...partial, conclusions: conclude(partial) };
 }
 
-/** Lo que un departamento vendió en un año, de más a menos, para el reparto. */
+/** El residuo que el INE publica al final de cada lista: no es un producto. */
+export const OTHER_PRODUCTS = 'OTROS_PRODUCTOS';
+
+/**
+ * Lo que un departamento vendió en un año, de más a menos, para el reparto.
+ *
+ * En dólares o en toneladas, según se pida: el ránking en peso no es el mismo
+ * que en valor —el mineral pesa y el oro no—, y esa diferencia es lo que
+ * separa «de qué vive» de «qué carga en el camión».
+ */
 export function productMix(
   board: DepartmentBoard,
   place: string,
   year: number | null,
+  unit: 'usd' | 'tonnes' = 'usd',
 ): Array<{ name: string; value: number }> {
   if (year === null) return [];
   return board.products
     .filter((line) => line.place === place)
-    .map((line) => ({ name: line.label, value: at(line.usd, year)?.value ?? 0 }))
+    .map((line) => ({ name: line.label, value: at(line[unit], year)?.value ?? 0 }))
     .filter((slice) => slice.value > 0)
     .sort((left, right) => right.value - left.value);
+}
+
+/**
+ * Los productos principales de un departamento, por lo que valieron en un año.
+ *
+ * Se ordena por dólares y no por peso, y se deja fuera «otros productos»: es
+ * el residuo con el que el INE cierra la lista, y ponerlo entre los cinco
+ * principales sería dibujar como producto la suma de todo lo que no se nombró.
+ */
+export function topProducts(
+  board: DepartmentBoard,
+  place: string,
+  year: number | null,
+  count: number,
+): ProductLine[] {
+  if (year === null) return [];
+  return board.products
+    .filter((line) => line.place === place && line.slug !== OTHER_PRODUCTS)
+    .map((line) => ({ line, value: at(line.usd, year)?.value ?? 0 }))
+    .filter((row) => row.value > 0)
+    .sort((left, right) => right.value - left.value)
+    .slice(0, count)
+    .map((row) => row.line);
+}
+
+/**
+ * La mediana de los nueve departamentos, año a año, para una medida.
+ *
+ * La mediana y no el promedio, porque el promedio de nueve departamentos con
+ * Santa Cruz dentro es Santa Cruz diluida: un departamento mediano quedaría
+ * «por debajo del promedio» en todas las medidas de tamaño sin que eso diga
+ * nada de él. Un año entra sólo si al menos la mitad de los nueve lo publicó;
+ * la mediana de tres departamentos no es la mediana de Bolivia.
+ */
+export function medianAcross(board: DepartmentBoard, measure: string): YearValue[] {
+  const byPlace = board.series[measure] ?? {};
+  const byYear = new Map<number, number[]>();
+  for (const department of DEPARTMENTS) {
+    for (const point of byPlace[department.slug] ?? []) {
+      const values = byYear.get(point.year) ?? [];
+      values.push(point.value);
+      byYear.set(point.year, values);
+    }
+  }
+  const floor = Math.ceil(DEPARTMENTS.length / 2);
+  return [...byYear.entries()]
+    .filter(([, values]) => values.length >= floor)
+    .map(([year, values]) => {
+      const sorted = [...values].sort((left, right) => left - right);
+      const middle = Math.floor(sorted.length / 2);
+      const median =
+        sorted.length % 2 === 0
+          ? ((sorted[middle - 1] ?? 0) + (sorted[middle] ?? 0)) / 2
+          : (sorted[middle] ?? 0);
+      return { year, value: median };
+    })
+    .sort((left, right) => left.year - right.year);
+}
+
+/**
+ * En qué puesto queda un departamento entre los nueve en el último año de una
+ * medida, y cuántos publicaron ese año. `null` si no tiene dato.
+ *
+ * Se compara sobre el mismo año para todos y no sobre el último de cada uno,
+ * porque el per cápita cierra un año antes que el resto y un departamento no
+ * puede ganar puestos por haber publicado más tarde.
+ */
+export function placeRank(
+  board: DepartmentBoard,
+  measure: string,
+  place: string,
+): { position: number; of: number; year: number } | null {
+  const byPlace = board.series[measure] ?? {};
+  const own = last(byPlace[place]);
+  if (!own) return null;
+  const peers = DEPARTMENTS.map((department) => at(byPlace[department.slug], own.year)).filter(
+    (point): point is YearValue => point !== undefined,
+  );
+  const above = peers.filter((point) => point.value > own.value).length;
+  return { position: above + 1, of: peers.length, year: own.year };
 }
 
 /** El reparto entre departamentos de una medida, en su último año. */
