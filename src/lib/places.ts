@@ -200,12 +200,21 @@ export async function readPlaces(
   try {
     const { where, values } = placeScope(cities, families);
 
-    const counted = await pool().query<{ total: string }>(
+    /*
+     * El recuento y las filas a la vez, cada uno en su conexión del pool.
+     *
+     * Iban uno detrás del otro, y cada uno recorre la misma unión de los dos
+     * corpus: en Contabo eso era la mitad de los 3 a 7 s que tardaba en
+     * contestar una ciudad grande. Son independientes —el recuento no recorta
+     * las filas ni al revés—, así que esperar al primero para lanzar el segundo
+     * no compraba nada.
+     */
+    const countedQuery = pool().query<{ total: string }>(
       `SELECT count(*)::text AS total FROM ${PLACE_UNION} ${where}`,
       values,
     );
 
-    const { rows } = await pool().query<{
+    const rowsQuery = pool().query<{
       place_id: string;
       name: string;
       city: string;
@@ -232,6 +241,8 @@ export async function readPlaces(
        LIMIT $${values.length + 1}`,
       [...values, Math.min(Math.max(limit, 1), 20000)],
     );
+
+    const [counted, { rows }] = await Promise.all([countedQuery, rowsQuery]);
 
     return {
       total: Number(counted.rows[0]?.total ?? 0),

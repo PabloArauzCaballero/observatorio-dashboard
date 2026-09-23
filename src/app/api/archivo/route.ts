@@ -1,4 +1,5 @@
 import { isUnaffordableRead, readPressCube, readPressPage, readPressPulse } from '@/lib/series';
+import { jsonResponse } from '@/lib/respond';
 
 /**
  * La primera pantalla del archivo de prensa, pedida al abrir la pestaña.
@@ -23,7 +24,7 @@ export const dynamic = 'force-dynamic';
 /** Cuántas notas trae una página del registro; `/api/prensa` usa la misma. */
 const PAGE_SIZE = 60;
 
-export async function GET(): Promise<Response> {
+export async function GET(request: Request): Promise<Response> {
   try {
     /*
      * En serie y no en paralelo, como el capítulo del tipo de cambio y por la
@@ -39,7 +40,8 @@ export async function GET(): Promise<Response> {
       readPressPulse(),
     ]);
 
-    return Response.json(
+    return jsonResponse(
+      request,
       {
         cube,
         articles: page.articles,

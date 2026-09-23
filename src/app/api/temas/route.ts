@@ -1,4 +1,5 @@
 import { isUnaffordableRead, readTermMonths, readTermTotals } from '@/lib/series';
+import { jsonResponse } from '@/lib/respond';
 
 /**
  * Los temas de prensa mes a mes, pedidos al abrir su subpestaña.
@@ -16,10 +17,11 @@ import { isUnaffordableRead, readTermMonths, readTermTotals } from '@/lib/series
 
 export const dynamic = 'force-dynamic';
 
-export async function GET(): Promise<Response> {
+export async function GET(request: Request): Promise<Response> {
   try {
     const [months, totals] = await Promise.all([readTermMonths(), readTermTotals()]);
-    return Response.json(
+    return jsonResponse(
+      request,
       { months, totals },
       { headers: { 'Cache-Control': 'private, max-age=600' } },
     );

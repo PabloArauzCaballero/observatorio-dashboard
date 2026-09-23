@@ -1,5 +1,6 @@
 import { buildExportersBoard } from '@/lib/exporters-board';
 import { isUnaffordableRead, readMacroAnnual } from '@/lib/series';
+import { jsonResponse } from '@/lib/respond';
 
 /**
  * Las exportadoras y su reputación, pedidas al abrir cualquiera de sus dos
@@ -26,10 +27,11 @@ import { isUnaffordableRead, readMacroAnnual } from '@/lib/series';
 
 export const dynamic = 'force-dynamic';
 
-export async function GET(): Promise<Response> {
+export async function GET(request: Request): Promise<Response> {
   try {
     const macro = await readMacroAnnual();
-    return Response.json(
+    return jsonResponse(
+      request,
       { board: buildExportersBoard(macro.filter((point) => point.sector === 'EMPRESARIAL')) },
       { headers: { 'Cache-Control': 'private, max-age=600' } },
     );

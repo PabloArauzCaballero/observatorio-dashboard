@@ -1,5 +1,6 @@
 import { readWorldBoard } from '@/lib/series';
 import { WORLD_CODES, WORLD_PLACE_CODES } from '@/lib/world-board';
+import { jsonResponse } from '@/lib/respond';
 
 /**
  * The world board's figures, fetched when the board is opened.
@@ -14,9 +15,10 @@ import { WORLD_CODES, WORLD_PLACE_CODES } from '@/lib/world-board';
 
 export const dynamic = 'force-dynamic';
 
-export async function GET(): Promise<Response> {
+export async function GET(request: Request): Promise<Response> {
   try {
-    return Response.json(
+    return jsonResponse(
+      request,
       { points: await readWorldBoard(WORLD_CODES, WORLD_PLACE_CODES) },
       { headers: { 'Cache-Control': 'private, max-age=600' } },
     );
