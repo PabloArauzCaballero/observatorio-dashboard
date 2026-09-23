@@ -2,43 +2,48 @@
 
 import { ExportersSection, ReputationSection } from './exporters-section';
 import { FilingExplorer } from './filing-explorer';
+import { ForeignTradeSection } from './foreign-trade-section';
 import { OnOpenNotice, useOnOpen } from './on-open';
 import { SubTabs } from './tabs';
 import type { CompanyFiling } from '@/lib/series';
 
 /**
- * El capítulo de empresas, con sus tres registros.
+ * El capítulo de empresas, con sus cuatro registros.
  *
- * Tres y no uno, y la separación es el punto. El primero es el registro de la
- * **Bolsa Boliviana de Valores**: lo que sus emisores están obligados a
+ * Cuatro y no uno, y la separación es el punto. El primero es el registro de
+ * la **Bolsa Boliviana de Valores**: lo que sus emisores están obligados a
  * comunicar, que no es el universo de empresas del país sino las que acuden al
- * mercado de valores. El segundo es el comercio exterior por empresa —orden y
- * cuota, nunca dólares—, que cubre a compañías enteramente distintas: de las
- * cien mayores exportadoras, casi ninguna cotiza. El tercero es el monitor de
+ * mercado de valores. El segundo es **quién exporta más** —el ránking de un
+ * agregador comercial, en orden y cuota, nunca en dólares—, que cubre a
+ * compañías enteramente distintas: de las cien mayores exportadoras, casi
+ * ninguna cotiza. El tercero es **qué se exporta**: producto y país, con las
+ * fuentes oficiales —INE y Comtrade— y no con un agregador, y por eso sí trae
+ * dólares donde el ránking de al lado no puede. El cuarto es el monitor de
  * **reputación**, que mide percepción con encuestas y cuya cabeza son marcas
  * de consumo que ni cotizan ni exportan.
  *
- * Estaban a punto de quedar en una sola página y habría sido un error de
- * lectura: un lector que viera hechos relevantes, ránking de exportadoras y
- * puestos de reputación en el mismo panel supondría que las filas de uno
- * explican las del otro, y no hay una sola empresa cuya posición exportadora
- * se deduzca de sus comunicados a la bolsa ni de lo que el público opina de
- * ella. Exportadoras y reputación compartieron pestaña una temporada, con el
- * cruce entre ambas al pie; el cruce sigue —en «Reputación empresarial», que es
- * la lista que hace la pregunta— pero cada medida tiene ahora su página.
+ * «Exportadoras» y «Comercio exterior» van una al lado de la otra a propósito
+ * y contestan preguntas distintas con métodos distintos: la primera es quién
+ * vende más —una posición relativa, sin cifra en dólares porque la fuente no
+ * la sostiene— y la segunda es qué se vende y a quién —cifras oficiales, sin
+ * nombre de empresa porque esa declaración está amparada por reserva—.
+ * Ninguna fila de una se deduce de una fila de la otra, y cada página lo dice
+ * en su propio aviso.
  *
  * `SubTabs` monta sólo la página activa, así que abrir «Empresas» sigue pidiendo
- * únicamente los hechos relevantes; las otras dos esperan a que alguien las
- * elija, y como leen la misma dirección, la segunda sale de la caché.
+ * únicamente los hechos relevantes; las otras tres esperan a que alguien las
+ * elija, y «Exportadoras» y «Reputación empresarial» leen la misma dirección,
+ * así que la segunda sale de la caché.
  */
 export function FilingsSection() {
   return (
     <SubTabs
-      labels={['Bolsa de valores (BBV)', 'Exportadoras', 'Reputación empresarial']}
-      icons={['velas', 'camion', 'escudo']}
+      labels={['Bolsa de valores (BBV)', 'Exportadoras', 'Comercio exterior', 'Reputación empresarial']}
+      icons={['velas', 'camion', 'globo', 'escudo']}
     >
       <FilingsPage />
       <ExportersSection />
+      <ForeignTradeSection />
       <ReputationSection />
     </SubTabs>
   );
