@@ -6016,17 +6016,6 @@ button.download-btn {
   font-variant-numeric: tabular-nums;
 }
 
-/*
- * La rejilla de tres, para filas de figuras del mismo tipo. Se pliega a dos y
- * a una columna sola con el ancho, como `grid-two`, y por debajo de 300 px de
- * columna no baja: una figura más estrecha que eso no tiene eje que leer.
- */
-.grid-three {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(min(300px, 100%), 1fr));
-  gap: var(--s2);
-}
-
 /* La clave del mapa departamental: cada extremo en una línea, y se parte entera. */
 .map-frame + .heat-scale {
   flex-wrap: wrap;
