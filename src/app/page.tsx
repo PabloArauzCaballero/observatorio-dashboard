@@ -8,6 +8,7 @@ import { FxSection } from '@/components/fx-section';
 import { MacroSection } from '@/components/macro-section';
 import { MarketCards } from '@/components/market-cards';
 import { PressSection } from '@/components/press-section';
+import { RoadsSection } from '@/components/roads-section';
 import { SourcesSection } from '@/components/sources-section';
 import { Icon } from '@/components/icons';
 import { SummaryExplorer } from '@/components/summary-explorer';
@@ -575,10 +576,11 @@ export default function Page() {
           'Macroeconomía',
           'Empresas',
           'Ciudades',
+          'Carreteras',
           'Prensa',
           'Método',
         ]}
-        icons={['diana', 'linea', 'globo', 'edificio', 'mapa', 'ventana', 'info']}
+        icons={['diana', 'linea', 'globo', 'edificio', 'mapa', 'camion', 'ventana', 'info']}
       >
         <section className="stack">
           <Suspense fallback={<Armando que="el resumen de hoy" />}>
@@ -611,6 +613,10 @@ export default function Page() {
 
         <section className="stack">
           <CitiesSection />
+        </section>
+
+        <section className="stack">
+          <RoadsSection />
         </section>
 
         <section className="stack">
