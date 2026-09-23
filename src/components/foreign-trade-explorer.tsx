@@ -646,10 +646,22 @@ export function ForeignTradeExplorer({
           icons={CONCLUSION_ICON}
           defaultOpen={false}
         />
+        {/*
+         * Sólo se ve en vertical. La regla del tablero es «el informe primero,
+         * los filtros después» —a un scroll de distancia en el resto de las
+         * páginas—, pero este capítulo junta nueve gráficos y el ránking de
+         * cien exportadoras: apilado pasa de 7.000 px antes de llegar al
+         * carril, que ya no es «un scroll», son quince. El salto no adelanta
+         * el carril ni lo oculta, sólo evita la caminata.
+         */}
+        <a className="jump-to-filters" href="#comercio-filtros">
+          <Icon name="filtro" size={14} />
+          Ir a los filtros
+        </a>
       </div>
 
       <div className="workspace">
-        <aside className="rail">
+        <aside className="rail" id="comercio-filtros">
           <div className="rail-top">
             <Icon name="filtro" size={15} />
             <span className="rail-title">Filtros</span>
