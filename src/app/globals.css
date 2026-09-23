@@ -4096,6 +4096,19 @@ button.download-btn {
   overflow: visible;
 }
 
+/*
+ * El mapa del capítulo departamental, que es un selector y no un lienzo.
+ *
+ * El marco de `places` se dimensiona contra el alto de la ventana porque ahí el
+ * mapa **es** la figura y sus marcas tienen que poder distinguirse una de otra.
+ * Aquí el mapa comparte panel con la lista ordenada y con todo lo que se abre
+ * debajo, y ocupando tres cuartos de pantalla dejaba a su propia lista fuera de
+ * la vista.
+ */
+.map-frame-compact {
+  max-width: min(34rem, calc(52vh * var(--map-aspect, 0.884)));
+}
+
 .map-land path {
   fill: var(--panel-tint);
   stroke: var(--rule);
@@ -6034,21 +6047,38 @@ button.download-btn {
 
 /*
  * El mapa de «Departamentos» es el selector del capítulo y su primera figura:
- * nueve contornos pintados con la rampa de magnitud y un rótulo en el centro
- * de cada uno. Cada contorno es un botón con foco de teclado; el foco y la
- * elección se pintan sobre el propio trazo, porque una forma sin borde propio
- * no tiene dónde más enseñarlos. El color de relleno y el de la tinta del
- * rótulo los pone el componente, paso a paso, desde `--seq-*`.
+ * nueve contornos pintados con la rampa de magnitud, con la sigla y la cifra en
+ * el centro de cada uno. Cada contorno es un botón con foco de teclado; el foco
+ * y la elección se pintan sobre el propio trazo, porque una forma sin borde
+ * propio no tiene dónde más enseñarlos. El color de relleno y el de la tinta
+ * del rótulo los pone el componente, paso a paso, desde `--seq-*`.
+ *
+ * **El dibujo se quedó corto a propósito.** Llegaba a ocupar tres cuartos del
+ * alto de la ventana y empujaba su propia lista fuera de la pantalla, así que
+ * el panel entero era un mapa gigante con un hueco al lado. Un país de nueve
+ * piezas se reconoce a treinta y cuatro rem; lo que pedía altura eran los
+ * nombres completos escritos dentro, y esos ya no están.
  */
+
+.choro-map {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s2);
+}
 
 .choro {
   cursor: pointer;
   outline: none;
 }
 
+/*
+ * El trazo es del color del panel y fino: separa dos departamentos vecinos sin
+ * dibujar una reja encima del dato. Lo que engorda es el estado —el puntero, la
+ * elección, el foco—, que es donde el grosor significa algo.
+ */
 .choro-shape {
   stroke: var(--panel);
-  stroke-width: 2.2;
+  stroke-width: 1.6;
   stroke-linejoin: round;
   transition:
     stroke var(--fast) var(--ease),
@@ -6057,36 +6087,46 @@ button.download-btn {
 }
 
 .choro:hover .choro-shape {
-  stroke: var(--ink);
-  stroke-width: 3;
+  stroke: var(--ink-soft);
+  stroke-width: 2.6;
 }
 
+/*
+ * El elegido se levanta del mapa. El trazo naranja es el mismo color con el que
+ * su línea se dibuja en todas las figuras de abajo, así que el mapa y las series
+ * hablan del mismo departamento con el mismo color; la sombra lo despega de sus
+ * vecinos sin mover un píxel del contorno.
+ */
 .choro-on .choro-shape {
   stroke: var(--parallel);
-  stroke-width: 5;
+  stroke-width: 4.5;
+  filter: drop-shadow(0 2px 6px color-mix(in srgb, var(--parallel) 45%, transparent));
 }
 
 .choro:focus-visible .choro-shape {
   stroke: var(--parallel);
   stroke-width: 6;
-  stroke-dasharray: 10 6;
+  filter: drop-shadow(0 0 5px color-mix(in srgb, var(--parallel) 70%, transparent));
 }
 
-.choro-name,
+.choro-initials,
 .choro-value {
   pointer-events: none;
   text-anchor: middle;
   font-family: var(--sans);
-  font-size: 30px;
-  font-weight: 600;
-  letter-spacing: 0.01em;
+  font-variant-numeric: tabular-nums;
+}
+
+.choro-initials {
+  font-size: 40px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
 }
 
 .choro-value {
   font-family: var(--mono);
-  font-size: 26px;
+  font-size: 27px;
   font-weight: 500;
-  font-variant-numeric: tabular-nums;
 }
 
 /* La clave del mapa departamental: cada extremo en una línea, y se parte entera. */
