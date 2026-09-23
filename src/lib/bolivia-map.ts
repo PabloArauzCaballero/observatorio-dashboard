@@ -91,3 +91,33 @@ export const PLACE_POINTS: MapPoint[] = [
   { code: 'SANTA_CRUZ', name: 'Santa Cruz', kind: 'departamento', x: 666.4, y: 645.5 },
   { code: 'TARIJA', name: 'Tarija', kind: 'departamento', x: 473, y: 1020.3 },
 ];
+
+/**
+ * The bounding box `build-bolivia-map.mjs` projected against, so a second
+ * dataset in raw longitude/latitude can be drawn on the same outline.
+ *
+ * Recovered rather than re-declared by hand: it is the vertex bounding box of
+ * the same geoBoundaries gbOpen 9469f09 ADM1 release the outline above was
+ * built from, and it reproduces `MAP_BOX.height` to the pixel — computed
+ * 2026-09-23, `Math.round((maxLat - minLat) * scale)` gives 1132, matching the
+ * committed box exactly. The road network is the first corpus this outline
+ * shares with, which is why the box did not need naming until now.
+ */
+const COUNTRY_BOUNDS = {
+  minLon: -69.6452460357648,
+  maxLon: -57.454433527709995,
+  minLat: -22.906568378770064,
+  maxLat: -9.669633002177589,
+} as const;
+
+/** Equirectangular scale at Bolivia's middle latitude — the same as the outline's. */
+const LON_SCALE = Math.cos((16.5 * Math.PI) / 180);
+const PROJECT_SCALE = MAP_BOX.width / ((COUNTRY_BOUNDS.maxLon - COUNTRY_BOUNDS.minLon) * LON_SCALE);
+
+/** Projects a `[longitude, latitude]` pair into `MAP_BOX` pixel space. */
+export function projectRoadPoint([lon, lat]: readonly [number, number]): [number, number] {
+  return [
+    (lon - COUNTRY_BOUNDS.minLon) * LON_SCALE * PROJECT_SCALE,
+    (COUNTRY_BOUNDS.maxLat - lat) * PROJECT_SCALE,
+  ];
+}

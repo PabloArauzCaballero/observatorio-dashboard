@@ -4,7 +4,7 @@ import dynamic from 'next/dynamic';
 import { OnOpenNotice } from '@/components/on-open';
 
 /**
- * Las cinco pestañas que se leen al abrirse, cargadas también al abrirse.
+ * Las pestañas que se leen al abrirse, cargadas también al abrirse.
  *
  * Ya no traían datos en el documento, pero su código sí viajaba: el mapa de
  * lugares, el explorador de prensa, los paneles macro y sus gráficos iban en el
@@ -45,4 +45,8 @@ export const PressSection = dynamic(
 export const SourcesSection = dynamic(
   () => import('@/components/sources-section').then((module) => module.SourcesSection),
   { loading: () => <OnOpenNotice what="las fuentes" failed={false} /> },
+);
+export const RoadsSection = dynamic(
+  () => import('@/components/roads-section').then((module) => module.RoadsSection),
+  { loading: () => <OnOpenNotice what="la red vial" failed={false} /> },
 );
