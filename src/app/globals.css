@@ -1507,6 +1507,32 @@ code {
   background: var(--panel);
 }
 
+/*
+ * El atajo al carril de un capitulo demasiado largo para «a un scroll de
+ * distancia». Oculto por defecto: solo se muestra donde una pagina concreta
+ * lo necesita, dentro de la franja movil (ver el bloque de `.rail { order: 2 }`).
+ */
+.jump-to-filters {
+  display: none;
+  align-items: center;
+  gap: var(--s1);
+  align-self: flex-start;
+  margin-top: var(--s2);
+  padding: 0.5rem 0.9rem;
+  border: 1px solid var(--rule);
+  border-radius: var(--radius-pill, 999px);
+  background: var(--panel-tint);
+  color: var(--ink);
+  font-size: 0.85rem;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.jump-to-filters:hover,
+.jump-to-filters:focus-visible {
+  border-color: var(--parallel);
+}
+
 .rail-top {
   display: flex;
   align-items: center;
@@ -2027,6 +2053,14 @@ span.rail-twist {
   }
   .barlist-row .barlist-name {
     width: 120px;
+  }
+  /*
+   * Excepcion puntual a «el informe primero»: solo para el capitulo de
+   * comercio exterior, cuyo carril queda a quince pantallas de scroll y no a
+   * una. Ver el comentario en `foreign-trade-explorer.tsx`.
+   */
+  .jump-to-filters {
+    display: inline-flex;
   }
 }
 
