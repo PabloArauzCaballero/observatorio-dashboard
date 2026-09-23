@@ -27,6 +27,13 @@ import type { ExportersBoard } from '@/lib/exporters-board';
  * declare sobre qué base está calculado. El orden y la cuota son consistentes
  * consigo mismos y se publican; los dólares no se sostienen y no se publican.
  * El aviso de arriba lo dice en el tablero, no sólo aquí.
+ *
+ * **Esta página contesta quién, no qué ni a dónde.** Qué producto vende el
+ * país, con qué fuente oficial y en qué dólares —los que aquí faltan— está en
+ * «Comercio exterior», la pestaña de al lado: mismo capítulo de «Empresas»,
+ * pregunta distinta y método distinto. Ninguna fila de una explica una fila
+ * de la otra: una es un orden sin dólares y la otra son dólares sin nombre de
+ * empresa.
  */
 
 const number = (value: number, decimals = 1): string =>
@@ -89,7 +96,8 @@ export function ExportersExplorer({ board }: { board: ExportersBoard }) {
         Se dibujan las {Math.min(SHOWN, board.exporters.length)} primeras de{' '}
         {board.exporters.length}. Las barras marcadas son las que además están medidas por el
         monitor de reputación: {marked} aquí, {board.crossings.length} en la lista entera. El cruce
-        completo está en la pestaña «Reputación empresarial».
+        completo está en la pestaña «Reputación empresarial»; qué producto vende el país y a qué
+        país, con fuentes oficiales y en dólares, está en «Comercio exterior».
       </p>
     </div>
   );

@@ -388,6 +388,89 @@ export function topProducts(
 }
 
 /**
+ * Los mismos productos, sumados los nueve departamentos.
+ *
+ * El cuadro de comercio exterior del INE no trae una fila de país abierta por
+ * producto: `TOTAL` y `NATIONAL` son series de un solo número, sin desglose.
+ * Lo que sí se puede construir es la suma de las nueve líneas departamentales
+ * que comparten producto —«gas natural» de Chuquisaca, Cochabamba, Santa Cruz
+ * y Tarija es un solo gas natural nacional—, y esa suma coincide al centavo
+ * con la fila `NATIONAL`: se comprobó el 2026-09-23 contra la gestión 2025,
+ * 9.662.251.213,08 dólares sumando los nueve departamentos contra los mismos
+ * 9.662.251.213,08 que publica `DEPT_EXPORTS_USD_NATIONAL`. La reserva del
+ * comentario de cabecera —no sumar departamentos para reconstruir el país— es
+ * sobre cuentas regionales, donde sumar arrastra una discrepancia estadística
+ * que el INE ya resolvió; en comercio exterior no hay discrepancia que
+ * resolver, `NATIONAL` **es** esa suma y aquí se hace la misma cuenta un
+ * escalón más abajo, por producto en vez de por departamento.
+ */
+function summedProductLines(board: DepartmentBoard): ProductLine[] {
+  const bySlug = new Map<string, ProductLine>();
+  for (const line of board.products) {
+    if (!DEPARTMENTS.some((department) => department.slug === line.place)) continue;
+    const current =
+      bySlug.get(line.slug) ??
+      ({
+        place: 'BOLIVIA',
+        slug: line.slug,
+        label: line.label,
+        usd: [],
+        tonnes: [],
+      } satisfies ProductLine);
+    current.usd = sumByYear(current.usd, line.usd);
+    current.tonnes = sumByYear(current.tonnes, line.tonnes);
+    bySlug.set(line.slug, current);
+  }
+  return [...bySlug.values()];
+}
+
+function sumByYear(left: readonly YearValue[], right: readonly YearValue[]): YearValue[] {
+  const byYear = new Map<number, number>();
+  for (const point of left) byYear.set(point.year, (byYear.get(point.year) ?? 0) + point.value);
+  for (const point of right) byYear.set(point.year, (byYear.get(point.year) ?? 0) + point.value);
+  return [...byYear.entries()]
+    .map(([year, value]) => ({ year, value }))
+    .sort((leftPoint, rightPoint) => leftPoint.year - rightPoint.year);
+}
+
+/**
+ * Lo que Bolivia entera vendió de un producto en un año, en dólares o en
+ * toneladas, sumando los nueve departamentos. Ver `summedProductLines`.
+ */
+export function nationalProductMix(
+  board: DepartmentBoard,
+  year: number | null,
+  unit: 'usd' | 'tonnes' = 'usd',
+): Array<{ name: string; value: number }> {
+  if (year === null) return [];
+  return summedProductLines(board)
+    .map((line) => ({ name: line.label, value: at(line[unit], year)?.value ?? 0 }))
+    .filter((slice) => slice.value > 0)
+    .sort((left, right) => right.value - left.value);
+}
+
+/**
+ * Los productos nacionales principales, por lo que valieron en un año, con
+ * toda su serie desde 2010. Excluye «otros productos» por la misma razón que
+ * `topProducts`: es el residuo con el que cierra cada departamento, no un
+ * producto que se pueda seguir en el tiempo.
+ */
+export function nationalTopProducts(
+  board: DepartmentBoard,
+  year: number | null,
+  count: number,
+): ProductLine[] {
+  if (year === null) return [];
+  return summedProductLines(board)
+    .filter((line) => line.slug !== OTHER_PRODUCTS)
+    .map((line) => ({ line, value: at(line.usd, year)?.value ?? 0 }))
+    .filter((row) => row.value > 0)
+    .sort((left, right) => right.value - left.value)
+    .slice(0, count)
+    .map((row) => row.line);
+}
+
+/**
  * La mediana de los nueve departamentos, año a año, para una medida.
  *
  * La mediana y no el promedio, porque el promedio de nueve departamentos con
