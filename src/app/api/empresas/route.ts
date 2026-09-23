@@ -1,4 +1,5 @@
 import { isUnaffordableRead, readCompanyFilings } from '@/lib/series';
+import { jsonResponse } from '@/lib/respond';
 
 /**
  * Los hechos relevantes, pedidos al abrir su pestaña.
@@ -18,9 +19,10 @@ import { isUnaffordableRead, readCompanyFilings } from '@/lib/series';
 
 export const dynamic = 'force-dynamic';
 
-export async function GET(): Promise<Response> {
+export async function GET(request: Request): Promise<Response> {
   try {
-    return Response.json(
+    return jsonResponse(
+      request,
       { filings: await readCompanyFilings() },
       { headers: { 'Cache-Control': 'private, max-age=600' } },
     );

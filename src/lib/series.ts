@@ -1254,10 +1254,51 @@ export interface PressQuery {
  * disagree — which they would the moment the page filtered a cached first
  * thousand while the counts spoke for the whole corpus.
  */
-export async function readPressPage(
+export function readPressPage(
   query: PressQuery,
   limit = 60,
   offset = 0,
+): Promise<{ articles: PressArticle[]; total: number }> {
+  /*
+   * Las dos páginas con que se entra al archivo se sostienen; las demás no.
+   *
+   * La portada pide la primera página sin filtro para el cuadro de mando, y el
+   * capítulo de prensa la primera de los temas económicos. Las dos son las
+   * mismas para cualquier lector, y la de la portada estaba en el camino
+   * crítico de cada visita. Una página filtrada por el lector no: sus
+   * combinaciones no tienen fin, y sostenerlas sería llenar la memoria del
+   * proceso —y el reloj que la renueva— de consultas que nadie repetirá.
+   *
+   * El tope de 200 excluye a propósito la descarga de `/api/export`, que pide
+   * hasta 60.000 filas sin filtro: esa ruta documenta que corre el predicado en
+   * el momento para que el fichero nunca pueda discrepar de lo que el panel
+   * cuenta, y sostenerla cinco minutos —aunque fuera la misma consulta— es tocar
+   * una garantía que no es de esta tarea.
+   */
+  const entry = offset === 0 && limit <= 200 ? landingPage(query) : null;
+  if (entry !== null) {
+    return held(`pressPage:${entry}:${limit}`, () => buildPressPage(query, limit, offset));
+  }
+  return buildPressPage(query, limit, offset);
+}
+
+/** El nombre de una página de entrada al archivo, o `null` si no lo es. */
+function landingPage(query: PressQuery): string | null {
+  const used = Object.entries(query).filter(
+    ([, value]) => value !== undefined && (typeof value === 'string' || value.length > 0),
+  );
+  if (used.length === 0) return 'todo';
+  const [field, value] = used[0] ?? [];
+  if (used.length === 1 && field === 'topic' && Array.isArray(value)) {
+    if (value.length === 1 && value[0] === 'ECONOMICOS') return 'economicos';
+  }
+  return null;
+}
+
+async function buildPressPage(
+  query: PressQuery,
+  limit: number,
+  offset: number,
 ): Promise<{ articles: PressArticle[]; total: number }> {
   const where: string[] = [`status = 'PUBLISHED'`, 'NOT superseded'];
   const values: unknown[] = [];

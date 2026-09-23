@@ -1,5 +1,6 @@
 import { RESOURCE_CODES, RESOURCE_PLACE_CODES, buildResourceBoard } from '@/lib/resources-board';
 import { isUnaffordableRead, readMacroAnnual, readWorldBoard } from '@/lib/series';
+import { jsonResponse } from '@/lib/respond';
 
 /**
  * El capítulo de recursos naturales, pedido al abrir su rubro.
@@ -22,13 +23,14 @@ import { isUnaffordableRead, readMacroAnnual, readWorldBoard } from '@/lib/serie
 
 export const dynamic = 'force-dynamic';
 
-export async function GET(): Promise<Response> {
+export async function GET(request: Request): Promise<Response> {
   try {
     const [points, measured] = await Promise.all([
       readWorldBoard(RESOURCE_CODES, RESOURCE_PLACE_CODES),
       readMacroAnnual(),
     ]);
-    return Response.json(
+    return jsonResponse(
+      request,
       { board: buildResourceBoard(points, measured) },
       { headers: { 'Cache-Control': 'private, max-age=600' } },
     );

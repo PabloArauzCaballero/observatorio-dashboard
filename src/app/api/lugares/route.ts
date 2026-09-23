@@ -1,4 +1,5 @@
 import { readPlaces } from '@/lib/places';
+import { jsonResponse } from '@/lib/respond';
 
 /**
  * The places of the chosen cities, fetched when the reader chooses them.
@@ -45,7 +46,17 @@ export async function GET(request: Request): Promise<Response> {
      */
     const all = parameters.get('todos') === '1';
     const { places, total } = await readPlaces(cities, families, all ? 20000 : 4000);
-    return Response.json({ places, total });
+    /*
+     * Comprimido aquí y sostenido diez minutos en el navegador, como las demás
+     * rutas de pestaña. Una ciudad grande son 1,5 MB de JSON: en pablo-h310
+     * viajaban en crudo, y el lector que vuelve a una ciudad que ya miró —el
+     * mapa se remonta en cada cambio de pestaña— la volvía a pedir entera.
+     */
+    return jsonResponse(
+      request,
+      { places, total },
+      { headers: { 'Cache-Control': 'private, max-age=600' } },
+    );
   } catch (error) {
     // The message can carry the host, the user and the port. It belongs in the
     // log, not in a response served to the public.

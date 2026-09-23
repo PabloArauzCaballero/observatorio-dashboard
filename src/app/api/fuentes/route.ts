@@ -1,5 +1,6 @@
 import { isUnaffordableRead, readObservatory, readSources } from '@/lib/series';
 import { sideOrderReversal } from '@/lib/side-order';
+import { jsonResponse } from '@/lib/respond';
 
 /**
  * El capítulo del método, pedido al abrir su pestaña.
@@ -17,11 +18,12 @@ import { sideOrderReversal } from '@/lib/side-order';
 
 export const dynamic = 'force-dynamic';
 
-export async function GET(): Promise<Response> {
+export async function GET(request: Request): Promise<Response> {
   try {
     const [sources, observatory] = await Promise.all([readSources(), readObservatory()]);
 
-    return Response.json(
+    return jsonResponse(
+      request,
       {
         sources,
         readingCount: observatory.readingCount,

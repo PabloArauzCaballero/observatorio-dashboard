@@ -1,5 +1,6 @@
 import { ENERGY_CODES, ENERGY_PLACE_CODES, buildEnergyBoard } from '@/lib/energy-board';
 import { isUnaffordableRead, readWorldBoard } from '@/lib/series';
+import { jsonResponse } from '@/lib/respond';
 
 /**
  * La matriz energética, pedida al abrir su rubro.
@@ -17,10 +18,11 @@ import { isUnaffordableRead, readWorldBoard } from '@/lib/series';
 
 export const dynamic = 'force-dynamic';
 
-export async function GET(): Promise<Response> {
+export async function GET(request: Request): Promise<Response> {
   try {
     const points = await readWorldBoard(ENERGY_CODES, ENERGY_PLACE_CODES);
-    return Response.json(
+    return jsonResponse(
+      request,
       { board: buildEnergyBoard(points) },
       { headers: { 'Cache-Control': 'private, max-age=600' } },
     );

@@ -4,6 +4,7 @@ import {
   buildEnvironmentBoard,
 } from '@/lib/environment-board';
 import { isUnaffordableRead, readWorldBoard } from '@/lib/series';
+import { jsonResponse } from '@/lib/respond';
 
 /**
  * El capítulo ambiental, pedido al abrir su rubro.
@@ -16,10 +17,11 @@ import { isUnaffordableRead, readWorldBoard } from '@/lib/series';
 
 export const dynamic = 'force-dynamic';
 
-export async function GET(): Promise<Response> {
+export async function GET(request: Request): Promise<Response> {
   try {
     const points = await readWorldBoard(ENVIRONMENT_CODES, ENVIRONMENT_PLACE_CODES);
-    return Response.json(
+    return jsonResponse(
+      request,
       { board: buildEnvironmentBoard(points) },
       { headers: { 'Cache-Control': 'private, max-age=600' } },
     );

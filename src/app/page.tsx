@@ -1,19 +1,22 @@
 import { Suspense } from 'react';
 import type { GapChartPoint, RatePoint } from '@/components/charts';
 import { Donate } from '@/components/donate';
-import { CitiesSection } from '@/components/cities-section';
-import { FilingsSection } from '@/components/filings-section';
 import { FxEconometricsCard } from '@/components/fx-econometrics-card';
 import { FxSection } from '@/components/fx-section';
-import { MacroSection } from '@/components/macro-section';
 import { MarketCards } from '@/components/market-cards';
-import { PressSection } from '@/components/press-section';
-import { SourcesSection } from '@/components/sources-section';
 import { Icon } from '@/components/icons';
 import { SummaryExplorer } from '@/components/summary-explorer';
 import { TodayBoardPanel } from '@/components/today-board';
 import type { SummaryFigure } from '@/components/summary-explorer';
 import { Tabs } from '@/components/tabs';
+// Las pestañas que se leen al abrirse, en su propio trozo de JavaScript.
+import {
+  CitiesSection,
+  FilingsSection,
+  MacroSection,
+  PressSection,
+  SourcesSection,
+} from './lazy-sections';
 import { dailyAnalysis } from '@/lib/daily-analysis';
 import { buildTodayBoard } from '@/lib/today-board';
 import { packMarketCards } from '@/lib/market-transport';
