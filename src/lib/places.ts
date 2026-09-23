@@ -1,6 +1,13 @@
 import 'server-only';
 import { pool } from './db';
 import { held } from './hold';
+import {
+  deriveRestaurantCuisine,
+  isCuisineKey,
+  syntheticRestaurantFamily,
+  SYNTHETIC_RESTAURANT_PREFIX,
+  type CuisineKey,
+} from './restaurant-cuisine';
 
 /**
  * The places of Santa Cruz de la Sierra, La Paz and Cochabamba.
@@ -119,29 +126,162 @@ export function readPlaceFamilies(): Promise<PlaceFamily[]> {
   return held('placeFamilies', buildPlaceFamilies);
 }
 
-async function buildPlaceFamilies(): Promise<PlaceFamily[]> {
+/**
+ * `RESTAURANTE`, partida por la cocina que su nombre delata.
+ *
+ * El resto de familias se cuenta agregado en la base —una fila por ciudad y
+ * familia— porque a nadie le hace falta el nombre para sumarlas. `RESTAURANTE`
+ * es la excepción: 1.273 de 1.281 restaurantes de Santa Cruz llegan bajo esa
+ * familia genérica sin cocina (comentario de cabecera de `tallySectors` en
+ * `place-sectors.ts`), y la única forma de saber cuántos son pizzería es leer
+ * el nombre de cada uno. Así que esta consulta, y solo esta, trae el nombre
+ * fila por fila y agrega en JavaScript con {@link deriveRestaurantCuisine} —la
+ * misma heurística que usa `/api/lugares` para filtrar, para que el número
+ * mostrado y los lugares que aparecen al pulsarlo sean siempre el mismo
+ * conjunto.
+ *
+ * Devuelve familias sintéticas (`RESTAURANTE__PIZZERIAS`, …) más
+ * `RESTAURANTE` a secas para lo que no tiene cocina detectada. La suma de
+ * todas es exactamente el total que antes tenía la fila `RESTAURANTE`, porque
+ * viene de la misma condición `WHERE`.
+ */
+async function readRestaurantCuisineFamilies(): Promise<PlaceFamily[]> {
   try {
     const { rows } = await pool().query<{
       city: string;
       entity_group: string;
-      entity_family: string;
+      name: string;
+      is_regulated: boolean;
+      in_zone: boolean;
+      confidence: string | null;
+    }>(
+      `SELECT locality AS city, entity_group, name, is_regulated,
+              (zone IS NOT NULL) AS in_zone, confidence::text AS confidence
+       FROM ${PLACE_UNION}
+       WHERE entity_family = 'RESTAURANTE' AND status = 'PUBLISHED' AND NOT superseded`,
+    );
+
+    interface Bucket {
+      city: string;
+      entityGroup: string;
+      entityFamily: string;
+      places: number;
+      regulated: number;
+      locatedInZone: number;
+      confidenceSum: number;
+      confidenceCount: number;
+    }
+    const buckets = new Map<string, Bucket>(); // clave: ciudad + '\u0000' + familia
+
+    for (const row of rows) {
+      const cuisine = deriveRestaurantCuisine(row.name);
+      const entityFamily = cuisine ? syntheticRestaurantFamily(cuisine) : 'RESTAURANTE';
+      const key = `${row.city}\u0000${entityFamily}`;
+      const bucket = buckets.get(key) ?? {
+        city: row.city,
+        entityGroup: row.entity_group,
+        entityFamily,
+        places: 0,
+        regulated: 0,
+        locatedInZone: 0,
+        confidenceSum: 0,
+        confidenceCount: 0,
+      };
+      bucket.places += 1;
+      if (row.is_regulated) bucket.regulated += 1;
+      if (row.in_zone) bucket.locatedInZone += 1;
+      if (row.confidence !== null) {
+        bucket.confidenceSum += Number(row.confidence);
+        bucket.confidenceCount += 1;
+      }
+      buckets.set(key, bucket);
+    }
+
+    return [...buckets.values()].map((bucket) => ({
+      city: bucket.city,
+      entityGroup: bucket.entityGroup,
+      entityFamily: bucket.entityFamily,
+      places: bucket.places,
+      regulated: bucket.regulated,
+      locatedInZone: bucket.locatedInZone,
+      meanConfidence: bucket.confidenceCount
+        ? Math.round((bucket.confidenceSum / bucket.confidenceCount) * 10000) / 10000
+        : null,
+    }));
+  } catch (error) {
+    /*
+     * Si esta consulta falla (columna o tabla ilegible), no hay que perder
+     * `RESTAURANTE` entero: se cae a la agregación simple, sin desglose por
+     * cocina, que es el comportamiento de antes de que existiera esta función.
+     */
+    console.warn(
+      '[observatorio] no se pudo derivar la cocina de los restaurantes, RESTAURANTE queda sin desglosar',
+      error,
+    );
+    return readRestaurantFamiliesPlain();
+  }
+}
+
+async function readRestaurantFamiliesPlain(): Promise<PlaceFamily[]> {
+  try {
+    const { rows } = await pool().query<{
+      city: string;
+      entity_group: string;
       places: string;
       regulated: string;
       located_in_zone: string;
       mean_confidence: string | null;
     }>(
-      `SELECT locality AS city, entity_group, entity_family,
+      `SELECT locality AS city, entity_group,
               count(*)::text                                  AS places,
               count(*) FILTER (WHERE is_regulated)::text      AS regulated,
               count(*) FILTER (WHERE zone IS NOT NULL)::text  AS located_in_zone,
               round(avg(confidence), 4)::text                 AS mean_confidence
        FROM ${PLACE_UNION}
-       WHERE status = 'PUBLISHED' AND NOT superseded
-       GROUP BY locality, entity_group, entity_family
-       ORDER BY 1, places DESC`,
+       WHERE entity_family = 'RESTAURANTE' AND status = 'PUBLISHED' AND NOT superseded
+       GROUP BY locality, entity_group`,
     );
-
     return rows.map((row) => ({
+      city: row.city,
+      entityGroup: row.entity_group,
+      entityFamily: 'RESTAURANTE',
+      places: Number(row.places),
+      regulated: Number(row.regulated),
+      locatedInZone: Number(row.located_in_zone),
+      meanConfidence: row.mean_confidence === null ? null : Number(row.mean_confidence),
+    }));
+  } catch (error) {
+    return unreadable<PlaceFamily>('read_models.city_place_family (RESTAURANTE)', error);
+  }
+}
+
+async function buildPlaceFamilies(): Promise<PlaceFamily[]> {
+  try {
+    const [{ rows }, restaurants] = await Promise.all([
+      pool().query<{
+        city: string;
+        entity_group: string;
+        entity_family: string;
+        places: string;
+        regulated: string;
+        located_in_zone: string;
+        mean_confidence: string | null;
+      }>(
+        `SELECT locality AS city, entity_group, entity_family,
+                count(*)::text                                  AS places,
+                count(*) FILTER (WHERE is_regulated)::text      AS regulated,
+                count(*) FILTER (WHERE zone IS NOT NULL)::text  AS located_in_zone,
+                round(avg(confidence), 4)::text                 AS mean_confidence
+         FROM ${PLACE_UNION}
+         -- RESTAURANTE se calcula aparte, con el nombre, en readRestaurantCuisineFamilies.
+         WHERE status = 'PUBLISHED' AND NOT superseded AND entity_family <> 'RESTAURANTE'
+         GROUP BY locality, entity_group, entity_family
+         ORDER BY 1, places DESC`,
+      ),
+      readRestaurantCuisineFamilies(),
+    ]);
+
+    const base = rows.map((row) => ({
       city: row.city,
       entityGroup: row.entity_group,
       entityFamily: row.entity_family,
@@ -150,9 +290,85 @@ async function buildPlaceFamilies(): Promise<PlaceFamily[]> {
       locatedInZone: Number(row.located_in_zone),
       meanConfidence: row.mean_confidence === null ? null : Number(row.mean_confidence),
     }));
+
+    return [...base, ...restaurants].sort(
+      (a, b) => a.city.localeCompare(b.city) || b.places - a.places,
+    );
   } catch (error) {
     return unreadable<PlaceFamily>('read_models.city_place_family', error);
   }
+}
+
+/**
+ * Cómo traducir las familias que pide el lector antes de ir a la base.
+ *
+ * `RESTAURANTE__PIZZERIAS` (y sus hermanas) no son un `entity_family` real:
+ * son `RESTAURANTE` filtrado por el mismo patrón de nombre que
+ * {@link deriveRestaurantCuisine} usó para publicarlas en `/api/familias`. La
+ * base no sabe leer eso, así que esta función pide siempre `RESTAURANTE` en su
+ * lugar y deja anotado qué cocinas hay que quedarse tras leer el nombre de
+ * cada fila.
+ */
+interface FamilyPlan {
+  /** Las familias reales que sí puede filtrar la base con `entity_family = ANY(...)`. */
+  queryFamilies: string[];
+  /** Las cocinas pedidas, o `null` si no se pidió ninguna familia sintética. */
+  cuisines: Set<CuisineKey> | null;
+  /** Si además se pidió `RESTAURANTE` a secas (sin cocina detectada). */
+  plainRestaurante: boolean;
+}
+
+function planFamilies(families: readonly string[]): FamilyPlan {
+  const queryFamilies = new Set<string>();
+  const cuisines = new Set<CuisineKey>();
+  let plainRestaurante = false;
+  let sawSynthetic = false;
+
+  for (const family of families) {
+    if (family === 'RESTAURANTE') {
+      plainRestaurante = true;
+      queryFamilies.add(family);
+      continue;
+    }
+    if (family.startsWith(SYNTHETIC_RESTAURANT_PREFIX)) {
+      const cuisine = family.slice(SYNTHETIC_RESTAURANT_PREFIX.length);
+      if (isCuisineKey(cuisine)) {
+        cuisines.add(cuisine);
+        sawSynthetic = true;
+        queryFamilies.add('RESTAURANTE');
+      }
+      continue;
+    }
+    queryFamilies.add(family);
+  }
+
+  return {
+    queryFamilies: [...queryFamilies],
+    cuisines: sawSynthetic ? cuisines : null,
+    plainRestaurante,
+  };
+}
+
+/**
+ * Deja solo los `RESTAURANTE` cuya cocina —derivada del nombre— está en
+ * `plan`; cualquier otra familia pasa igual, sin tocar.
+ *
+ * Es la contraparte, en JavaScript, de lo que `/api/familias` ya contó en
+ * `readRestaurantCuisineFamilies`: por eso el número que el árbol muestra al
+ * lado de «Pizzerías» y los lugares que aparecen al pulsarla son siempre el
+ * mismo conjunto.
+ */
+function filterByCuisine<T extends { entityFamily: string; name: string }>(
+  places: readonly T[],
+  plan: FamilyPlan,
+): T[] {
+  if (!plan.cuisines) return [...places];
+  const cuisines = plan.cuisines;
+  return places.filter((place) => {
+    if (place.entityFamily !== 'RESTAURANTE') return true;
+    const cuisine = deriveRestaurantCuisine(place.name);
+    return cuisine ? cuisines.has(cuisine) : plan.plainRestaurante;
+  });
 }
 
 /**
@@ -198,7 +414,18 @@ export async function readPlaces(
 ): Promise<{ places: Place[]; total: number }> {
   if (cities.length === 0) return { places: [], total: 0 };
   try {
-    const { where, values } = placeScope(cities, families);
+    const plan = planFamilies(families);
+    const { where, values } = placeScope(cities, plan.queryFamilies);
+    /*
+     * Con familia sintética hay que leer el `RESTAURANTE` de la ciudad entero
+     * y filtrar por nombre después: el recorte real es más chico que lo que
+     * pide la base, así que un límite de 4.000 aplicado antes del filtro
+     * podría dejar fuera pizzerías que sí calificaban. El tope duro sigue
+     * siendo el mismo de siempre (`todos=1`).
+     */
+    const fetchLimit = plan.cuisines
+      ? 20000
+      : Math.min(Math.max(limit, 1), 20000);
 
     /*
      * El recuento y las filas a la vez, cada uno en su conexión del pool.
@@ -239,30 +466,38 @@ export async function readPlaces(
        -- y no una franja arbitraria de la ciudad.
        ORDER BY confidence DESC NULLS LAST, name
        LIMIT $${values.length + 1}`,
-      [...values, Math.min(Math.max(limit, 1), 20000)],
+      [...values, fetchLimit],
     );
 
     const [counted, { rows }] = await Promise.all([countedQuery, rowsQuery]);
 
-    return {
-      total: Number(counted.rows[0]?.total ?? 0),
-      places: rows.map((row) => ({
-        placeId: row.place_id,
-        name: row.name,
-        city: row.city,
-        zone: row.zone,
-        latitude: Number(row.latitude),
-        longitude: Number(row.longitude),
-        entityGroup: row.entity_group,
-        entityFamily: row.entity_family,
-        isRegulated: row.is_regulated,
-        address: row.address,
-        brand: row.brand,
-        confidence: row.confidence === null ? null : Number(row.confidence),
-        qualityGrade: row.quality_grade,
-        officialValidationSource: row.official_validation_source,
-      })),
-    };
+    let places = rows.map((row) => ({
+      placeId: row.place_id,
+      name: row.name,
+      city: row.city,
+      zone: row.zone,
+      latitude: Number(row.latitude),
+      longitude: Number(row.longitude),
+      entityGroup: row.entity_group,
+      entityFamily: row.entity_family,
+      isRegulated: row.is_regulated,
+      address: row.address,
+      brand: row.brand,
+      confidence: row.confidence === null ? null : Number(row.confidence),
+      qualityGrade: row.quality_grade,
+      officialValidationSource: row.official_validation_source,
+    }));
+    let total = Number(counted.rows[0]?.total ?? 0);
+
+    if (plan.cuisines) {
+      // El recuento SQL contaba todo `RESTAURANTE`; el nombre descarta lo que
+      // no encaja con la cocina pedida, así que el total real es el filtrado.
+      places = filterByCuisine(places, plan);
+      total = places.length;
+      places = places.slice(0, Math.min(Math.max(limit, 1), 20000));
+    }
+
+    return { total, places };
   } catch (error) {
     return { places: unreadable<Place>('read_models.city_place', error), total: 0 };
   }
@@ -282,7 +517,8 @@ export async function readPlacesForExport(
   families: readonly string[],
 ): Promise<Place[]> {
   if (cities.length === 0) return [];
-  const { where, values } = placeScope(cities, families);
+  const plan = planFamilies(families);
+  const { where, values } = placeScope(cities, plan.queryFamilies);
   try {
 
     const { rows } = await pool().query<{
@@ -311,7 +547,7 @@ export async function readPlacesForExport(
       values,
     );
 
-    return rows.map((row) => ({
+    const places = rows.map((row) => ({
       placeId: row.place_id,
       name: row.name,
       city: row.city,
@@ -327,6 +563,7 @@ export async function readPlacesForExport(
       qualityGrade: row.quality_grade,
       officialValidationSource: row.official_validation_source,
     }));
+    return filterByCuisine(places, plan);
   } catch (error) {
     return unreadable<Place>('read_models.city_place', error);
   }

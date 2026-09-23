@@ -1,4 +1,5 @@
 import type { IconName } from '@/components/icons';
+import { CUISINE_KEYS, syntheticRestaurantFamily } from './restaurant-cuisine';
 
 /**
  * El rubro económico de un lugar, que la fuente no publica.
@@ -212,6 +213,17 @@ const SECTOR_BY_FAMILY: Record<string, PlaceSector> = {
   OV_PATISSERIE_CAKE_SHOP: 'GASTRONOMIA',
   OV_CUSTOM_CAKES_SHOP: 'GASTRONOMIA',
   OV_PIZZA_DELIVERY_SERVICE: 'GASTRONOMIA',
+
+  /*
+   * Las familias sintéticas de `/api/familias`: la cocina que
+   * `restaurant-cuisine.ts` le lee al nombre de un `RESTAURANTE` sin
+   * especialidad declarada. No son un código del catálogo del núcleo — son un
+   * `RESTAURANTE` de siempre, partido en el tablero — así que el rubro es el
+   * mismo que el de cualquier restaurante.
+   */
+  ...Object.fromEntries(
+    CUISINE_KEYS.map((cuisine) => [syntheticRestaurantFamily(cuisine), 'GASTRONOMIA' as const]),
+  ),
 };
 
 /**
@@ -913,6 +925,16 @@ const SUBSECTOR_RULES: Record<PlaceSector, SubsectorRule[]> = {
 const SUBSECTOR_BY_FAMILY: Record<string, string> = {
   // Overture llama «delicatessen» al local que sirve fiambres, no a la tienda.
   OV_DELICATESSEN: 'OTRAS_COCINAS',
+
+  /*
+   * Las familias sintéticas de la cocina derivada del nombre
+   * (`RESTAURANTE__PIZZERIAS`, …). La clave de la cocina es, a propósito, la
+   * misma que la del sub-rubro en `SUBSECTOR_RULES.GASTRONOMIA`: no hace
+   * falta traducir una en la otra.
+   */
+  ...Object.fromEntries(
+    CUISINE_KEYS.map((cuisine) => [syntheticRestaurantFamily(cuisine), cuisine]),
+  ),
 };
 
 export interface PlaceSubsector {
@@ -1076,8 +1098,21 @@ export interface SectorTally {
  * Oruro y casi nunca aquí. En una muestra de 432 de esos restaurantes, el
  * nombre delata la especialidad en uno de cada cuatro —Papa Johns, Burger
  * King, Pollos El Campeón, churrasquerías—, así que «Pizzerías» con una sola
- * fila es un hueco del catálogo y no del árbol: se llena cuando el núcleo
- * reclasifique esas familias, sin tocar este archivo.
+ * fila era un hueco del catálogo y no del árbol.
+ *
+ * RESUELTO (2026-09-23), sin tocar el núcleo ni el corpus: reclasificar la
+ * familia allá tocaría datos ya cargados, que este repo trata como
+ * inmutables, así que la cocina se deriva del nombre aquí, en el tablero.
+ * `src/lib/restaurant-cuisine.ts` lee el nombre de cada `RESTAURANTE` y
+ * devuelve una clave de cocina o `null`; `/api/familias` (`src/lib/places.ts`)
+ * hace esa pasada por ciudad y publica el resultado como familias sintéticas
+ * —`RESTAURANTE__PIZZERIAS`, `RESTAURANTE__HAMBURGUESERIAS`…— manteniendo
+ * `RESTAURANTE` a secas para lo que el nombre no delata; `/api/lugares`
+ * traduce esas familias sintéticas de vuelta a «`RESTAURANTE` filtrado por el
+ * mismo patrón» al pedir los lugares. Este archivo solo necesitó una entrada
+ * más en {@link SECTOR_BY_FAMILY} y otra en {@link SUBSECTOR_BY_FAMILY} por
+ * cocina, apuntando a los sub-rubros de `RESTAURANTES` que ya existían: el
+ * árbol no ganó nodos nuevos, solo dejó de estar vacíos.
  */
 export function tallySectors(
   rows: ReadonlyArray<{
