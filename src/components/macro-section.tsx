@@ -18,8 +18,10 @@ import type { MacroBundle } from '@/lib/macro-transport';
  *
  * Tres y no una. «Series de Bolivia» son las que el observatorio mide una por
  * una; «Social Info» es el WDI entero recortado a Bolivia —salud, educación,
- * pobreza, empleo—, para la cifra que las primeras no tienen; «Economía
- * mundial» pone a Bolivia al lado del mundo y de su región. Las dos primeras
+ * pobreza, empleo—, para la cifra que las primeras no tienen; «Bolivia ante
+ * el mundo» pone a Bolivia al lado del mundo y de su región —el nombre dice
+ * desde dónde se mira: es la lectura de Bolivia frente al mundo, no la del
+ * mundo a secas—. Las dos primeras
  * estuvieron mezcladas —promediadas, de hecho— hasta la migración 0077.
  *
  * La matriz energética y los índices que califican la libertad tuvieron su
@@ -37,7 +39,7 @@ import type { MacroBundle } from '@/lib/macro-transport';
 export function MacroSection() {
   return (
     <SubTabs
-      labels={['Series de Bolivia', 'Social Info', 'Economía mundial']}
+      labels={['Series de Bolivia', 'Social Info', 'Bolivia ante el mundo']}
       icons={['linea', 'capas', 'globo']}
     >
       <MeasuresPanel />

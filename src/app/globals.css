@@ -4763,6 +4763,79 @@ button.download-btn {
   }
 }
 
+/* Rejilla de tres gráficos ----------------------------------------------- */
+
+/*
+ * Tres gráficos por fila, y las filas siempre llenas.
+ *
+ * Energía, Recursos naturales y Medio ambiente iban de dos en dos, y a 1440 px
+ * cada gráfico anual de veinte años ocupaba media pantalla para decir lo que
+ * dice en un tercio: la lectura de un capítulo era un desplazamiento largo con
+ * mucho aire. A tres por fila el capítulo entero cabe en dos o tres pantallas
+ * y las filas siguen leyéndose como filas, que es lo que el lector pidió.
+ *
+ * Tres fijas y no `auto-fit`: la cuenta de columnas tiene que depender del
+ * ancho de la pantalla y no del de la columna que la sostiene, porque estos
+ * paneles viven a la derecha de la barra de filtros y con `auto-fit` a 1100 px
+ * salían dos. Por debajo de 1100 son dos, y en el móvil una. `minmax(0, 1fr)`
+ * por la misma razón que en `.grid-pair`: un rótulo largo del eje no ensancha
+ * su columna.
+ *
+ * La última fila no queda con un hueco. Nueve gráficos son tres filas justas,
+ * pero ocho o diez no, y un panel solo en su fila con dos tercios vacíos al
+ * lado es el agujero que se lee como «la página está rota». El que sobra se
+ * ensancha hasta el borde: uno solo ocupa la fila entera, y el segundo de dos
+ * se lleva las dos columnas que quedan. A dos columnas la regla es la misma con
+ * el impar; a una no hay nada que ensanchar, y se apaga —un `span` sobre una
+ * sola columna crearía columnas implícitas fuera de la página—.
+ */
+.grid-three {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--s2);
+}
+
+/*
+ * Las cifras de cabecera, de dos en dos dentro del panel.
+ *
+ * A un tercio de pantalla el panel mide unos 320 px, y con el mínimo de 158
+ * que la franja usa a ancho completo las cinco cifras de la electricidad se
+ * apilaban de a una: medio panel de números y el gráfico de al lado estirado
+ * hasta igualar ese alto. Con 120 caben dos por renglón y el alto se reparte.
+ */
+.grid-three .stat-strip {
+  grid-template-columns: repeat(auto-fit, minmax(min(120px, 100%), 1fr));
+}
+
+.grid-three > .panel:last-child:nth-child(3n + 1) {
+  grid-column: 1 / -1;
+}
+
+.grid-three > .panel:last-child:nth-child(3n + 2) {
+  grid-column: 2 / -1;
+}
+
+@media (max-width: 1099px) {
+  .grid-three {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .grid-three > .panel:last-child:nth-child(n) {
+    grid-column: auto;
+  }
+  .grid-three > .panel:last-child:nth-child(odd) {
+    grid-column: 1 / -1;
+  }
+}
+
+@media (max-width: 720px) {
+  .grid-three {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .grid-three > .panel:last-child:nth-child(n) {
+    grid-column: auto;
+  }
+}
+
 /*
  * El gráfico se queda con el alto que sobra, en vez de dejarlo en blanco.
  *
@@ -4782,15 +4855,22 @@ button.download-btn {
  * Las barras no engordan al crecer el marco: `BAR_CAP` las tiene topadas en
  * `charts.tsx`, así que lo que gana el gráfico es aire entre barras, que es
  * exactamente lo que le faltaba.
+ *
+ * Vale igual para la rejilla de tres: son las mismas filas de paneles con la
+ * misma altura compartida, sólo que con uno más por fila.
  */
-.grid-pair > .panel {
+.grid-pair > .panel,
+.grid-three > .panel {
   display: flex;
   flex-direction: column;
 }
 
 .grid-pair > .panel > .chart-frame,
 .grid-pair > .panel > .chart-stack,
-.grid-pair > .panel > .chart-stack > .chart-frame {
+.grid-pair > .panel > .chart-stack > .chart-frame,
+.grid-three > .panel > .chart-frame,
+.grid-three > .panel > .chart-stack,
+.grid-three > .panel > .chart-stack > .chart-frame {
   flex: 1 0 auto;
   min-height: 0;
 }
@@ -4884,7 +4964,7 @@ button.download-btn {
   margin: 0.45rem 0 0;
 }
 
-/* Economía mundial ------------------------------------------------------- */
+/* Bolivia ante el mundo -------------------------------------------------- */
 
 /*
  * The world, the region and Bolivia, one row each.

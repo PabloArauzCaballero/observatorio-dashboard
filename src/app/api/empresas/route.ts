@@ -9,7 +9,7 @@ import { isUnaffordableRead, readCompanyFilings } from '@/lib/series';
  * abrirla, así que ese peso viajaba —y se serializaba, y se volvía a analizar en
  * el navegador— para nada.
  *
- * Es el mismo patrón que ya seguían «Social Info» y «Economía mundial», por la
+ * Es el mismo patrón que ya seguían «Social Info» y «Bolivia ante el mundo», por la
  * misma razón y con la misma cabecera: el recolector publica tres veces al día,
  * así que un navegador que sale de la pestaña y vuelve puede quedarse diez
  * minutos con lo que ya tiene en vez de preguntar otra vez. Las pestañas se
