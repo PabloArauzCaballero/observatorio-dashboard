@@ -2558,6 +2558,53 @@ code {
   position: relative;
 }
 
+/*
+ * El mismo conmutador, en un panel cuya cabecera es prosa.
+ *
+ * `.card-toggle` cuelga del borde derecho de la cabecera, y en `.tile-head` el
+ * rótulo ya le cede el sitio. En `.panel-head` lo que hay debajo es el título,
+ * que en un teléfono se parte en dos líneas y llevaba la primera hasta el
+ * borde: el icono caía encima de la última palabra. Reservarle el ancho al
+ * título lo separa sin mover el botón.
+ */
+.panel-head.card-head > h2 {
+  padding-right: 2.4rem;
+}
+
+/* La ventana de las velas: tres chips en fila, sin el riel que no hay aquí. */
+.candle-ranges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem;
+}
+
+/*
+ * La lectura del tramo se apoya bajo el pie de la vela, no pegada a él.
+ *
+ * Son cuatro cifras, y la rejilla general de `.stat-strip` las repartía en
+ * tres más una, con la casilla sobrante pintada del color de la regla. Con
+ * 200 px de mínimo salen cuatro en una fila ancha, dos por dos en media
+ * pantalla y una por fila en el teléfono: nunca un hueco.
+ */
+.candle-reading {
+  margin-top: 0.35rem;
+  grid-template-columns: repeat(auto-fit, minmax(min(200px, 100%), 1fr));
+}
+
+/* Una ficha dentro de la pila de velas: subtítulo, no un panel nuevo. */
+.candle-token + .candle-token {
+  margin-top: var(--s2);
+  padding-top: var(--s2);
+  border-top: 1px solid var(--rule);
+}
+
+.tile-head h3 {
+  font-family: var(--serif);
+  font-size: 0.98rem;
+  font-weight: 600;
+  margin: 0;
+}
+
 .card-toggle {
   position: absolute;
   top: -2px;

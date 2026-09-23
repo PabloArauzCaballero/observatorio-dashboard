@@ -1,10 +1,10 @@
 import { FxExplorer } from './fx-explorer';
 import { FxMacroPanels } from './fx-macro-panels';
+import type { SidedPoint } from './fx-macro-panels';
 import type { RatePoint } from './charts';
 import { officialSeries, readObservatory, readStablecoins } from '@/lib/series';
 import type { Observatory } from '@/lib/series';
 import { realIndex, toMacroPoints } from '@/lib/fx-macro';
-import type { MacroPoint } from '@/lib/fx-macro';
 import { readFxSnapshot } from '@/lib/fx-reader';
 import type { Observation } from '@/lib/econometrics';
 
@@ -57,9 +57,20 @@ export async function FxSection() {
    * Ninguna otra ficha se empalma. USDC no estaba en ese archivo bajo ningún
    * nombre, y prolongarla hacia atrás con el paralelo sería inventarle historia.
    */
+  /*
+   * Cada punto lleva sus dos lados además del punto medio. La línea solo
+   * dibuja el medio; la vista de velas del mismo panel usa compra y venta como
+   * mecha de la jornada, y sin ellos aquí tendría que inventarla. En el tramo
+   * empalmado los lados son los del paralelo, que es de donde sale el medio.
+   */
   const labelled = stablecoins.find((entry) => entry.token === 'USDT')?.points.at(0)?.date;
   const tokens = stablecoins.map((entry) => {
-    const own = entry.points.map((point) => ({ date: point.date, value: point.mid }));
+    const own = entry.points.map((point) => ({
+      date: point.date,
+      value: point.mid,
+      bid: point.bid,
+      ask: point.ask,
+    }));
     const spliced =
       entry.token === 'USDT' && labelled
         ? [...parallelMid.filter((point) => point.date < labelled), ...own]
@@ -94,12 +105,20 @@ function asObservations(points: DailyPoints): Observation[] {
   }));
 }
 
-/** Mid-point of the two published sides, which no relabelling can move. */
-function midSeries(buy: DailyPoints, sell: DailyPoints): MacroPoint[] {
+/**
+ * Mid-point of the two published sides, which no relabelling can move.
+ *
+ * The sides ride along as `bid` and `ask` so a candle can draw them as the
+ * day's wick; they are labelled as the source labels them, and the candle takes
+ * the smaller and the larger, so a swapped label changes nothing it draws.
+ */
+function midSeries(buy: DailyPoints, sell: DailyPoints): SidedPoint[] {
   const sellByDate = new Map(sell.map((point) => [point.date, point.value]));
   return buy.flatMap((point) => {
     const other = sellByDate.get(point.date);
-    return other === undefined ? [] : [{ date: point.date, value: (point.value + other) / 2 }];
+    return other === undefined
+      ? []
+      : [{ date: point.date, value: (point.value + other) / 2, bid: point.value, ask: other }];
   });
 }
 

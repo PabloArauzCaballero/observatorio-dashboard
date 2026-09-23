@@ -6,6 +6,8 @@ import { DatedLines } from './charts';
 import type { DatedBand, DatedLinePoint, DatedLineSeries } from './charts';
 import { Icon } from './icons';
 import type { IconName } from './icons';
+import { LevelCandles } from './level-candles';
+import type { CandleSession } from '@/lib/candles';
 import type { MacroPoint, RegimeSegment } from '@/lib/fx-macro';
 import type { FxConclusion, FxSnapshot, StablecoinReading } from '@/lib/fx-snapshot';
 import { isPlottable } from '@/lib/stablecoin-market-survey';
@@ -154,12 +156,21 @@ function regimeBands(regimes: readonly RegimeSegment[]): DatedBand[] {
     .map((segment) => ({ from: segment.from, to: segment.to, label: 'oficial fijo' }));
 }
 
+/**
+ * Un punto de nivel con los dos lados que lo produjeron, cuando la fuente los
+ * publica. La línea dibuja `value`; la vela usa `bid` y `ask` como mecha.
+ */
+export interface SidedPoint extends MacroPoint {
+  bid?: number | null;
+  ask?: number | null;
+}
+
 export interface FxMacroPanelsProps {
   snapshot: FxSnapshot;
   /** The parallel in real terms, base 100 at the first day it and the UFV exist. */
   realParallel: readonly MacroPoint[];
   /** One entry per token; USDT carries the parallel before the split begins. */
-  tokens: ReadonlyArray<{ token: string; points: readonly MacroPoint[] }>;
+  tokens: ReadonlyArray<{ token: string; points: readonly SidedPoint[] }>;
   /** First day a reading names its instrument, where the token line stops being spliced. */
   labelledFrom?: string | undefined;
 }
@@ -212,10 +223,25 @@ export function FxMacroPanels({
   tokens,
   labelledFrom,
 }: FxMacroPanelsProps) {
+  /*
+   * Línea o velas, por panel y a propósito por separado. Los dos dibujan un
+   * nivel de precio contra el calendario y los dos se piden como velas para
+   * el análisis variacional, pero la pregunta de cada uno es distinta —cuánto
+   * poder de compra perdió el dólar; cuánto cuesta por cada riel— y un lector
+   * que abre las velas de uno no ha pedido las del otro.
+   */
+  const [realCandles, setRealCandles] = useState(false);
+  const [tokenCandles, setTokenCandles] = useState(false);
+
   const bands = regimeBands(snapshot.regimes);
   const realRows: DatedLinePoint[] = realParallel.map((point) => ({
     date: point.date,
     paralelo: point.value,
+  }));
+  /** El índice real como jornadas: un valor al día y ningún lado, porque un índice no los tiene. */
+  const realSessions: CandleSession[] = realParallel.map((point) => ({
+    date: point.date,
+    mid: point.value,
   }));
 
   /*
@@ -251,6 +277,22 @@ export function FxMacroPanels({
     }
     return row;
   });
+  /*
+   * Cada ficha como jornadas para sus velas: el punto medio abre y cierra, y
+   * la compra y la venta medianas del día —cuando la fuente resolvió los
+   * lados— son la mecha. Una ficha con un solo lado ese día lleva ese lado y
+   * el punto medio, que es lo que se sabe de ella.
+   */
+  const tokenSessions = plotted.map((entry) => ({
+    token: entry.token,
+    sessions: entry.points.map(
+      (point): CandleSession => ({
+        date: point.date,
+        mid: point.value,
+        sides: [point.bid, point.ask].filter((side): side is number => typeof side === 'number'),
+      }),
+    ),
+  }));
 
   return (
     <>
@@ -272,7 +314,18 @@ export function FxMacroPanels({
        */}
       <div className="grid-pair">
         <div className="panel">
-          <div className="panel-head">
+          <div className="panel-head card-head">
+            <button
+              type="button"
+              className={realCandles ? 'card-toggle card-toggle-on' : 'card-toggle'}
+              onClick={() => setRealCandles(!realCandles)}
+              title={
+                realCandles ? 'Ver el índice como línea' : 'Ver una vela por jornada del índice'
+              }
+              aria-pressed={realCandles}
+            >
+              <Icon name={realCandles ? 'linea' : 'velas'} size={16} />
+            </button>
             <h2>Dólar paralelo descontada la inflación (índice, base 100)</h2>
             <p className="panel-sub">
               Lo que la inflación le quitó al dólar: el paralelo deflactado por la UFV, con su nivel
@@ -284,7 +337,9 @@ export function FxMacroPanels({
               oficial estuvo fijo.
             </p>
           </div>
-          {realRows.length > 1 ? (
+          {realRows.length > 1 && realCandles ? (
+            <LevelCandles sessions={realSessions} unit="puntos del índice" decimals={1} />
+          ) : realRows.length > 1 ? (
             <DatedLines
               data={realRows}
               series={REAL_SERIES}
@@ -302,7 +357,18 @@ export function FxMacroPanels({
         </div>
 
         <div className="panel">
-          <div className="panel-head">
+          <div className="panel-head card-head">
+            <button
+              type="button"
+              className={tokenCandles ? 'card-toggle card-toggle-on' : 'card-toggle'}
+              onClick={() => setTokenCandles(!tokenCandles)}
+              title={
+                tokenCandles ? 'Ver las fichas como líneas' : 'Ver una vela por jornada de cada ficha'
+              }
+              aria-pressed={tokenCandles}
+            >
+              <Icon name={tokenCandles ? 'linea' : 'velas'} size={16} />
+            </button>
             <h2>Precio del dólar por ficha estable (Bs/USD)</h2>
             <p className="panel-sub">
               El dólar por cada riel: punto medio en bolivianos por dólar de cada ficha estable, que
@@ -320,7 +386,35 @@ export function FxMacroPanels({
               ) : null}
             </p>
           </div>
-          {tokenRows.length >= TOKEN_CHART_MINIMUM ? (
+          {tokenRows.length >= TOKEN_CHART_MINIMUM && tokenCandles ? (
+            /*
+             * Una pila de velas por ficha y no una sola con las dos: una vela
+             * es un precio en el tiempo, y dos fichas superpuestas serían dos
+             * precios peleando por el mismo cuerpo. La ventana abre en «90
+             * días» porque es donde vive el tramo leído por ficha; «Todo»
+             * devuelve a USDT su historia empalmada, ya por semanas.
+             */
+            <div className="chart-stack">
+              {tokenSessions.map((entry) => (
+                <div key={entry.token} className="candle-token">
+                  <div className="tile-head">
+                    <Icon name="chip" size={15} />
+                    <h3>{entry.token} (Bs/USD)</h3>
+                    <span className="tile-hint">
+                      {entry.sessions.length.toLocaleString('es-BO')} jornadas
+                    </span>
+                  </div>
+                  <LevelCandles
+                    sessions={entry.sessions}
+                    unit="Bs/USD"
+                    decimals={3}
+                    sidesNote="la compra y la venta medianas de la jornada"
+                    defaultRange="90d"
+                  />
+                </div>
+              ))}
+            </div>
+          ) : tokenRows.length >= TOKEN_CHART_MINIMUM ? (
             <DatedLines
               data={tokenRows}
               series={tokenSeries}

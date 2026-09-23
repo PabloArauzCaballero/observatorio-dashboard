@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from 'react';
 import {
+  CandleReading,
   DayCandles,
   Histogram,
   RateChart,
@@ -10,9 +11,11 @@ import {
   sayDate,
   useRangeZoom,
 } from './charts';
-import type { DayCandle, RatePoint } from './charts';
+import type { RatePoint } from './charts';
 import { Icon } from './icons';
 import type { IconName } from './icons';
+import { CANDLE_DAILY_LIMIT, CANDLE_WEEK_LIMIT, sessionCandles } from '@/lib/candles';
+import type { CandleSession } from '@/lib/candles';
 import {
   aggregationBoundary,
   drawdown,
@@ -166,17 +169,6 @@ function seriesOf(rows: RatePoint[], official: Observation[], choice: SeriesChoi
   return out;
 }
 
-/**
- * Above this many sessions the candles are grouped into weeks to stay legible.
- *
- * A hundred and twenty, not ninety: «90 días» leaves ninety-one sessions, and a
- * threshold of ninety turned the one selection the caption tells the reader to
- * pick into the weekly view it was meant to escape.
- */
-const DAILY_LIMIT = 120;
-/** And no more weeks than fit with a body a reader can see. */
-const WEEK_LIMIT = 104;
-
 export function FxExplorer({ rows, official, readingCount }: FxExplorerProps) {
   const [range, setRange] = useState('todo');
   const [series, setSeries] = useState<SeriesChoice>('MID');
@@ -295,77 +287,31 @@ export function FxExplorer({ rows, official, readingCount }: FxExplorerProps) {
   /**
    * The rate as candles, over the period the reader chose.
    *
-   * A candle needs a high and a low that are not its own body. With one quote a
-   * day the close of each session IS the open of the next, so daily candles
-   * tile into a continuous ribbon — honest, and unreadable as a candle chart.
-   * Grouping the sessions into weeks fixes that with real numbers: the week
-   * opens at its first mid-point, closes at its last, and its high and low are
-   * the highest and lowest the rate actually reached inside it.
+   * The grouping rule — one candle a session while they read, one a week once
+   * they would tile into a ribbon — lives in `@/lib/candles`, because the
+   * per-token panels read their series the same way and the two views must
+   * agree on where the threshold is. What is decided here is only which rows
+   * become sessions: the ones carrying both published sides, since the wick is
+   * those two and a session with one side has no spread to draw.
    *
-   * Short selections stay daily, because ninety sessions do read, and there the
-   * wick is the spread the source published that day — a long one is a session
-   * where the two sides pulled apart, which is when the parallel market is
-   * under strain.
-   *
-   * Neither is an intraday candle and the caption says so. The observatory
+   * Neither view is an intraday candle and the caption says so. The observatory
    * holds one reading a day; drawing four prices from a single quote would be
    * inventing three of them.
    */
   const zoomedRows = levelZoom.visible(visibleRows);
 
-  const dayCandles = useMemo((): DayCandle[] => {
-    const sessions: Array<{ date: string; mid: number; buy: number; sell: number }> = [];
+  const candleSet = useMemo(() => {
+    const sessions: CandleSession[] = [];
     for (const row of zoomedRows) {
       const buy = row.parallelBuy ?? null;
       const sell = row.parallelSell ?? null;
       if (buy === null || sell === null) continue;
-      sessions.push({ date: row.date, mid: (buy + sell) / 2, buy, sell });
+      sessions.push({ date: row.date, mid: (buy + sell) / 2, sides: [buy, sell] });
     }
-
-    if (sessions.length <= DAILY_LIMIT) {
-      const out: DayCandle[] = [];
-      let previous: number | null = null;
-      for (const session of sessions) {
-        if (previous !== null) {
-          out.push({
-            date: session.date,
-            open: previous,
-            close: session.mid,
-            high: Math.max(session.buy, session.sell, previous, session.mid),
-            low: Math.min(session.buy, session.sell, previous, session.mid),
-          });
-        }
-        previous = session.mid;
-      }
-      return out;
-    }
-
-    /** Sessions grouped by the Monday they belong to. */
-    const weeks = new Map<string, Array<(typeof sessions)[number]>>();
-    for (const session of sessions) {
-      const day = new Date(`${session.date}T12:00:00Z`);
-      const monday = new Date(day);
-      monday.setUTCDate(day.getUTCDate() - ((day.getUTCDay() + 6) % 7));
-      const key = monday.toISOString().slice(0, 10);
-      weeks.set(key, [...(weeks.get(key) ?? []), session]);
-    }
-
-    return [...weeks.entries()]
-      .sort((left, right) => left[0].localeCompare(right[0]))
-      .slice(-WEEK_LIMIT)
-      .map(([week, held]) => {
-        const mids = held.map((session) => session.mid);
-        return {
-          date: week,
-          open: held[0]?.mid ?? 0,
-          close: held.at(-1)?.mid ?? 0,
-          high: Math.max(...mids),
-          low: Math.min(...mids),
-        };
-      });
+    return sessionCandles(sessions);
   }, [zoomedRows]);
 
-  const weekly = dayCandles.length > 0 && dayCandles.length !== zoomedRows.length - 1;
+  const weekly = candleSet.grouping === 'SEMANA';
 
   const chosen = SERIES.find((entry) => entry.key === series);
   const first = selected.at(0);
@@ -600,10 +546,13 @@ export function FxExplorer({ rows, official, readingCount }: FxExplorerProps) {
                           Una vela por <b>semana</b> del paralelo: abre en el punto medio de su
                           primera jornada, cierra en el de la última, y la mecha va del mínimo al
                           máximo que el tipo de cambio alcanzó dentro de esa semana. Con más de{' '}
-                          {DAILY_LIMIT} jornadas se agrupa así porque, con una cotización por día,
-                          el cierre de una vela diaria <b>es</b> la apertura de la siguiente y los
-                          cuerpos se pegan en una cinta continua. Elegí «90 días» a la izquierda
-                          para verlas jornada por jornada.
+                          {CANDLE_DAILY_LIMIT} jornadas se agrupa así porque, con una cotización
+                          por día, el cierre de una vela diaria <b>es</b> la apertura de la
+                          siguiente y los cuerpos se pegan en una cinta continua.
+                          {candleSet.clipped
+                            ? ` Se dibujan las últimas ${CANDLE_WEEK_LIMIT} semanas. `
+                            : ' '}
+                          Elegí «90 días» a la izquierda para verlas jornada por jornada.
                         </>
                       ) : (
                         <>
@@ -618,7 +567,17 @@ export function FxExplorer({ rows, official, readingCount }: FxExplorerProps) {
                     </p>
                     {/* The candles honour the drag, so they carry the way out of it. */}
                     <ZoomExit zoom={levelZoom} format={sayDate} />
-                    <DayCandles data={dayCandles} unit="Bs/USD" />
+                    <DayCandles data={candleSet.candles} unit="Bs/USD" />
+                    {/*
+                     * La variación del tramo, leída de las mismas velas: sin
+                     * esto la vista de velas enseñaba el movimiento y obligaba
+                     * a estimarlo a ojo contra la escala del pie.
+                     */}
+                    <CandleReading
+                      data={candleSet.candles}
+                      unit="Bs/USD"
+                      grouping={candleSet.grouping}
+                    />
                   </>
                 ) : (
                   <>

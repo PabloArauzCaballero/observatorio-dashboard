@@ -1,6 +1,8 @@
 'use client';
 
 import { Fragment, useState } from 'react';
+import { candleSummary } from '@/lib/candles';
+import type { CandleGrouping, DayCandle } from '@/lib/candles';
 import { additive } from '@/lib/choice';
 import { Icon } from './icons';
 import {
@@ -1233,16 +1235,13 @@ export function YearCandles({ data, unit }: { data: CandlePoint[]; unit: string 
   );
 }
 
-export interface DayCandle {
-  date: string;
-  /** Where the day started: the previous session's mid-point. */
-  open: number;
-  /** Where it ended: this session's mid-point. */
-  close: number;
-  /** The two sides the source published that day. */
-  high: number;
-  low: number;
-}
+/*
+ * La forma de una vela vive en `@/lib/candles` junto con la agregación que la
+ * produce, porque el paralelo, las fichas por riel y el nivel real la piden
+ * los tres. Se reexporta desde aquí para que quien importa el dibujo no tenga
+ * que saber dónde está el cálculo.
+ */
+export type { DayCandle } from '@/lib/candles';
 
 /**
  * The parallel dollar as one candle per session.
@@ -1374,6 +1373,92 @@ export function DayCandles({ data, unit }: { data: DayCandle[]; unit: string }) 
           <span>{data.at(-1)?.date}</span>
         </div>
       )}
+    </div>
+  );
+}
+
+/**
+ * Lo que las velas dicen del tramo, en cuatro cifras debajo del dibujo.
+ *
+ * Un gráfico de velas se pide para un análisis variacional, y la pregunta de
+ * ese análisis no es «qué nivel hay» sino «cuánto se movió, entre qué extremos
+ * y cuándo se abrió más». Las tres respuestas están en las velas dibujadas y
+ * aquí se leen de ellas —`candleSummary` recorre la misma lista que el SVG—,
+ * así que la cifra del pie y la vela que la produce no pueden desacordarse ni
+ * envejecer por separado. Nada de este pie está redactado a mano.
+ *
+ * La variación va de la primera apertura al último cierre, no del primer
+ * cierre: la primera vela ya lleva dentro el movimiento desde la jornada
+ * anterior, y contar desde su cierre le quitaría un día al tramo.
+ */
+export function CandleReading({
+  data,
+  unit,
+  grouping,
+  decimals = 2,
+}: {
+  data: readonly DayCandle[];
+  unit: string;
+  grouping: CandleGrouping;
+  decimals?: number;
+}) {
+  /*
+   * Con menos de dos velas el dibujo ya dice que no hay con qué comparar; un
+   * resumen de una sola vela contradiría esa frase justo debajo de ella.
+   */
+  const summary = data.length < 2 ? null : candleSummary(data);
+  if (!summary) return null;
+  const each = grouping === 'SEMANA' ? 'semana' : 'jornada';
+  const signedAbs = (value: number, places: number): string =>
+    `${value > 0 ? '+' : value < 0 ? '−' : ''}${number(Math.abs(value), places)}`;
+
+  return (
+    <div className="stat-strip candle-reading">
+      <div className="stat">
+        <span className="stat-label">
+          <Icon name="tendencia" size={12} />
+          Variación del tramo
+        </span>
+        <span className={`stat-value ${summary.change >= 0 ? 'delta-up' : 'delta-down'}`}>
+          {signedAbs(summary.changePercent, 2)} %
+        </span>
+        <span className="stat-hint">
+          {signedAbs(summary.change, decimals)} {unit} · de {number(summary.open, decimals)} a{' '}
+          {number(summary.close, decimals)} en {summary.count} {each}
+          {summary.count === 1 ? '' : 's'}
+        </span>
+      </div>
+      <div className="stat">
+        <span className="stat-label">
+          <Icon name="area" size={12} />
+          Máximo del tramo
+        </span>
+        <span className="stat-value">{number(summary.high, decimals)}</span>
+        <span className="stat-hint">
+          {unit} · {each} del {summary.highOn}
+        </span>
+      </div>
+      <div className="stat">
+        <span className="stat-label">
+          <Icon name="area" size={12} />
+          Mínimo del tramo
+        </span>
+        <span className="stat-value">{number(summary.low, decimals)}</span>
+        <span className="stat-hint">
+          {unit} · {each} del {summary.lowOn}
+        </span>
+      </div>
+      <div className="stat">
+        <span className="stat-label">
+          <Icon name="rayo" size={12} />
+          Mayor amplitud
+        </span>
+        <span className="stat-value">{number(summary.widest.range, decimals)}</span>
+        <span className="stat-hint">
+          {unit} de mínimo a máximo ({number(summary.widest.rangePercent, 2)} %) · {each} del{' '}
+          {summary.widest.date}
+        </span>
+      </div>
     </div>
   );
 }
