@@ -5806,3 +5806,26 @@ button.download-btn {
   min-width: 1.5rem;
   text-align: right;
 }
+
+/* Desplegable de conclusiones plegado --------------------------------- */
+
+/*
+ * Toda lectura derivada llega cerrada, también en un teléfono, y ahí el único
+ * camino para abrirla es el botón de la esquina. El `.card-toggle` genérico
+ * mide unos 34 px de alto con el relleno de móvil, por debajo de los 40 px que
+ * un pulgar acierta sin repetir. Se le da esa área mínima solo dentro de
+ * `.analysis`, donde ya no compite con un rótulo largo a su izquierda, y se
+ * centra el icono para que el borde crezca alrededor sin moverlo de sitio.
+ */
+@media (max-width: 720px) {
+  .analysis .card-toggle {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 40px;
+    min-height: 40px;
+    top: -9px;
+    right: -9px;
+    padding: 0;
+  }
+}
