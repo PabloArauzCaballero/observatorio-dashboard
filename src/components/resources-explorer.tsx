@@ -16,7 +16,6 @@ import {
   type CommodityExport,
   type ResourceBoard,
   type ResourceGroup,
-  type YearValue,
 } from '@/lib/resources-board';
 
 /**
@@ -27,6 +26,10 @@ import {
  * al sacarlo, y si eso se convierte en algo que dura. Bolivia va contra sus
  * vecinos donde la comparación es el punto —la renta total, el ahorro
  * ajustado— y sola donde el punto es la historia.
+ *
+ * El cuadro del último dato de cada vecino ya no cierra este capítulo: está en
+ * «Bolivia ante el mundo», con los de energía y medio ambiente, que es la
+ * pestaña que compara países. Aquí queda el aviso de dónde fue.
  */
 
 const number = (value: number, decimals = 1): string =>
@@ -165,56 +168,6 @@ function commodityLines(
   return { data, series };
 }
 
-/**
- * El último dato de cada país en las series que distinguen un caso del otro.
- *
- * La columna que importa es la última: la renta alta se puede sostener, y el
- * ahorro ajustado es lo que dice si se está sosteniendo o gastando.
- */
-function NeighboursTable({ board }: { board: ResourceBoard }) {
-  const columns: ReadonlyArray<{ code: string; label: string; decimals: number; unit: string }> = [
-    { code: 'NY.GDP.MINR.RT.ZS', label: 'Renta minera', decimals: 2, unit: ' %' },
-    { code: 'NY.GDP.NGAS.RT.ZS', label: 'Renta del gas', decimals: 2, unit: ' %' },
-    { code: 'NY.GDP.PETR.RT.ZS', label: 'Renta del petróleo', decimals: 2, unit: ' %' },
-    { code: 'NY.GDP.TOTL.RT.ZS', label: 'Renta total', decimals: 2, unit: ' %' },
-    { code: 'TX.VAL.MMTL.ZS.UN', label: 'Minerales exportados', decimals: 0, unit: ' %' },
-    { code: 'NV.IND.MANF.ZS', label: 'Manufactura', decimals: 1, unit: ' %' },
-    { code: 'NY.ADJ.DRES.GN.ZS', label: 'Agotamiento', decimals: 2, unit: ' %' },
-    { code: 'NY.ADJ.SVNX.GN.ZS', label: 'Ahorro ajustado', decimals: 2, unit: ' %' },
-  ];
-  const cell = (place: string, column: (typeof columns)[number]): string => {
-    const reading: YearValue | undefined = board.latest[column.code]?.[place];
-    if (!reading) return '—';
-    return `${number(reading.value, column.decimals)}${column.unit} (${reading.year})`;
-  };
-  return (
-    <div className="table-wrap">
-      <table className="grid-table">
-        <thead>
-          <tr>
-            <th>País</th>
-            {columns.map((column) => (
-              <th key={column.code}>{column.label}</th>
-            ))}
-          </tr>
-        </thead>
-        <tbody>
-          {RESOURCE_PLACES.map((place) => (
-            <tr key={place.code}>
-              <td>
-                <b>{place.label}</b>
-              </td>
-              {columns.map((column) => (
-                <td key={column.code}>{cell(place.code, column)}</td>
-              ))}
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
-  );
-}
-
 export function ResourcesExplorer({ board }: { board: ResourceBoard }) {
   const rents = lines(board, [
     'NY.GDP.MINR.RT.ZS',
@@ -290,29 +243,36 @@ export function ResourcesExplorer({ board }: { board: ResourceBoard }) {
         siembra, así que entre un despliegue y el otro estas series no están.
         Un panel vacío con su leyenda sin líneas se lee como una avería; que el
         capítulo empiece por las rentas, no.
-      */}
-      {mineralValue.data.length > 1 ? (
-        <div className="panel">
-          <div className="panel-head">
-            <h2>Minerales exportados por producto (millones de US$)</h2>
-            <p className="panel-sub">
-              Lo que de verdad sale del país, partida por partida, tal como Bolivia lo declaró en
-              aduana ante Naciones Unidas desde 1992. Las rentas de arriba dicen cuánto deja el
-              subsuelo; esto dice qué se vende. El concentrado de cinc y los minerales de oro y
-              plata son dos negocios distintos y aquí se ven separados por primera vez.
-            </p>
-          </div>
-          <WorldLines
-            data={mineralValue.data}
-            series={mineralValue.series}
-            format={(value) => `${number(value, 1)} millones de US$`}
-            tick={millions}
-          />
-        </div>
-      ) : null}
 
-      {mineralWeight.data.length > 1 || lithiumWeight.length > 1 ? (
-        <div className="grid-pair">
+        Los cinco van en una sola rejilla de tres y cada uno entra sólo si
+        tiene datos: la rejilla ensancha el que sobra, así que cuatro o cinco
+        no dejan hueco.
+      */}
+      {mineralValue.data.length > 1 ||
+      mineralWeight.data.length > 1 ||
+      lithiumWeight.length > 1 ||
+      fuelValue.data.length > 1 ||
+      oreValue.length > 1 ? (
+        <div className="grid-three">
+          {mineralValue.data.length > 1 ? (
+            <div className="panel">
+              <div className="panel-head">
+                <h2>Minerales exportados por producto (millones de US$)</h2>
+                <p className="panel-sub">
+                  Lo que de verdad sale del país, partida por partida, tal como Bolivia lo declaró
+                  en aduana ante Naciones Unidas desde 1992. Las rentas de abajo dicen cuánto deja
+                  el subsuelo; esto dice qué se vende. El concentrado de cinc y los minerales de oro
+                  y plata son dos negocios distintos y aquí se ven separados por primera vez.
+                </p>
+              </div>
+              <WorldLines
+                data={mineralValue.data}
+                series={mineralValue.series}
+                format={(value) => `${number(value, 1)} millones de US$`}
+                tick={millions}
+              />
+            </div>
+          ) : null}
           {mineralWeight.data.length > 1 ? (
             <div className="panel">
               <div className="panel-head">
@@ -336,10 +296,10 @@ export function ResourcesExplorer({ board }: { board: ResourceBoard }) {
               <div className="panel-head">
                 <h2>Carbonato de litio exportado (toneladas)</h2>
                 <p className="panel-sub">
-                  El litio no tiene partida de mineral: lo que cruza la frontera es carbonato, que el
-                  Sistema Armonizado clasifica entre los productos químicos (2836.91) y no entre los
-                  minerales. Buscarlo en el capítulo de minería es no encontrarlo nunca, que es la
-                  razón por la que este informe no tenía una sola cifra suya. Hay años sin
+                  El litio no tiene partida de mineral: lo que cruza la frontera es carbonato, que
+                  el Sistema Armonizado clasifica entre los productos químicos (2836.91) y no entre
+                  los minerales. Buscarlo en el capítulo de minería es no encontrarlo nunca, que es
+                  la razón por la que este informe no tenía una sola cifra suya. Hay años sin
                   declaración en el registro y la línea une los puntos que existen: donde el tramo
                   es largo y recto no hay dato intermedio, hay un hueco.
                 </p>
@@ -352,11 +312,6 @@ export function ResourcesExplorer({ board }: { board: ResourceBoard }) {
               />
             </div>
           ) : null}
-        </div>
-      ) : null}
-
-      {fuelValue.data.length > 1 || oreValue.length > 1 ? (
-        <div className="grid-pair">
           {fuelValue.data.length > 1 ? (
             <div className="panel">
               <div className="panel-head">
@@ -396,24 +351,29 @@ export function ResourcesExplorer({ board }: { board: ResourceBoard }) {
         </div>
       ) : null}
 
-      <div className="panel">
-        <GroupHead group="RENTA">
-          Lo que cada recurso deja por encima de su costo de extracción, como parte del PIB. Donde la
-          línea mineral cruza a la del gas está el relevo que cambió de qué vive el país.
-        </GroupHead>
-        <div className="stat-strip">
-          <Latest code="NY.GDP.MINR.RT.ZS" board={board} />
-          <Latest code="NY.GDP.NGAS.RT.ZS" board={board} />
-          <Latest code="NY.GDP.PETR.RT.ZS" board={board} />
-          <Latest code="NY.GDP.FRST.RT.ZS" board={board} />
-          <Latest code="NY.GDP.TOTL.RT.ZS" board={board} />
+      {/*
+        Ocho gráficos del Banco Mundial, de tres en tres: la renta y la canasta
+        con la comparación regional de la renta; las cuentas ajustadas con su
+        desglose y su comparación; y al final la transformación y el ingreso,
+        que la rejilla ensancha para que la fila quede llena.
+      */}
+      <div className="grid-three">
+        <div className="panel">
+          <GroupHead group="RENTA">
+            Lo que cada recurso deja por encima de su costo de extracción, como parte del PIB. Donde
+            la línea mineral cruza a la del gas está el relevo que cambió de qué vive el país.
+          </GroupHead>
+          <div className="stat-strip">
+            <Latest code="NY.GDP.MINR.RT.ZS" board={board} />
+            <Latest code="NY.GDP.NGAS.RT.ZS" board={board} />
+            <Latest code="NY.GDP.PETR.RT.ZS" board={board} />
+            <Latest code="NY.GDP.FRST.RT.ZS" board={board} />
+            <Latest code="NY.GDP.TOTL.RT.ZS" board={board} />
+          </div>
+          {rents.data.length > 1 ? (
+            <WorldLines data={rents.data} series={rents.series} format={percent} tick={tick} />
+          ) : null}
         </div>
-        {rents.data.length > 1 ? (
-          <WorldLines data={rents.data} series={rents.series} format={percent} tick={tick} />
-        ) : null}
-      </div>
-
-      <div className="grid-pair">
         <div className="panel">
           <GroupHead group="CANASTA">
             Peso de cada cosa en lo que el país vende afuera. Las manufacturas son el espejo: suben
@@ -445,27 +405,24 @@ export function ResourcesExplorer({ board }: { board: ResourceBoard }) {
             />
           ) : null}
         </div>
-      </div>
 
-      <div className="panel">
-        <GroupHead group="AGOTAMIENTO">
-          Las cuentas ajustadas del Banco Mundial: al ahorro del año se le resta la depreciación del
-          capital y el patrimonio natural consumido, y se le suma el gasto en educación. Por debajo
-          de cero el país está financiando su consumo con lo que saca de la tierra.
-        </GroupHead>
-        <div className="stat-strip">
-          <Latest code="NY.ADJ.SVNX.GN.ZS" board={board} />
-          <Latest code="NY.ADJ.DRES.GN.ZS" board={board} />
-          <Latest code="NY.ADJ.DMIN.GN.ZS" board={board} />
-          <Latest code="NY.ADJ.DNGY.GN.ZS" board={board} />
-          <Latest code="NY.ADJ.AEDU.GN.ZS" board={board} />
+        <div className="panel">
+          <GroupHead group="AGOTAMIENTO">
+            Las cuentas ajustadas del Banco Mundial: al ahorro del año se le resta la depreciación
+            del capital y el patrimonio natural consumido, y se le suma el gasto en educación. Por
+            debajo de cero el país está financiando su consumo con lo que saca de la tierra.
+          </GroupHead>
+          <div className="stat-strip">
+            <Latest code="NY.ADJ.SVNX.GN.ZS" board={board} />
+            <Latest code="NY.ADJ.DRES.GN.ZS" board={board} />
+            <Latest code="NY.ADJ.DMIN.GN.ZS" board={board} />
+            <Latest code="NY.ADJ.DNGY.GN.ZS" board={board} />
+            <Latest code="NY.ADJ.AEDU.GN.ZS" board={board} />
+          </div>
+          {savings.data.length > 1 ? (
+            <WorldLines data={savings.data} series={savings.series} format={percent} tick={tick} />
+          ) : null}
         </div>
-        {savings.data.length > 1 ? (
-          <WorldLines data={savings.data} series={savings.series} format={percent} tick={tick} />
-        ) : null}
-      </div>
-
-      <div className="grid-pair">
         <div className="panel">
           <div className="panel-head">
             <h2>Patrimonio consumido por recurso (% del INB)</h2>
@@ -500,9 +457,7 @@ export function ResourcesExplorer({ board }: { board: ResourceBoard }) {
             />
           ) : null}
         </div>
-      </div>
 
-      <div className="grid-pair">
         <div className="panel">
           <GroupHead group="TRANSFORMACION">
             Qué parte del PIB sale de una fábrica, qué parte del campo y qué parte se invierte en
@@ -514,7 +469,12 @@ export function ResourcesExplorer({ board }: { board: ResourceBoard }) {
             <Latest code="NE.GDI.FTOT.ZS" board={board} />
           </div>
           {structure.data.length > 1 ? (
-            <WorldLines data={structure.data} series={structure.series} format={share} tick={tick} />
+            <WorldLines
+              data={structure.data}
+              series={structure.series}
+              format={share}
+              tick={tick}
+            />
           ) : null}
         </div>
         <div className="panel">
@@ -537,17 +497,11 @@ export function ResourcesExplorer({ board }: { board: ResourceBoard }) {
         </div>
       </div>
 
-      <div className="panel">
-        <div className="panel-head">
-          <h2>Bolivia entre sus vecinos</h2>
-          <p className="panel-sub">
-            El último dato de cada país en las series que distinguen un caso de otro. Perú y Chile
-            también viven de minerales; lo que cambia entre ellos y Bolivia está en las dos últimas
-            columnas.
-          </p>
-        </div>
-        <NeighboursTable board={board} />
-      </div>
+      <p className="panel-sub">
+        <Icon name="info" size={12} /> El cuadro «Bolivia y sus vecinos» —el último dato de cada
+        país en las series que distinguen un caso de otro— está ahora en la pestaña «Bolivia ante el
+        mundo», junto a los de energía y medio ambiente.
+      </p>
 
       <p className="panel-sub">
         <Icon name="info" size={12} /> Las rentas, el agotamiento y la comparación regional salen

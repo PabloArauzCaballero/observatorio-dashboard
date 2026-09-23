@@ -21,8 +21,8 @@ import { useEffect, useState } from 'react';
  *
  * Así que una pestaña que no es la primera no viaja: se monta cuando alguien la
  * elige, y entonces pide lo suyo. El patrón ya estaba en el repositorio —«Social
- * Info» y «Economía mundial» lo hacían— y esto es el mismo, escrito una vez para
- * que las seis lo compartan en vez de repetirlo seis veces.
+ * Info» y «Bolivia ante el mundo» lo hacían— y esto es el mismo, escrito una vez
+ * para que las seis lo compartan en vez de repetirlo seis veces.
  *
  * `null` mientras no ha llegado, y `failed` cuando no va a llegar. Son dos
  * estados y no uno porque dicen cosas opuestas al lector: «espera» y «esto no

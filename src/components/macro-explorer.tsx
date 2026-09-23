@@ -135,7 +135,7 @@ const CHAPTER: Record<'medidas' | 'catalogo', Chapter> = {
     ),
     points: [
       { icon: 'buscar', title: 'Buscá por nombre', detail: 'el título es el del Banco Mundial, en inglés' },
-      { icon: 'mapa', title: 'Solo Bolivia', detail: 'la comparación con otros países va en «Economía mundial»' },
+      { icon: 'mapa', title: 'Solo Bolivia', detail: 'la comparación con otros países va en «Bolivia ante el mundo»' },
       { icon: 'info', title: 'Unidad nativa', detail: 'cada serie en la unidad que publica la fuente' },
     ],
   },

@@ -14,6 +14,14 @@ import type { FxConclusion } from '@/lib/fx-snapshot';
  * from which test. Three chapters now speak this way, so the markup lives
  * once. What differs per chapter is the heading, the icon each key carries and
  * whether the list opens folded, and those are the props.
+ *
+ * Plegada por defecto, en todas las vistas y sobre todo en un teléfono. Abierta
+ * ocupa la primera pantalla entera del capítulo y empuja por debajo del pliegue
+ * a los gráficos de los que sale: en un móvil eso son seis párrafos antes de la
+ * primera serie. La cabecera plegada dice cuántas lecturas hay y el lector
+ * decide, que es lo mismo que ya hacía la lectura del tipo de cambio
+ * (`FxConclusions`). Ninguna vista pasa `defaultOpen`; la prop queda para que
+ * abrir sea una decisión explícita y justificada, no un olvido.
  */
 
 const toneClass = (tone: FxConclusion['tone']): string =>
@@ -24,7 +32,7 @@ export function DerivedReading({
   note,
   conclusions,
   icons,
-  defaultOpen = true,
+  defaultOpen = false,
   unit = 'lectura',
 }: {
   title: string;

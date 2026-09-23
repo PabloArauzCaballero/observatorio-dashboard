@@ -2558,6 +2558,53 @@ code {
   position: relative;
 }
 
+/*
+ * El mismo conmutador, en un panel cuya cabecera es prosa.
+ *
+ * `.card-toggle` cuelga del borde derecho de la cabecera, y en `.tile-head` el
+ * rótulo ya le cede el sitio. En `.panel-head` lo que hay debajo es el título,
+ * que en un teléfono se parte en dos líneas y llevaba la primera hasta el
+ * borde: el icono caía encima de la última palabra. Reservarle el ancho al
+ * título lo separa sin mover el botón.
+ */
+.panel-head.card-head > h2 {
+  padding-right: 2.4rem;
+}
+
+/* La ventana de las velas: tres chips en fila, sin el riel que no hay aquí. */
+.candle-ranges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem;
+}
+
+/*
+ * La lectura del tramo se apoya bajo el pie de la vela, no pegada a él.
+ *
+ * Son cuatro cifras, y la rejilla general de `.stat-strip` las repartía en
+ * tres más una, con la casilla sobrante pintada del color de la regla. Con
+ * 200 px de mínimo salen cuatro en una fila ancha, dos por dos en media
+ * pantalla y una por fila en el teléfono: nunca un hueco.
+ */
+.candle-reading {
+  margin-top: 0.35rem;
+  grid-template-columns: repeat(auto-fit, minmax(min(200px, 100%), 1fr));
+}
+
+/* Una ficha dentro de la pila de velas: subtítulo, no un panel nuevo. */
+.candle-token + .candle-token {
+  margin-top: var(--s2);
+  padding-top: var(--s2);
+  border-top: 1px solid var(--rule);
+}
+
+.tile-head h3 {
+  font-family: var(--serif);
+  font-size: 0.98rem;
+  font-weight: 600;
+  margin: 0;
+}
+
 .card-toggle {
   position: absolute;
   top: -2px;
@@ -4716,6 +4763,79 @@ button.download-btn {
   }
 }
 
+/* Rejilla de tres gráficos ----------------------------------------------- */
+
+/*
+ * Tres gráficos por fila, y las filas siempre llenas.
+ *
+ * Energía, Recursos naturales y Medio ambiente iban de dos en dos, y a 1440 px
+ * cada gráfico anual de veinte años ocupaba media pantalla para decir lo que
+ * dice en un tercio: la lectura de un capítulo era un desplazamiento largo con
+ * mucho aire. A tres por fila el capítulo entero cabe en dos o tres pantallas
+ * y las filas siguen leyéndose como filas, que es lo que el lector pidió.
+ *
+ * Tres fijas y no `auto-fit`: la cuenta de columnas tiene que depender del
+ * ancho de la pantalla y no del de la columna que la sostiene, porque estos
+ * paneles viven a la derecha de la barra de filtros y con `auto-fit` a 1100 px
+ * salían dos. Por debajo de 1100 son dos, y en el móvil una. `minmax(0, 1fr)`
+ * por la misma razón que en `.grid-pair`: un rótulo largo del eje no ensancha
+ * su columna.
+ *
+ * La última fila no queda con un hueco. Nueve gráficos son tres filas justas,
+ * pero ocho o diez no, y un panel solo en su fila con dos tercios vacíos al
+ * lado es el agujero que se lee como «la página está rota». El que sobra se
+ * ensancha hasta el borde: uno solo ocupa la fila entera, y el segundo de dos
+ * se lleva las dos columnas que quedan. A dos columnas la regla es la misma con
+ * el impar; a una no hay nada que ensanchar, y se apaga —un `span` sobre una
+ * sola columna crearía columnas implícitas fuera de la página—.
+ */
+.grid-three {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--s2);
+}
+
+/*
+ * Las cifras de cabecera, de dos en dos dentro del panel.
+ *
+ * A un tercio de pantalla el panel mide unos 320 px, y con el mínimo de 158
+ * que la franja usa a ancho completo las cinco cifras de la electricidad se
+ * apilaban de a una: medio panel de números y el gráfico de al lado estirado
+ * hasta igualar ese alto. Con 120 caben dos por renglón y el alto se reparte.
+ */
+.grid-three .stat-strip {
+  grid-template-columns: repeat(auto-fit, minmax(min(120px, 100%), 1fr));
+}
+
+.grid-three > .panel:last-child:nth-child(3n + 1) {
+  grid-column: 1 / -1;
+}
+
+.grid-three > .panel:last-child:nth-child(3n + 2) {
+  grid-column: 2 / -1;
+}
+
+@media (max-width: 1099px) {
+  .grid-three {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .grid-three > .panel:last-child:nth-child(n) {
+    grid-column: auto;
+  }
+  .grid-three > .panel:last-child:nth-child(odd) {
+    grid-column: 1 / -1;
+  }
+}
+
+@media (max-width: 720px) {
+  .grid-three {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .grid-three > .panel:last-child:nth-child(n) {
+    grid-column: auto;
+  }
+}
+
 /*
  * El gráfico se queda con el alto que sobra, en vez de dejarlo en blanco.
  *
@@ -4735,15 +4855,22 @@ button.download-btn {
  * Las barras no engordan al crecer el marco: `BAR_CAP` las tiene topadas en
  * `charts.tsx`, así que lo que gana el gráfico es aire entre barras, que es
  * exactamente lo que le faltaba.
+ *
+ * Vale igual para la rejilla de tres: son las mismas filas de paneles con la
+ * misma altura compartida, sólo que con uno más por fila.
  */
-.grid-pair > .panel {
+.grid-pair > .panel,
+.grid-three > .panel {
   display: flex;
   flex-direction: column;
 }
 
 .grid-pair > .panel > .chart-frame,
 .grid-pair > .panel > .chart-stack,
-.grid-pair > .panel > .chart-stack > .chart-frame {
+.grid-pair > .panel > .chart-stack > .chart-frame,
+.grid-three > .panel > .chart-frame,
+.grid-three > .panel > .chart-stack,
+.grid-three > .panel > .chart-stack > .chart-frame {
   flex: 1 0 auto;
   min-height: 0;
 }
@@ -4837,7 +4964,7 @@ button.download-btn {
   margin: 0.45rem 0 0;
 }
 
-/* Economía mundial ------------------------------------------------------- */
+/* Bolivia ante el mundo -------------------------------------------------- */
 
 /*
  * The world, the region and Bolivia, one row each.
@@ -5805,4 +5932,95 @@ button.download-btn {
   color: var(--ink-soft);
   min-width: 1.5rem;
   text-align: right;
+}
+
+/* Desplegable de conclusiones plegado --------------------------------- */
+
+/*
+ * Toda lectura derivada llega cerrada, también en un teléfono, y ahí el único
+ * camino para abrirla es el botón de la esquina. El `.card-toggle` genérico
+ * mide unos 34 px de alto con el relleno de móvil, por debajo de los 40 px que
+ * un pulgar acierta sin repetir. Se le da esa área mínima solo dentro de
+ * `.analysis`, donde ya no compite con un rótulo largo a su izquierda, y se
+ * centra el icono para que el borde crezca alrededor sin moverlo de sitio.
+ */
+@media (max-width: 720px) {
+  .analysis .card-toggle {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 40px;
+    min-height: 40px;
+    top: -9px;
+    right: -9px;
+    padding: 0;
+  }
+}
+
+/* Departments choropleth ------------------------------------------------- */
+
+/*
+ * El mapa de «Departamentos» es el selector del capítulo y su primera figura:
+ * nueve contornos pintados con la rampa de magnitud y un rótulo en el centro
+ * de cada uno. Cada contorno es un botón con foco de teclado; el foco y la
+ * elección se pintan sobre el propio trazo, porque una forma sin borde propio
+ * no tiene dónde más enseñarlos. El color de relleno y el de la tinta del
+ * rótulo los pone el componente, paso a paso, desde `--seq-*`.
+ */
+
+.choro {
+  cursor: pointer;
+  outline: none;
+}
+
+.choro-shape {
+  stroke: var(--panel);
+  stroke-width: 2.2;
+  stroke-linejoin: round;
+  transition:
+    stroke var(--fast) var(--ease),
+    stroke-width var(--fast) var(--ease),
+    filter var(--fast) var(--ease);
+}
+
+.choro:hover .choro-shape {
+  stroke: var(--ink);
+  stroke-width: 3;
+}
+
+.choro-on .choro-shape {
+  stroke: var(--parallel);
+  stroke-width: 5;
+}
+
+.choro:focus-visible .choro-shape {
+  stroke: var(--parallel);
+  stroke-width: 6;
+  stroke-dasharray: 10 6;
+}
+
+.choro-name,
+.choro-value {
+  pointer-events: none;
+  text-anchor: middle;
+  font-family: var(--sans);
+  font-size: 30px;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+}
+
+.choro-value {
+  font-family: var(--mono);
+  font-size: 26px;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+}
+
+/* La clave del mapa departamental: cada extremo en una línea, y se parte entera. */
+.map-frame + .heat-scale {
+  flex-wrap: wrap;
+}
+
+.map-frame + .heat-scale > span {
+  white-space: nowrap;
 }

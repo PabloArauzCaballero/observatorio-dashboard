@@ -3,7 +3,7 @@ import type { GapChartPoint, RatePoint } from '@/components/charts';
 import { Donate } from '@/components/donate';
 import { CitiesSection } from '@/components/cities-section';
 import { FilingsSection } from '@/components/filings-section';
-import { FxEconometricsSection } from '@/components/fx-econometrics-section';
+import { FxEconometricsCard } from '@/components/fx-econometrics-card';
 import { FxSection } from '@/components/fx-section';
 import { MacroSection } from '@/components/macro-section';
 import { MarketCards } from '@/components/market-cards';
@@ -63,7 +63,7 @@ import type {
  *
  * `Tabs` ya dibujaba sólo la pestaña activa **en el navegador**. Ahora las otras
  * seis tampoco se leen en el servidor: cada una pide lo suyo al montarse, que es
- * lo que «Social Info» y «Economía mundial» llevaban haciendo desde que se vio
+ * lo que «Social Info» y «Bolivia ante el mundo» llevaban haciendo desde que se vio
  * que mil quinientas series no caben en una primera pantalla. Aquí quedan las
  * lecturas que el resumen necesita para existir, y de ellas viaja lo que el
  * resumen enseña —el cuadro de mando, el análisis, los contadores— y no el
@@ -166,9 +166,9 @@ function Unreadable() {
     <div className="error">
       <strong>No fue posible leer la base de datos.</strong>
       <p>
-        Este resumen no muestra cifras que no pudo verificar, así que no muestra ninguna. El
-        detalle del fallo queda en el registro del servidor; las demás pestañas leen aparte y
-        pueden estar al día.
+        Este resumen no muestra cifras que no pudo verificar, así que no muestra ninguna. El detalle
+        del fallo queda en el registro del servidor; las demás pestañas leen aparte y pueden estar
+        al día.
       </p>
     </div>
   );
@@ -588,17 +588,15 @@ export default function Page() {
 
         <section className="stack">
           {/*
-            Las pruebas formales van después de la lectura y de los gráficos, y
-            se montan aparte a propósito: el capítulo del tipo de cambio lee sus
-            series y las dibuja; este lee las mismas series y las somete a
-            prueba. Dos preguntas, dos componentes.
+            Las pruebas formales van después de la lectura y de los gráficos,
+            pero ya no se leen aquí: se descargan como informe. La tarjeta no
+            lee nada, así que no necesita su propio `Suspense`; el cálculo corre
+            en `/api/econometria` cuando alguien pide el documento.
           */}
           <Suspense fallback={<Armando que="el capítulo del tipo de cambio" />}>
             <FxSection />
           </Suspense>
-          <Suspense fallback={<Armando que="las pruebas del tipo de cambio" />}>
-            <FxEconometricsSection />
-          </Suspense>
+          <FxEconometricsCard />
         </section>
 
         <section className="stack">

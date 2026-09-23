@@ -11,7 +11,6 @@ import {
   ENERGY_PLACES,
   type EnergyBoard,
   type EnergyGroup,
-  type YearValue,
 } from '@/lib/energy-board';
 
 /**
@@ -22,6 +21,10 @@ import {
  * much energy people use and who has it. Bolivia is drawn against its
  * neighbours wherever the comparison is the point, and alone where the
  * history is.
+ *
+ * El cuadro del último dato de cada vecino ya no cierra este capítulo: está en
+ * «Bolivia ante el mundo», con los de recursos naturales y medio ambiente, que
+ * es la pestaña que compara países. Aquí queda el aviso de dónde fue.
  */
 
 const number = (value: number, decimals = 1): string =>
@@ -119,51 +122,6 @@ function GroupHead({ group, children }: { group: EnergyGroup; children: string }
 const percent = (value: number): string => `${number(value, 1)} %`;
 const tick = (value: number): string => number(value, 0);
 
-function NeighboursTable({ board }: { board: EnergyBoard }) {
-  const columns: ReadonlyArray<{ code: string; label: string; decimals: number }> = [
-    { code: 'EG.ELC.NGAS.ZS', label: 'Gas en la electricidad', decimals: 0 },
-    { code: 'EG.ELC.HYRO.ZS', label: 'Hidro', decimals: 0 },
-    { code: 'EG.ELC.RNWX.ZS', label: 'Otras renovables', decimals: 0 },
-    { code: 'EG.FEC.RNEW.ZS', label: 'Renovables en el consumo', decimals: 0 },
-    { code: 'EG.USE.PCAP.KG.OE', label: 'Energía por hab. (kg)', decimals: 0 },
-    { code: 'EG.IMP.CONS.ZS', label: 'Importación neta', decimals: 0 },
-    { code: 'TX.VAL.FUEL.ZS.UN', label: 'Combustible exportado', decimals: 0 },
-    { code: 'TM.VAL.FUEL.ZS.UN', label: 'Combustible importado', decimals: 0 },
-  ];
-  const cell = (place: string, column: (typeof columns)[number]): string => {
-    const reading: YearValue | undefined = board.latest[column.code]?.[place];
-    if (!reading) return '—';
-    const suffix = column.code.endsWith('.ZS') || column.code.endsWith('.UN') ? ' %' : '';
-    return `${number(reading.value, column.decimals)}${suffix} (${reading.year})`;
-  };
-  return (
-    <div className="table-wrap">
-      <table className="grid-table">
-        <thead>
-          <tr>
-            <th>País</th>
-            {columns.map((column) => (
-              <th key={column.code}>{column.label}</th>
-            ))}
-          </tr>
-        </thead>
-        <tbody>
-          {ENERGY_PLACES.map((place) => (
-            <tr key={place.code}>
-              <td>
-                <b>{place.label}</b>
-              </td>
-              {columns.map((column) => (
-                <td key={column.code}>{cell(place.code, column)}</td>
-              ))}
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
-  );
-}
-
 export function EnergyExplorer({ board }: { board: EnergyBoard }) {
   const mix = lines(board, [
     'EG.ELC.NGAS.ZS',
@@ -220,37 +178,31 @@ export function EnergyExplorer({ board }: { board: EnergyBoard }) {
         />
       </div>
 
-      <div className="panel">
-        <GroupHead group="ELECTRICIDAD">
-          De dónde sale la electricidad: parte de la generación por fuente, año a año. Las cuatro no
-          suman cien porque el carbón y lo no clasificado quedan fuera; el gas y el agua son casi
-          todo.
-        </GroupHead>
-        <div className="stat-strip">
-          <Latest code="EG.ELC.NGAS.ZS" board={board} />
-          <Latest code="EG.ELC.HYRO.ZS" board={board} />
-          <Latest code="EG.ELC.RNWX.ZS" board={board} />
-          <Latest code="EG.ELC.PETR.ZS" board={board} />
-          <Latest code="EG.ELC.LOSS.ZS" board={board} />
-        </div>
-        {mix.data.length > 1 ? (
-          <WorldLines data={mix.data} series={mix.series} format={percent} tick={tick} />
-        ) : null}
-      </div>
+      {/*
+        Nueve gráficos, de tres en tres: tres filas justas.
 
-      <div className="panel">
-        <div className="panel-head">
-          <h2>Bolivia y sus vecinos: último dato de cada serie</h2>
-          <p className="panel-sub">
-            El último dato de cada país en las series que distinguen una matriz de otra. Cada
-            columna lleva su unidad en la cabecera y el año del dato entre paréntesis. Una
-            importación neta negativa es un exportador de energía.
-          </p>
+        El orden sigue siendo el de las preguntas —de dónde sale la
+        electricidad, qué se comercia, qué deja el subsuelo, cuánta energía se
+        usa y quién la tiene— y cada fila junta tres que se leen seguidas.
+      */}
+      <div className="grid-three">
+        <div className="panel">
+          <GroupHead group="ELECTRICIDAD">
+            De dónde sale la electricidad: parte de la generación por fuente, año a año. Las cuatro
+            no suman cien porque el carbón y lo no clasificado quedan fuera; el gas y el agua son
+            casi todo.
+          </GroupHead>
+          <div className="stat-strip">
+            <Latest code="EG.ELC.NGAS.ZS" board={board} />
+            <Latest code="EG.ELC.HYRO.ZS" board={board} />
+            <Latest code="EG.ELC.RNWX.ZS" board={board} />
+            <Latest code="EG.ELC.PETR.ZS" board={board} />
+            <Latest code="EG.ELC.LOSS.ZS" board={board} />
+          </div>
+          {mix.data.length > 1 ? (
+            <WorldLines data={mix.data} series={mix.series} format={percent} tick={tick} />
+          ) : null}
         </div>
-        <NeighboursTable board={board} />
-      </div>
-
-      <div className="grid-two">
         <div className="panel">
           <GroupHead group="COMERCIO">
             Lo que se vende y lo que se compra: peso del combustible en lo que se exporta y en lo
@@ -273,9 +225,7 @@ export function EnergyExplorer({ board }: { board: EnergyBoard }) {
             <MacroChart data={net} unit="%" tone="var(--gap)" label="Energía importada neta" />
           ) : null}
         </div>
-      </div>
 
-      <div className="grid-two">
         <div className="panel">
           <GroupHead group="RENTA">
             Lo que el subsuelo deja: lo que cada recurso rinde por encima de su costo de extracción,
@@ -296,9 +246,6 @@ export function EnergyExplorer({ board }: { board: EnergyBoard }) {
             <WorldLines data={sources.data} series={sources.series} format={percent} tick={tick} />
           ) : null}
         </div>
-      </div>
-
-      <div className="grid-two">
         <div className="panel">
           <GroupHead group="CONSUMO">
             Cuánta energía se usa: kilos de petróleo equivalente por habitante y año, Bolivia contra
@@ -317,6 +264,7 @@ export function EnergyExplorer({ board }: { board: EnergyBoard }) {
             />
           ) : null}
         </div>
+
         <div className="panel">
           <div className="panel-head">
             <h2>Intensidad energética (MJ por dólar de PIB)</h2>
@@ -335,9 +283,6 @@ export function EnergyExplorer({ board }: { board: EnergyBoard }) {
             />
           ) : null}
         </div>
-      </div>
-
-      <div className="grid-two">
         <div className="panel">
           <GroupHead group="ACCESO">
             Quién tiene energía: quién tiene conexión eléctrica y quién cocina con gas o
@@ -369,6 +314,11 @@ export function EnergyExplorer({ board }: { board: EnergyBoard }) {
         </div>
       </div>
 
+      <p className="panel-sub">
+        <Icon name="info" size={12} /> El cuadro «Bolivia y sus vecinos» —el último dato de cada
+        país en las series que distinguen una matriz de otra— está ahora en la pestaña «Bolivia ante
+        el mundo», junto a los de recursos naturales y medio ambiente.
+      </p>
       <p className="panel-sub">
         <Icon name="info" size={12} /> Series del Banco Mundial (Indicadores del Desarrollo
         Mundial), leídas del panel de treinta economías que recoge el núcleo del observatorio. Las

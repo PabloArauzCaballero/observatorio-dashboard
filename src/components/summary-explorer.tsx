@@ -85,6 +85,7 @@ export function SummaryExplorer({
   gapUnread,
 }: SummaryExplorerProps) {
   const [range, setRange] = useState('todo');
+  const [analysisOpen, setAnalysisOpen] = useState(false);
 
   const shown = useMemo(() => {
     const days = RANGES.find((entry) => entry.key === range)?.days ?? null;
@@ -285,34 +286,59 @@ export function SummaryExplorer({
           ) : null}
         </div>
 
-        <div className="analysis">
-          <div className="tile-head">
+        {/*
+          El análisis va plegado, como la lectura de cada capítulo (`DerivedReading`
+          y `FxConclusions`): abierto era una lista entera de puntos debajo de la
+          brecha, y en un teléfono el lector tenía que pasar por todos para llegar
+          al final de la portada. La cabecera dice cuántas lecturas hay y el botón las abre; el
+          estado no se recuerda entre cargas, la respuesta para quien llega es
+          siempre la misma: cerrado.
+        */}
+        <div className={analysisOpen ? 'analysis' : 'analysis analysis-folded'}>
+          <div className="tile-head card-head">
             <Icon name="sigma" size={17} />
             <h2>Análisis del día</h2>
-            <span className="tile-hint">derivado, no redactado</span>
+            <span className="tile-hint">
+              {analysisOpen
+                ? 'derivado, no redactado'
+                : `${analysis.length} lectura${analysis.length === 1 ? '' : 's'}`}
+            </span>
+            <button
+              type="button"
+              className={analysisOpen ? 'card-toggle card-toggle-on' : 'card-toggle'}
+              onClick={() => setAnalysisOpen(!analysisOpen)}
+              title={analysisOpen ? 'Plegar el análisis del día' : 'Ver el análisis del día'}
+              aria-expanded={analysisOpen}
+            >
+              <Icon name={analysisOpen ? 'plegar' : 'desplegar'} size={16} />
+            </button>
           </div>
-          <p className="analysis-note">
-            Derivado de las observaciones, no redactado: cada cifra procede de las series de este
-            informe y se recalcula con cada carga.
-          </p>
-          <ul className="bullets">
-            {analysis.map((bullet) => (
-              <li className="bullet" key={bullet.key}>
-                <span className={`bullet-mark bullet-mark-${bullet.tone}`}>
-                  <Icon name={bullet.icon as IconName} size={16} />
-                </span>
-                <div className="bullet-body">
-                  <div className="bullet-line">
-                    <b className="bullet-label">{bullet.label}</b>
-                    <span className={`bullet-value bullet-value-${bullet.tone}`}>
-                      {bullet.value}
+          {!analysisOpen ? null : (
+            <>
+              <p className="analysis-note">
+                Derivado de las observaciones, no redactado: cada cifra procede de las series de
+                este informe y se recalcula con cada carga.
+              </p>
+              <ul className="bullets">
+                {analysis.map((bullet) => (
+                  <li className="bullet" key={bullet.key}>
+                    <span className={`bullet-mark bullet-mark-${bullet.tone}`}>
+                      <Icon name={bullet.icon as IconName} size={16} />
                     </span>
-                  </div>
-                  <p className="bullet-detail">{bullet.detail}</p>
-                </div>
-              </li>
-            ))}
-          </ul>
+                    <div className="bullet-body">
+                      <div className="bullet-line">
+                        <b className="bullet-label">{bullet.label}</b>
+                        <span className={`bullet-value bullet-value-${bullet.tone}`}>
+                          {bullet.value}
+                        </span>
+                      </div>
+                      <p className="bullet-detail">{bullet.detail}</p>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            </>
+          )}
         </div>
       </div>
     </div>

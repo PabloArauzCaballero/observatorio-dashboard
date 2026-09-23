@@ -20,8 +20,13 @@ import type { WorldLinePoint, WorldLineSeries } from './charts';
 import { Icon } from './icons';
 import type { IconName } from './icons';
 import { InfoPopover } from './info-popover';
+import { NeighboursSection } from './neighbours-tables';
+import { useOnOpen } from './on-open';
 import { Pager } from './pager';
+import type { EnergyBoard } from '@/lib/energy-board';
+import type { EnvironmentBoard } from '@/lib/environment-board';
 import { DEFINITION_AUTHOR } from '@/lib/indicator-glossary';
+import type { ResourceBoard } from '@/lib/resources-board';
 import type { WorldPoint } from '@/lib/series';
 import {
   BOLIVIA,
@@ -49,6 +54,13 @@ import type { WorldIndicator, WorldTheme } from '@/lib/world-board';
  * The filters are docked on the left like everywhere else in the report. The
  * region is a comparison and not a filter: every card always draws the world
  * and Bolivia, and the region chosen is the third line.
+ *
+ * Al pie va «Bolivia y sus vecinos»: los tres cuadros con el último dato de
+ * cada país en energía, recursos naturales y medio ambiente, que antes cerraban
+ * cada uno su capítulo de «Series de Bolivia». Son la comparación con los
+ * países de al lado, y esta pestaña es la que compara. Se piden a las tres
+ * direcciones de esos capítulos, a la vez que el tablero mundial y sólo al
+ * abrir la pestaña: la portada no los lee.
  */
 
 const PAGE_SIZE = 20;
@@ -137,6 +149,18 @@ export function WorldExplorer() {
   const [search, setSearch] = useState('');
   const [offset, setOffset] = useState(0);
 
+  /*
+   * Los tres tableros de los vecinos se piden aquí y no dentro de la sección,
+   * para que arranquen junto con el tablero mundial: si esperaran a que éste
+   * llegue, el lector pagaría las dos esperas una detrás de la otra.
+   */
+  const energy = useOnOpen<{ board: EnergyBoard }>('/api/energia');
+  const resources = useOnOpen<{ board: ResourceBoard }>('/api/recursos');
+  const environment = useOnOpen<{ board: EnvironmentBoard }>('/api/ambiente');
+  const neighbours = (
+    <NeighboursSection energy={energy} resources={resources} environment={environment} />
+  );
+
   useEffect(() => {
     let live = true;
     fetch('/api/mundo')
@@ -178,10 +202,14 @@ export function WorldExplorer() {
   }
 
   if (state === 'failed') {
+    /* Los cuadros de los vecinos llegan por otras direcciones y se dibujan igual. */
     return (
-      <div className="callout">
-        No fue posible leer el tablero mundial. El detalle queda en el registro del servidor; el
-        resto del informe no depende de esta lectura.
+      <div className="stack">
+        <div className="callout">
+          No fue posible leer el tablero mundial. El detalle queda en el registro del servidor; el
+          resto del informe no depende de esta lectura.
+        </div>
+        {neighbours}
       </div>
     );
   }
@@ -461,7 +489,9 @@ export function WorldExplorer() {
               Todas las cifras son del Banco Mundial y usan la misma definición para el mundo, las
               regiones y el país, así que las tasas se leen sobre un solo eje sin convertir nada.
               Los dos totales —el PIB en dólares y la población— se dibujan como índice, porque
-              junto al mundo Bolivia no se vería.
+              junto al mundo Bolivia no se vería. Al pie,{' '}
+              <a href="#vecinos">Bolivia y sus vecinos</a>: el último dato de cada país de al lado
+              en energía, recursos naturales y medio ambiente.
             </p>
             <div className="brief-points">
               <div className="brief-point">
@@ -526,7 +556,9 @@ export function WorldExplorer() {
 
         <div className="strap">
           <Icon
-            name={theme.size === 0 ? 'globo' : (THEME_ICON[list(theme)[0] as WorldTheme] ?? 'globo')}
+            name={
+              theme.size === 0 ? 'globo' : (THEME_ICON[list(theme)[0] as WorldTheme] ?? 'globo')
+            }
             size={17}
           />
           <h2>
@@ -593,6 +625,8 @@ export function WorldExplorer() {
         ) : (
           <div className="callout">Ningún indicador mundial coincide con esta búsqueda.</div>
         )}
+
+        {neighbours}
       </div>
     </div>
   );
@@ -749,7 +783,6 @@ function WorldCard({
               })} puntos porcentuales ${gap > 0 ? 'por encima' : 'por debajo'} del mundo.`}
         </p>
       ) : null}
-
 
       {series.length && data.length ? (
         <>

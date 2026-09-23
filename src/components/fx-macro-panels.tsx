@@ -6,15 +6,11 @@ import { DatedLines } from './charts';
 import type { DatedBand, DatedLinePoint, DatedLineSeries } from './charts';
 import { Icon } from './icons';
 import type { IconName } from './icons';
+import { LevelCandles } from './level-candles';
+import type { CandleSession } from '@/lib/candles';
 import type { MacroPoint, RegimeSegment } from '@/lib/fx-macro';
 import type { FxConclusion, FxSnapshot, StablecoinReading } from '@/lib/fx-snapshot';
-import {
-  isPlottable,
-  STABLECOIN_MARKET_SURVEY_DATE,
-  STABLECOIN_MARKET_SURVEY_VENUES,
-  stablecoinsWithoutSeries,
-  type StablecoinMarketEntry,
-} from '@/lib/stablecoin-market-survey';
+import { isPlottable } from '@/lib/stablecoin-market-survey';
 
 /**
  * The macroeconomic reading of the exchange rate: the answers, then the charts.
@@ -160,12 +156,21 @@ function regimeBands(regimes: readonly RegimeSegment[]): DatedBand[] {
     .map((segment) => ({ from: segment.from, to: segment.to, label: 'oficial fijo' }));
 }
 
+/**
+ * Un punto de nivel con los dos lados que lo produjeron, cuando la fuente los
+ * publica. La línea dibuja `value`; la vela usa `bid` y `ask` como mecha.
+ */
+export interface SidedPoint extends MacroPoint {
+  bid?: number | null;
+  ask?: number | null;
+}
+
 export interface FxMacroPanelsProps {
   snapshot: FxSnapshot;
   /** The parallel in real terms, base 100 at the first day it and the UFV exist. */
   realParallel: readonly MacroPoint[];
   /** One entry per token; USDT carries the parallel before the split begins. */
-  tokens: ReadonlyArray<{ token: string; points: readonly MacroPoint[] }>;
+  tokens: ReadonlyArray<{ token: string; points: readonly SidedPoint[] }>;
   /** First day a reading names its instrument, where the token line stops being spliced. */
   labelledFrom?: string | undefined;
 }
@@ -218,10 +223,25 @@ export function FxMacroPanels({
   tokens,
   labelledFrom,
 }: FxMacroPanelsProps) {
+  /*
+   * Línea o velas, por panel y a propósito por separado. Los dos dibujan un
+   * nivel de precio contra el calendario y los dos se piden como velas para
+   * el análisis variacional, pero la pregunta de cada uno es distinta —cuánto
+   * poder de compra perdió el dólar; cuánto cuesta por cada riel— y un lector
+   * que abre las velas de uno no ha pedido las del otro.
+   */
+  const [realCandles, setRealCandles] = useState(false);
+  const [tokenCandles, setTokenCandles] = useState(false);
+
   const bands = regimeBands(snapshot.regimes);
   const realRows: DatedLinePoint[] = realParallel.map((point) => ({
     date: point.date,
     paralelo: point.value,
+  }));
+  /** El índice real como jornadas: un valor al día y ningún lado, porque un índice no los tiene. */
+  const realSessions: CandleSession[] = realParallel.map((point) => ({
+    date: point.date,
+    mid: point.value,
   }));
 
   /*
@@ -257,6 +277,22 @@ export function FxMacroPanels({
     }
     return row;
   });
+  /*
+   * Cada ficha como jornadas para sus velas: el punto medio abre y cierra, y
+   * la compra y la venta medianas del día —cuando la fuente resolvió los
+   * lados— son la mecha. Una ficha con un solo lado ese día lleva ese lado y
+   * el punto medio, que es lo que se sabe de ella.
+   */
+  const tokenSessions = plotted.map((entry) => ({
+    token: entry.token,
+    sessions: entry.points.map(
+      (point): CandleSession => ({
+        date: point.date,
+        mid: point.value,
+        sides: [point.bid, point.ask].filter((side): side is number => typeof side === 'number'),
+      }),
+    ),
+  }));
 
   return (
     <>
@@ -278,7 +314,18 @@ export function FxMacroPanels({
        */}
       <div className="grid-pair">
         <div className="panel">
-          <div className="panel-head">
+          <div className="panel-head card-head">
+            <button
+              type="button"
+              className={realCandles ? 'card-toggle card-toggle-on' : 'card-toggle'}
+              onClick={() => setRealCandles(!realCandles)}
+              title={
+                realCandles ? 'Ver el índice como línea' : 'Ver una vela por jornada del índice'
+              }
+              aria-pressed={realCandles}
+            >
+              <Icon name={realCandles ? 'linea' : 'velas'} size={16} />
+            </button>
             <h2>Dólar paralelo descontada la inflación (índice, base 100)</h2>
             <p className="panel-sub">
               Lo que la inflación le quitó al dólar: el paralelo deflactado por la UFV, con su nivel
@@ -290,7 +337,9 @@ export function FxMacroPanels({
               oficial estuvo fijo.
             </p>
           </div>
-          {realRows.length > 1 ? (
+          {realRows.length > 1 && realCandles ? (
+            <LevelCandles sessions={realSessions} unit="puntos del índice" decimals={1} />
+          ) : realRows.length > 1 ? (
             <DatedLines
               data={realRows}
               series={REAL_SERIES}
@@ -308,7 +357,18 @@ export function FxMacroPanels({
         </div>
 
         <div className="panel">
-          <div className="panel-head">
+          <div className="panel-head card-head">
+            <button
+              type="button"
+              className={tokenCandles ? 'card-toggle card-toggle-on' : 'card-toggle'}
+              onClick={() => setTokenCandles(!tokenCandles)}
+              title={
+                tokenCandles ? 'Ver las fichas como líneas' : 'Ver una vela por jornada de cada ficha'
+              }
+              aria-pressed={tokenCandles}
+            >
+              <Icon name={tokenCandles ? 'linea' : 'velas'} size={16} />
+            </button>
             <h2>Precio del dólar por ficha estable (Bs/USD)</h2>
             <p className="panel-sub">
               El dólar por cada riel: punto medio en bolivianos por dólar de cada ficha estable, que
@@ -326,7 +386,35 @@ export function FxMacroPanels({
               ) : null}
             </p>
           </div>
-          {tokenRows.length >= TOKEN_CHART_MINIMUM ? (
+          {tokenRows.length >= TOKEN_CHART_MINIMUM && tokenCandles ? (
+            /*
+             * Una pila de velas por ficha y no una sola con las dos: una vela
+             * es un precio en el tiempo, y dos fichas superpuestas serían dos
+             * precios peleando por el mismo cuerpo. La ventana abre en «90
+             * días» porque es donde vive el tramo leído por ficha; «Todo»
+             * devuelve a USDT su historia empalmada, ya por semanas.
+             */
+            <div className="chart-stack">
+              {tokenSessions.map((entry) => (
+                <div key={entry.token} className="candle-token">
+                  <div className="tile-head">
+                    <Icon name="chip" size={15} />
+                    <h3>{entry.token} (Bs/USD)</h3>
+                    <span className="tile-hint">
+                      {entry.sessions.length.toLocaleString('es-BO')} jornadas
+                    </span>
+                  </div>
+                  <LevelCandles
+                    sessions={entry.sessions}
+                    unit="Bs/USD"
+                    decimals={3}
+                    sidesNote="la compra y la venta medianas de la jornada"
+                    defaultRange="90d"
+                  />
+                </div>
+              ))}
+            </div>
+          ) : tokenRows.length >= TOKEN_CHART_MINIMUM ? (
             <DatedLines
               data={tokenRows}
               series={tokenSeries}
@@ -337,90 +425,18 @@ export function FxMacroPanels({
           ) : (
             <StablecoinTable readings={snapshot.stablecoins} />
           )}
-          <StablecoinCensus plotted={plotted.map((entry) => entry.token)} />
         </div>
       </div>
     </>
   );
 }
 
-/**
- * Las fichas que se buscaron y hoy no tienen línea, con lo que devolvió cada una.
- *
- * Un gráfico con dos líneas no puede decir por sí solo si las demás fichas no
- * cotizan o si nadie las miró, y esa es exactamente la pregunta del lector que
- * conoce USDS, USDe o PYUSD de otros mercados. Sin esta nota la respuesta
- * honesta —«se pidieron las cinco y tres devolvieron el libro vacío»— no está
- * en ninguna parte de la página, y la ausencia se lee como un olvido.
- *
- * Se arma restando las fichas dibujadas al censo, no escribiendo nombres: el
- * día que una de estas abra mercado, su serie aparece arriba y su nombre
- * desaparece de aquí sin que nadie edite la frase.
+/*
+ * El recuento de fichas sin línea (las que devolvieron el libro vacío o demasiado
+ * fino en la última corrida) ya no se muestra bajo el gráfico: la nota se retiró
+ * del tablero a pedido. El censo sigue en `stablecoin-market-survey.ts` y en los
+ * datos de la corrida; aquí solo se dibujan las fichas con serie.
  */
-function StablecoinCensus({ plotted }: { plotted: readonly string[] }) {
-  const missing = stablecoinsWithoutSeries(plotted);
-  if (!missing.length) return null;
-
-  /*
-   * Tres motivos distintos por los que una ficha no tiene línea, y cada uno
-   * dice una cosa distinta sobre el mercado. Meterlos en una sola frase fue el
-   * primer intento y salió una falsedad: USDC, que cotiza por los dos lados,
-   * quedó descrito como «de un solo lado» por compartir rama con FDUSD.
-   */
-  const empty = missing.filter((entry) => entry.state === 'NO_MARKET');
-  const tooThin = missing.filter((entry) => entry.state === 'TOO_THIN');
-  const awaiting = missing.filter(
-    (entry) => entry.state === 'QUOTED' || entry.state === 'QUOTED_THIN',
-  );
-
-  return (
-    <p className="chart-note">
-      <b>Por qué no hay una línea por cada ficha.</b> Cada corrida del recolector pide el libro en
-      bolivianos de todas las fichas de esta lista, no solo de las que ya tienen serie.
-      {empty.length ? (
-        <>
-          {' '}
-          {sayList(empty)} {empty.length === 1 ? 'devolvió' : 'devolvieron'}{' '}
-          <b>cero avisos en los dos lados</b> en {sayVenues()}: en bolivianos no{' '}
-          {empty.length === 1 ? 'se negocia' : 'se negocian'}, de modo que no hay precio que dibujar
-          y no se inventa uno.
-        </>
-      ) : null}
-      {tooThin.map((entry) => (
-        <span key={entry.label}>
-          {' '}
-          <b>{entry.label}</b> cotiza de los dos lados, pero con {entry.asks} aviso de venta y{' '}
-          {entry.bids} de compra en todo el libro. La mediana de un aviso es ese aviso, el precio
-          que pidió una persona y no el del mercado, así que no se publica.
-        </span>
-      ))}
-      {awaiting.map((entry) => (
-        <span key={entry.label}>
-          {' '}
-          <b>{entry.label}</b> sí tiene libro por los dos lados —{entry.bids} y {entry.asks} avisos—
-          y todavía no tiene línea: su serie empieza el día que se publique su primera lectura, no
-          antes.
-        </span>
-      ))}{' '}
-      Recuento del {sayLong(STABLECOIN_MARKET_SURVEY_DATE)}. Si alguna de las vacías abre mercado,
-      su línea empieza sola el día que aparezca el primer aviso.
-    </p>
-  );
-}
-
-/** «USDS, USDe y PYUSD» — la lista como se dice en voz alta, no separada por comas hasta el final. */
-function sayList(entries: readonly StablecoinMarketEntry[]): string {
-  const names = entries.map((entry) => entry.label);
-  if (names.length <= 1) return names[0] ?? '';
-  return `${names.slice(0, -1).join(', ')} y ${names.at(-1)}`;
-}
-
-const sayVenues = (): string => {
-  const names = [...STABLECOIN_MARKET_SURVEY_VENUES];
-  return names.length <= 1
-    ? (names[0] ?? '')
-    : `${names.slice(0, -1).join(', ')} y ${names.at(-1)}`;
-};
 
 /**
  * The tokens as a table, for while the series is too short to plot.
