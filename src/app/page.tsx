@@ -15,6 +15,7 @@ import {
   FilingsSection,
   MacroSection,
   PressSection,
+  RoadsSection,
   SourcesSection,
 } from './lazy-sections';
 import { dailyAnalysis } from '@/lib/daily-analysis';
@@ -578,10 +579,11 @@ export default function Page() {
           'Macroeconomía',
           'Empresas',
           'Ciudades',
+          'Carreteras',
           'Prensa',
           'Método',
         ]}
-        icons={['diana', 'linea', 'globo', 'edificio', 'mapa', 'ventana', 'info']}
+        icons={['diana', 'linea', 'globo', 'edificio', 'mapa', 'camion', 'ventana', 'info']}
       >
         <section className="stack">
           <Suspense fallback={<Armando que="el resumen de hoy" />}>
@@ -612,6 +614,10 @@ export default function Page() {
 
         <section className="stack">
           <CitiesSection />
+        </section>
+
+        <section className="stack">
+          <RoadsSection />
         </section>
 
         <section className="stack">

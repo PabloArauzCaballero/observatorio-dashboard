@@ -6096,4 +6096,55 @@ button.download-btn {
 
 .map-frame + .heat-scale > span {
   white-space: nowrap;
+/* Carreteras --------------------------------------------------------------- */
+
+.roads-map-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s2);
+}
+
+.roads-map {
+  width: 100%;
+  height: auto;
+  max-height: 70vh;
+  background: var(--panel-tint);
+  border-radius: var(--radius);
+}
+
+.roads-map-departments path {
+  fill: var(--chart-surface);
+  stroke: var(--rule);
+  stroke-width: 1;
+}
+
+.roads-map-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem 1rem;
+  font-size: 0.76rem;
+  color: var(--ink-soft);
+}
+
+.roads-map-legend-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.roads-map-legend-item i {
+  display: inline-block;
+  width: 14px;
+  height: 3px;
+  border-radius: 2px;
+}
+
+.roads-map-legend-dash {
+  background-image: repeating-linear-gradient(
+    to right,
+    var(--ink-faint) 0,
+    var(--ink-faint) 4px,
+    transparent 4px,
+    transparent 7px
+  );
 }
