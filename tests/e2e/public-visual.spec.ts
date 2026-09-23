@@ -31,7 +31,7 @@ const TABS = [
 
 // The two chapters that split again into their own tablist once open.
 const SUBTABS: Partial<Record<(typeof TABS)[number]['label'], string[]>> = {
-  Macroeconomía: ['Series de Bolivia', 'Economía mundial'],
+  Macroeconomía: ['Series de Bolivia', 'Bolivia ante el mundo'],
   Prensa: ['Cobertura', 'Temas'],
 };
 

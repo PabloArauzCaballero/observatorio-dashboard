@@ -63,7 +63,7 @@ import type {
  *
  * `Tabs` ya dibujaba sólo la pestaña activa **en el navegador**. Ahora las otras
  * seis tampoco se leen en el servidor: cada una pide lo suyo al montarse, que es
- * lo que «Social Info» y «Economía mundial» llevaban haciendo desde que se vio
+ * lo que «Social Info» y «Bolivia ante el mundo» llevaban haciendo desde que se vio
  * que mil quinientas series no caben en una primera pantalla. Aquí quedan las
  * lecturas que el resumen necesita para existir, y de ellas viaja lo que el
  * resumen enseña —el cuadro de mando, el análisis, los contadores— y no el

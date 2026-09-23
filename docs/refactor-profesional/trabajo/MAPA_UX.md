@@ -33,7 +33,7 @@ problema? no reorganizar masivamente").
 Clasificación de lo que ya existe (para que fase 04+ no la mezcle):
 - **Navegación global** (entre secciones del informe): `Tabs` de nivel 1, 7 destinos.
 - **Navegación contextual** (dentro de una sección con más de una vista): `SubTabs` de nivel 2 —
-  usado hoy en Macroeconomía (Series de Bolivia / Economía mundial) y en Prensa (Cobertura / Temas).
+  usado hoy en Macroeconomía (Series de Bolivia / Bolivia ante el mundo) y en Prensa (Cobertura / Temas).
 - **Herramientas de la vista** (actúan sobre lo que se está viendo, no navegan): control de
   descarga (`Download`) junto a cada gráfico, filtros propios de cada explorer.
 - **Aviso de estado** (no es navegación ni herramienta): el `callout` de secciones perdidas y la
