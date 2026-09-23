@@ -17,10 +17,14 @@ import type { MacroPoint } from './series';
  * de un lado y del otro—, que es la prueba de que es la misma declaración
  * aduanera vista desde dos publicadores distintos.
  *
- * `detail` recoge cualquier otro código que empiece por `COMTRADE_` y no sea
- * uno de los dos agregados, para que el capítulo no se rompa el día que el
- * núcleo siembre el desglose: hoy esa lista sale vacía y el panel que la lee
- * dice que está esperando la carga en vez de dibujar nada.
+ * El desglose por producto y por socio llegó el 2026-09-23: `COMTRADE_PARTNER_`
+ * trae el agregado con cada uno de los veinte socios principales, por flujo
+ * (`X` exportación, `M` importación), y `COMTRADE_PRODUCT_` lo mismo por
+ * capítulo del Sistema Armonizado. Las dos listas son recortes del mismo
+ * agregado —el total exportado, visto por socio o visto por producto— y no se
+ * cruzan entre sí: Comtrade no publica, para Bolivia, cuánto le vendió a China
+ * de un capítulo dado. `detail` sigue recogiendo cualquier otro código
+ * `COMTRADE_` que no encaje en ninguno de los tres patrones conocidos.
  */
 
 export interface ComtradeYear {
@@ -28,16 +32,40 @@ export interface ComtradeYear {
   value: number;
 }
 
-/** Una serie COMTRADE_ que no es ninguno de los dos agregados conocidos. */
+/** Una serie COMTRADE_ que no es ninguno de los tres patrones conocidos. */
 export interface ComtradeDetail {
   code: string;
   name: string | null;
   points: ComtradeYear[];
 }
 
+/** El comercio con un socio, por flujo. */
+export interface ComtradePartner {
+  code: string;
+  /** El token de la fuente, p. ej. `CHINA`; sirve de valor de filtro. */
+  country: string;
+  /** El nombre para mostrar, tomado del rótulo de la serie. */
+  label: string;
+  flow: 'X' | 'M';
+  points: ComtradeYear[];
+}
+
+/** El comercio de un capítulo del Sistema Armonizado, por flujo. */
+export interface ComtradeProduct {
+  code: string;
+  /** El capítulo de dos dígitos, p. ej. `27`; sirve de valor de filtro. */
+  chapter: string;
+  /** La descripción del capítulo, tomada del rótulo de la serie. */
+  label: string;
+  flow: 'X' | 'M';
+  points: ComtradeYear[];
+}
+
 export interface ForeignTradeBoard {
   exportsUsd: ComtradeYear[];
   importsUsd: ComtradeYear[];
+  partners: ComtradePartner[];
+  products: ComtradeProduct[];
   detail: ComtradeDetail[];
   latestYear: number | null;
 }
@@ -45,14 +73,32 @@ export interface ForeignTradeBoard {
 const EXPORTS_CODE = 'COMTRADE_GOODS_EXPORTS_USD';
 const IMPORTS_CODE = 'COMTRADE_GOODS_IMPORTS_USD';
 const PREFIX = 'COMTRADE_';
+const PARTNER_RE = /^COMTRADE_PARTNER_(X|M)_([A-Z]+)_USD$/;
+const PRODUCT_RE = /^COMTRADE_PRODUCT_(X|M)_HS(\d+)_USD$/;
 
 const byYear = (values: ComtradeYear[]): ComtradeYear[] =>
   [...values].sort((left, right) => left.year - right.year);
+
+/** El país, tomado de «...a/desde <país>, declaradas...»; el token si no calza. */
+function partnerLabel(name: string | null, token: string): string {
+  const match = name ? /a\/(?:desde|hacia) (.+?), declaradas/u.exec(name) : null;
+  const label = match?.[1]?.trim();
+  return label && label.length > 1 ? label : token;
+}
+
+/** La descripción del capítulo, tomada de «...(NN - descripción), declaradas...». */
+function productLabel(name: string | null, chapter: string): string {
+  const match = name ? /cap[ií]tulo \d+ \(\d+ - (.+?)\), declaradas/u.exec(name) : null;
+  const label = match?.[1]?.trim();
+  return label && label.length > 1 ? label : `Capítulo ${chapter}`;
+}
 
 /** Arma el capítulo con las filas cuyo código empieza por `COMTRADE_`. */
 export function buildForeignTradeBoard(points: readonly MacroPoint[]): ForeignTradeBoard {
   const exportsUsd: ComtradeYear[] = [];
   const importsUsd: ComtradeYear[] = [];
+  const partnersByCode = new Map<string, ComtradePartner>();
+  const productsByCode = new Map<string, ComtradeProduct>();
   const detailByCode = new Map<string, ComtradeDetail>();
 
   for (const point of points) {
@@ -70,6 +116,36 @@ export function buildForeignTradeBoard(points: readonly MacroPoint[]): ForeignTr
       continue;
     }
 
+    const partnerMatch = PARTNER_RE.exec(point.indicatorCode);
+    if (partnerMatch) {
+      const [, flow, token] = partnerMatch as unknown as [string, 'X' | 'M', string];
+      const entry = partnersByCode.get(point.indicatorCode) ?? {
+        code: point.indicatorCode,
+        country: token,
+        label: partnerLabel(point.name, token),
+        flow,
+        points: [] as ComtradeYear[],
+      };
+      entry.points.push({ year, value: point.value });
+      partnersByCode.set(point.indicatorCode, entry);
+      continue;
+    }
+
+    const productMatch = PRODUCT_RE.exec(point.indicatorCode);
+    if (productMatch) {
+      const [, flow, chapter] = productMatch as unknown as [string, 'X' | 'M', string];
+      const entry = productsByCode.get(point.indicatorCode) ?? {
+        code: point.indicatorCode,
+        chapter,
+        label: productLabel(point.name, chapter),
+        flow,
+        points: [] as ComtradeYear[],
+      };
+      entry.points.push({ year, value: point.value });
+      productsByCode.set(point.indicatorCode, entry);
+      continue;
+    }
+
     const entry = detailByCode.get(point.indicatorCode) ?? {
       code: point.indicatorCode,
       name: point.name,
@@ -83,18 +159,58 @@ export function buildForeignTradeBoard(points: readonly MacroPoint[]): ForeignTr
     .map((entry) => ({ ...entry, points: byYear(entry.points) }))
     .sort((left, right) => left.code.localeCompare(right.code));
 
+  const partners = [...partnersByCode.values()]
+    .map((entry) => ({ ...entry, points: byYear(entry.points) }))
+    .sort((left, right) => left.label.localeCompare(right.label, 'es'));
+
+  const products = [...productsByCode.values()]
+    .map((entry) => ({ ...entry, points: byYear(entry.points) }))
+    .sort((left, right) => left.chapter.localeCompare(right.chapter));
+
   const latestYear = Math.max(
     0,
     ...exportsUsd.map((point) => point.year),
     ...importsUsd.map((point) => point.year),
+    ...partners.flatMap((entry) => entry.points.map((point) => point.year)),
+    ...products.flatMap((entry) => entry.points.map((point) => point.year)),
   );
 
   return {
     exportsUsd: byYear(exportsUsd),
     importsUsd: byYear(importsUsd),
+    partners,
+    products,
     detail,
     latestYear: latestYear > 0 ? latestYear : null,
   };
+}
+
+/** Un valor de filtro con su rótulo para mostrar. */
+export interface FilterOption {
+  value: string;
+  label: string;
+}
+
+/** Los países del detalle por socio, sin repetir entre flujo de exportación e importación. */
+export function partnerOptions(board: ForeignTradeBoard): FilterOption[] {
+  const byToken = new Map<string, string>();
+  for (const entry of board.partners) {
+    if (!byToken.has(entry.country)) byToken.set(entry.country, entry.label);
+  }
+  return [...byToken.entries()]
+    .map(([value, label]) => ({ value, label }))
+    .sort((left, right) => left.label.localeCompare(right.label, 'es'));
+}
+
+/** Los capítulos del detalle por producto, sin repetir entre flujo. */
+export function productChapterOptions(board: ForeignTradeBoard): FilterOption[] {
+  const byChapter = new Map<string, string>();
+  for (const entry of board.products) {
+    if (!byChapter.has(entry.chapter)) byChapter.set(entry.chapter, entry.label);
+  }
+  return [...byChapter.entries()]
+    .map(([value, label]) => ({ value, label: `HS ${value} — ${label}` }))
+    .sort((left, right) => left.value.localeCompare(right.value));
 }
 
 const say = (value: number, decimals = 1): string =>

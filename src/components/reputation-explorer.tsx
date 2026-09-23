@@ -1,8 +1,8 @@
 'use client';
 
 import { useMemo, useState } from 'react';
-import { percent } from './exporters-explorer';
 import { Icon } from './icons';
+import { percent } from '@/lib/exporters-board';
 import type { ExportersBoard, ReputationSeat } from '@/lib/exporters-board';
 
 /**
@@ -16,18 +16,20 @@ import type { ExportersBoard, ReputationSeat } from '@/lib/exporters-board';
  * lo muelen empresas que ningún consumidor sabría nombrar, mientras las que el
  * país reconoce venden cerveza, gaseosa y crédito puertas adentro.
  *
- * Estaba en la misma página que el ránking de exportadoras
- * (`exporters-explorer.tsx`) y se separó. La reputación es **percibida**: se
- * mide con encuestas a públicos que conocen la marca, y un lector que la viera
+ * El ránking de exportadoras vive ahora dentro de «Comercio exterior»
+ * (`foreign-trade-explorer.tsx`), fusionado con el producto y el país porque
+ * son la misma pregunta —qué comercia Bolivia y quién lo hace—. La reputación
+ * sigue aparte, en su propia pestaña, porque mide otra cosa: es **percibida**,
+ * con encuestas a públicos que conocen la marca, y un lector que la viera
  * pegada a un orden salido de registros aduaneros supondría un vínculo que no
- * existe entre puesto exportador y puesto de reputación. Dos pestañas dicen que
- * son dos medidas. El cruce vive aquí y no allá porque es esta lista la que
- * hace la pregunta —«¿cuántas de las que el país reconoce son las que venden
- * afuera?»— y la respuesta se lee sobre los puestos de reputación.
+ * existe entre puesto exportador y puesto de reputación. El cruce vive aquí y
+ * no allá porque es esta lista la que hace la pregunta —«¿cuántas de las que
+ * el país reconoce son las que venden afuera?»— y la respuesta se lee sobre
+ * los puestos de reputación.
  *
- * Las dos páginas leen el mismo `/api/exportadoras`: el cuerpo viaja con
- * `Cache-Control: private, max-age=600`, así que cambiar de una a otra no
- * vuelve a consultar el servidor.
+ * Esta página y «Comercio exterior» leen el mismo `/api/exportadoras`: el
+ * cuerpo viaja con `Cache-Control: private, max-age=600`, así que abrir una
+ * después de la otra no vuelve a consultar el servidor.
  */
 
 /**
@@ -177,7 +179,7 @@ export function ReputationExplorer({ board }: { board: ExportersBoard }) {
           <h2>Las que están en las dos listas</h2>
           <p className="panel-sub">
             Empresas del monitor de reputación que además figuran entre las cien mayores
-            exportadoras de la pestaña «Exportadoras». Son <strong>{board.crossings.length}</strong>{' '}
+            exportadoras del ránking en «Comercio exterior». Son <strong>{board.crossings.length}</strong>{' '}
             de las {board.exporters.length} del ránking exportador, y esa escasez es el hallazgo del
             capítulo: lo que el país vende afuera lo producen empresas que el público no reconoce,
             y lo que el público reconoce se vende puertas adentro.

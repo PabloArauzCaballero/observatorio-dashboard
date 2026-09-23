@@ -209,6 +209,15 @@ export function buildExportersBoard(points: readonly MacroPoint[]): ExportersBoa
   };
 }
 
+const number = (value: number, decimals = 1): string =>
+  value.toLocaleString('es-BO', {
+    minimumFractionDigits: decimals,
+    maximumFractionDigits: decimals,
+  });
+
+/** La cuota, con una decimal y el signo separado como se escribe en Bolivia. */
+export const percent = (value: number): string => `${number(value, 1)} %`;
+
 /**
  * Cuánto de lo que el país vende está en manos de las diez primeras.
  *
