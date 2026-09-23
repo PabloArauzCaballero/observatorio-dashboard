@@ -8,13 +8,7 @@ import { Icon } from './icons';
 import type { IconName } from './icons';
 import type { MacroPoint, RegimeSegment } from '@/lib/fx-macro';
 import type { FxConclusion, FxSnapshot, StablecoinReading } from '@/lib/fx-snapshot';
-import {
-  isPlottable,
-  STABLECOIN_MARKET_SURVEY_DATE,
-  STABLECOIN_MARKET_SURVEY_VENUES,
-  stablecoinsWithoutSeries,
-  type StablecoinMarketEntry,
-} from '@/lib/stablecoin-market-survey';
+import { isPlottable } from '@/lib/stablecoin-market-survey';
 
 /**
  * The macroeconomic reading of the exchange rate: the answers, then the charts.
@@ -337,90 +331,18 @@ export function FxMacroPanels({
           ) : (
             <StablecoinTable readings={snapshot.stablecoins} />
           )}
-          <StablecoinCensus plotted={plotted.map((entry) => entry.token)} />
         </div>
       </div>
     </>
   );
 }
 
-/**
- * Las fichas que se buscaron y hoy no tienen línea, con lo que devolvió cada una.
- *
- * Un gráfico con dos líneas no puede decir por sí solo si las demás fichas no
- * cotizan o si nadie las miró, y esa es exactamente la pregunta del lector que
- * conoce USDS, USDe o PYUSD de otros mercados. Sin esta nota la respuesta
- * honesta —«se pidieron las cinco y tres devolvieron el libro vacío»— no está
- * en ninguna parte de la página, y la ausencia se lee como un olvido.
- *
- * Se arma restando las fichas dibujadas al censo, no escribiendo nombres: el
- * día que una de estas abra mercado, su serie aparece arriba y su nombre
- * desaparece de aquí sin que nadie edite la frase.
+/*
+ * El recuento de fichas sin línea (las que devolvieron el libro vacío o demasiado
+ * fino en la última corrida) ya no se muestra bajo el gráfico: la nota se retiró
+ * del tablero a pedido. El censo sigue en `stablecoin-market-survey.ts` y en los
+ * datos de la corrida; aquí solo se dibujan las fichas con serie.
  */
-function StablecoinCensus({ plotted }: { plotted: readonly string[] }) {
-  const missing = stablecoinsWithoutSeries(plotted);
-  if (!missing.length) return null;
-
-  /*
-   * Tres motivos distintos por los que una ficha no tiene línea, y cada uno
-   * dice una cosa distinta sobre el mercado. Meterlos en una sola frase fue el
-   * primer intento y salió una falsedad: USDC, que cotiza por los dos lados,
-   * quedó descrito como «de un solo lado» por compartir rama con FDUSD.
-   */
-  const empty = missing.filter((entry) => entry.state === 'NO_MARKET');
-  const tooThin = missing.filter((entry) => entry.state === 'TOO_THIN');
-  const awaiting = missing.filter(
-    (entry) => entry.state === 'QUOTED' || entry.state === 'QUOTED_THIN',
-  );
-
-  return (
-    <p className="chart-note">
-      <b>Por qué no hay una línea por cada ficha.</b> Cada corrida del recolector pide el libro en
-      bolivianos de todas las fichas de esta lista, no solo de las que ya tienen serie.
-      {empty.length ? (
-        <>
-          {' '}
-          {sayList(empty)} {empty.length === 1 ? 'devolvió' : 'devolvieron'}{' '}
-          <b>cero avisos en los dos lados</b> en {sayVenues()}: en bolivianos no{' '}
-          {empty.length === 1 ? 'se negocia' : 'se negocian'}, de modo que no hay precio que dibujar
-          y no se inventa uno.
-        </>
-      ) : null}
-      {tooThin.map((entry) => (
-        <span key={entry.label}>
-          {' '}
-          <b>{entry.label}</b> cotiza de los dos lados, pero con {entry.asks} aviso de venta y{' '}
-          {entry.bids} de compra en todo el libro. La mediana de un aviso es ese aviso, el precio
-          que pidió una persona y no el del mercado, así que no se publica.
-        </span>
-      ))}
-      {awaiting.map((entry) => (
-        <span key={entry.label}>
-          {' '}
-          <b>{entry.label}</b> sí tiene libro por los dos lados —{entry.bids} y {entry.asks} avisos—
-          y todavía no tiene línea: su serie empieza el día que se publique su primera lectura, no
-          antes.
-        </span>
-      ))}{' '}
-      Recuento del {sayLong(STABLECOIN_MARKET_SURVEY_DATE)}. Si alguna de las vacías abre mercado,
-      su línea empieza sola el día que aparezca el primer aviso.
-    </p>
-  );
-}
-
-/** «USDS, USDe y PYUSD» — la lista como se dice en voz alta, no separada por comas hasta el final. */
-function sayList(entries: readonly StablecoinMarketEntry[]): string {
-  const names = entries.map((entry) => entry.label);
-  if (names.length <= 1) return names[0] ?? '';
-  return `${names.slice(0, -1).join(', ')} y ${names.at(-1)}`;
-}
-
-const sayVenues = (): string => {
-  const names = [...STABLECOIN_MARKET_SURVEY_VENUES];
-  return names.length <= 1
-    ? (names[0] ?? '')
-    : `${names.slice(0, -1).join(', ')} y ${names.at(-1)}`;
-};
 
 /**
  * The tokens as a table, for while the series is too short to plot.
