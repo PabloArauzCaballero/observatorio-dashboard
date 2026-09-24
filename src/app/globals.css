@@ -2981,10 +2981,40 @@ button.term-chip:hover {
   color: var(--ink-soft);
 }
 
-/* A chip names one choice, and one choice fits on one line. */
+/*
+ * A chip names one choice, and one choice fits on one line.
+ *
+ * Y no se sale de su celda. La rejilla de dos columnas da a cada pastilla la
+ * mitad del carril, unos 115 px, y un nombre largo en `nowrap` desbordaba esa
+ * celda y se montaba encima de la vecina: «Russian Federation ×» tapaba a
+ * «HS 02 — Meat and edible meat offal ×». `min-width: 0` deja que la celda
+ * mande sobre el texto, y lo que no cabe se corta en vez de invadir.
+ */
 .rail-pills .chip {
   max-width: 100%;
+  min-width: 0;
+  overflow: hidden;
   white-space: nowrap;
+}
+
+/* Una pastilla que nombra un país o un capítulo usa las dos columnas. */
+.rail-pills .chip-wide {
+  grid-column: 1 / -1;
+  justify-content: flex-start;
+}
+
+/* El texto que se corta con puntos suspensivos; el icono y la × no. */
+.chip-text {
+  min-width: 0;
+  flex: 1 1 auto;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  text-align: left;
+}
+
+.chip > svg,
+.chip > [aria-hidden='true'] {
+  flex: none;
 }
 
 /* Sources and their caveats ------------------------------------------------ */
@@ -3956,6 +3986,175 @@ button.download-btn {
   width: 1.4rem;
   height: 0.55rem;
   border-radius: 2px;
+}
+
+/* Comercio exterior: mapa mundial y tipo de gráfico ------------------------ */
+
+/*
+ * La cabecera de un panel con selector: el título a la izquierda y los botones
+ * a la derecha, y en un teléfono los botones bajan debajo del título.
+ */
+.panel-head-kind {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--s1) var(--s2);
+}
+
+.panel-head-kind > div:first-child {
+  flex: 1 1 18rem;
+  min-width: 0;
+}
+
+.chart-kind {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem;
+  flex: none;
+}
+
+.chart-kind .chip {
+  font-size: 0.78rem;
+  padding: 0.26rem 0.65rem;
+}
+
+/* Los cuadrados: una rendija del color del panel entre uno y otro. */
+.square-rect {
+  stroke: var(--chart-surface, var(--panel));
+  stroke-width: 2;
+}
+
+.square-pick {
+  cursor: pointer;
+}
+
+.square-pick:hover .square-rect {
+  stroke: var(--ink-soft);
+}
+
+.square-on {
+  stroke: var(--parallel);
+  stroke-width: 3;
+}
+
+.square-name {
+  font-size: 12px;
+  font-weight: 600;
+  pointer-events: none;
+}
+
+.square-value {
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+  pointer-events: none;
+}
+
+.world-map {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s1);
+}
+
+.world-map-frame {
+  position: relative;
+  width: 100%;
+}
+
+.world-map .heat-scale {
+  flex-wrap: wrap;
+}
+
+.world-country path,
+.world-country circle {
+  stroke: var(--panel);
+  stroke-width: 0.6;
+  stroke-linejoin: round;
+  transition:
+    stroke var(--fast) var(--ease),
+    stroke-width var(--fast) var(--ease);
+}
+
+.world-country-data {
+  cursor: pointer;
+  outline: none;
+}
+
+.world-country-data:hover path,
+.world-country-data:hover circle,
+.world-country-data:focus-visible path,
+.world-country-data:focus-visible circle {
+  stroke: var(--ink);
+  stroke-width: 1.4;
+}
+
+/* El elegido lleva el mismo naranja que la marca de elección del resto del informe. */
+.world-country-on path,
+.world-country-on circle {
+  stroke: var(--parallel);
+  stroke-width: 2.2;
+}
+
+/* Bolivia es el origen, no un socio: se marca con el contorno de tinta. */
+.world-country-home path {
+  fill: var(--panel-tint) !important;
+  stroke: var(--ink);
+  stroke-width: 1.4;
+}
+
+.world-home-key {
+  background: var(--panel-tint);
+  outline: 1.5px solid var(--ink);
+  outline-offset: -1.5px;
+}
+
+.world-map-tip {
+  position: absolute;
+  transform: translate(12px, -110%);
+  pointer-events: none;
+  white-space: nowrap;
+  z-index: 2;
+}
+
+.country-card {
+  margin-top: var(--s2);
+  padding-top: var(--s2);
+  border-top: 1px solid var(--rule);
+  display: flex;
+  flex-direction: column;
+  gap: var(--s1);
+}
+
+.country-card h3 {
+  margin: 0;
+  font-size: 1rem;
+}
+
+.country-figures {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(11rem, 1fr));
+  gap: var(--s1) var(--s2);
+  margin: 0;
+}
+
+.country-figures dt {
+  font-size: 0.72rem;
+  color: var(--ink-soft);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.country-figures dd {
+  margin: 0.1rem 0 0;
+  font-size: 1.05rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.country-figures .country-aside {
+  font-size: 0.78rem;
+  font-weight: 400;
+  color: var(--ink-soft);
 }
 
 /* Donation --------------------------------------------------------------- */

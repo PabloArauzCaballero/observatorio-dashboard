@@ -2,6 +2,7 @@ import { nationalProductMix } from './departments-board';
 import type { DepartmentBoard } from './departments-board';
 import type { FxConclusion } from './fx-snapshot';
 import type { MacroPoint } from './series';
+import { HS_CHAPTERS, PARTNER_NAMES } from './trade-names';
 
 /**
  * El comercio exterior agregado que Bolivia declara ante Naciones Unidas.
@@ -44,8 +45,10 @@ export interface ComtradePartner {
   code: string;
   /** El token de la fuente, p. ej. `CHINA`; sirve de valor de filtro. */
   country: string;
-  /** El nombre para mostrar, tomado del rótulo de la serie. */
+  /** El nombre para mostrar, en castellano; el rótulo de la fuente si no lo conocemos. */
   label: string;
+  /** ISO 3166 alfa-3 para ubicarlo en el mapa, o `null` si el token no está en la tabla. */
+  iso3: string | null;
   flow: 'X' | 'M';
   points: ComtradeYear[];
 }
@@ -79,15 +82,25 @@ const PRODUCT_RE = /^COMTRADE_PRODUCT_(X|M)_HS(\d+)_USD$/;
 const byYear = (values: ComtradeYear[]): ComtradeYear[] =>
   [...values].sort((left, right) => left.year - right.year);
 
-/** El país, tomado de «...a/desde <país>, declaradas...»; el token si no calza. */
+/**
+ * El país en castellano; si el token no está en la tabla, el de la fuente,
+ * tomado de «...a/desde <país>, declaradas...», y el token si ni eso calza.
+ */
 function partnerLabel(name: string | null, token: string): string {
+  const known = PARTNER_NAMES[token];
+  if (known) return known.name;
   const match = name ? /a\/(?:desde|hacia) (.+?), declaradas/u.exec(name) : null;
   const label = match?.[1]?.trim();
   return label && label.length > 1 ? label : token;
 }
 
-/** La descripción del capítulo, tomada de «...(NN - descripción), declaradas...». */
+/**
+ * El título corto del capítulo en castellano; si no está en la tabla, la
+ * descripción de la fuente, tomada de «...(NN - descripción), declaradas...».
+ */
 function productLabel(name: string | null, chapter: string): string {
+  const known = HS_CHAPTERS[chapter.padStart(2, '0')];
+  if (known) return known;
   const match = name ? /cap[ií]tulo \d+ \(\d+ - (.+?)\), declaradas/u.exec(name) : null;
   const label = match?.[1]?.trim();
   return label && label.length > 1 ? label : `Capítulo ${chapter}`;
@@ -123,6 +136,7 @@ export function buildForeignTradeBoard(points: readonly MacroPoint[]): ForeignTr
         code: point.indicatorCode,
         country: token,
         label: partnerLabel(point.name, token),
+        iso3: PARTNER_NAMES[token]?.iso3 ?? null,
         flow,
         points: [] as ComtradeYear[],
       };
@@ -209,7 +223,7 @@ export function productChapterOptions(board: ForeignTradeBoard): FilterOption[] 
     if (!byChapter.has(entry.chapter)) byChapter.set(entry.chapter, entry.label);
   }
   return [...byChapter.entries()]
-    .map(([value, label]) => ({ value, label: `HS ${value} — ${label}` }))
+    .map(([value, label]) => ({ value, label: `${value} · ${label}` }))
     .sort((left, right) => left.value.localeCompare(right.value));
 }
 
