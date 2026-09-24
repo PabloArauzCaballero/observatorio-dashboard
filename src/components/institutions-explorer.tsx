@@ -13,6 +13,7 @@ import {
   type InstitutionGroup,
   type InstitutionsBoard,
 } from '@/lib/institutions-board';
+import { useSinceYear } from './year-floor';
 
 /**
  * The legal and political situation, drawn from the indices that rate it.
@@ -98,7 +99,9 @@ const twoDecimals = (value: number): string => number(value, 2);
 const threeDecimals = (value: number): string => number(value, 3);
 const whole = (value: number): string => number(value, 0);
 
-export function InstitutionsExplorer({ board }: { board: InstitutionsBoard }) {
+export function InstitutionsExplorer({ board: entire }: { board: InstitutionsBoard }) {
+  /* El «desde» de la barra de filtros de encima; sin barra, el tablero entero. */
+  const board = useSinceYear(entire);
   const economic = lines(board, [
     'EFW_SUMMARY_INDEX',
     'EFW_SIZE_OF_GOVERNMENT',

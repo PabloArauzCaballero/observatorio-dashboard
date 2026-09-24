@@ -32,6 +32,7 @@ import {
   sectorTone,
 } from './macro-vocabulary';
 import { Pager } from './pager';
+import { YearFloor } from './year-floor';
 import { DEFINITION_AUTHOR, GLOSSARY, UNIT_MEANING } from '@/lib/indicator-glossary';
 import { unpackMacro } from '@/lib/macro-transport';
 import type { MacroBundle } from '@/lib/macro-transport';
@@ -496,6 +497,8 @@ export function MacroExplorer({
             <>
               Panel abierto: <b>{shownGuest.label}</b>
               <br />
+              Desde <b>{from}</b>
+              <br />
               Elegí un rubro para volver a los indicadores
             </>
           ) : (
@@ -524,7 +527,14 @@ export function MacroExplorer({
             rubro, igual que se vuelve de un indicador abierto. Lleva su
             propio encabezado, así que no se le pone otro encima.
           */
-          <div className="stack">{shownGuest.panel}</div>
+          /*
+            El «desde» de la izquierda sigue en pantalla con el panel abierto,
+            así que tiene que llegarle: sin esto el deslizador se movía y los
+            gráficos del panel seguían dibujando la serie entera.
+          */
+          <YearFloor.Provider value={from}>
+            <div className="stack">{shownGuest.panel}</div>
+          </YearFloor.Provider>
         ) : analysed ? (
           <MacroAnalysis
             point={analysed.latest}

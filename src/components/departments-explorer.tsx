@@ -13,6 +13,7 @@ import { DEPARTMENTS, MEASURES, placeName } from '@/lib/departments';
 import type { Measure } from '@/lib/departments';
 import { placeRank, productMix, topProducts } from '@/lib/departments-board';
 import type { DepartmentBoard, ProductLine, YearValue } from '@/lib/departments-board';
+import { useSinceYear } from './year-floor';
 
 /**
  * Bolivia por departamento, dibujada.
@@ -469,7 +470,9 @@ function DepartmentDetail({
   );
 }
 
-export function DepartmentsExplorer({ board }: { board: DepartmentBoard }) {
+export function DepartmentsExplorer({ board: entire }: { board: DepartmentBoard }) {
+  /* El «desde» de la barra de filtros de encima; sin barra, el tablero entero. */
+  const board = useSinceYear(entire);
   const [place, setPlace] = useState<string | null>(null);
   const [measure, setMeasure] = useState<string>(DEFAULT_MEASURE);
 
