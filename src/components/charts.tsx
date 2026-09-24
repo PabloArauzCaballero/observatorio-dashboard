@@ -274,6 +274,24 @@ const shortLabel = (value: string): string => {
   }
   return dayMonth.format(date);
 };
+
+/**
+ * A month on the axis of a monthly series: «ago ’24».
+ *
+ * Every point of a monthly series sits on the first of its month, so the
+ * day-and-month label above prints «01-ago» on every tick and never says which
+ * year the reader is looking at.
+ */
+const monthLabel = (value: string): string => {
+  const date = asDate(value);
+  return `${MONTH_NAME[date.getUTCMonth()]?.slice(0, 3) ?? ''} ’${String(date.getUTCFullYear()).slice(2)}`;
+};
+
+/** A month written out, for the tooltip of a monthly series: «agosto de 2024». */
+const longMonth = (value: string): string => {
+  const date = asDate(value);
+  return `${MONTH_NAME[date.getUTCMonth()] ?? ''} de ${date.getUTCFullYear()}`;
+};
 const number = (value: number, decimals = 2): string =>
   value.toLocaleString('es-BO', {
     minimumFractionDigits: decimals,
@@ -2689,6 +2707,7 @@ export function DatedLines({
   referenceLabel,
   bands,
   height,
+  monthly = false,
 }: {
   data: DatedLinePoint[];
   series: readonly DatedLineSeries[];
@@ -2699,7 +2718,11 @@ export function DatedLines({
   referenceLabel?: string;
   bands?: readonly DatedBand[];
   height?: 'small' | 'normal' | 'tall';
+  /** Points are months (the first of each): label month and year, not day. */
+  monthly?: boolean;
 }) {
+  const tickLabel = monthly ? monthLabel : shortLabel;
+  const sayLabel = monthly ? longMonth : (label: string) => longDate.format(asDate(label));
   const zoom = useRangeZoom(data.map((point) => point.date));
   const shown = zoom.visible(data);
   const values = shown.flatMap((row) =>
@@ -2717,7 +2740,7 @@ export function DatedLines({
       .map((one) => ({ name: one.label, value: point[one.key] }))
       .filter((row): row is { name: string; value: number } => typeof row.value === 'number')
       .map((row) => ({ name: row.name, value: `${number(row.value, decimals)} ${unit}` }));
-    return rows.length ? <TooltipShell label={longDate.format(asDate(label))} rows={rows} /> : null;
+    return rows.length ? <TooltipShell label={sayLabel(label)} rows={rows} /> : null;
   };
 
   const frameClass =
@@ -2729,7 +2752,7 @@ export function DatedLines({
 
   return (
     <div className="chart-stack">
-      <ZoomExit zoom={zoom} format={(label) => longDate.format(asDate(label))} />
+      <ZoomExit zoom={zoom} format={sayLabel} />
       <div className={frameClass} onContextMenu={(event) => event.preventDefault()}>
         <ResponsiveContainer width="100%" height="100%">
           <ComposedChart
@@ -2741,7 +2764,7 @@ export function DatedLines({
             onMouseLeave={zoom.finish}
           >
             <CartesianGrid {...GRID} />
-            <XAxis dataKey="date" tickFormatter={shortLabel} minTickGap={52} {...AXIS} />
+            <XAxis dataKey="date" tickFormatter={tickLabel} minTickGap={52} {...AXIS} />
             <YAxis
               {...(domain ? { domain } : {})}
               width={54}

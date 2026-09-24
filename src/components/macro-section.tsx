@@ -3,6 +3,7 @@
 import { DepartmentsSection } from './departments-section';
 import { EnergySection } from './energy-section';
 import { EnvironmentSection } from './environment-section';
+import { ExogenousSection } from './exogenous-section';
 import { InstitutionsExplorer } from './institutions-explorer';
 import { MacroExplorer } from './macro-explorer';
 import { OnOpenNotice, useOnOpen } from './on-open';
@@ -31,7 +32,12 @@ import type { MacroBundle } from '@/lib/macro-transport';
  * Nueve pestañas arriba eran más de las que caben en una pantalla, y las dos
  * nuevas —las que nadie sabía que existían— eran justo las que se perdían.
  *
- * Las tres se piden solas al abrirse. `SubTabs` monta únicamente la página
+ * «Variables exógenas» es la cuarta: los precios que Bolivia no fija —crudo,
+ * metales, granos, carne, resinas, cemento— y que le mueven la economía desde
+ * fuera. Es una pestaña y no un rubro invitado porque no lee el panel de
+ * medidas: trae su propio corpus mensual y sus propios filtros.
+ *
+ * Las cuatro se piden solas al abrirse. `SubTabs` monta únicamente la página
  * activa, así que abrir «Macroeconomía» pide las medidas de Bolivia y nada más:
  * el panel del Banco Mundial y el tablero mundial esperan a que alguien los
  * elija, como ya hacían, y ahora las medidas también.
@@ -39,14 +45,15 @@ import type { MacroBundle } from '@/lib/macro-transport';
 export function MacroSection() {
   return (
     <SubTabs
-      labels={['Series de Bolivia', 'Social Info', 'Bolivia ante el mundo']}
-      icons={['linea', 'capas', 'globo']}
+      labels={['Series de Bolivia', 'Social Info', 'Bolivia ante el mundo', 'Variables exógenas']}
+      icons={['linea', 'capas', 'globo', 'monedas']}
     >
       <MeasuresPanel />
       <PanelSection
         guests={[{ label: 'Instituciones', icon: 'escudo', panel: <InstitutionsPanel /> }]}
       />
       <WorldExplorer />
+      <ExogenousSection />
     </SubTabs>
   );
 }
