@@ -17,6 +17,7 @@ import {
   type ResourceBoard,
   type ResourceGroup,
 } from '@/lib/resources-board';
+import { useSinceYear } from './year-floor';
 
 /**
  * El subsuelo, dibujado.
@@ -168,7 +169,9 @@ function commodityLines(
   return { data, series };
 }
 
-export function ResourcesExplorer({ board }: { board: ResourceBoard }) {
+export function ResourcesExplorer({ board: entire }: { board: ResourceBoard }) {
+  /* El «desde» de la barra de filtros de encima; sin barra, el tablero entero. */
+  const board = useSinceYear(entire);
   const rents = lines(board, [
     'NY.GDP.MINR.RT.ZS',
     'NY.GDP.NGAS.RT.ZS',

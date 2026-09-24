@@ -15,6 +15,7 @@ import {
   type EnvironmentBoard,
   type EnvironmentGroup,
 } from '@/lib/environment-board';
+import { useSinceYear } from './year-floor';
 
 /**
  * El ambiente, dibujado.
@@ -129,7 +130,9 @@ const share = (value: number): string => `${number(value, 1)} %`;
 const megatonnes = (value: number): string => `${number(value, 1)} Mt`;
 const tick = (value: number): string => number(value, 0);
 
-export function EnvironmentExplorer({ board }: { board: EnvironmentBoard }) {
+export function EnvironmentExplorer({ board: entire }: { board: EnvironmentBoard }) {
+  /* El «desde» de la barra de filtros de encima; sin barra, el tablero entero. */
+  const board = useSinceYear(entire);
   const land = lines(board, ['AG.LND.FRST.ZS', 'AG.LND.AGRI.ZS', 'AG.LND.ARBL.ZS']);
   const emissions = lines(
     board,

@@ -12,6 +12,7 @@ import {
   type EnergyBoard,
   type EnergyGroup,
 } from '@/lib/energy-board';
+import { useSinceYear } from './year-floor';
 
 /**
  * The energy matrix, drawn.
@@ -122,7 +123,9 @@ function GroupHead({ group, children }: { group: EnergyGroup; children: string }
 const percent = (value: number): string => `${number(value, 1)} %`;
 const tick = (value: number): string => number(value, 0);
 
-export function EnergyExplorer({ board }: { board: EnergyBoard }) {
+export function EnergyExplorer({ board: entire }: { board: EnergyBoard }) {
+  /* El «desde» de la barra de filtros de encima; sin barra, el tablero entero. */
+  const board = useSinceYear(entire);
   const mix = lines(board, [
     'EG.ELC.NGAS.ZS',
     'EG.ELC.HYRO.ZS',
