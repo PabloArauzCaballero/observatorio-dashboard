@@ -29,9 +29,45 @@ export const SURFACE_ORDER: readonly RoadSurface[] = [
   'SIN_DATO',
 ];
 
+/**
+ * Las seis rodaduras de OpenStreetMap, en las cuatro que el lector distingue.
+ *
+ * Seis colores sobre una red de dos mil quinientos tramos no se separan a ojo
+ * —la paleta sólo garantiza tres casillas distinguibles entre vecinas— y la
+ * «otra» de la tabla vieja escondía los 8.400 km «sin pavimentar» sin detalle,
+ * un tercio de la red. Empedrado va con el ripio porque las dos son firmes sin
+ * asfalto; «sin pavimentar» va con la tierra porque eso es lo único que
+ * OpenStreetMap afirma de ella.
+ */
+export type SurfaceGroup = 'PAVIMENTADA' | 'RIPIO' | 'TIERRA' | 'SIN_DATO';
+
+export const SURFACE_GROUP: Record<RoadSurface, SurfaceGroup> = {
+  PAVIMENTO: 'PAVIMENTADA',
+  EMPEDRADO: 'RIPIO',
+  RIPIO: 'RIPIO',
+  TIERRA: 'TIERRA',
+  SIN_PAVIMENTAR: 'TIERRA',
+  SIN_DATO: 'SIN_DATO',
+};
+
+export const SURFACE_GROUPS: readonly { group: SurfaceGroup; label: string; color: string }[] = [
+  { group: 'PAVIMENTADA', label: 'Pavimentada', color: 'var(--series-1)' },
+  { group: 'RIPIO', label: 'Ripio o empedrado', color: 'var(--series-3)' },
+  { group: 'TIERRA', label: 'Tierra o sin pavimentar', color: 'var(--series-2)' },
+  { group: 'SIN_DATO', label: 'Sin dato de rodadura', color: 'var(--series-rest)' },
+];
+
+export const NETWORKS: readonly { network: RoadSection['network']; label: string; color: string }[] = [
+  { network: 'FUNDAMENTAL', label: 'Red Fundamental (F-n)', color: 'var(--series-1)' },
+  { network: 'DEPARTAMENTAL', label: 'Red Departamental (Dn)', color: 'var(--series-2)' },
+  { network: 'SIN_REFERENCIA', label: 'Sin ruta asignada', color: 'var(--ink-faint)' },
+];
+
 const DEPARTMENT_NAME: Record<string, string> = Object.fromEntries(
   DEPARTMENTS.map((department) => [department.slug, department.name]),
 );
+
+export const departmentName = (slug: string): string => DEPARTMENT_NAME[slug] ?? slug;
 
 export interface DepartmentTotal {
   department: string;
