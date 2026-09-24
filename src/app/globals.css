@@ -1607,6 +1607,19 @@ code {
   font-weight: 600;
 }
 
+/* Un producto pedido que no tiene serie: se lista, no se elige. */
+.rail-item-none,
+.rail-item-none:hover {
+  background: none;
+  cursor: default;
+  color: var(--ink-soft);
+}
+
+.rail-item-none .rail-hint {
+  font-style: italic;
+  white-space: nowrap;
+}
+
 .rail-item .rail-name {
   flex: 1 1 auto;
   overflow: hidden;
