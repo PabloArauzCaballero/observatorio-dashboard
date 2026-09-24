@@ -2830,3 +2830,91 @@ export function DatedLines({
     </div>
   );
 }
+
+export interface RankLine {
+  key: string;
+  label: string;
+  tone: string;
+  /** El puesto de cada año en que la serie aparece; los años que faltan no se unen. */
+  ranks: ReadonlyMap<number, number>;
+}
+
+/**
+ * Puestos contra el tiempo, con el primero arriba.
+ *
+ * El eje va invertido porque en un ránking «subir» es bajar de número, y un
+ * gráfico donde la empresa que mejora dibuja una línea que cae obliga a leer
+ * al revés. Los años en que una empresa no está en la lista no se unen: una
+ * línea que cruzara el hueco afirmaría puestos que Merco no publicó.
+ */
+export function RankLines({
+  years,
+  lines,
+  floor = 100,
+}: {
+  years: readonly number[];
+  lines: readonly RankLine[];
+  /** El último puesto posible, que es el fondo del eje. */
+  floor?: number;
+}) {
+  const data = years.map((year) => {
+    const row: Record<string, number | null> = { year };
+    for (const line of lines) row[line.key] = line.ranks.get(year) ?? null;
+    return row;
+  });
+  const ticks = (
+    floor <= 10 ? [1, 3, 5, 7, 10] : floor <= 25 ? [1, 5, 10, 15, 20, 25] : [1, 10, 25, 50, 75, 100]
+  ).filter((tick) => tick <= floor);
+
+  const renderTooltip = ({ active, payload, label }: TooltipRender) => {
+    if (!active || !payload?.length) return null;
+    const rows = lines
+      .map((line) => ({ line, rank: line.ranks.get(Number(label)) }))
+      .filter((row): row is { line: RankLine; rank: number } => row.rank !== undefined)
+      .sort((left, right) => left.rank - right.rank)
+      .map(({ line, rank }) => ({ name: line.label, value: `puesto ${rank}`, color: line.tone }));
+    return rows.length ? <TooltipShell label={`Edición ${label}`} rows={rows} /> : null;
+  };
+
+  return (
+    <div>
+      <div className="chart-frame chart-frame-tall">
+        <ResponsiveContainer width="100%" height="100%">
+          <ComposedChart data={data} margin={{ top: 12, right: 18, bottom: 4, left: 0 }}>
+            <CartesianGrid {...GRID} />
+            <XAxis dataKey="year" {...AXIS} minTickGap={16} />
+            <YAxis
+              reversed
+              domain={[1, floor]}
+              ticks={ticks}
+              width={36}
+              allowDecimals={false}
+              {...AXIS}
+            />
+            <Tooltip content={renderTooltip} cursor={{ stroke: 'var(--rule)', strokeWidth: 1 }} />
+            {lines.map((line, index) => (
+              <Line
+                key={line.key}
+                type="monotone"
+                dataKey={line.key}
+                name={line.label}
+                stroke={line.tone}
+                strokeWidth={2.2}
+                dot={{ r: 3, strokeWidth: 0, fill: line.tone }}
+                activeDot={{ r: 5, strokeWidth: 0, fill: line.tone }}
+                connectNulls={false}
+                animationDuration={index === 0 ? MOTION.duration : 0}
+                animationEasing={MOTION.easing}
+              />
+            ))}
+          </ComposedChart>
+        </ResponsiveContainer>
+      </div>
+      {lines.length ? (
+        <ChartLegend
+          items={lines.map((line) => ({ color: line.tone, label: line.label, shape: 'line' }))}
+        />
+      ) : null}
+    </div>
+  );
+}

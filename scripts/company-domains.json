@@ -1,0 +1,1530 @@
+{
+  "3M": {
+    "domain": "3m.com",
+    "home": "https://www.3m.com/",
+    "confidence": "high",
+    "note": "marca global"
+  },
+  "ADM_SAO": {
+    "domain": "adm.com",
+    "home": "https://www.adm.com/",
+    "confidence": "medium",
+    "note": "título de la portada coincide con el nombre"
+  },
+  "AGROINDUSTRIAL_NUTRIOIL": {
+    "domain": "nutrioil.com.bo",
+    "home": "https://www.nutrioil.com.bo/",
+    "confidence": "high"
+  },
+  "AGROPARTNERS": {
+    "domain": "agropartners.com.bo",
+    "home": "https://www.agropartners.com.bo/",
+    "confidence": "medium",
+    "note": "título de la portada coincide con el nombre"
+  },
+  "AGUAI": {
+    "domain": "aguai.com.bo",
+    "home": "https://aguai.com.bo/wp/",
+    "confidence": "medium",
+    "note": "título de la portada coincide con el nombre"
+  },
+  "AIDISA": {
+    "domain": "aidisabolivia.com",
+    "home": "https://aidisabolivia.com/",
+    "confidence": "medium",
+    "note": "título de la portada coincide con el nombre"
+  },
+  "ALIANZA_COMPANIA_DE_SEGUROS_Y_REASEGUROS": {
+    "domain": "alianza.com.bo",
+    "home": "https://www.alianza.com.bo/",
+    "confidence": "high",
+    "note": "búsqueda web"
+  },
+  "ALICORP": {
+    "domain": "alicorp.com.pe",
+    "home": "https://alicorp.com.pe/",
+    "confidence": "high",
+    "note": "marca global"
+  },
+  "AMASZONAS": {
+    "domain": null,
+    "home": null,
+    "confidence": "low",
+    "note": "sin sitio verificable"
+  },
+  "ARCOR_BOLIVIA": {
+    "domain": "arcor.com",
+    "home": "https://www.arcor.com/ar/",
+    "confidence": "medium",
+    "note": "título de la portada coincide con el nombre"
+  },
+  "ASSURESOFT": {
+    "domain": "assuresoft.com",
+    "home": "https://www.assuresoft.com/",
+    "confidence": "medium",
+    "note": "título de la portada coincide con el nombre"
+  },
+  "ASTRIX": {
+    "domain": null,
+    "home": null,
+    "confidence": "low",
+    "note": "sin sitio verificable"
+  },
+  "AUTOSUD": {
+    "domain": "autosud.com.bo",
+    "home": "https://autosud.com.bo/",
+    "confidence": "medium",
+    "note": "título de la portada coincide con el nombre"
+  },
+  "AVICOLA_MODELO": {
+    "domain": null,
+    "home": null,
+    "confidence": "low",
+    "note": "sin sitio verificable"
+  },
+  "BANCOSOL": {
+    "domain": "bancosol.com.bo",
+    "home": "https://www.bancosol.com.bo:443/",
+    "confidence": "medium",
+    "note": "título de la portada coincide con el nombre"
+  },
+  "BANCO_BISA": {
+    "domain": "bisa.com",
+    "home": "https://www.bisa.com/",
+    "confidence": "high"
+  },
+  "BANCO_CENTRAL_DE_BOLIVIA": {
+    "domain": "bcb.gob.bo",
+    "home": "https://www.bcb.gob.bo/",
+    "confidence": "high"
+  },
+  "BANCO_DE_CREDITO_DE_BOLIVIA": {
+    "domain": "bcp.com.bo",
+    "home": "https://www.bcp.com.bo/",
+    "confidence": "high"
+  },
+  "BANCO_ECOFUTURO": {
+    "domain": "bancoecofuturo.com.bo",
+    "home": "https://bancoecofuturo.com.bo/",
+    "confidence": "medium",
+    "note": "título de la portada coincide con el nombre"
+  },
+  "BANCO_ECONOMICO": {
+    "domain": "baneco.com.bo",
+    "home": "https://www.baneco.com.bo/",
+    "confidence": "high"
+  },
+  "BANCO_FASSIL": {
+    "domain": "fassil.com.bo",
+    "home": "http://fassil.com.bo/",
+    "confidence": "medium",
+    "note": "título de la portada coincide con el nombre"
+  },
+  "BANCO_FIE": {
+    "domain": "bancofie.com.bo",
+    "home": "https://www.bancofie.com.bo",
+    "confidence": "medium",
+    "note": "título de la portada coincide con el nombre"
+  },
+  "BANCO_GANADERO": {
+    "domain": "bg.com.bo",
+    "home": "https://bg.com.bo/personas/",
+    "confidence": "medium",
+    "note": "título de la portada coincide con el nombre"
+  },
+  "BANCO_LOS_ANDES_PROCREDIT": {
+    "domain": "procredit-holding.com",
+    "home": "https://www.procredit-holding.com/",
+    "confidence": "medium",
+    "note": "título de la portada coincide con el nombre"
+  },
+  "BANCO_MERCANTIL_SANTA_CRUZ": {
+    "domain": "bmsc.com.bo",
+    "home": "https://www.bmsc.com.bo/",
+    "confidence": "high"
+  },
+  "BANCO_NACIONAL_DE_BOLIVIA": {
+    "domain": "bnb.com.bo",
+    "home": "https://www.bnb.com.bo/",
+    "confidence": "high"
+  },
+  "BANCO_PRODEM": {
+    "domain": null,
+    "home": null,
+    "confidence": "low",
+    "note": "sin sitio verificable"
+  },
+  "BANCO_UNION": {
+    "domain": "bancounion.com.bo",
+    "home": "https://bancounion.com.bo/",
+    "confidence": "medium",
+    "note": "la web sólo sirve un icono genérico de documento",
+    "logo": false
+  },
+  "BATA": {
+    "domain": "bata.com.bo",
+    "home": "https://www.bata.com.bo/",
+    "confidence": "medium",
+    "note": "título de la portada coincide con el nombre"
+  },
+  "BATEBOL": {
+    "domain": "batebol.com",
+    "home": "https://batebol.com/",
+    "confidence": "medium",
+    "note": "título de la portada coincide con el nombre"
+  },
+  "BAYER": {
+    "domain": "bayer.com",
+    "home": "https://www.bayer.com/",
+    "confidence": "high",
+    "note": "marca global"
+  },
+  "BEATRIZ_CANEDO_PATINO": {
+    "domain": "beatrizcanedopatino.com",
+    "home": "https://beatrizcanedopatino.com/",
+    "confidence": "medium",
+    "note": "título de la portada coincide con el nombre"
+  },
+  "BEBIDAS_BOLIVIANAS_BBO": {
+    "domain": "bebidasbolivianas.com",
+    "home": "https://www.bebidasbolivianas.com/",
+    "confidence": "high",
+    "note": "búsqueda web"
+  },
+  "BELCORP": {
+    "domain": "belcorp.com",
+    "home": "https://www.belcorp.com:443/",
+    "confidence": "medium",
+    "note": "título de la portada coincide con el nombre"
+  },
+  "BG_BOLIVIA": {
+    "domain": null,
+    "home": null,
+    "confidence": "low",
+    "note": "sin sitio verificable"
+  },
+  "BISA_SEGUROS": {
+    "domain": "bisaseguros.com",
+    "home": "https://www.bisaseguros.com/",
+    "confidence": "medium"
+  },
+  "BOLIVIANA_DE_AVIACION_BOA": {
+    "domain": "boa.bo",
+    "home": "https://www.boa.bo/",
+    "confidence": "medium",
+    "note": "título de la portada coincide con el nombre"
+  },
+  "BOLIVIAN_FOODS": {
+    "domain": "bolivianfoods.com",
+    "home": "https://bolivianfoods.com/",
+    "confidence": "medium",
+    "note": "icono del constructor de webs, no de la empresa",
+    "logo": false
+  },
+  "BPO_CENTER": {
+    "domain": "bpocenter.com.bo",
+    "home": "https://bpocenter.com.bo/",
+    "confidence": "medium",
+    "note": "título de la portada coincide con el nombre"
+  },
+  "BUFETE_AGUIRRE_QUINTANILLA_SORIA_NISHIZAWA": {
+    "domain": "baqsn.bo",
+    "home": "https://www.baqsn.bo/",
+    "confidence": "high",
+    "note": "búsqueda web"
+  },
+  "BURGER_KING": {
+    "domain": "burgerking.com.bo",
+    "home": "https://burgerking.com.bo/",
+    "confidence": "medium",
+    "note": "título de la portada coincide con el nombre"
+  },
+  "CAISY_LTDA": {
+    "domain": null,
+    "home": null,
+    "confidence": "low",
+    "note": "sin sitio verificable"
+  },
+  "CARLOS_CABALLERO": {
+    "domain": null,
+    "home": null,
+    "confidence": "low",
+    "note": "sin sitio verificable"
+  },
+  "CARMAX": {
+    "domain": "carmaxbolivia.com",
+    "home": "https://www.carmaxbolivia.com/",
+    "confidence": "medium"
+  },
+  "CENTURY_21": {
+    "domain": "century21.com",
+    "home": "https://www.century21.com/",
+    "confidence": "medium",
+    "note": "marca global"
+  },
+  "CERABOL": {
+    "domain": "cerabol.com",
+    "home": "https://www.cerabol.com/",
+    "confidence": "medium",
+    "note": "título de la portada coincide con el nombre"
+  },
+  "CERVECERIA_BOLIVIANA_NACIONAL": {
+    "domain": "cbn.bo",
+    "home": "https://www.cbn.bo/",
+    "confidence": "medium",
+    "note": "título de la portada coincide con el nombre"
+  },
+  "CHOCOLATES_PARA_TI": {
+    "domain": "chocolatesparati.net",
+    "home": "https://www.chocolatesparati.net/",
+    "confidence": "medium",
+    "note": "título de la portada coincide con el nombre"
+  },
+  "CHRISTIAN_AUTOMOTORS": {
+    "domain": "christian.com.bo",
+    "home": "https://www.christian.com.bo/",
+    "confidence": "high",
+    "note": "búsqueda web"
+  },
+  "CIAGRO": {
+    "domain": null,
+    "home": null,
+    "confidence": "low",
+    "note": "sin sitio verificable"
+  },
+  "CIMAL": {
+    "domain": "cimal.com.bo",
+    "home": "https://www.cimal.com.bo/",
+    "confidence": "medium",
+    "note": "título de la portada coincide con el nombre"
+  },
+  "CINE_CENTER_GRENDITEM": {
+    "domain": "cinecenter.com.bo",
+    "home": "https://cinecenter.com.bo/",
+    "confidence": "medium",
+    "note": "título de la portada coincide con el nombre"
+  },
+  "CITSA": {
+    "domain": null,
+    "home": null,
+    "confidence": "low",
+    "note": "sin sitio verificable"
+  },
+  "CLINICA_DE_LAS_AMERICAS": {
+    "domain": "clinicadelasamericas.com.bo",
+    "home": "https://www.clinicadelasamericas.com.bo/",
+    "confidence": "high",
+    "note": "búsqueda web"
+  },
+  "CLINICA_FOIANINI": {
+    "domain": "clinicafoianini.com",
+    "home": "https://clinicafoianini.com/",
+    "confidence": "medium",
+    "note": "título de la portada coincide con el nombre"
+  },
+  "COBEE": {
+    "domain": "cobee.com",
+    "home": "http://cobee.com/",
+    "confidence": "medium",
+    "note": "título de la portada coincide con el nombre"
+  },
+  "COBOCE": {
+    "domain": "coboce.com",
+    "home": "https://coboce.com/",
+    "confidence": "medium",
+    "note": "título de la portada coincide con el nombre"
+  },
+  "COMIBOL": {
+    "domain": "comibol.gob.bo",
+    "home": "https://www.comibol.gob.bo/",
+    "confidence": "high"
+  },
+  "COMPANEX": {
+    "domain": "companex.com",
+    "home": "https://www.companex.com/",
+    "confidence": "medium",
+    "note": "título de la portada coincide con el nombre"
+  },
+  "COMTECO": {
+    "domain": "comteco.com.bo",
+    "home": "https://comteco.com.bo/",
+    "confidence": "medium",
+    "note": "título de la portada coincide con el nombre"
+  },
+  "CONCRETEC_INVERSIONES_SUCRE_S_A": {
+    "domain": "concretec.com.bo",
+    "home": "https://concretec.com.bo/",
+    "confidence": "medium",
+    "note": "título de la portada coincide con el nombre"
+  },
+  "COPELME": {
+    "domain": "copelme.com",
+    "home": "https://www.copelme.com/",
+    "confidence": "high",
+    "note": "búsqueda web"
+  },
+  "CORONILLA": {
+    "domain": "coronilla.com",
+    "home": "https://www.coronilla.com/",
+    "confidence": "medium",
+    "note": "título de la portada coincide con el nombre"
+  },
+  "COTAS": {
+    "domain": null,
+    "home": null,
+    "confidence": "low",
+    "note": "sin sitio verificable"
+  },
+  "COTEL": {
+    "domain": "cotel.bo",
+    "home": "https://www.cotel.bo/",
+    "confidence": "medium"
+  },
+  "CRE": {
+    "domain": "cre.com.bo",
+    "home": "https://www.cre.com.bo/",
+    "confidence": "medium",
+    "note": "título de la portada coincide con el nombre"
+  },
+  "CREDINFORM": {
+    "domain": "credinform.com",
+    "home": "https://credinform.com/",
+    "confidence": "medium",
+    "note": "icono del constructor de webs, no de la empresa",
+    "logo": false
+  },
+  "DATEC": {
+    "domain": "datec.com.bo",
+    "home": "https://www.datec.com.bo/",
+    "confidence": "medium",
+    "note": "título de la portada coincide con el nombre"
+  },
+  "DELIZIA": {
+    "domain": "delizia.bo",
+    "home": "https://delizia.bo/",
+    "confidence": "medium",
+    "note": "título de la portada coincide con el nombre"
+  },
+  "DHL": {
+    "domain": "dhl.com",
+    "home": "https://www.dhl.com/",
+    "confidence": "high",
+    "note": "marca global"
+  },
+  "DILLMANN": {
+    "domain": null,
+    "home": null,
+    "confidence": "low",
+    "note": "sin sitio verificable"
+  },
+  "DISMAC": {
+    "domain": "dismac.com.bo",
+    "home": "https://www.dismac.com.bo/",
+    "confidence": "high"
+  },
+  "DROGUERIA_INTI": {
+    "domain": "inti.com.bo",
+    "home": "https://www.inti.com.bo/",
+    "confidence": "high",
+    "note": "búsqueda web"
+  },
+  "DURALIT": {
+    "domain": "duralit.com",
+    "home": "https://www.duralit.com/",
+    "confidence": "high",
+    "note": "la web sirve el icono de WordPress",
+    "logo": false
+  },
+  "D_M": {
+    "domain": "dym-bo.com",
+    "home": "https://www.dym-bo.com/",
+    "confidence": "medium",
+    "note": "búsqueda web"
+  },
+  "ELECTROPAZ": {
+    "domain": null,
+    "home": null,
+    "confidence": "low",
+    "note": "sin sitio verificable"
+  },
+  "ELFEC": {
+    "domain": "elfec.bo",
+    "home": "https://www.elfec.bo/",
+    "confidence": "medium",
+    "note": "título de la portada coincide con el nombre"
+  },
+  "EL_CEIBO": {
+    "domain": "elceibo.com",
+    "home": "https://elceibo.com/",
+    "confidence": "medium",
+    "note": "título de la portada coincide con el nombre"
+  },
+  "EL_DEBER": {
+    "domain": "eldeber.com.bo",
+    "home": "https://eldeber.com.bo/",
+    "confidence": "medium",
+    "note": "título de la portada coincide con el nombre"
+  },
+  "EMAPA": {
+    "domain": "emapa.gob.bo",
+    "home": "https://www.emapa.gob.bo/",
+    "confidence": "medium"
+  },
+  "EMBOL_COCA_COLA": {
+    "domain": "embol.com",
+    "home": "https://embol.com/",
+    "confidence": "medium",
+    "note": "título de la portada coincide con el nombre"
+  },
+  "EMPACAR": {
+    "domain": "empacar.com.bo",
+    "home": "https://www.empacar.com.bo/",
+    "confidence": "medium",
+    "note": "título de la portada coincide con el nombre"
+  },
+  "EMPRESA_ELECTRICA_GUARACACHI_SA": {
+    "domain": null,
+    "home": null,
+    "confidence": "low",
+    "note": "sin sitio verificable"
+  },
+  "EMPRESA_METALURGICA_VINTO": {
+    "domain": "vinto.gob.bo",
+    "home": "https://vinto.gob.bo/",
+    "confidence": "medium",
+    "note": "título de la portada coincide con el nombre"
+  },
+  "EMPRESA_MINERA_MANQUIRI": {
+    "domain": "manquiri.com.bo",
+    "home": "https://www.manquiri.com.bo/",
+    "confidence": "medium",
+    "note": "título de la portada coincide con el nombre"
+  },
+  "ENDE": {
+    "domain": "ende.bo",
+    "home": "https://www.ende.bo/?_event_transid=1691276430&_event_clientip=189.28.77.147&_event_clientport=35480&_event_attackname=Folder+Access+Violation&_event_threatcategory=Access+Control",
+    "confidence": "medium",
+    "note": "título de la portada coincide con el nombre"
+  },
+  "ENTEL": {
+    "domain": "entel.bo",
+    "home": "https://www.entel.bo/",
+    "confidence": "high"
+  },
+  "ESTROPICAL_COM": {
+    "domain": "estropical.com",
+    "home": "https://www.estropical.com/es/",
+    "confidence": "medium",
+    "note": "icono genérico de ubicación",
+    "logo": false
+  },
+  "FABOCE": {
+    "domain": "faboce.com.bo",
+    "home": "https://www.faboce.com.bo/",
+    "confidence": "medium",
+    "note": "título de la portada coincide con el nombre"
+  },
+  "FAGAL": {
+    "domain": "fagalbolivia.com",
+    "home": "https://www.fagalbolivia.com/",
+    "confidence": "medium",
+    "note": "búsqueda web"
+  },
+  "FAIR_PLAY": {
+    "domain": "fairplay.com.bo",
+    "home": "https://www.fairplay.com.bo",
+    "confidence": "medium",
+    "note": "título de la portada coincide con el nombre"
+  },
+  "FAMOSA_GRUPO_EMPRESARIAL_HERMANOS_VICENTE": {
+    "domain": "famosa.com.bo",
+    "home": "https://www.famosa.com.bo/",
+    "confidence": "medium",
+    "note": "icono en blanco",
+    "logo": false
+  },
+  "FANCESA": {
+    "domain": "fancesa.com",
+    "home": "https://www.fancesa.com/",
+    "confidence": "medium",
+    "note": "la web sirve el icono de WordPress",
+    "logo": false
+  },
+  "FARMACIAS_CHAVEZ": {
+    "domain": "farmaciaschavez.com.bo",
+    "home": "https://www.farmaciaschavez.com.bo/",
+    "confidence": "medium",
+    "note": "título de la portada coincide con el nombre"
+  },
+  "FARMACORP": {
+    "domain": "farmacorp.com",
+    "home": "https://farmacorp.com/",
+    "confidence": "medium",
+    "note": "título de la portada coincide con el nombre"
+  },
+  "FARMAELIAS": {
+    "domain": "farmaelias.com",
+    "home": "https://farmaelias.com/",
+    "confidence": "medium",
+    "note": "título de la portada coincide con el nombre"
+  },
+  "FERROTODO": {
+    "domain": "ferrotodo.com",
+    "home": "https://www.ferrotodo.com/",
+    "confidence": "medium",
+    "note": "título de la portada coincide con el nombre"
+  },
+  "FERROVIARIA_ORIENTAL": {
+    "domain": "fo.com.bo",
+    "home": "https://fo.com.bo/",
+    "confidence": "medium",
+    "note": "título de la portada coincide con el nombre"
+  },
+  "FIDALGA": {
+    "domain": "fidalga.com",
+    "home": "https://www.fidalga.com/",
+    "confidence": "medium",
+    "note": "título de la portada coincide con el nombre"
+  },
+  "FINILAGER": {
+    "domain": "finilager.bo",
+    "home": "https://www.finilager.bo/",
+    "confidence": "high",
+    "note": "búsqueda web"
+  },
+  "FINNING_BOLIVIA": {
+    "domain": "finning.com",
+    "home": "https://www.finning.com/regions.html",
+    "confidence": "medium",
+    "note": "título de la portada coincide con el nombre"
+  },
+  "FRIDOLIN": {
+    "domain": "fridolin.com.bo",
+    "home": "https://fridolin.com.bo/",
+    "confidence": "medium",
+    "note": "título de la portada coincide con el nombre"
+  },
+  "FRIDOSA": {
+    "domain": "fridosa.com.bo",
+    "home": "https://www.fridosa.com.bo/",
+    "confidence": "medium",
+    "note": "título de la portada coincide con el nombre"
+  },
+  "FRIGOR": {
+    "domain": "frigor.com.bo",
+    "home": "https://frigor.com.bo/",
+    "confidence": "medium",
+    "note": "título de la portada coincide con el nombre"
+  },
+  "FRIGORIFICO_BFC": {
+    "domain": "bfc.com.bo",
+    "home": "https://www.bfc.com.bo/",
+    "confidence": "medium",
+    "note": "título de la portada coincide con el nombre"
+  },
+  "GAS_Y_ELECTRICIDAD_S_A": {
+    "domain": null,
+    "home": null,
+    "confidence": "low",
+    "note": "sin sitio verificable"
+  },
+  "GLADYMAR": {
+    "domain": "gladymar.com.bo",
+    "home": "https://gladymar.com.bo/",
+    "confidence": "medium",
+    "note": "título de la portada coincide con el nombre"
+  },
+  "GRANOS": {
+    "domain": null,
+    "home": null,
+    "confidence": "low",
+    "note": "sin sitio verificable"
+  },
+  "GRAVETAL_BOLIVIA": {
+    "domain": "gravetal.com.bo",
+    "home": "https://gravetal.com.bo/",
+    "confidence": "medium",
+    "note": "título de la portada coincide con el nombre"
+  },
+  "GRUPO_BAISA": {
+    "domain": "grupobaisa.com",
+    "home": "https://grupobaisa.com/",
+    "confidence": "medium",
+    "note": "título de la portada coincide con el nombre"
+  },
+  "GRUPO_BISA": {
+    "domain": "bisa.com",
+    "home": "https://www.bisa.com/",
+    "confidence": "high"
+  },
+  "GRUPO_COMVERSA": {
+    "domain": "comversa.com.bo",
+    "home": "https://comversa.com.bo/",
+    "confidence": "medium",
+    "note": "título de la portada coincide con el nombre"
+  },
+  "GRUPO_DAHER": {
+    "domain": null,
+    "home": null,
+    "confidence": "low",
+    "note": "sin sitio verificable"
+  },
+  "GRUPO_FORTALEZA": {
+    "domain": null,
+    "home": null,
+    "confidence": "low",
+    "note": "sin sitio verificable"
+  },
+  "GRUPO_GEO": {
+    "domain": null,
+    "home": null,
+    "confidence": "low",
+    "note": "sin sitio verificable"
+  },
+  "GRUPO_INDUSTRIAL_RODA": {
+    "domain": null,
+    "home": null,
+    "confidence": "low",
+    "note": "sin sitio verificable"
+  },
+  "GRUPO_KULJIS": {
+    "domain": null,
+    "home": null,
+    "confidence": "low",
+    "note": "sin sitio verificable"
+  },
+  "GRUPO_LANDICORP": {
+    "domain": "landicorp.com.bo",
+    "home": "https://www.landicorp.com.bo/",
+    "confidence": "high",
+    "note": "búsqueda web"
+  },
+  "GRUPO_LARCOS": {
+    "domain": null,
+    "home": null,
+    "confidence": "low",
+    "note": "sin sitio verificable"
+  },
+  "GRUPO_LAS_LOMAS": {
+    "domain": "laslomas.com.bo",
+    "home": "https://laslomas.com.bo/",
+    "confidence": "medium",
+    "note": "título de la portada coincide con el nombre"
+  },
+  "GRUPO_PAZ": {
+    "domain": "grupopaz.com.bo",
+    "home": "https://grupopaz.com.bo/index.html",
+    "confidence": "medium",
+    "note": "título de la portada coincide con el nombre"
+  },
+  "GRUPO_TIGRE": {
+    "domain": "tigre.com.bo",
+    "home": "https://www.tigre.com.bo/",
+    "confidence": "medium",
+    "note": "título de la portada coincide con el nombre"
+  },
+  "GRUPO_VENADO": {
+    "domain": "grupovenado.com",
+    "home": "https://www.grupovenado.com/",
+    "confidence": "high",
+    "note": "búsqueda web"
+  },
+  "HANSA": {
+    "domain": "hansa.com.bo",
+    "home": "https://hansa.com.bo/",
+    "confidence": "medium",
+    "note": "título de la portada coincide con el nombre"
+  },
+  "HERBALIFE": {
+    "domain": "herbalife.com",
+    "home": "https://www.herbalife.com/es-bo",
+    "confidence": "medium",
+    "note": "la imagen para compartir es una foto, no la marca",
+    "logo": false
+  },
+  "HIPERMAXI": {
+    "domain": "hipermaxi.com",
+    "home": "https://www.hipermaxi.com/santa-cruz/hipermaxi-roca-y-coronado",
+    "confidence": "medium",
+    "note": "título de la portada coincide con el nombre"
+  },
+  "HOTEL_CAMINO_REAL": {
+    "domain": "caminoreal.com.bo",
+    "home": "https://www.caminoreal.com.bo/",
+    "confidence": "high",
+    "note": "búsqueda web"
+  },
+  "HOTEL_CASA_GRANDE": {
+    "domain": null,
+    "home": null,
+    "confidence": "low",
+    "note": "sin sitio verificable"
+  },
+  "HOTEL_LOS_TAJIBOS": {
+    "domain": "lostajiboshotel.com",
+    "home": "https://www.lostajiboshotel.com/es",
+    "confidence": "medium",
+    "note": "título de la portada coincide con el nombre"
+  },
+  "HP_MEDICAL": {
+    "domain": "hpmedical.com.bo",
+    "home": "https://hpmedical.com.bo/es/",
+    "confidence": "medium",
+    "note": "título de la portada coincide con el nombre"
+  },
+  "HUAWEI": {
+    "domain": "huawei.com",
+    "home": "https://www.huawei.com/en/",
+    "confidence": "medium",
+    "note": "título de la portada coincide con el nombre"
+  },
+  "IC_NORTE": {
+    "domain": "icnorte.com",
+    "home": "https://icnorte.com/",
+    "confidence": "medium",
+    "note": "título de la portada coincide con el nombre"
+  },
+  "IMBA": {
+    "domain": "imba.com.bo",
+    "home": "https://imba.com.bo/",
+    "confidence": "medium",
+    "note": "título de la portada coincide con el nombre"
+  },
+  "IMCRUZ": {
+    "domain": "imcruz.com",
+    "home": "https://www.imcruz.com/",
+    "confidence": "medium",
+    "note": "título de la portada coincide con el nombre"
+  },
+  "INCERPAZ": {
+    "domain": "incerpaz.com",
+    "home": "https://incerpaz.com/",
+    "confidence": "medium",
+    "note": "título de la portada coincide con el nombre"
+  },
+  "INDUSTRIAS_BELEN": {
+    "domain": "belen.com.bo",
+    "home": "https://belen.com.bo/",
+    "confidence": "medium",
+    "note": "título de la portada coincide con el nombre"
+  },
+  "INDUSTRIAS_DE_ACEITE_IOL": {
+    "domain": null,
+    "home": null,
+    "confidence": "low",
+    "note": "sin sitio verificable"
+  },
+  "INDUSTRIAS_KRAL": {
+    "domain": "kral.com.bo",
+    "home": "https://kral.com.bo/",
+    "confidence": "medium",
+    "note": "título de la portada coincide con el nombre"
+  },
+  "INDUSTRIAS_LURI": {
+    "domain": "luri.com.bo",
+    "home": "https://luri.com.bo/",
+    "confidence": "medium",
+    "note": "título de la portada coincide con el nombre"
+  },
+  "INFOCAL": {
+    "domain": null,
+    "home": null,
+    "confidence": "low",
+    "note": "sin sitio verificable"
+  },
+  "INGENIO_AZUCARERO_GUABIRA": {
+    "domain": "guabira.com",
+    "home": "https://guabira.com/",
+    "confidence": "medium",
+    "note": "título de la portada coincide con el nombre"
+  },
+  "IOL": {
+    "domain": "iol-sa.com",
+    "home": "https://www.iol-sa.com/",
+    "confidence": "medium",
+    "note": "Industrias Oleaginosas; búsqueda web"
+  },
+  "IRUPANA": {
+    "domain": "irupanabio.com",
+    "home": "https://irupanabio.com/",
+    "confidence": "medium",
+    "note": "título de la portada coincide con el nombre"
+  },
+  "ITACAMBA_CEMENTO": {
+    "domain": "itacamba.com",
+    "home": "https://www.itacamba.com/",
+    "confidence": "high",
+    "note": "búsqueda web"
+  },
+  "ITALSA": {
+    "domain": "italsa.com.bo",
+    "home": "https://www.italsa.com.bo/",
+    "confidence": "medium",
+    "note": "la web sirve el icono de Vite",
+    "logo": false
+  },
+  "JALASOFT": {
+    "domain": "jalasoft.com",
+    "home": "https://www.jalasoft.com/",
+    "confidence": "medium",
+    "note": "título de la portada coincide con el nombre"
+  },
+  "KETAL": {
+    "domain": "ketal.com.bo",
+    "home": "https://www.ketal.com.bo/",
+    "confidence": "medium"
+  },
+  "KIMBERLY_CLARK_BOLIVIA": {
+    "domain": "kimberly-clark.com",
+    "home": "https://www.kimberly-clark.com/",
+    "confidence": "medium",
+    "note": "título de la portada coincide con el nombre"
+  },
+  "LABORATORIOS_BAGO": {
+    "domain": "bago.com.bo",
+    "home": "https://www.bago.com.bo/",
+    "confidence": "medium",
+    "note": "título de la portada coincide con el nombre"
+  },
+  "LABORATORIOS_COFAR": {
+    "domain": "cofar.com.bo",
+    "home": "https://cofar.com.bo/",
+    "confidence": "medium",
+    "note": "título de la portada coincide con el nombre"
+  },
+  "LABORATORIOS_IFA": {
+    "domain": "laboratoriosifa.com",
+    "home": "https://laboratoriosifa.com/",
+    "confidence": "medium",
+    "note": "título de la portada coincide con el nombre"
+  },
+  "LABORATORIOS_VITA": {
+    "domain": null,
+    "home": null,
+    "confidence": "low",
+    "note": "sin sitio verificable"
+  },
+  "LABORATORIO_ROEMMERS": {
+    "domain": "roemmers.com.ar",
+    "home": "https://roemmers.com.ar/",
+    "confidence": "medium",
+    "note": "título de la portada coincide con el nombre"
+  },
+  "LAS_BRISAS": {
+    "domain": "lasbrisas.com.bo",
+    "home": "https://lasbrisas.com.bo/",
+    "confidence": "medium",
+    "note": "título de la portada coincide con el nombre"
+  },
+  "LA_BOLIVIANA_CIACRUZ": {
+    "domain": "lbc.bo",
+    "home": "https://www.lbc.bo/",
+    "confidence": "high",
+    "note": "búsqueda web"
+  },
+  "LA_CASCADA": {
+    "domain": "lacascada.com.bo",
+    "home": "https://lacascada.com.bo/",
+    "confidence": "medium",
+    "note": "título de la portada coincide con el nombre"
+  },
+  "LA_PAPELERA": {
+    "domain": "lapapelera.com",
+    "home": "https://lapapelera.com/",
+    "confidence": "medium",
+    "note": "título de la portada coincide con el nombre"
+  },
+  "LA_SUPREMA": {
+    "domain": "lasuprema.com.bo",
+    "home": "https://www.lasuprema.com.bo/",
+    "confidence": "medium",
+    "note": "título de la portada coincide con el nombre"
+  },
+  "LA_VITALICIA": {
+    "domain": "lavitalicia.bo",
+    "home": "https://lavitalicia.bo",
+    "confidence": "medium",
+    "note": "título de la portada coincide con el nombre"
+  },
+  "MADEPA": {
+    "domain": "madepa.com.bo",
+    "home": "https://madepa.com.bo/",
+    "confidence": "medium",
+    "note": "título de la portada coincide con el nombre"
+  },
+  "MADISA": {
+    "domain": "madisa.com.bo",
+    "home": "https://madisa.com.bo/",
+    "confidence": "medium",
+    "note": "título de la portada coincide con el nombre"
+  },
+  "MAINTER_S_R_L": {
+    "domain": "mainter.com.bo",
+    "home": "https://www.mainter.com.bo/",
+    "confidence": "medium",
+    "note": "título de la portada coincide con el nombre"
+  },
+  "MAMUT": {
+    "domain": "grupo-mamut.com",
+    "home": "https://www.grupo-mamut.com/",
+    "confidence": "high",
+    "note": "búsqueda web"
+  },
+  "MANACO": {
+    "domain": "manaco.com.bo",
+    "home": "https://manaco.com.bo/",
+    "confidence": "medium",
+    "note": "título de la portada coincide con el nombre"
+  },
+  "MANZANA_40": {
+    "domain": "manzana40.com",
+    "home": "https://www.manzana40.com/",
+    "confidence": "medium",
+    "note": "icono en blanco",
+    "logo": false
+  },
+  "MARGLA": {
+    "domain": null,
+    "home": null,
+    "confidence": "low",
+    "note": "sin sitio verificable"
+  },
+  "MATRIPLAST": {
+    "domain": "matriplast.com",
+    "home": "https://matriplast.com/",
+    "confidence": "medium",
+    "note": "título de la portada coincide con el nombre"
+  },
+  "MEGALABS": {
+    "domain": "megalabs.com.bo",
+    "home": "https://www.megalabs.com.bo/",
+    "confidence": "high",
+    "note": "búsqueda web"
+  },
+  "MENDOCINA": {
+    "domain": "mendocina.com",
+    "home": "https://mendocina.com/",
+    "confidence": "medium",
+    "note": "título de la portada coincide con el nombre"
+  },
+  "METALMEC": {
+    "domain": null,
+    "home": null,
+    "confidence": "low",
+    "note": "sin sitio verificable"
+  },
+  "MINERA_INTI_RAYMI": {
+    "domain": null,
+    "home": null,
+    "confidence": "low",
+    "note": "sin sitio verificable"
+  },
+  "MINERA_SAN_CRISTOBAL": {
+    "domain": "minerasancristobal.com",
+    "home": "https://www.minerasancristobal.com/",
+    "confidence": "medium"
+  },
+  "MITSUBA": {
+    "domain": null,
+    "home": null,
+    "confidence": "low",
+    "note": "sin sitio verificable"
+  },
+  "MI_TELEFERICO": {
+    "domain": "miteleferico.bo",
+    "home": "https://www.miteleferico.bo/",
+    "confidence": "high",
+    "logo": false,
+    "note": "icono en blanco"
+  },
+  "MONTERREY_SRL": {
+    "domain": "monterrey.com.bo",
+    "home": "https://www.monterrey.com.bo/",
+    "confidence": "medium",
+    "note": "título de la portada coincide con el nombre"
+  },
+  "MULTICENTER": {
+    "domain": "multicenter.com",
+    "home": "https://www.multicenter.com/",
+    "confidence": "medium",
+    "note": "título de la portada coincide con el nombre"
+  },
+  "NACIONAL_SEGUROS": {
+    "domain": "nacionalseguros.com.bo",
+    "home": "https://www.nacionalseguros.com.bo/",
+    "confidence": "high"
+  },
+  "NACIONAL_VIDA": {
+    "domain": "nacionalvida.com",
+    "home": "https://nacionalvida.com/",
+    "confidence": "medium",
+    "note": "título de la portada coincide con el nombre"
+  },
+  "NATURA": {
+    "domain": "natura.com.bo",
+    "home": "https://www.natura.com.bo/",
+    "confidence": "medium",
+    "note": "título de la portada coincide con el nombre"
+  },
+  "NESTLE_BOLIVIA": {
+    "domain": "nestle.com.bo",
+    "home": "https://www.nestle.com.bo/",
+    "confidence": "high"
+  },
+  "NEXOCORP": {
+    "domain": "nexocorp.net",
+    "home": "https://www.nexocorp.net/",
+    "confidence": "medium",
+    "note": "búsqueda web"
+  },
+  "NIBOL": {
+    "domain": "nibol.com.bo",
+    "home": "https://www.nibol.com.bo/",
+    "confidence": "medium",
+    "note": "título de la portada coincide con el nombre"
+  },
+  "OPAL": {
+    "domain": null,
+    "home": null,
+    "confidence": "low",
+    "note": "sin sitio verificable"
+  },
+  "OPERACIONES_METALURGICAS": {
+    "domain": null,
+    "home": null,
+    "confidence": "low",
+    "note": "sin sitio verificable"
+  },
+  "OVANDO": {
+    "domain": null,
+    "home": null,
+    "confidence": "low",
+    "note": "sin sitio verificable"
+  },
+  "PAGINA_SIETE": {
+    "domain": "paginasiete.bo",
+    "home": "https://www.paginasiete.bo/",
+    "confidence": "high"
+  },
+  "PANADERIA_VICTORIA": {
+    "domain": "victoria.bo",
+    "home": "https://victoria.bo/",
+    "confidence": "medium",
+    "note": "título de la portada coincide con el nombre"
+  },
+  "PAN_AMERICAN_SILVER_BOLIVIA": {
+    "domain": "panamericansilver.com",
+    "home": "https://panamericansilver.com/",
+    "confidence": "medium",
+    "note": "título de la portada coincide con el nombre"
+  },
+  "PEDIDOS_YA": {
+    "domain": "pedidosya.com.bo",
+    "home": "https://www.pedidosya.com.bo/",
+    "confidence": "high"
+  },
+  "PETROBRAS": {
+    "domain": "petrobras.com.br",
+    "home": "https://petrobras.com.br/",
+    "confidence": "medium",
+    "note": "título de la portada coincide con el nombre"
+  },
+  "PIL_ANDINA": {
+    "domain": "pilandina.com.bo",
+    "home": "https://www.pilandina.com.bo/",
+    "confidence": "high",
+    "note": "búsqueda web"
+  },
+  "PINTURAS_MONOPOL": {
+    "domain": "pinturasmonopol.com",
+    "home": "https://www.pinturasmonopol.com/",
+    "confidence": "high",
+    "note": "búsqueda web"
+  },
+  "PLASTIFORTE": {
+    "domain": "plastiforte.com",
+    "home": "https://www.plastiforte.com/",
+    "confidence": "medium",
+    "note": "icono en blanco",
+    "logo": false
+  },
+  "PLUSPETROL": {
+    "domain": "pluspetrol.net",
+    "home": "https://www.pluspetrol.net/es",
+    "confidence": "medium",
+    "note": "título de la portada coincide con el nombre"
+  },
+  "POLLOS_CHRISS": {
+    "domain": null,
+    "home": null,
+    "confidence": "low",
+    "note": "sin sitio verificable"
+  },
+  "POLLOS_COPACABANA": {
+    "domain": "polloscopacabana.com",
+    "home": "https://polloscopacabana.com/",
+    "confidence": "medium",
+    "note": "título de la portada coincide con el nombre"
+  },
+  "POLLOS_KIKY": {
+    "domain": "polloskiky.com",
+    "home": "https://polloskiky.com/",
+    "confidence": "medium",
+    "note": "título de la portada coincide con el nombre"
+  },
+  "PPO_ABOGADOS": {
+    "domain": "ppolegal.com",
+    "home": "https://www.ppolegal.com/",
+    "confidence": "medium",
+    "note": "título de la portada coincide con el nombre"
+  },
+  "PROCTER_GAMBLE": {
+    "domain": "us.pg.com",
+    "home": "https://us.pg.com/",
+    "confidence": "medium",
+    "note": "título de la portada coincide con el nombre"
+  },
+  "PRODUCTOS_ECOLOGICOS_NATURALEZA": {
+    "domain": null,
+    "home": null,
+    "confidence": "low",
+    "note": "sin sitio verificable"
+  },
+  "PROESA": {
+    "domain": "proesabol.com",
+    "home": "https://www.proesabol.com/",
+    "confidence": "medium",
+    "note": "búsqueda web"
+  },
+  "PWC": {
+    "domain": "pwc.com",
+    "home": "https://www.pwc.com/",
+    "confidence": "high",
+    "note": "marca global"
+  },
+  "QUANTUM": {
+    "domain": "tuquantum.com",
+    "home": "https://www.tuquantum.com/",
+    "confidence": "high",
+    "note": "búsqueda web"
+  },
+  "QUIMIZA": {
+    "domain": "quimiza.com",
+    "home": "https://www.quimiza.com/",
+    "confidence": "medium",
+    "note": "título de la portada coincide con el nombre"
+  },
+  "RED_ATB": {
+    "domain": "atb.com.bo",
+    "home": "https://www.atb.com.bo/",
+    "confidence": "high"
+  },
+  "RED_PAT": {
+    "domain": "redpat.tv",
+    "home": "https://www.redpat.tv/",
+    "confidence": "medium",
+    "note": "título de la portada coincide con el nombre"
+  },
+  "RED_UNO": {
+    "domain": "reduno.com.bo",
+    "home": "https://www.reduno.com.bo/",
+    "confidence": "medium",
+    "note": "título de la portada coincide con el nombre"
+  },
+  "REPSOL": {
+    "domain": "repsol.com",
+    "home": "https://www.repsol.com/es/index.cshtml",
+    "confidence": "medium",
+    "note": "título de la portada coincide con el nombre"
+  },
+  "ROHO_HOMECENTER": {
+    "domain": "roho.com.bo",
+    "home": "https://www.roho.com.bo/",
+    "confidence": "high",
+    "note": "búsqueda web"
+  },
+  "SACI": {
+    "domain": "saci.com.bo",
+    "home": "https://www.saci.com.bo/",
+    "confidence": "high"
+  },
+  "SAE": {
+    "domain": "saebolivia.com",
+    "home": "https://www.saebolivia.com/",
+    "confidence": "high",
+    "note": "búsqueda web"
+  },
+  "SAGUAPAC": {
+    "domain": "saguapac.com.bo",
+    "home": "https://www.saguapac.com.bo/",
+    "confidence": "medium",
+    "note": "título de la portada coincide con el nombre"
+  },
+  "SAMSUNG": {
+    "domain": "samsung.com",
+    "home": "https://www.samsung.com/latin/",
+    "confidence": "medium",
+    "note": "título de la portada coincide con el nombre"
+  },
+  "SCHLUMBERGER": {
+    "domain": "slb.com",
+    "home": "https://www.slb.com/",
+    "confidence": "high",
+    "note": "marca global"
+  },
+  "SEMILLAS_MONICA": {
+    "domain": null,
+    "home": null,
+    "confidence": "low",
+    "note": "sin sitio verificable"
+  },
+  "SHELL": {
+    "domain": "shell.com",
+    "home": "https://www.shell.com/",
+    "confidence": "medium",
+    "note": "título de la portada coincide con el nombre"
+  },
+  "SINCHI_WAYRA": {
+    "domain": "sinchiwayra.com.bo",
+    "home": "https://www.sinchiwayra.com.bo/",
+    "confidence": "high",
+    "note": "búsqueda web"
+  },
+  "SOBOCE": {
+    "domain": "soboce.com",
+    "home": "https://soboce.com/",
+    "confidence": "medium",
+    "note": "título de la portada coincide con el nombre"
+  },
+  "SOFIA": {
+    "domain": "sofia.com.bo",
+    "home": "https://sofia.com.bo/",
+    "confidence": "medium",
+    "note": "título de la portada coincide con el nombre"
+  },
+  "SOLQUIFAR": {
+    "domain": "solquifar.com",
+    "home": "https://solquifar.com/",
+    "confidence": "medium",
+    "note": "título de la portada coincide con el nombre"
+  },
+  "SONY": {
+    "domain": "sony.com",
+    "home": "https://www.sony.com/",
+    "confidence": "high",
+    "note": "marca global"
+  },
+  "STEGE": {
+    "domain": null,
+    "home": null,
+    "confidence": "low",
+    "note": "sin sitio verificable"
+  },
+  "SUDAMERICANA_SEGUROS": {
+    "domain": "tubroker.com",
+    "home": "https://www.tubroker.com/",
+    "confidence": "medium",
+    "note": "búsqueda web"
+  },
+  "SUPERMERCADO_MACRO": {
+    "domain": null,
+    "home": null,
+    "confidence": "low",
+    "note": "sin sitio verificable"
+  },
+  "TAIYO_MOTORS": {
+    "domain": "taiyomotors.com.bo",
+    "home": "https://www.taiyomotors.com.bo/",
+    "confidence": "medium",
+    "note": "título de la portada coincide con el nombre"
+  },
+  "TECNOFARMA": {
+    "domain": "tecnofarma.com",
+    "home": "http://tecnofarma.com/",
+    "confidence": "medium",
+    "note": "título de la portada coincide con el nombre"
+  },
+  "TELCHI": {
+    "domain": null,
+    "home": null,
+    "confidence": "low",
+    "note": "sin sitio verificable"
+  },
+  "TERBOL": {
+    "domain": "terbol.com.bo",
+    "home": "https://terbol.com.bo/",
+    "confidence": "medium",
+    "note": "título de la portada coincide con el nombre"
+  },
+  "TIENDAS_3B": {
+    "domain": "tiendas3b.com",
+    "home": "https://tiendas3b.com/",
+    "confidence": "medium",
+    "note": "título de la portada coincide con el nombre"
+  },
+  "TIGO": {
+    "domain": "tigo.com.bo",
+    "home": "https://www.tigo.com.bo/",
+    "confidence": "high"
+  },
+  "TIGRE_PLASMAR": {
+    "domain": "tigre.com.bo",
+    "home": "https://www.tigre.com.bo/",
+    "confidence": "medium",
+    "note": "título de la portada coincide con el nombre"
+  },
+  "TOTALENERGIES_BOLIVIA": {
+    "domain": "totalenergies.com",
+    "home": "https://totalenergies.com/",
+    "confidence": "medium",
+    "note": "título de la portada coincide con el nombre"
+  },
+  "TOYOSA": {
+    "domain": "toyosa.com",
+    "home": "https://www.toyosa.com/",
+    "confidence": "medium",
+    "note": "título de la portada coincide con el nombre"
+  },
+  "TOYOTA": {
+    "domain": "toyota.com.bo",
+    "home": "https://toyota.com.bo/",
+    "confidence": "medium",
+    "note": "título de la portada coincide con el nombre"
+  },
+  "TRANSIERRA": {
+    "domain": "transierra.com.bo",
+    "home": "https://transierra.com.bo/",
+    "confidence": "medium",
+    "note": "la web muestra la marca de YPFB, no la propia",
+    "logo": false
+  },
+  "UNAGRO": {
+    "domain": "unagro.com.bo",
+    "home": "https://www.unagro.com.bo/",
+    "confidence": "medium",
+    "note": "título de la portada coincide con el nombre"
+  },
+  "UNIFRANZ": {
+    "domain": "unifranz.edu.bo",
+    "home": "https://unifranz.edu.bo/",
+    "confidence": "medium",
+    "note": "título de la portada coincide con el nombre"
+  },
+  "UNILEVER": {
+    "domain": "unilever.com",
+    "home": "https://www.unilever.com/",
+    "confidence": "high",
+    "note": "marca global"
+  },
+  "UNION_AGRONEGOCIO": {
+    "domain": "union.com.bo",
+    "home": "https://www.union.com.bo/",
+    "confidence": "high",
+    "note": "búsqueda web"
+  },
+  "UNITEL": {
+    "domain": "unitel.bo",
+    "home": "https://unitel.bo",
+    "confidence": "medium",
+    "note": "título de la portada coincide con el nombre"
+  },
+  "UNIVALLE": {
+    "domain": "univalle.edu",
+    "home": "https://www.univalle.edu/",
+    "confidence": "high"
+  },
+  "UNIVERSIDAD_CATOLICA_BOLIVIANA_UCB": {
+    "domain": "ucb.edu.bo",
+    "home": "https://www.ucb.edu.bo/",
+    "confidence": "medium",
+    "note": "título de la portada coincide con el nombre"
+  },
+  "UNIVERSIDAD_DE_AQUINO_BOLIVIA_UDABOL": {
+    "domain": "udabol.edu.bo",
+    "home": "https://udabol.edu.bo/",
+    "confidence": "medium",
+    "note": "título de la portada coincide con el nombre"
+  },
+  "UNIVERSIDAD_NUR": {
+    "domain": "nur.edu",
+    "home": "https://www.nur.edu/",
+    "confidence": "medium",
+    "note": "título de la portada coincide con el nombre"
+  },
+  "UNIVERSIDAD_PRIVADA_BOLIVIANA_UPB": {
+    "domain": "upb.edu",
+    "home": "https://www.upb.edu/",
+    "confidence": "medium",
+    "note": "título de la portada coincide con el nombre"
+  },
+  "UNIVERSIDAD_PRIVADA_DOMINGO_SAVIO": {
+    "domain": "upds.edu.bo",
+    "home": "https://www.upds.edu.bo/",
+    "confidence": "medium",
+    "note": "título de la portada coincide con el nombre"
+  },
+  "UPSA": {
+    "domain": "upsa.edu.bo",
+    "home": "https://www.upsa.edu.bo/",
+    "confidence": "medium",
+    "note": "título de la portada coincide con el nombre"
+  },
+  "UTEPSA": {
+    "domain": "utepsa.edu",
+    "home": "https://www.utepsa.edu/",
+    "confidence": "high"
+  },
+  "VASCAL": {
+    "domain": "vascal.com",
+    "home": "https://vascal.com/",
+    "confidence": "medium",
+    "note": "título de la portada coincide con el nombre"
+  },
+  "VENTURA_MALL": {
+    "domain": "venturamall.bo",
+    "home": "https://www.venturamall.bo/",
+    "confidence": "high",
+    "note": "búsqueda web"
+  },
+  "VIAGGIO": {
+    "domain": null,
+    "home": null,
+    "confidence": "low",
+    "note": "sin sitio verificable"
+  },
+  "VINOS_KOLBERG": {
+    "domain": null,
+    "home": null,
+    "confidence": "low",
+    "note": "sin sitio verificable"
+  },
+  "VINTAGE_PETROLEUM": {
+    "domain": null,
+    "home": null,
+    "confidence": "low",
+    "note": "sin sitio verificable"
+  },
+  "VIVA": {
+    "domain": "viva.com.bo",
+    "home": "https://www.viva.com.bo/",
+    "confidence": "medium",
+    "note": "título de la portada coincide con el nombre"
+  },
+  "YAIGO": {
+    "domain": "yaigo.com",
+    "home": "https://yaigo.com/",
+    "confidence": "medium",
+    "note": "título de la portada coincide con el nombre"
+  },
+  "YANBAL": {
+    "domain": "yanbal.com",
+    "home": "https://www.yanbal.com/",
+    "confidence": "medium",
+    "note": "título de la portada coincide con el nombre"
+  },
+  "YPFB": {
+    "domain": "ypfb.gob.bo",
+    "home": "https://www.ypfb.gob.bo/",
+    "confidence": "high"
+  }
+}
