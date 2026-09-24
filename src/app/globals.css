@@ -4909,6 +4909,39 @@ button.download-btn {
   font-size: 1rem;
 }
 
+/*
+ * Confianza baja: un lugar que la fuente no confirma. Se ve en la fila, en su
+ * celda y en una nota sobre la tabla. El texto va en el color de tinta y el
+ * aviso en el borde y el fondo, porque el ámbar sobre fondo claro no llega al
+ * contraste de lectura.
+ */
+.place-flag-low {
+  display: inline-block;
+  margin-left: 0.35rem;
+  font-size: 0.66rem;
+  font-weight: 600;
+  color: var(--ink);
+  border: 1px solid var(--warning);
+  background: color-mix(in srgb, var(--warning) 22%, transparent);
+  border-radius: 999px;
+  padding: 0.02rem 0.45rem;
+  white-space: nowrap;
+}
+
+.place-row-low-confidence > td {
+  background: color-mix(in srgb, var(--warning) 8%, transparent);
+}
+
+.place-row-low-confidence > td:first-child {
+  box-shadow: inset 3px 0 0 var(--warning);
+}
+
+.places-low-confidence-note {
+  margin: 0.35rem 0 0.5rem;
+  font-size: 0.78rem;
+  color: var(--ink-soft);
+}
+
 .places-table-count {
   margin-left: auto;
   font-family: var(--mono);

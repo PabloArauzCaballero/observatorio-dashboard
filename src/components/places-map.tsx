@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { Icon } from './icons';
 import type { Place } from '@/lib/places';
+import { LOW_CONFIDENCE_NOTE, isLowConfidence } from '@/lib/place-confidence';
 
 /**
  * The places of one city, on the city.
@@ -606,6 +607,7 @@ export function PlacesMap({
         term: 'Confianza',
         value: `${(place.confidence * 100).toFixed(0)}%${place.qualityGrade ? ` · ${place.qualityGrade}` : ''}`,
       });
+      if (isLowConfidence(place)) rows.push({ term: 'Aviso', value: LOW_CONFIDENCE_NOTE });
     } else if (place.qualityGrade) {
       rows.push({ term: 'Calidad', value: place.qualityGrade });
     }
