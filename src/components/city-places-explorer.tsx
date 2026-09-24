@@ -20,6 +20,7 @@ import type { IconName } from './icons';
 import { Pager } from './pager';
 import { PlacesMap, mapsHref } from './places-map';
 import type { Place, PlaceFamily } from '@/lib/places';
+import { LOW_CONFIDENCE_NOTE, isLowConfidence } from '@/lib/place-confidence';
 import { tallySectors } from '@/lib/place-sectors';
 import type { SectorTally } from '@/lib/place-sectors';
 
@@ -816,6 +817,7 @@ function PlacesTable({ places, total }: { places: Place[]; total: number }) {
   const shown = places.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
   const first = places.length ? (page - 1) * PAGE_SIZE + 1 : 0;
   const last = (page - 1) * PAGE_SIZE + shown.length;
+  const doubtful = useMemo(() => places.filter(isLowConfidence).length, [places]);
 
   if (places.length === 0) return null;
 
@@ -829,6 +831,16 @@ function PlacesTable({ places, total }: { places: Place[]; total: number }) {
           {total > places.length ? <> de {NUMBER.format(total)}</> : null} registros
         </span>
       </div>
+
+      {/* Dicho antes de la tabla y no solo en cada fila: quien exporta o cuenta
+          tiene que saber cuántas de las filas no confirmó nadie. */}
+      {doubtful > 0 ? (
+        <p className="places-low-confidence-note" role="note">
+          <span className="place-flag-low">Confianza baja</span> {NUMBER.format(doubtful)} de{' '}
+          {NUMBER.format(places.length)} lugares tienen confianza menor al 50 %: la fuente no
+          confirma que existan o sigan abiertos. Van marcados en la tabla.
+        </p>
+      ) : null}
 
       <Pager
         page={page}
@@ -859,7 +871,10 @@ function PlacesTable({ places, total }: { places: Place[]; total: number }) {
           </thead>
           <tbody>
             {shown.map((place) => (
-              <tr key={place.placeId}>
+              <tr
+                key={place.placeId}
+                className={isLowConfidence(place) ? 'place-row-low-confidence' : undefined}
+              >
                 <td>
                   <span className="cell-name">{place.name}</span>
                   {/* El identificador es un UUID de treinta y seis caracteres: entero
@@ -882,6 +897,11 @@ function PlacesTable({ places, total }: { places: Place[]; total: number }) {
                 <td className="cell-tight">{place.city}</td>
                 <td className="num">
                   {place.confidence === null ? '—' : `${(place.confidence * 100).toFixed(0)}%`}
+                  {isLowConfidence(place) ? (
+                    <span className="place-flag-low" title={LOW_CONFIDENCE_NOTE}>
+                      Confianza baja
+                    </span>
+                  ) : null}
                   {place.qualityGrade ? (
                     <span className="cell-code">{place.qualityGrade}</span>
                   ) : null}
