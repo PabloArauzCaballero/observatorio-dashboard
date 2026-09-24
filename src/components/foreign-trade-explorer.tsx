@@ -868,8 +868,8 @@ function ExportersRanking({ board }: { board: ExportersBoard }) {
       <ShareBars data={bars} unit="%" height={520} />
       <p className="panel-sub">
         Se dibujan las {Math.min(SHOWN_EXPORTERS, board.exporters.length)} primeras de{' '}
-        {board.exporters.length}. Las barras marcadas son las que además están medidas por el
-        monitor de reputación: {marked} aquí, {board.crossings.length} en la lista entera. El cruce
+        {board.exporters.length}. Las barras marcadas son las que además midió el monitor de
+        reputación Merco en alguna de sus ediciones: {marked} aquí, {board.crossings.length} en la lista entera. El cruce
         completo está en la pestaña «Reputación empresarial».
       </p>
     </div>

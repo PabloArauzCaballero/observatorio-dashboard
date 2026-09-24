@@ -6682,3 +6682,463 @@ button.download-btn {
     text-align: center;
   }
 }
+
+/* Reputación empresarial ------------------------------------------------- */
+
+/*
+ * La marca de una empresa, en una baldosa cuadrada con fondo propio.
+ *
+ * El fondo es blanco también en oscuro, y es a propósito: los logotipos están
+ * dibujados para papel blanco —texto negro, bordes oscuros— y sobre el panel
+ * oscuro la mitad desaparece. Una baldosa clara con borde es como se presenta
+ * una marca ajena en cualquier listado de empresas.
+ */
+.company-logo {
+  display: inline-grid;
+  place-items: center;
+  flex: none;
+  border-radius: 8px;
+  background: #ffffff;
+  border: 1px solid var(--rule);
+  overflow: hidden;
+}
+
+.company-logo img {
+  width: 84%;
+  height: 84%;
+  object-fit: contain;
+}
+
+.company-logo-initials {
+  background: var(--panel-tint);
+  color: var(--ink-soft);
+  font-family: var(--sans);
+  font-weight: 650;
+  letter-spacing: 0.02em;
+}
+
+.rep-podium {
+  list-style: none;
+  margin: var(--s3) 0 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--s2);
+}
+
+.rep-podium-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 0.45rem;
+  padding: var(--s3) var(--s2) var(--s2);
+  border: 1px solid var(--rule);
+  border-radius: var(--radius);
+  background: var(--panel-tint);
+}
+
+.rep-podium-1 {
+  border-color: color-mix(in srgb, var(--official) 55%, var(--panel));
+  background: color-mix(in srgb, var(--official) 7%, var(--panel));
+}
+
+.rep-podium-rank {
+  position: absolute;
+  top: 0.55rem;
+  left: 0.7rem;
+  font-family: var(--mono);
+  font-size: 1.5rem;
+  font-weight: 700;
+  line-height: 1;
+  color: var(--ink-faint);
+}
+
+.rep-podium-1 .rep-podium-rank {
+  color: var(--official);
+}
+
+.rep-podium-name {
+  font-weight: 650;
+  font-size: 0.98rem;
+  line-height: 1.25;
+  text-wrap: balance;
+}
+
+.rep-podium-meta {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.8rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.rep-podium-sector {
+  font-size: 0.72rem;
+  color: var(--ink-soft);
+}
+
+.rep-move {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.2rem;
+  flex: none;
+  min-width: 3.4rem;
+  justify-content: center;
+  padding: 0.12rem 0.45rem;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  border: 1px solid transparent;
+}
+
+/*
+ * Subir y bajar con la polaridad del informe: frío es «a favor», cálido «en
+ * contra». Nunca sólo el color —la flecha y la cifra van siempre—.
+ */
+.rep-move-up {
+  color: var(--down);
+  background: color-mix(in srgb, var(--down) 10%, var(--panel));
+}
+
+.rep-move-down {
+  color: var(--up);
+  background: color-mix(in srgb, var(--up) 10%, var(--panel));
+}
+
+.rep-move-same {
+  color: var(--ink-soft);
+  background: var(--panel-tint);
+}
+
+.rep-move-new {
+  color: var(--official);
+  border-color: color-mix(in srgb, var(--official) 45%, var(--panel));
+}
+
+.rep-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.rep-row {
+  display: grid;
+  grid-template-columns: 2.2rem 36px minmax(0, 1fr) minmax(140px, 0.55fr) 3.6rem 2rem;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.55rem 0.25rem;
+  border-bottom: 1px solid var(--rule-soft);
+}
+
+.rep-row:last-child {
+  border-bottom: none;
+}
+
+.rep-row:hover {
+  background: var(--panel-tint);
+}
+
+.rep-rank {
+  font-family: var(--mono);
+  font-size: 0.95rem;
+  font-weight: 650;
+  text-align: right;
+  color: var(--ink-soft);
+  font-variant-numeric: tabular-nums;
+}
+
+.rep-who {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  gap: 0.1rem;
+}
+
+.rep-name {
+  font-weight: 600;
+  line-height: 1.25;
+  overflow-wrap: break-word;
+}
+
+.rep-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem 0.6rem;
+  font-size: 0.74rem;
+  color: var(--ink-soft);
+}
+
+.rep-tag-export {
+  color: var(--series-6);
+  font-weight: 600;
+  font-size: 0.72rem;
+}
+
+.rep-score {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.rep-bar {
+  flex: 1 1 auto;
+  height: 8px;
+  border-radius: 999px;
+  background: var(--rule-soft);
+  overflow: hidden;
+}
+
+.rep-bar > span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--official);
+}
+
+.rep-score-n {
+  font-family: var(--mono);
+  font-size: 0.8rem;
+  width: 3.4rem;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.rep-follow {
+  display: inline-grid;
+  place-items: center;
+  width: 2rem;
+  height: 2rem;
+  border-radius: 8px;
+  border: 1px solid var(--rule);
+  background: var(--panel);
+  color: var(--ink-soft);
+  cursor: pointer;
+  transition:
+    background var(--fast) var(--ease),
+    color var(--fast) var(--ease);
+}
+
+.rep-follow:hover {
+  color: var(--ink);
+  border-color: var(--ink-faint);
+}
+
+.rep-follow-on {
+  background: var(--ink);
+  border-color: var(--ink);
+  color: var(--paper);
+}
+
+.rep-followed {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin-bottom: var(--s2);
+}
+
+.rep-followed .company-logo {
+  border-radius: 4px;
+}
+
+.rep-key {
+  width: 10px;
+  height: 10px;
+  border-radius: 2px;
+  flex: none;
+}
+
+.rep-toggle {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0 0.875rem;
+  font-size: 0.85rem;
+  cursor: pointer;
+}
+
+.rep-toggle span {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+/*
+ * Columnas y no rejilla: un sector trae una empresa y otro diecisiete, y en una
+ * rejilla cada fila se estira hasta la tarjeta más alta y deja huecos blancos
+ * del tamaño de un panel.
+ */
+.rep-sectors {
+  columns: 3 250px;
+  column-gap: var(--s2);
+}
+
+.rep-sector {
+  break-inside: avoid;
+  margin-bottom: var(--s2);
+  border: 1px solid var(--rule);
+  border-radius: var(--radius);
+  padding: var(--s2);
+  background: var(--panel);
+}
+
+.rep-sector h3 {
+  margin: 0 0 0.55rem;
+  font-size: 0.78rem;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+}
+
+.rep-sector ol {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.rep-sector li {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.86rem;
+}
+
+.rep-sector-rank {
+  width: 1.2rem;
+  text-align: right;
+  font-family: var(--mono);
+  color: var(--ink-faint);
+  font-variant-numeric: tabular-nums;
+  flex: none;
+}
+
+.rep-sector li:first-child .rep-sector-rank {
+  color: var(--official);
+  font-weight: 700;
+}
+
+.rep-sector-name {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.rep-cross {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(280px, 100%), 1fr));
+  gap: var(--s2);
+}
+
+.rep-cross-card {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: var(--s2);
+  border: 1px solid var(--rule);
+  border-radius: var(--radius);
+}
+
+.rep-cross-past {
+  background: var(--panel-tint);
+  border-style: dashed;
+}
+
+.rep-cross-body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  min-width: 0;
+}
+
+.rep-cross-figures {
+  display: flex;
+  flex-direction: column;
+  font-size: 0.78rem;
+  color: var(--ink-soft);
+  font-variant-numeric: tabular-nums;
+}
+
+.rep-cross-figures b {
+  color: var(--ink);
+}
+
+@media (max-width: 720px) {
+  .rep-podium {
+    grid-template-columns: 1fr;
+  }
+
+  .rep-podium-card {
+    flex-direction: row;
+    text-align: left;
+    padding: var(--s2);
+    padding-left: 2.6rem;
+  }
+
+  .rep-podium-card .company-logo {
+    width: 44px !important;
+    height: 44px !important;
+  }
+
+  .rep-podium-rank {
+    top: 50%;
+    transform: translateY(-50%);
+  }
+
+  .rep-podium-meta {
+    justify-content: flex-start;
+  }
+
+  .rep-podium-sector {
+    display: none;
+  }
+
+  /*
+   * En el teléfono la barra baja a su propia línea, debajo del nombre: las
+   * seis columnas juntas dejaban el nombre en dos letras por renglón.
+   */
+  .rep-row {
+    grid-template-columns: 1.6rem 32px minmax(0, 1fr) auto 2rem;
+    grid-template-areas:
+      'rank logo who who who'
+      '. score score move follow';
+    gap: 0.4rem 0.55rem;
+  }
+
+  .rep-hero .stat-strip {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .rep-row > .rep-rank {
+    grid-area: rank;
+  }
+
+  .rep-row > .company-logo {
+    grid-area: logo;
+    width: 32px !important;
+    height: 32px !important;
+  }
+
+  .rep-row > .rep-who {
+    grid-area: who;
+  }
+
+  .rep-row > .rep-score {
+    grid-area: score;
+  }
+
+  .rep-row > .rep-move {
+    grid-area: move;
+  }
+
+  .rep-row > .rep-follow {
+    grid-area: follow;
+  }
+}
