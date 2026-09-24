@@ -6379,10 +6379,22 @@ button.download-btn {
   gap: var(--s2);
 }
 
+.roads-map-wrap {
+  margin: 0;
+}
+
+/* El escenario tiene la proporción del país: acercar cambia el viewBox y no
+   el tamaño de la caja, así que el mapa no salta de alto al elegir. */
+.roads-map-stage {
+  position: relative;
+}
+
 .roads-map {
+  display: block;
   width: 100%;
   height: auto;
-  max-height: 70vh;
+  aspect-ratio: 1000 / 1132;
+  max-height: 78vh;
   background: var(--panel-tint);
   border-radius: var(--radius);
 }
@@ -6422,4 +6434,218 @@ button.download-btn {
     transparent 4px,
     transparent 7px
   );
+}
+
+.roads-map-dept-names text {
+  fill: var(--ink-soft);
+  opacity: 0.85;
+  paint-order: stroke;
+  stroke: var(--panel-tint);
+  stroke-width: 3px;
+  stroke-linejoin: round;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-anchor: middle;
+  pointer-events: none;
+}
+
+.roads-map-hover {
+  stroke: var(--ink);
+  opacity: 0.35;
+  pointer-events: none;
+}
+
+/* La capa que recibe el puntero: ancha e invisible, porque un trazo de un
+   píxel no se puede apuntar. */
+.roads-map-hits path {
+  fill: none;
+  stroke: transparent;
+  stroke-width: 12px;
+  pointer-events: stroke;
+}
+
+.roads-map-capitals circle {
+  fill: var(--panel);
+  stroke: var(--ink);
+  stroke-width: 1.6px;
+  vector-effect: non-scaling-stroke;
+}
+
+.roads-map-capitals text {
+  fill: var(--ink);
+  font-weight: 600;
+  paint-order: stroke;
+  stroke: var(--panel-tint);
+  stroke-width: 3px;
+  stroke-linejoin: round;
+  pointer-events: none;
+}
+
+/* El escudo de ruta: placa azul la Fundamental, naranja la Departamental. */
+.roads-map-shield rect {
+  fill: var(--series-1);
+  stroke: var(--panel);
+  stroke-width: 1.2px;
+  vector-effect: non-scaling-stroke;
+}
+
+.roads-map-shield[data-network="DEPARTAMENTAL"] rect {
+  fill: var(--series-2);
+}
+
+.roads-map-shield text {
+  fill: #fff;
+  font-family: var(--mono);
+  font-weight: 700;
+  text-anchor: middle;
+  pointer-events: none;
+}
+
+.roads-map-shield-on rect {
+  stroke: var(--ink);
+  stroke-width: 2px;
+}
+
+.roads-map-tip {
+  max-width: min(20rem, 90%);
+}
+
+.roads-map-tip-name {
+  font-size: 0.78rem;
+  color: var(--ink-soft);
+  margin: -0.15rem 0 0.35rem;
+}
+
+.roads-map-legend-item em {
+  font-style: normal;
+  font-variant-numeric: tabular-nums;
+  color: var(--ink);
+}
+
+.roads-map-legend-dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--panel);
+  border: 1.6px solid var(--ink);
+}
+
+.roads-map-foot {
+  font-size: 0.76rem;
+  color: var(--ink-soft);
+}
+
+.roads-map-tools {
+  align-items: center;
+  margin-bottom: var(--s1);
+}
+
+.roads-map-tools-label {
+  font-size: 0.76rem;
+  color: var(--ink-soft);
+  margin-right: 0.2rem;
+}
+
+.roads-swatch {
+  flex: none;
+  width: 14px;
+  height: 4px;
+  border-radius: 2px;
+}
+
+/* La tabla de rutas: encabezados que ordenan, escudo por ruta. */
+.roads-table th .roads-sort {
+  all: unset;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.roads-table th .roads-sort:focus-visible {
+  outline: 2px solid var(--series-1);
+  outline-offset: 2px;
+}
+
+.roads-table th .roads-sort-on {
+  color: var(--ink);
+}
+
+.roads-table td {
+  vertical-align: top;
+}
+
+.roads-shield {
+  display: inline-block;
+  white-space: nowrap;
+  min-width: 3.2rem;
+  padding: 0.12rem 0.45rem;
+  border-radius: 4px;
+  border: 1px solid transparent;
+  background: var(--series-1);
+  color: #fff;
+  font-family: var(--mono);
+  font-size: 0.78rem;
+  font-weight: 700;
+  text-align: center;
+  cursor: pointer;
+}
+
+.roads-shield[data-network="DEPARTAMENTAL"] {
+  background: var(--series-2);
+}
+
+.roads-shield-on {
+  outline: 2px solid var(--ink);
+  outline-offset: 1px;
+}
+
+.roads-shield-none {
+  background: transparent;
+  color: var(--ink-soft);
+  border-color: var(--rule);
+  font-weight: 500;
+  cursor: default;
+}
+
+.roads-row-on td {
+  background: color-mix(in srgb, var(--series-1) 10%, var(--panel));
+}
+
+.roads-share {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.roads-share-bar {
+  display: inline-block;
+  width: 3rem;
+  height: 6px;
+  border-radius: 3px;
+  background: var(--rule-soft);
+  overflow: hidden;
+}
+
+.roads-share-bar i {
+  display: block;
+  height: 100%;
+  background: var(--series-1);
+}
+
+/* En un teléfono el pager, dentro del relleno del panel, no cabía: «Siguientes»
+   salía por el borde. Más apretado y con el rango en su propia línea. */
+@media (max-width: 640px) {
+  .roads-routes .pager {
+    flex-wrap: wrap;
+    justify-content: space-between;
+    padding: var(--s1);
+    gap: var(--s1);
+  }
+
+  .roads-routes .pager-where {
+    order: -1;
+    flex-basis: 100%;
+    text-align: center;
+  }
 }
