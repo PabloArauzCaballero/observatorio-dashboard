@@ -129,6 +129,17 @@ export function CityPlacesExplorer({ families }: { families: PlaceFamily[] }) {
   const [showAll, setShowAll] = useState(false);
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(false);
+  /*
+   * Si la última lectura de `/api/lugares` falló, y cuántas veces se pidió.
+   *
+   * Un fallo no es un recorte vacío. Hasta el 2026-09-24 una respuesta 500 se
+   * convertía en «cero lugares» y el mapa decía «No hay lugares que dibujar con
+   * esta selección» mientras la cabecera contaba 564: dos afirmaciones que no
+   * pueden ser ciertas a la vez. `attempt` sólo existe para que «Reintentar»
+   * vuelva a lanzar la misma lectura sin cambiar la selección.
+   */
+  const [failed, setFailed] = useState(false);
+  const [attempt, setAttempt] = useState(0);
 
   /**
    * The families this city actually holds, one row each, largest first.
@@ -254,11 +265,16 @@ export function CityPlacesExplorer({ families }: { families: PlaceFamily[] }) {
   useEffect(() => {
     let live = true;
     setLoading(true);
+    setFailed(false);
     const query = new URLSearchParams({ ciudad: list(city).join(',') });
     if (family.size) query.set('familia', list(family).join(','));
     if (showAll) query.set('todos', '1');
     fetch(`/api/lugares?${query.toString()}`)
-      .then((response) => (response.ok ? response.json() : { places: [], total: 0 }))
+      .then((response) =>
+        response.ok
+          ? response.json()
+          : Promise.reject(new Error(`/api/lugares ${response.status}`)),
+      )
       .then((body: { places?: Place[]; total?: number }) => {
         if (!live) return;
         setPlaces(body.places ?? []);
@@ -268,6 +284,7 @@ export function CityPlacesExplorer({ families }: { families: PlaceFamily[] }) {
         if (live) {
           setPlaces([]);
           setTotal(0);
+          setFailed(true);
         }
       })
       .finally(() => {
@@ -276,7 +293,7 @@ export function CityPlacesExplorer({ families }: { families: PlaceFamily[] }) {
     return () => {
       live = false;
     };
-  }, [city, family, showAll]);
+  }, [city, family, showAll, attempt]);
 
   if (families.length === 0) {
     return <div className="callout">Todavía no hay lugares cargados.</div>;
@@ -601,6 +618,17 @@ export function CityPlacesExplorer({ families }: { families: PlaceFamily[] }) {
                 <span>Se dibujan en el mapa en cuanto lleguen.</span>
               </div>
             </div>
+          ) : failed ? (
+            <div className="callout callout-warn" role="alert">
+              <Icon name="campana" size={14} /> No se pudieron leer los lugares.{' '}
+              <button
+                type="button"
+                className="callout-link"
+                onClick={() => setAttempt((n) => n + 1)}
+              >
+                Reintentar
+              </button>
+            </div>
           ) : (
             <PlacesMap
               places={places}
@@ -649,7 +677,7 @@ export function CityPlacesExplorer({ families }: { families: PlaceFamily[] }) {
                   lugares, {NUMBER.format(cityTotals.regulated)} de actividad regulada.
                 </>
               )}{' '}
-              {truncated ? (
+              {failed ? null : truncated ? (
                 <>
                   El mapa dibuja {NUMBER.format(places.length)} de {NUMBER.format(total)}, los de
                   mayor confianza: dibujarlos todos deja una mancha, no un mapa. Elegí una familia
@@ -684,11 +712,13 @@ export function CityPlacesExplorer({ families }: { families: PlaceFamily[] }) {
             pagina once de las farmacias no aterrice en la pagina once de los
             restaurantes.
           */}
-          <PlacesTable
-            key={`${list(city).join(',')}:${list(family).join(',')}:${showAll ? 'todos' : 'recorte'}`}
-            places={places}
-            total={total}
-          />
+          {failed ? null : (
+            <PlacesTable
+              key={`${list(city).join(',')}:${list(family).join(',')}:${showAll ? 'todos' : 'recorte'}`}
+              places={places}
+              total={total}
+            />
+          )}
         </div>
       </div>
     </>
