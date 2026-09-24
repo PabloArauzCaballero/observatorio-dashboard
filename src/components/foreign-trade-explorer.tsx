@@ -12,6 +12,9 @@ import {
 } from '@/lib/choice';
 import type { Choice } from '@/lib/choice';
 import { MacroChart, ShareBars, WorldLines, seriesTone } from './charts';
+import { ChartKindSwitch, ShareSquares } from './chart-kind';
+import type { ChartKind } from './chart-kind';
+import { WorldTradeMap } from './world-trade-map';
 import { DerivedReading } from './derived-reading';
 import { FilterHint, PickedCount } from './filters';
 import { Icon } from './icons';
@@ -144,6 +147,8 @@ function ProductChapter({
   );
   const leadingUsd = useMemo(() => productLines(leadingCropped, 'usd'), [leadingCropped]);
   const leadingTonnes = useMemo(() => productLines(leadingCropped, 'tonnes'), [leadingCropped]);
+  const [usdKind, setUsdKind] = useState<ChartKind>('barras');
+  const [tonnesKind, setTonnesKind] = useState<ChartKind>('barras');
 
   if (!board.products.length) {
     return (
@@ -166,26 +171,40 @@ function ProductChapter({
   return (
     <div className="grid-three">
       <div className="panel">
-        <div className="panel-head">
-          <h2>Qué exporta Bolivia, por producto ({year}, millones de USD)</h2>
-          <p className="panel-sub">
-            Los {Math.min(SHOWN_PRODUCTS, mixUsd.length)} productos principales de{' '}
-            {mixUsd.length} que el INE publica, sumando los nueve departamentos. Es el total
-            nacional que no viene como una fila abierta en el cuadro original.
-          </p>
+        <div className="panel-head panel-head-kind">
+          <div>
+            <h2>Qué exporta Bolivia, por producto ({year}, millones de USD)</h2>
+            <p className="panel-sub">
+              Los {Math.min(SHOWN_PRODUCTS, mixUsd.length)} productos principales de{' '}
+              {mixUsd.length} que el INE publica, sumando los nueve departamentos. Es el total
+              nacional que no viene como una fila abierta en el cuadro original.
+            </p>
+          </div>
+          <ChartKindSwitch value={usdKind} onChange={setUsdKind} kinds={['barras', 'cuadrados']} />
         </div>
-        <ShareBars data={mixUsd.slice(0, SHOWN_PRODUCTS)} unit=" MM USD" height={420} />
+        {usdKind === 'cuadrados' ? (
+          <ShareSquares data={mixUsd.slice(0, SHOWN_PRODUCTS)} unit="MM USD" height={420} />
+        ) : (
+          <ShareBars data={mixUsd.slice(0, SHOWN_PRODUCTS)} unit=" MM USD" height={420} />
+        )}
       </div>
       <div className="panel">
-        <div className="panel-head">
-          <h2>Cuánto pesa lo que exporta (toneladas, {year})</h2>
-          <p className="panel-sub">
-            El mismo año en peso neto. El orden cambia frente al de dólares: el gas no pesa nada en
-            un puerto y el mineral pesa mucho sin valer lo mismo.
-          </p>
+        <div className="panel-head panel-head-kind">
+          <div>
+            <h2>Cuánto pesa lo que exporta (toneladas, {year})</h2>
+            <p className="panel-sub">
+              El mismo año en peso neto. El orden cambia frente al de dólares: el gas no pesa nada
+              en un puerto y el mineral pesa mucho sin valer lo mismo.
+            </p>
+          </div>
+          <ChartKindSwitch value={tonnesKind} onChange={setTonnesKind} kinds={['barras', 'cuadrados']} />
         </div>
         {mixTonnes.length ? (
-          <ShareBars data={mixTonnes.slice(0, SHOWN_PRODUCTS)} unit=" t" height={420} />
+          tonnesKind === 'cuadrados' ? (
+            <ShareSquares data={mixTonnes.slice(0, SHOWN_PRODUCTS)} unit="t" height={420} />
+          ) : (
+            <ShareBars data={mixTonnes.slice(0, SHOWN_PRODUCTS)} unit=" t" height={420} />
+          )
         ) : (
           <div className="callout">Sin peso publicado para {year}.</div>
         )}
@@ -331,34 +350,159 @@ function topOf<T extends { flow: 'X' | 'M'; points: { year: number; value: numbe
     .slice(0, limit);
 }
 
+/** El último año publicado dentro del rango, para las formas que muestran un solo año. */
+function lastYearOf(entries: readonly { points: readonly { year: number }[] }[]): number | null {
+  let year: number | null = null;
+  for (const entry of entries) {
+    for (const point of entry.points) if (year === null || point.year > year) year = point.year;
+  }
+  return year;
+}
+
+/** Una fila de socio o de capítulo, con la llave con que se filtra. */
+interface DetailEntry {
+  code: string;
+  label: string;
+  flow: 'X' | 'M';
+  pick: string;
+  points: { year: number; value: number }[];
+}
+
+/**
+ * Un panel del detalle —socios o capítulos, un flujo— en la forma que elija el
+ * lector.
+ *
+ * Líneas sigue al tiempo y por eso dibuja pocas: las elegidas en el filtro, o
+ * las ocho mayores. Barras y cuadrados miran un solo año —el último del rango
+ * con dato— y por eso pueden dibujar los veinte publicados a la vez; lo
+ * elegido en el filtro queda marcado en vez de quedar solo, para que se vea
+ * contra qué se compara. Tocar una barra o un cuadrado lo pone en el filtro.
+ */
+function DetailPanel({
+  subject,
+  noun,
+  entries,
+  chosen,
+  onPick,
+  from,
+  to,
+  hint,
+}: {
+  subject: string;
+  noun: { singular: string; plural: string };
+  entries: readonly DetailEntry[];
+  chosen: Choice;
+  onPick: (value: string, additive: boolean) => void;
+  from: number;
+  to: number;
+  hint: string;
+}) {
+  const [kind, setKind] = useState<ChartKind>('lineas');
+  const year = lastYearOf(entries);
+
+  const lineEntries = chosen.size
+    ? entries.filter((entry) => accepts(chosen, entry.pick))
+    : topOf(entries, entries[0]?.flow ?? 'X', DEFAULT_DETAIL_SHOWN);
+  const lines = onOneAxis(detailLines(lineEntries));
+
+  const slices = entries
+    .map((entry) => ({
+      name: entry.label,
+      value: (entry.points.find((point) => point.year === year)?.value ?? 0) / 1_000_000,
+      pick: entry.pick,
+      ...(chosen.size && accepts(chosen, entry.pick) ? { emphasis: true } : {}),
+    }))
+    .filter((slice) => slice.value > 0);
+
+  const title =
+    kind === 'lineas'
+      ? `${subject} (millones de USD, ${from}-${to})`
+      : `${subject} (millones de USD, ${year ?? to})`;
+
+  const sub =
+    kind === 'lineas'
+      ? chosen.size
+        ? `${pickedLabel(lineEntries.length, noun.singular, noun.plural)}.`
+        : `Los ${lineEntries.length} ${noun.plural} con mayor valor reciente, de ${entries.length} publicados; ${hint}`
+      : `Los ${slices.length} ${noun.plural} publicados en ${year ?? to}${
+          chosen.size ? ', con los elegidos en el filtro marcados' : ''
+        }. Tocá uno para ponerlo en el filtro; Ctrl/⌘ suma.${
+          kind === 'cuadrados' ? ' El área es el valor y el porcentaje es sobre lo dibujado.' : ''
+        }`;
+
+  return (
+    <div className="panel">
+      <div className="panel-head panel-head-kind">
+        <div>
+          <h2>{title}</h2>
+          <p className="panel-sub">{sub}</p>
+        </div>
+        <ChartKindSwitch value={kind} onChange={setKind} />
+      </div>
+      {kind === 'lineas' ? (
+        lines.data.length > 1 ? (
+          <WorldLines
+            data={lines.data}
+            series={lines.series}
+            format={(value) => number(value, 1)}
+            tick={(value) => number(value, 0)}
+          />
+        ) : (
+          <div className="callout">
+            {chosen.size
+              ? `Sin comercio declarado de estos ${noun.plural} en el rango de años elegido.`
+              : 'Sin serie suficiente para dibujar en este rango de años.'}
+          </div>
+        )
+      ) : !slices.length ? (
+        <div className="callout">Sin comercio declarado en {year ?? to}.</div>
+      ) : kind === 'barras' ? (
+        <ShareBars data={slices} unit=" MM USD" height={Math.max(260, slices.length * 24)} onPick={onPick} />
+      ) : (
+        <ShareSquares data={slices} unit="MM USD" height={380} onPick={onPick} />
+      )}
+    </div>
+  );
+}
+
+/** Separa un grupo de filas por flujo, recortadas al rango de años. */
+function byFlow(rows: readonly DetailEntry[], from: number, to: number): Record<'X' | 'M', DetailEntry[]> {
+  const cropped = rows.map((row) => ({
+    ...row,
+    points: row.points.filter((point) => point.year >= from && point.year <= to),
+  }));
+  return { X: cropped.filter((row) => row.flow === 'X'), M: cropped.filter((row) => row.flow === 'M') };
+}
+
 /** El detalle por socio comercial: qué países compran y qué países venden. */
 function PartnerChapter({
   board,
   country,
+  onPick,
   from,
   to,
 }: {
   board: ForeignTradeBoard | null;
   country: Choice;
+  onPick: (value: string, additive: boolean) => void;
   from: number;
   to: number;
 }) {
-  const cropped = useMemo(() => {
-    if (!board) return [];
-    return board.partners
-      .filter((entry) => accepts(country, entry.country))
-      .map((entry) => ({
-        ...entry,
-        points: entry.points.filter((point) => point.year >= from && point.year <= to),
-      }));
-  }, [board, country, from, to]);
-
-  const exportsEntries = country.size
-    ? cropped.filter((entry) => entry.flow === 'X')
-    : topOf(cropped, 'X', DEFAULT_DETAIL_SHOWN);
-  const importsEntries = country.size
-    ? cropped.filter((entry) => entry.flow === 'M')
-    : topOf(cropped, 'M', DEFAULT_DETAIL_SHOWN);
+  const flows = useMemo(
+    () =>
+      byFlow(
+        (board?.partners ?? []).map((entry) => ({
+          code: entry.code,
+          label: entry.label,
+          flow: entry.flow,
+          pick: entry.country,
+          points: entry.points,
+        })),
+        from,
+        to,
+      ),
+    [board, from, to],
+  );
 
   if (!board || !board.partners.length) {
     return (
@@ -369,59 +513,29 @@ function PartnerChapter({
     );
   }
 
-  const exportsLines = onOneAxis(detailLines(exportsEntries));
-  const importsLines = onOneAxis(detailLines(importsEntries));
-
+  const noun = { singular: 'país', plural: 'países' };
   return (
     <div className="grid-two">
-      <div className="panel">
-        <div className="panel-head">
-          <h2>A quién le vende Bolivia (millones de USD, {from}-{to})</h2>
-          <p className="panel-sub">
-            {country.size
-              ? `${pickedLabel(exportsEntries.length, 'país', 'países')}.`
-              : `Los ${exportsEntries.length} socios de exportación con mayor valor reciente, de ${board.partners.filter((entry) => entry.flow === 'X').length} publicados; elegí uno o varios en el filtro de país para ver exactamente esos.`}
-          </p>
-        </div>
-        {exportsLines.data.length > 1 ? (
-          <WorldLines
-            data={exportsLines.data}
-            series={exportsLines.series}
-            format={(value) => number(value, 1)}
-            tick={(value) => number(value, 0)}
-          />
-        ) : (
-          <div className="callout">
-            {country.size
-              ? 'Sin comercio declarado con estos países en el rango de años elegido.'
-              : 'Sin serie suficiente para dibujar en este rango de años.'}
-          </div>
-        )}
-      </div>
-      <div className="panel">
-        <div className="panel-head">
-          <h2>A quién le compra Bolivia (millones de USD, {from}-{to})</h2>
-          <p className="panel-sub">
-            {country.size
-              ? `${pickedLabel(importsEntries.length, 'país', 'países')}.`
-              : `Los ${importsEntries.length} socios de importación con mayor valor reciente, de ${board.partners.filter((entry) => entry.flow === 'M').length} publicados.`}
-          </p>
-        </div>
-        {importsLines.data.length > 1 ? (
-          <WorldLines
-            data={importsLines.data}
-            series={importsLines.series}
-            format={(value) => number(value, 1)}
-            tick={(value) => number(value, 0)}
-          />
-        ) : (
-          <div className="callout">
-            {country.size
-              ? 'Sin comercio declarado con estos países en el rango de años elegido.'
-              : 'Sin serie suficiente para dibujar en este rango de años.'}
-          </div>
-        )}
-      </div>
+      <DetailPanel
+        subject="A quién le vende Bolivia"
+        noun={noun}
+        entries={flows.X}
+        chosen={country}
+        onPick={onPick}
+        from={from}
+        to={to}
+        hint="elegí uno o varios en el filtro de país, o en el mapa, para ver exactamente esos."
+      />
+      <DetailPanel
+        subject="A quién le compra Bolivia"
+        noun={noun}
+        entries={flows.M}
+        chosen={country}
+        onPick={onPick}
+        from={from}
+        to={to}
+        hint="el filtro de país también recorta este panel."
+      />
     </div>
   );
 }
@@ -430,30 +544,31 @@ function PartnerChapter({
 function ProductDetailChapter({
   board,
   chapter,
+  onPick,
   from,
   to,
 }: {
   board: ForeignTradeBoard | null;
   chapter: Choice;
+  onPick: (value: string, additive: boolean) => void;
   from: number;
   to: number;
 }) {
-  const cropped = useMemo(() => {
-    if (!board) return [];
-    return board.products
-      .filter((entry) => accepts(chapter, entry.chapter))
-      .map((entry) => ({
-        ...entry,
-        points: entry.points.filter((point) => point.year >= from && point.year <= to),
-      }));
-  }, [board, chapter, from, to]);
-
-  const exportsEntries = chapter.size
-    ? cropped.filter((entry) => entry.flow === 'X')
-    : topOf(cropped, 'X', DEFAULT_DETAIL_SHOWN);
-  const importsEntries = chapter.size
-    ? cropped.filter((entry) => entry.flow === 'M')
-    : topOf(cropped, 'M', DEFAULT_DETAIL_SHOWN);
+  const flows = useMemo(
+    () =>
+      byFlow(
+        (board?.products ?? []).map((entry) => ({
+          code: entry.code,
+          label: `${entry.chapter} · ${entry.label}`,
+          flow: entry.flow,
+          pick: entry.chapter,
+          points: entry.points,
+        })),
+        from,
+        to,
+      ),
+    [board, from, to],
+  );
 
   if (!board || !board.products.length) {
     return (
@@ -464,59 +579,247 @@ function ProductDetailChapter({
     );
   }
 
-  const exportsLines = onOneAxis(detailLines(exportsEntries));
-  const importsLines = onOneAxis(detailLines(importsEntries));
-
+  const noun = { singular: 'capítulo', plural: 'capítulos' };
   return (
     <div className="grid-two">
-      <div className="panel">
-        <div className="panel-head">
-          <h2>Qué capítulos exporta más Bolivia (millones de USD, {from}-{to})</h2>
+      <DetailPanel
+        subject="Qué capítulos exporta más Bolivia"
+        noun={noun}
+        entries={flows.X}
+        chosen={chapter}
+        onPick={onPick}
+        from={from}
+        to={to}
+        hint="elegí uno o varios en el filtro de producto para ver exactamente esos."
+      />
+      <DetailPanel
+        subject="Qué capítulos importa más Bolivia"
+        noun={noun}
+        entries={flows.M}
+        chosen={chapter}
+        onPick={onPick}
+        from={from}
+        to={to}
+        hint="el filtro de producto también recorta este panel."
+      />
+    </div>
+  );
+}
+
+type Partner = ForeignTradeBoard['partners'][number];
+
+/**
+ * El mapa de socios y, debajo, la ficha del país que se tocó.
+ *
+ * El mapa pinta un flujo en un año: el último del rango con dato. La ficha
+ * contesta lo que el mapa no puede —cómo fue ese comercio en el tiempo, qué
+ * parte del total es y si Bolivia le vende más de lo que le compra— y dice lo
+ * que no hay: Comtrade no publica, para Bolivia, qué productos van a qué país.
+ */
+function WorldChapter({
+  board,
+  country,
+  focus,
+  onPick,
+  from,
+  to,
+}: {
+  board: ForeignTradeBoard | null;
+  country: Choice;
+  focus: string | null;
+  onPick: (value: string, additive: boolean) => void;
+  from: number;
+  to: number;
+}) {
+  const [flow, setFlow] = useState<'X' | 'M'>('X');
+
+  const inRange = useMemo(
+    () =>
+      (board?.partners ?? []).map(
+        (entry): Partner => ({
+          ...entry,
+          points: entry.points.filter((point) => point.year >= from && point.year <= to),
+        }),
+      ),
+    [board, from, to],
+  );
+
+  if (!board || !board.partners.length) return null;
+
+  const ofFlow = inRange.filter((entry) => entry.flow === flow);
+  const year = lastYearOf(ofFlow);
+  const rows = ofFlow.flatMap((entry) =>
+    entry.iso3
+      ? [
+          {
+            token: entry.country,
+            iso3: entry.iso3,
+            label: entry.label,
+            value: (entry.points.find((point) => point.year === year)?.value ?? 0) / 1_000_000,
+          },
+        ]
+      : [],
+  );
+  const verb = flow === 'X' ? 'le vende' : 'le compra';
+
+  return (
+    <div className="panel">
+      <div className="panel-head panel-head-kind">
+        <div>
+          <h2>
+            A qué países {verb} Bolivia: mapa de calor (millones de USD, {year ?? to})
+          </h2>
           <p className="panel-sub">
-            {chapter.size
-              ? `${pickedLabel(exportsEntries.length, 'capítulo', 'capítulos')}.`
-              : `Los ${exportsEntries.length} capítulos de exportación con mayor valor reciente, de ${board.products.filter((entry) => entry.flow === 'X').length} publicados; elegí uno o varios en el filtro de producto para ver exactamente esos.`}
+            El tono dice cuánto, y la clave de debajo dice qué extremo es el mayor. Tocá un país para ponerlo en el filtro de la izquierda
+            y abrir su ficha aquí debajo; Ctrl/⌘ suma varios. El año es el último del rango con
+            dato.
           </p>
         </div>
-        {exportsLines.data.length > 1 ? (
-          <WorldLines
-            data={exportsLines.data}
-            series={exportsLines.series}
-            format={(value) => number(value, 1)}
-            tick={(value) => number(value, 0)}
-          />
-        ) : (
-          <div className="callout">
-            {chapter.size
-              ? 'Sin comercio declarado de estos capítulos en el rango de años elegido.'
-              : 'Sin serie suficiente para dibujar en este rango de años.'}
-          </div>
-        )}
-      </div>
-      <div className="panel">
-        <div className="panel-head">
-          <h2>Qué capítulos importa más Bolivia (millones de USD, {from}-{to})</h2>
-          <p className="panel-sub">
-            {chapter.size
-              ? `${pickedLabel(importsEntries.length, 'capítulo', 'capítulos')}.`
-              : `Los ${importsEntries.length} capítulos de importación con mayor valor reciente, de ${board.products.filter((entry) => entry.flow === 'M').length} publicados.`}
-          </p>
+        <div className="chart-kind" role="group" aria-label="Flujo que pinta el mapa">
+          {(
+            [
+              ['X', 'Exportaciones'],
+              ['M', 'Importaciones'],
+            ] as const
+          ).map(([key, label]) => (
+            <button
+              key={key}
+              type="button"
+              className={flow === key ? 'chip chip-on' : 'chip'}
+              aria-pressed={flow === key}
+              onClick={() => setFlow(key)}
+            >
+              {label}
+            </button>
+          ))}
         </div>
-        {importsLines.data.length > 1 ? (
-          <WorldLines
-            data={importsLines.data}
-            series={importsLines.series}
-            format={(value) => number(value, 1)}
-            tick={(value) => number(value, 0)}
-          />
-        ) : (
-          <div className="callout">
-            {chapter.size
-              ? 'Sin comercio declarado de estos capítulos en el rango de años elegido.'
-              : 'Sin serie suficiente para dibujar en este rango de años.'}
-          </div>
-        )}
       </div>
+      <WorldTradeMap
+        rows={rows}
+        unit="MM USD"
+        label={`${flow === 'X' ? 'exportaciones' : 'importaciones'} de Bolivia por país en ${year ?? to}`}
+        picked={country}
+        onPick={onPick}
+      />
+      {focus ? (
+        <CountryCard board={board} entries={inRange} token={focus} />
+      ) : (
+        <p className="chart-note">
+          Todavía no elegiste ningún país: la ficha con su comercio en el tiempo aparece al tocar uno
+          en el mapa o en el filtro.
+        </p>
+      )}
+    </div>
+  );
+}
+
+/** Lo que Bolivia comercia con un país, en cifras y en el tiempo. */
+function CountryCard({
+  board,
+  entries,
+  token,
+}: {
+  board: ForeignTradeBoard;
+  entries: readonly Partner[];
+  token: string;
+}) {
+  const sold = entries.find((entry) => entry.country === token && entry.flow === 'X');
+  const bought = entries.find((entry) => entry.country === token && entry.flow === 'M');
+  const name = sold?.label ?? bought?.label ?? token;
+  const year = lastYearOf([sold, bought].filter((entry): entry is Partner => entry !== undefined));
+
+  const at = (entry: Partner | undefined): number | null =>
+    year === null ? null : (entry?.points.find((point) => point.year === year)?.value ?? null);
+  const exportValue = at(sold);
+  const importValue = at(bought);
+  const exportTotal = board.exportsUsd.find((point) => point.year === year)?.value ?? null;
+  const importTotal = board.importsUsd.find((point) => point.year === year)?.value ?? null;
+
+  const rankOf = (flow: 'X' | 'M', value: number): number =>
+    entries.filter(
+      (entry) =>
+        entry.flow === flow && (entry.points.find((point) => point.year === year)?.value ?? 0) > value,
+    ).length + 1;
+
+  const named: NamedLine[] = [];
+  if (sold) {
+    named.push({
+      key: 'X',
+      label: 'Bolivia le vende',
+      values: toMillions(sold.points),
+      tone: 'var(--official)',
+    });
+  }
+  if (bought) {
+    named.push({
+      key: 'M',
+      label: 'Bolivia le compra',
+      values: toMillions(bought.points),
+      tone: 'var(--parallel)',
+    });
+  }
+  const lines = onOneAxis(named);
+
+  const millions = (value: number): string => `${number(value / 1_000_000, 1)} MM USD`;
+  const balance = exportValue !== null && importValue !== null ? exportValue - importValue : null;
+
+  return (
+    <div className="country-card">
+      <h3>
+        Bolivia y {name}
+        {year ? `, ${year}` : ''} (millones de USD)
+      </h3>
+      <dl className="country-figures">
+        <div>
+          <dt>Le vende</dt>
+          <dd>{exportValue !== null ? millions(exportValue) : 'no está entre los 20 destinos'}</dd>
+          {exportValue !== null && exportTotal ? (
+            <dd className="country-aside">
+              {percent((exportValue / exportTotal) * 100)} de lo exportado · puesto{' '}
+              {rankOf('X', exportValue)}
+            </dd>
+          ) : null}
+        </div>
+        <div>
+          <dt>Le compra</dt>
+          <dd>{importValue !== null ? millions(importValue) : 'no está entre los 20 orígenes'}</dd>
+          {importValue !== null && importTotal ? (
+            <dd className="country-aside">
+              {percent((importValue / importTotal) * 100)} de lo importado · puesto{' '}
+              {rankOf('M', importValue)}
+            </dd>
+          ) : null}
+        </div>
+        <div>
+          <dt>Saldo</dt>
+          <dd>
+            {balance === null
+              ? '—'
+              : `${balance >= 0 ? '+' : '−'}${number(Math.abs(balance) / 1_000_000, 1)} MM USD`}
+          </dd>
+          {balance !== null ? (
+            <dd className="country-aside">
+              {balance >= 0
+                ? 'Bolivia le vende más de lo que le compra'
+                : 'Bolivia le compra más de lo que le vende'}
+            </dd>
+          ) : (
+            <dd className="country-aside">Hace falta el dato de los dos flujos</dd>
+          )}
+        </div>
+      </dl>
+      {lines.data.length > 1 ? (
+        <WorldLines
+          data={lines.data}
+          series={lines.series}
+          format={(value) => `${number(value, 1)} MM USD`}
+          tick={(value) => number(value, 0)}
+        />
+      ) : null}
+      <p className="chart-note">
+        Qué productos van a {name} no está publicado: Comtrade da, para Bolivia, el comercio por
+        país y por capítulo como dos recortes separados que no se cruzan.
+      </p>
     </div>
   );
 }
@@ -605,6 +908,8 @@ export function ForeignTradeExplorer({
   const [chapter, setChapter] = useState<Choice>(ANY);
   const [yearFrom, setYearFrom] = useState<number | null>(null);
   const [yearTo, setYearTo] = useState<number | null>(null);
+  /** El último país tocado, para la ficha del mapa; sólo cuenta mientras siga en el filtro. */
+  const [lastPicked, setLastPicked] = useState<string | null>(null);
   const from = yearFrom ?? bounds.min;
   const to = yearTo ?? bounds.max;
 
@@ -618,6 +923,17 @@ export function ForeignTradeExplorer({
    * se lo decimos en vez de fingir un cruce que la fuente no sostiene.
    */
   const crossFilterGap = country.size > 0 && chapter.size > 0;
+
+  const focus =
+    lastPicked && country.has(lastPicked) ? lastPicked : ([...country].sort()[0] ?? null);
+
+  /** Tocar un país en el mapa o en un gráfico es lo mismo que tocarlo en el carril. */
+  const pickCountry = (value: string, add: boolean) => {
+    setCountry((current) => toggleChoice(current, value, add));
+    setLastPicked(value);
+  };
+  const pickChapter = (value: string, add: boolean) =>
+    setChapter((current) => toggleChoice(current, value, add));
 
   return (
     <>
@@ -683,24 +999,31 @@ export function ForeignTradeExplorer({
                   <button
                     key={`country-${value}`}
                     type="button"
-                    className="chip chip-on"
+                    className="chip chip-on chip-wide"
                     onClick={() => setCountry((current) => without(current, value))}
-                    title="Quitar este filtro"
+                    title={`Quitar ${countryChoices.find((option) => option.value === value)?.label ?? value} del filtro`}
                   >
                     <Icon name="mapa" size={12} />
-                    {countryChoices.find((option) => option.value === value)?.label ?? value} ×
+                    <span className="chip-text">
+                      {countryChoices.find((option) => option.value === value)?.label ?? value}
+                    </span>
+                    <span aria-hidden="true">×</span>
                   </button>
                 ))}
                 {[...chapter].sort().map((value) => (
                   <button
                     key={`chapter-${value}`}
                     type="button"
-                    className="chip chip-on"
+                    className="chip chip-on chip-wide"
                     onClick={() => setChapter((current) => without(current, value))}
-                    title="Quitar este filtro"
+                    title={`Quitar ${chapterChoices.find((option) => option.value === value)?.label ?? value} del filtro`}
                   >
                     <Icon name="camion" size={12} />
-                    {chapterChoices.find((option) => option.value === value)?.label ?? `HS ${value}`} ×
+                    <span className="chip-text">
+                      {chapterChoices.find((option) => option.value === value)?.label ??
+                        `Capítulo ${value}`}
+                    </span>
+                    <span aria-hidden="true">×</span>
                   </button>
                 ))}
                 {from === bounds.min && to === bounds.max ? null : (
@@ -714,7 +1037,10 @@ export function ForeignTradeExplorer({
                     title="Quitar este filtro"
                   >
                     <Icon name="calendario" size={12} />
-                    {from}-{to} ×
+                    <span className="chip-text">
+                      {from}-{to}
+                    </span>
+                    <span aria-hidden="true">×</span>
                   </button>
                 )}
                 <button
@@ -751,9 +1077,7 @@ export function ForeignTradeExplorer({
                         type="button"
                         className={on ? 'rail-item rail-item-on' : 'rail-item'}
                         aria-pressed={on}
-                        onClick={(event) =>
-                          setCountry((current) => toggleChoice(current, option.value, additive(event)))
-                        }
+                        onClick={(event) => pickCountry(option.value, additive(event))}
                       >
                         <Icon name="mapa" size={16} />
                         <span className="rail-name">{option.label}</span>
@@ -785,9 +1109,7 @@ export function ForeignTradeExplorer({
                         type="button"
                         className={on ? 'rail-item rail-item-on' : 'rail-item'}
                         aria-pressed={on}
-                        onClick={(event) =>
-                          setChapter((current) => toggleChoice(current, option.value, additive(event)))
-                        }
+                        onClick={(event) => pickChapter(option.value, additive(event))}
                       >
                         <Icon name="camion" size={16} />
                         <span className="rail-name">{option.label}</span>
@@ -842,6 +1164,17 @@ export function ForeignTradeExplorer({
             </div>
           ) : null}
 
+          {tradeFailed ? null : (
+            <WorldChapter
+              board={tradeBoard}
+              country={country}
+              focus={focus}
+              onPick={pickCountry}
+              from={from}
+              to={to}
+            />
+          )}
+
           <ProductChapter board={departmentBoard} from={from} to={to} />
           <ComtradeChapter board={tradeBoard} from={from} to={to} />
 
@@ -851,8 +1184,20 @@ export function ForeignTradeExplorer({
             </div>
           ) : (
             <>
-              <PartnerChapter board={tradeBoard} country={country} from={from} to={to} />
-              <ProductDetailChapter board={tradeBoard} chapter={chapter} from={from} to={to} />
+              <PartnerChapter
+                board={tradeBoard}
+                country={country}
+                onPick={pickCountry}
+                from={from}
+                to={to}
+              />
+              <ProductDetailChapter
+                board={tradeBoard}
+                chapter={chapter}
+                onPick={pickChapter}
+                from={from}
+                to={to}
+              />
             </>
           )}
 
