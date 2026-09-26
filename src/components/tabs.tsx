@@ -1,6 +1,6 @@
 'use client';
 
-import { useId, useRef, useState } from 'react';
+import { useEffect, useId, useRef, useState } from 'react';
 import { Icon } from './icons';
 import type { IconName } from './icons';
 
@@ -65,6 +65,20 @@ export function Tabs({
   const [active, setActive] = useState(0);
   const baseId = useId();
   const { buttonsRef, onKeyDown } = useTablistKeyboard(labels.length, setActive);
+
+  /*
+   * El asistente remite a una pestaña por su rótulo («Ir a «Macroeconomía»»).
+   * Un evento de ventana y no un contexto, porque el chat vive en el layout,
+   * fuera del árbol de las pestañas.
+   */
+  useEffect(() => {
+    const alPedir = (event: Event) => {
+      const index = labels.indexOf(String((event as CustomEvent<string>).detail));
+      if (index >= 0) setActive(index);
+    };
+    window.addEventListener('observatorio:pestana', alPedir);
+    return () => window.removeEventListener('observatorio:pestana', alPedir);
+  }, [labels]);
 
   return (
     <>

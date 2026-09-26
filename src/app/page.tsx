@@ -1,4 +1,5 @@
 import { Suspense } from 'react';
+import { Asistente } from '@/components/asistente';
 import type { GapChartPoint, RatePoint } from '@/components/charts';
 import { Donate } from '@/components/donate';
 import { FxEconometricsCard } from '@/components/fx-econometrics-card';
@@ -628,6 +629,9 @@ export default function Page() {
           <SourcesSection />
         </section>
       </Tabs>
+
+      {/* El chat que contesta con los datos de estas pestañas; no lee nada hasta que se abre. */}
+      <Asistente />
     </main>
   );
 }

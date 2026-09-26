@@ -10,6 +10,7 @@
 # Variables que hay que definir en la UI de Coolify (las demas tienen valor por
 # defecto aqui):
 #   DASHBOARD_DATABASE_URL  cadena de solo lectura a `economic_observatory`.
+#   OPENROUTER_API_KEY      clave del asistente (opcional; sin ella no responde).
 
 services:
   web:
@@ -34,6 +35,15 @@ services:
       # rechaza el handshake, asi que exigir TLS deja todos los paneles vacios.
       # El trafico no sale de la red Docker del servidor.
       DASHBOARD_DATABASE_SSL: 'false'
+      # El asistente «Preguntale al Observatorio». Sin clave, el panel se
+      # muestra pero dice que no está disponible y la ruta responde 503; el
+      # resto del tablero no depende de ella. La clave nunca llega al navegador.
+      OPENROUTER_API_KEY: ${OPENROUTER_API_KEY:-}
+      ASISTENTE_MODELO: ${ASISTENTE_MODELO:-google/gemini-3.1-flash-lite-preview}
+      # Preguntas por IP cada diez minutos y tope diario de tokens: el tablero
+      # es público y sin sesión, y esto es lo que separa un abuso de una factura.
+      ASISTENTE_POR_IP: ${ASISTENTE_POR_IP:-20}
+      ASISTENTE_TOKENS_DIA: ${ASISTENTE_TOKENS_DIA:-4000000}
     expose: ['3000']
     # Publicado unicamente sobre la interfaz de Tailscale, nunca en 0.0.0.0 ni en
     # loopback. El 3000 y el 3002 del servidor ya estan tomados, de ahi el 3003;
