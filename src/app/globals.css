@@ -7155,3 +7155,354 @@ button.download-btn {
     grid-area: follow;
   }
 }
+
+/*
+ * «Preguntale al Observatorio».
+ *
+ * Un botón fijo abajo a la derecha y un panel que no tapa el tablero en
+ * escritorio: el lector pregunta y mira la pestaña a la vez. En el teléfono no
+ * caben las dos cosas, así que el panel pasa a ocupar la pantalla y «Ir a…» lo
+ * cierra. Todo sale de los tokens, así que el modo oscuro no necesita reglas.
+ */
+.asistente-lanzador {
+  position: fixed;
+  right: 1.25rem;
+  bottom: 1.25rem;
+  z-index: var(--z-overlay);
+  display: inline-flex;
+  align-items: center;
+  gap: 0.55rem;
+  padding: 0.7rem 1.1rem;
+  border: 0;
+  border-radius: 999px;
+  background: var(--ink);
+  color: var(--paper);
+  font: inherit;
+  font-size: 0.9rem;
+  font-weight: 600;
+  box-shadow: var(--shadow), 0 10px 28px -10px rgb(16 24 40 / 0.45);
+  cursor: pointer;
+  transition: transform var(--fast) var(--ease);
+}
+
+.asistente-lanzador:hover {
+  transform: translateY(-2px);
+}
+
+.asistente-lanzador:focus-visible,
+.asistente-panel button:focus-visible,
+.asistente-form textarea:focus-visible {
+  outline: 2px solid var(--official);
+  outline-offset: 2px;
+}
+
+.asistente-panel {
+  position: fixed;
+  right: 1.25rem;
+  bottom: 1.25rem;
+  z-index: var(--z-overlay);
+  width: min(430px, calc(100vw - 2rem));
+  height: min(680px, calc(100dvh - 2.5rem));
+  display: flex;
+  flex-direction: column;
+  background: var(--panel);
+  color: var(--ink);
+  border: 1px solid var(--rule);
+  border-radius: 14px;
+  box-shadow: var(--shadow), 0 24px 60px -24px rgb(16 24 40 / 0.45);
+  overflow: hidden;
+  animation: asistente-entra var(--slow) var(--ease);
+}
+
+@keyframes asistente-entra {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+}
+
+.asistente-cabecera {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  padding: 0.85rem 0.9rem 0.85rem 1rem;
+  border-bottom: 1px solid var(--rule);
+}
+
+.asistente-cabecera > div {
+  flex: 1;
+  min-width: 0;
+}
+
+.asistente-cabecera h2 {
+  margin: 0;
+  font-size: 0.98rem;
+  line-height: 1.25;
+}
+
+.asistente-cabecera p {
+  margin: 0.1rem 0 0;
+  font-size: 0.76rem;
+  color: var(--ink-faint);
+}
+
+.asistente-marca {
+  width: 32px;
+  height: 32px;
+  flex: none;
+  border-radius: 9px;
+  background: var(--ink);
+  color: var(--paper);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.asistente-accion,
+.asistente-cerrar {
+  appearance: none;
+  border: 1px solid var(--rule);
+  background: var(--panel);
+  color: var(--ink-soft);
+  border-radius: 8px;
+  font: inherit;
+  cursor: pointer;
+}
+
+.asistente-accion {
+  font-size: 0.78rem;
+  padding: 0.3rem 0.6rem;
+}
+
+.asistente-cerrar {
+  width: 32px;
+  height: 32px;
+  font-size: 1.25rem;
+  line-height: 1;
+}
+
+.asistente-accion:hover,
+.asistente-cerrar:hover {
+  border-color: var(--ink-faint);
+  color: var(--ink);
+}
+
+.asistente-lista {
+  flex: 1;
+  overflow-y: auto;
+  padding: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.8rem;
+  background: var(--paper);
+}
+
+.asistente-vacio p {
+  margin: 0 0 0.85rem;
+  font-size: 0.88rem;
+  line-height: 1.5;
+  color: var(--ink-soft);
+}
+
+.asistente-sugerencias {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+}
+
+.asistente-sugerencias .chip {
+  text-align: left;
+}
+
+.asistente-turno {
+  max-width: 92%;
+  font-size: 0.88rem;
+  line-height: 1.55;
+  border-radius: 12px;
+  padding: 0.65rem 0.85rem;
+  overflow-wrap: anywhere;
+}
+
+.asistente-turno p {
+  margin: 0 0 0.5rem;
+}
+
+.asistente-turno p:last-child {
+  margin-bottom: 0;
+}
+
+.asistente-turno ul {
+  margin: 0.15rem 0 0.55rem;
+  padding-left: 1.1rem;
+}
+
+.asistente-turno li {
+  margin: 0.2rem 0;
+}
+
+.asistente-usuario {
+  align-self: flex-end;
+  background: var(--ink);
+  color: var(--paper);
+  border-bottom-right-radius: 4px;
+}
+
+.asistente-asistente {
+  align-self: flex-start;
+  background: var(--panel);
+  border: 1px solid var(--rule);
+  border-bottom-left-radius: 4px;
+}
+
+.asistente-asistente em {
+  color: var(--ink-soft);
+}
+
+.asistente-error {
+  border-color: var(--serious);
+  color: var(--ink-soft);
+}
+
+.asistente-ir {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin-top: 0.6rem;
+}
+
+.asistente-ir .chip {
+  font-size: 0.78rem;
+  padding: 0.25rem 0.65rem;
+}
+
+.asistente-leyendo {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.55rem;
+  color: var(--ink-soft);
+}
+
+.asistente-puntos {
+  display: inline-flex;
+  gap: 3px;
+}
+
+.asistente-puntos i {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--ink-faint);
+  animation: asistente-punto 1s var(--ease) infinite;
+}
+
+.asistente-puntos i:nth-child(2) {
+  animation-delay: 0.15s;
+}
+
+.asistente-puntos i:nth-child(3) {
+  animation-delay: 0.3s;
+}
+
+@keyframes asistente-punto {
+  50% {
+    opacity: 0.25;
+    transform: translateY(-2px);
+  }
+}
+
+.asistente-aviso {
+  margin: 0;
+  padding: 0.6rem 1rem;
+  font-size: 0.8rem;
+  color: var(--ink-soft);
+  background: var(--panel-tint);
+  border-top: 1px solid var(--rule);
+}
+
+.asistente-form {
+  display: flex;
+  gap: 0.5rem;
+  align-items: flex-end;
+  padding: 0.75rem 0.9rem 0.4rem;
+  border-top: 1px solid var(--rule);
+  background: var(--panel);
+}
+
+.asistente-form textarea {
+  flex: 1;
+  resize: none;
+  min-height: 2.6rem;
+  max-height: 8rem;
+  padding: 0.55rem 0.7rem;
+  border: 1px solid var(--rule);
+  border-radius: 10px;
+  background: var(--paper);
+  color: var(--ink);
+  font: inherit;
+  font-size: 0.9rem;
+  line-height: 1.4;
+}
+
+.asistente-enviar {
+  appearance: none;
+  border: 0;
+  border-radius: 10px;
+  padding: 0.62rem 0.95rem;
+  background: var(--ink);
+  color: var(--paper);
+  font: inherit;
+  font-size: 0.86rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.asistente-enviar:disabled,
+.asistente-sugerencias .chip:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.asistente-pie {
+  margin: 0;
+  padding: 0 0.9rem 0.7rem;
+  font-size: 0.7rem;
+  color: var(--ink-faint);
+  background: var(--panel);
+}
+
+.asistente-oculto {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+@media (max-width: 720px) {
+  .asistente-lanzador {
+    right: 1rem;
+    bottom: 1rem;
+    padding: 0.65rem 0.95rem;
+    font-size: 0.85rem;
+  }
+
+  .asistente-panel {
+    inset: 0;
+    width: 100%;
+    height: 100dvh;
+    border-radius: 0;
+    border: 0;
+  }
+
+  .asistente-turno {
+    max-width: 100%;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .asistente-panel,
+  .asistente-puntos i {
+    animation: none;
+  }
+}
