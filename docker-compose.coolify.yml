@@ -42,7 +42,7 @@ services:
       ASISTENTE_MODELO: ${ASISTENTE_MODELO:-google/gemini-3.1-flash-lite-preview}
       # Preguntas por IP cada diez minutos y tope diario de tokens: el tablero
       # es público y sin sesión, y esto es lo que separa un abuso de una factura.
-      ASISTENTE_POR_IP: ${ASISTENTE_POR_IP:-20}
+      ASISTENTE_POR_IP: ${ASISTENTE_POR_IP:-40}
       ASISTENTE_TOKENS_DIA: ${ASISTENTE_TOKENS_DIA:-4000000}
     expose: ['3000']
     # Publicado unicamente sobre la interfaz de Tailscale, nunca en 0.0.0.0 ni en

@@ -47,6 +47,16 @@ test('los departamentos se detectan por nombre, gentilicio y capital', () => {
   assert.ok(r.paquetes?.includes('DEPTO'));
 });
 
+test('«situación política» es política, no el panorama general', () => {
+  assert.deepEqual(preclasificar('¿Qué pensás de la situación política?').paquetes, ['POLITICA']);
+  assert.ok(preclasificar('¿Cómo está la situación?').paquetes?.includes('HOY'));
+});
+
+test('comparar con su máximo no es comparar con el mundo', () => {
+  assert.deepEqual(preclasificar('¿Cuánto es la brecha y cómo se compara con su máximo?').paquetes, ['DOLAR']);
+  assert.ok(preclasificar('¿Cómo estamos frente a los vecinos?').paquetes?.includes('MUNDO'));
+});
+
 test('las raíces cortas no disparan paquetes equivocados', () => {
   assert.ok(!preclasificar('el gasto público').paquetes?.includes('ENERGIA'), 'gasto no es gas');
   assert.ok(preclasificar('cuanto gas exportamos').paquetes?.includes('ENERGIA'));

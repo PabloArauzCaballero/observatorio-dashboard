@@ -85,9 +85,25 @@ export async function pedir(
     throw new ProveedorError('El proveedor de IA no respondió', 502);
   }
   if (!respuesta.ok) {
-    // El cuerpo puede traer detalles de la cuenta; al registro va solo el código.
-    console.warn(`[asistente] el proveedor respondió ${respuesta.status}`);
-    throw new ProveedorError('El proveedor de IA rechazó la solicitud', 502);
+    /*
+     * El cuerpo puede traer detalles de la cuenta y no se publica; el código
+     * sí, porque es lo único que separa un límite de uso (429), una cuenta sin
+     * crédito (402) o una clave inválida (401/403) de un modelo caído, y sin él
+     * el diagnóstico exige los registros del contenedor, que no están a mano.
+     */
+    const status = respuesta.status;
+    const detalle = await respuesta.text().catch(() => '');
+    console.warn(`[asistente] el proveedor respondió ${status}: ${detalle.slice(0, 200)}`);
+    if (status === 429) {
+      throw new ProveedorError(`El proveedor de IA está limitando las consultas (HTTP 429). Probá en un minuto.`, 503);
+    }
+    if (status === 402) {
+      throw new ProveedorError('La cuenta del proveedor de IA se quedó sin crédito (HTTP 402).', 503);
+    }
+    if (status === 401 || status === 403) {
+      throw new ProveedorError(`La clave del proveedor de IA fue rechazada (HTTP ${status}).`, 503);
+    }
+    throw new ProveedorError(`El proveedor de IA rechazó la solicitud (HTTP ${status}).`, 502);
   }
   let datos: RespuestaProveedor;
   try {
