@@ -3210,7 +3210,8 @@ button.term-chip:hover {
   align-items: center;
   gap: 0.55rem;
   width: 100%;
-  padding: 0.34rem 0.2rem;
+  /* Alineado con los rótulos de la sección, no pegado al borde del carril. */
+  padding: 0.34rem 0.875rem;
   cursor: default;
   color: var(--ink-soft);
 }
@@ -6202,6 +6203,381 @@ button.download-btn {
 
   .board-value {
     font-size: 1.6rem;
+  }
+}
+
+/* Cotización del dólar ---------------------------------------------------- */
+
+/*
+ * Lo primero de la portada. Las tres cotizaciones van en una fila también en
+ * un teléfono: compararlas de un vistazo es para lo que existe la tarjeta, y
+ * apiladas el lector tendría que recordar la primera cifra al llegar a la
+ * tercera. Por eso a 375 px se achica la letra y se quitan adornos, pero no se
+ * rompe la fila.
+ */
+.board-head {
+  margin-bottom: var(--s2);
+}
+
+.quotes {
+  margin-bottom: var(--s3);
+  padding: var(--s2) var(--s3);
+  background: var(--panel);
+  border: 1px solid var(--rule);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+}
+
+.quotes-head {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: var(--s2);
+}
+
+.quotes-head h2 {
+  font-size: 1.05rem;
+}
+
+/* El mismo rótulo que el resto de cabeceras, que aquí no son `.tile-head`. */
+.quotes-head .tile-hint,
+.board-trends-head .tile-hint {
+  margin-left: auto;
+  font-family: var(--mono);
+  font-size: 0.68rem;
+  letter-spacing: 0.05em;
+  color: var(--ink-soft);
+  text-transform: uppercase;
+}
+
+.quotes-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--s2);
+}
+
+.quote {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  min-width: 0;
+  padding: var(--s2) var(--s2) var(--s1);
+  background: color-mix(in srgb, var(--quote-accent) 7%, var(--panel));
+  border: 1px solid color-mix(in srgb, var(--quote-accent) 45%, var(--rule));
+  border-top: 3px solid var(--quote-accent);
+  border-radius: var(--radius);
+}
+
+.quote-head {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  color: var(--quote-accent);
+}
+
+.quote-name {
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.quote-date {
+  margin-left: auto;
+  font-family: var(--mono);
+  font-size: 0.64rem;
+  color: var(--ink-soft);
+  white-space: nowrap;
+}
+
+.quote-detail {
+  font-size: 0.7rem;
+  line-height: 1.35;
+  color: var(--ink-soft);
+}
+
+.quote-figure {
+  display: flex;
+  align-items: baseline;
+  gap: 0.3rem;
+  margin-top: 0.2rem;
+}
+
+.quote-value {
+  font-family: var(--mono);
+  font-size: clamp(1.3rem, 0.9rem + 1.6vw, 2.3rem);
+  font-weight: 650;
+  line-height: 1.05;
+  letter-spacing: -0.03em;
+  font-variant-numeric: tabular-nums;
+  color: var(--ink);
+}
+
+.quote-unit {
+  font-size: 0.78rem;
+  color: var(--ink-soft);
+}
+
+.quote-change {
+  font-family: var(--mono);
+  font-size: 0.72rem;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.quote-change-pct {
+  margin-left: 0.25rem;
+  opacity: 0.85;
+}
+
+.quote-change-flat {
+  color: var(--ink-soft);
+}
+
+.quote-sides {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.1rem 0.9rem;
+  margin-top: 0.3rem;
+  padding-top: 0.35rem;
+  border-top: 1px solid var(--rule-soft);
+}
+
+.quote-sides div {
+  display: flex;
+  align-items: baseline;
+  gap: 0.3rem;
+}
+
+.quote-sides dt {
+  font-size: 0.66rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+}
+
+.quote-sides dd {
+  margin: 0;
+  font-family: var(--mono);
+  font-size: 0.8rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Al pie, para que las tres chispas queden a la misma altura. */
+.quote-spark {
+  margin-top: auto;
+}
+
+.quote-spark .sparkline {
+  height: 34px;
+  margin: 0.3rem -0.2rem 0;
+}
+
+.quote-venues {
+  font-family: var(--mono);
+  font-size: 0.62rem;
+  color: var(--ink-soft);
+}
+
+.quotes-foot {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem 1.1rem;
+  margin-top: var(--s2);
+  font-size: 0.74rem;
+  color: var(--ink-soft);
+}
+
+.quotes-foot b {
+  font-family: var(--mono);
+  font-variant-numeric: tabular-nums;
+}
+
+.quotes-stale {
+  color: var(--verdict-ink-vigilar);
+  font-weight: 600;
+}
+
+.board-trends-head {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  flex-wrap: wrap;
+  margin-bottom: 0.3rem;
+}
+
+.board-trends-head h3 {
+  font-family: var(--serif);
+  font-size: 1.02rem;
+  font-weight: 600;
+}
+
+.board-rule dl.board-facts {
+  margin: 0.4rem 0 0.1rem;
+}
+
+/* La lista no lleva viñetas, así que tampoco la sangría de las viñetas. */
+.board-news-list {
+  padding: 0;
+  margin: 0;
+}
+
+@media (max-width: 640px) {
+  .quotes {
+    padding: var(--s2) 0.7rem 0.75rem;
+  }
+
+  .quotes-grid {
+    gap: 0.45rem;
+  }
+
+  .quote {
+    padding: 0.6rem 0.5rem 0.5rem;
+    gap: 0.15rem;
+  }
+
+  /* El nombre arriba y la fecha debajo: juntos no caben en 100 px. */
+  .quote-head {
+    flex-wrap: wrap;
+    row-gap: 0;
+  }
+
+  .quote-date {
+    width: 100%;
+    margin-left: 0;
+  }
+
+  .quote-head svg,
+  .quote-detail,
+  .quote-venues {
+    display: none;
+  }
+
+  .quote-name {
+    font-size: 0.72rem;
+  }
+
+  .quote-date {
+    font-size: 0.58rem;
+  }
+
+  .quote-unit {
+    font-size: 0.66rem;
+  }
+
+  /* El porcentaje se cae a su propia línea antes que salirse de la columna. */
+  .quote-change {
+    display: flex;
+    flex-wrap: wrap;
+    column-gap: 0.25rem;
+    font-size: 0.64rem;
+    white-space: normal;
+  }
+
+  .quote-change-pct {
+    margin-left: 0;
+  }
+
+  .quote-sides {
+    flex-direction: column;
+    gap: 0.05rem;
+  }
+
+  .quote-sides div {
+    justify-content: space-between;
+  }
+
+  .quote-sides dt {
+    font-size: 0.58rem;
+  }
+
+  .quote-sides dd {
+    font-size: 0.7rem;
+  }
+
+  .quote-spark .sparkline {
+    height: 24px;
+  }
+
+  .quotes-foot {
+    font-size: 0.7rem;
+  }
+
+  /* Las tendencias, más densas: la cifra y el color se leen igual. */
+  .board-card {
+    gap: 0.3rem;
+    padding: 0.75rem 0.85rem 0.85rem;
+  }
+
+  .board-value {
+    font-size: 1.45rem;
+  }
+
+  .board-spark .sparkline {
+    height: 30px;
+  }
+
+  .board-reading {
+    font-size: 0.8rem;
+    line-height: 1.45;
+  }
+
+  .board-news {
+    padding: var(--s2);
+  }
+
+  .board-news-head {
+    flex-wrap: wrap;
+  }
+
+  .board-news-head .tile-hint {
+    width: 100%;
+    margin-left: 0;
+  }
+
+  /* Dos cifras por fila: apiladas de a una eran una pantalla entera. */
+  .figures {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .figure {
+    padding: 0.7rem 0.75rem;
+  }
+
+  .figure .value {
+    font-size: 1.25rem;
+  }
+
+  .figure .unit {
+    font-size: 0.68rem;
+  }
+
+  .figure .sparkline {
+    height: 28px;
+  }
+}
+
+/*
+ * Los teléfonos más angostos (320 px). La cabecera ya dice «Bs por dólar», así
+ * que la unidad de cada cifra es lo primero que se puede soltar sin perder nada.
+ */
+@media (max-width: 360px) {
+  .quote {
+    padding-inline: 0.4rem;
+  }
+
+  .quote-unit {
+    display: none;
+  }
+
+  .quote-value {
+    font-size: 1.2rem;
+  }
+
+  .quote-sides dd {
+    font-size: 0.66rem;
   }
 }
 

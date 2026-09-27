@@ -7,7 +7,8 @@ import { FxSection } from '@/components/fx-section';
 import { MarketCards } from '@/components/market-cards';
 import { Icon } from '@/components/icons';
 import { SummaryExplorer } from '@/components/summary-explorer';
-import { TodayBoardPanel } from '@/components/today-board';
+import { DollarQuotesCard } from '@/components/dollar-quotes';
+import { BoardNews, TodayBoardPanel } from '@/components/today-board';
 import type { SummaryFigure } from '@/components/summary-explorer';
 import { Tabs } from '@/components/tabs';
 // Las pestañas que se leen al abrirse, en su propio trozo de JavaScript.
@@ -20,6 +21,7 @@ import {
   SourcesSection,
 } from './lazy-sections';
 import { dailyAnalysis } from '@/lib/daily-analysis';
+import { buildDollarQuotes } from '@/lib/dollar-quotes';
 import { buildTodayBoard } from '@/lib/today-board';
 import { packMarketCards } from '@/lib/market-transport';
 import {
@@ -31,6 +33,7 @@ import {
   readGap,
   readMacroAnnual,
   readObservatory,
+  readStablecoins,
 } from '@/lib/series';
 import type {
   CompanyFiling,
@@ -205,6 +208,48 @@ function SECCIONES_PERDIDAS(perdidas: ReadonlySet<string>): string {
  */
 function Armando({ que }: { que: string }) {
   return <div className="callout">Armando {que}…</div>;
+}
+
+/**
+ * La cotización del dólar, lo primero de la portada.
+ *
+ * Lee por su cuenta y detrás de su propio `Suspense`. Las fichas son la lectura
+ * más cara de la página, y el capítulo del tipo de cambio ya la pide en cada
+ * carga: aquí la encuentra sostenida (o se suma a la misma consulta en vuelo,
+ * que `held` no duplica), así que no es una consulta más. Aparte, porque el
+ * cuadro de tendencias no depende de ella y no tiene por qué esperarla.
+ *
+ * Un fallo aquí se queda aquí: sin el `catch`, el `Suspense` no lo atrapa y se
+ * llevaría la pestaña entera por una tarjeta.
+ */
+async function DollarQuotesSection() {
+  try {
+    const [observatory, stablecoins] = await Promise.all([readObservatory(), readStablecoins()]);
+    const today = new Intl.DateTimeFormat('en-CA', {
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      timeZone: TIME_ZONE,
+    }).format(new Date());
+    const data = buildDollarQuotes({
+      stablecoins,
+      official: officialSeries(observatory),
+      officialSides: {
+        buy: observatory.series.get('FX_OFFICIAL_USD_BOB:BUY') ?? [],
+        sell: observatory.series.get('FX_OFFICIAL_USD_BOB:SELL') ?? [],
+      },
+      today,
+    });
+    return <DollarQuotesCard data={data} />;
+  } catch (error) {
+    console.error('[observatorio] cotización del dólar sin leer', error);
+    return (
+      <div className="callout">
+        La cotización del dólar no se pudo leer en esta carga. El resto del resumen es correcto; el
+        detalle está en «Tipo de cambio».
+      </div>
+    );
+  }
 }
 
 async function TodaySection() {
@@ -491,7 +536,17 @@ async function TodaySection() {
         analysis={analysis.bullets}
         latestDate={observatory.latestDate}
         markets={<MarketCards markets={packMarketCards(markets)} />}
-        board={<TodayBoardPanel board={board} />}
+        board={
+          <TodayBoardPanel
+            board={board}
+            lead={
+              <Suspense fallback={<Armando que="la cotización del dólar" />}>
+                <DollarQuotesSection />
+              </Suspense>
+            }
+          />
+        }
+        news={<BoardNews board={board} />}
       />
     </>
   );
