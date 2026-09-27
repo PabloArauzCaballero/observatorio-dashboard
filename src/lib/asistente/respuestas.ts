@@ -14,7 +14,10 @@ export const RESPUESTA_SALUDO = `¡Hola! Soy el asistente del Observatorio Econ�
 - ¿Cómo descargo los datos o el informe en PDF?`;
 
 export const RESPUESTA_FUERA =
-  'Eso queda fuera de lo que puedo responder. Contesto sobre la situación de Bolivia y sus departamentos —dólar, inflación, reservas, deuda, empleo, energía, recursos naturales, comercio, empresas, carreteras, instituciones y prensa— y sobre cómo usar este tablero. ¿Querés preguntarme algo de eso?';
+  'Eso queda fuera de lo que puedo responder: solo contesto preguntas sobre la economía de Bolivia y sus departamentos —dólar, inflación, reservas, deuda, empleo, energía, recursos naturales, comercio, empresas, carreteras, instituciones y prensa económica— y sobre cómo usar este tablero. ¿Querés preguntarme algo de eso?';
+
+export const RESPUESTA_SEGURIDAD =
+  'No puedo ayudar con contraseñas, claves, accesos, servidores ni otros detalles técnicos o de seguridad del sistema: no los tengo y no los comparto. Si encontraste un problema de seguridad en el sitio, avisá a los responsables del Observatorio. Sobre la economía de Bolivia, preguntame lo que quieras.';
 
 export const RESPUESTA_MANIPULACION =
   'Solo puedo ayudarte con la situación de Bolivia y sus departamentos usando los datos del Observatorio, y con el uso del tablero. Preguntame, por ejemplo, cómo está el dólar o cómo le va a un departamento.';

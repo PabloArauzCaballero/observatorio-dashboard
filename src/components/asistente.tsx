@@ -230,8 +230,8 @@ export function Asistente() {
             {turnos.length === 0 ? (
               <div className="asistente-vacio">
                 <p>
-                  Preguntá por el dólar, la inflación, cualquier departamento, la situación política o cómo usar el
-                  tablero. Cada respuesta sale de los datos que el Observatorio recoge.
+                  Preguntá por el dólar, la inflación, la economía de cualquier departamento, las instituciones o cómo
+                  usar el tablero. Solo contesta temas económicos de Bolivia, con los datos que el Observatorio recoge.
                 </p>
                 <div className="asistente-sugerencias">
                   {SUGERENCIAS.map((s) => (
@@ -310,7 +310,7 @@ export function Asistente() {
             </button>
           </form>
           <p className="asistente-pie">
-            Información general con datos públicos; no es asesoría financiera. No escribas datos personales.
+            Información general con datos públicos; no es asesoría financiera. No escribas datos personales ni contraseñas.
           </p>
         </section>
       ) : null}
