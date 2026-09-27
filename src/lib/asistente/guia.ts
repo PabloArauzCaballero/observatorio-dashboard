@@ -18,7 +18,7 @@ export const PESTANAS = [
   'Macroeconomía',
   'Empresas',
   'Ciudades',
-  'Carreteras',
+  'Transporte',
   'Prensa',
   'Método',
 ] as const;
@@ -58,9 +58,9 @@ export const GUIA: readonly EntradaGuia[] = [
     como: 'Elegí la ciudad y la familia; la tabla y el mapa se filtran juntos y la selección se baja en CSV o JSON.',
   },
   {
-    pestana: 'Carreteras',
-    que: 'La red vial: kilómetros por tipo de superficie (pavimento, ripio, tierra), por departamento y por ruta, con la longitud oficial del INE.',
-    como: 'La tabla de rutas es paginada y filtrable; el mapa colorea cada tramo por su superficie.',
+    pestana: 'Transporte',
+    que: 'Tres páginas: «Carreteras» (la red vial por ruta, rodadura y departamento, con la longitud oficial del INE por red y departamento), «Ferrocarriles» (la Red Andina, la Oriental y el tren de Cochabamba, sus estaciones y la carga y pasajeros del INE) y «Ríos y puertos» (hidrovías, ríos navegables, cruces en transbordador y puertos).',
+    como: 'En cada página filtrá por departamento y por red, estado o navegabilidad; el mapa, las cifras y la tabla cambian juntos, y un clic en una ruta, línea o río la aísla.',
   },
   {
     pestana: 'Prensa',
@@ -91,7 +91,7 @@ export const PESTANA_DE_PAQUETE: Record<string, Pestana> = {
   COMERCIO: 'Empresas',
   EMPRESAS: 'Empresas',
   CIUDADES: 'Ciudades',
-  CARRETERAS: 'Carreteras',
+  CARRETERAS: 'Transporte',
   PRENSA: 'Prensa',
   METODO: 'Método',
 };
@@ -122,7 +122,7 @@ export const DESTINO_DE_PAQUETE: Record<string, Destino> = {
   COMERCIO: { pestana: 'Empresas', pagina: 'Comercio exterior' },
   EMPRESAS: { pestana: 'Empresas', pagina: 'Bolsa de valores (BBV)' },
   CIUDADES: { pestana: 'Ciudades' },
-  CARRETERAS: { pestana: 'Carreteras' },
+  CARRETERAS: { pestana: 'Transporte', pagina: 'Carreteras' },
   PRENSA: { pestana: 'Prensa', pagina: 'Cobertura' },
   METODO: { pestana: 'Método' },
 };
@@ -165,7 +165,7 @@ export const RUTA_DE_PAQUETE: Record<string, string> = {
   COMERCIO: '«Empresas» › «Comercio exterior»',
   EMPRESAS: '«Empresas» › «Bolsa de valores (BBV)» y «Reputación empresarial»',
   CIUDADES: '«Ciudades»',
-  CARRETERAS: '«Carreteras»',
+  CARRETERAS: '«Transporte» › «Carreteras»',
   PRENSA: '«Prensa» › «Cobertura»',
   METODO: '«Método»',
 };

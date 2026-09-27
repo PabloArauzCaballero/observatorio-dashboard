@@ -27,6 +27,8 @@ import { readPlaceFamilies } from '@/lib/places';
 import { RESOURCE_CODES, RESOURCE_INDICATORS, RESOURCE_PLACE_CODES, buildResourceBoard } from '@/lib/resources-board';
 import { buildRoadBoard } from '@/lib/roads-board';
 import { readRoadLengths, readRoadSections } from '@/lib/roads';
+import { readRailFlows, readRailLines, readRailStations, readWaterPorts, readWaterways } from '@/lib/transport';
+import { buildRailBoard, buildWaterBoard } from '@/lib/transport-board';
 import {
   officialSeries,
   readCompanyFilings,
@@ -729,13 +731,34 @@ async function mundo(): Promise<Salida> {
 }
 
 async function carreteras(): Promise<Salida> {
-  const [sections, lengths] = await Promise.all([readRoadSections(), readRoadLengths()]);
+  const [sections, lengths, railLines, stations, flows, waterways, ports] = await Promise.all([
+    readRoadSections(),
+    readRoadLengths(),
+    readRailLines(),
+    readRailStations(),
+    readRailFlows(),
+    readWaterways(),
+    readWaterPorts(),
+  ]);
   const board = buildRoadBoard(sections, lengths);
+  const rail = buildRailBoard(railLines, stations, flows);
+  const water = buildWaterBoard(waterways, ports);
+  const flujo = rail.flows
+    .filter((one) => one.lastYear && (one.service === 'CARGA' || one.service === 'PASAJEROS'))
+    .map((one) => {
+      const last = one.lastYear!;
+      const red = one.network === 'ANDINA' ? 'Andina' : 'Oriental';
+      const unidad = one.service === 'CARGA' ? 't' : 'personas';
+      return `- Red ${red}, ${one.service === 'CARGA' ? 'carga' : 'pasajeros'} ${last.period}${last.preliminary ? ' (preliminar)' : ''}: ${entero(last.value)} ${unidad}`;
+    });
   const texto = [
     `RED VIAL: ${entero(board.totalKm)} km mapeados, ${pct(board.pavedShare)} pavimentados${board.asOfPeriod ? `; longitud oficial del INE al ${board.asOfPeriod}` : ''}.`,
     ...board.conclusions.map(conclusion),
     'POR DEPARTAMENTO:',
     ...board.kmByDepartment.map((d) => `- ${d.name}: ${entero(d.totalKm)} km`),
+    `FERROCARRIL (OpenStreetMap): ${entero(rail.kmByStatus.EN_SERVICIO)} km de vía en servicio, ${entero(rail.kmByStatus.EN_DESUSO)} km en desuso, ${entero(rail.kmByStatus.ABANDONADA)} km abandonados; ${rail.stations.length} estaciones con nombre.`,
+    ...(flujo.length ? ['TRÁFICO FERROVIARIO (INE, último año cerrado):', ...flujo] : []),
+    `RÍOS (OpenStreetMap; navegabilidad según el Ministerio de Obras Públicas y OpenStreetMap): ${entero(water.kmByCategory.HIDROVIA)} km de hidrovías (Ichilo-Mamoré, Iténez, Paraguay-Tamengo), ${entero(water.kmByCategory.NAVEGABLE_EN_ESTUDIO)} km de afluentes navegables en estudio, ${entero(water.kmByCategory.NAVEGABLE_OSM)} km marcados navegables en OpenStreetMap; ${water.ports.length} puertos y terminales.`,
   ].join('\n');
   return {
     texto,
@@ -744,7 +767,7 @@ async function carreteras(): Promise<Salida> {
       'Red vial mapeada por departamento',
       ['Departamento', 'Kilómetros'],
       board.kmByDepartment.map((d) => [d.name, r(d.totalKm, 0)]),
-      'Red vial mapeada por el Observatorio; la longitud oficial del INE está en la pestaña «Carreteras»',
+      'Red vial mapeada por el Observatorio; la longitud oficial del INE está en «Transporte» › «Carreteras»',
     ),
   };
 }

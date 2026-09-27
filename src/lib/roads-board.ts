@@ -60,7 +60,7 @@ export const SURFACE_GROUPS: readonly { group: SurfaceGroup; label: string; colo
 export const NETWORKS: readonly { network: RoadSection['network']; label: string; color: string }[] = [
   { network: 'FUNDAMENTAL', label: 'Red Fundamental (F-n)', color: 'var(--series-1)' },
   { network: 'DEPARTAMENTAL', label: 'Red Departamental (Dn)', color: 'var(--series-2)' },
-  { network: 'SIN_REFERENCIA', label: 'Sin ruta asignada', color: 'var(--ink-faint)' },
+  { network: 'SIN_REFERENCIA', label: 'Sin código de ruta en el mapa', color: 'var(--ink-faint)' },
 ];
 
 const DEPARTMENT_NAME: Record<string, string> = Object.fromEntries(
@@ -92,6 +92,13 @@ export interface RoadBoard {
   kmByDepartment: DepartmentTotal[];
   routes: RouteTotal[];
   annual: { surface: string; unit: string; data: MacroSeriesPoint[] }[];
+  /** La misma serie para cada departamento, por el código del tablero. */
+  annualByGeography: Record<string, { surface: string; unit: string; data: MacroSeriesPoint[] }[]>;
+  /**
+   * El último año del INE, todas sus cifras: país y departamento, por red y por
+   * rodadura. Es lo que deja que la longitud oficial siga a los filtros.
+   */
+  official: RoadLengthPoint[];
   asOfPeriod: string | null;
   conclusions: FxConclusion[];
 }
@@ -149,12 +156,12 @@ function buildRoutes(sections: readonly RoadSection[]): RouteTotal[] {
     .sort((left, right) => right.totalKm - left.totalKm);
 }
 
-/** La serie nacional del INE, por rodadura, lista para `MacroChart`. */
-function buildAnnual(lengths: readonly RoadLengthPoint[]): RoadBoard['annual'] {
+/** La serie del INE de un lugar, por rodadura, lista para `MacroChart`. */
+function buildAnnual(lengths: readonly RoadLengthPoint[], geography = 'BOLIVIA'): RoadBoard['annual'] {
   const series: RoadBoard['annual'] = [];
   for (const surface of ['TOTAL', 'PAVIMENTO', 'RIPIO', 'TIERRA'] as const) {
     const points = lengths
-      .filter((point) => point.geography === 'BOLIVIA' && point.network === 'TOTAL' && point.surface === surface)
+      .filter((point) => point.geography === geography && point.network === 'TOTAL' && point.surface === surface)
       .sort((left, right) => left.period.localeCompare(right.period))
       .map((point): MacroSeriesPoint => ({ period: point.period, value: point.lengthKm }));
     if (points.length) series.push({ surface, unit: 'KM', data: points });
@@ -177,7 +184,7 @@ function buildConclusions(
       key: 'pavimento',
       claim: 'De la red mapeada, esta parte está pavimentada',
       figure: `${pavedShare.toFixed(1).replace('.', ',')} %`,
-      detail: `${paved.km.toLocaleString('es-BO')} km de ${totalKm.toLocaleString('es-BO')} km trazados por OpenStreetMap en vías principales (motorway, trunk, primary, secondary).`,
+      detail: `${paved.km.toLocaleString('es-BO')} km de ${totalKm.toLocaleString('es-BO')} km trazados por OpenStreetMap: vías troncales, primarias, secundarias y terciarias, y toda vía con código de ruta F o D.`,
       tone: 'neutral',
     });
   }
@@ -194,12 +201,22 @@ function buildConclusions(
   const unreferenced = sections.filter((section) => section.network === 'SIN_REFERENCIA');
   if (unreferenced.length) {
     const km = Math.round(unreferenced.reduce((sum, section) => sum + section.lengthKm, 0));
+    // Dónde la Red Departamental sí lleva su código en el mapa: más de 100 km codificados.
+    const coded = kmByDepartment
+      .filter(
+        (department) =>
+          sections
+            .filter((section) => section.department === department.department && section.network === 'DEPARTAMENTAL')
+            .reduce((sum, section) => sum + section.lengthKm, 0) > 100,
+      )
+      .map((department) => department.name);
     conclusions.push({
       key: 'sin_referencia',
-      claim: 'Vías principales sin ruta F-n ni Dn asignada en el mapa',
+      claim: 'Vías sin código de ruta F-n ni Dn en el mapa',
       figure: `${km.toLocaleString('es-BO')} km`,
-      detail:
-        'OpenStreetMap traza la vía pero no le atribuye una referencia oficial; se muestran igual, agrupadas por su clase.',
+      detail: `Secundarias y terciarias que OpenStreetMap traza sin su código oficial; ahí está la mayor parte de la Red Departamental${
+        coded.length ? `, que en el mapa sólo lleva código en ${coded.join(' y ')}` : ''
+      }. Se muestran igual, en gris.`,
       tone: 'adverse',
     });
   }
@@ -233,6 +250,10 @@ export function buildRoadBoard(sections: RoadSection[], lengths: RoadLengthPoint
     kmByDepartment,
     routes: buildRoutes(sections),
     annual: buildAnnual(lengths),
+    annualByGeography: Object.fromEntries(
+      DEPARTMENTS.map((department) => [department.slug, buildAnnual(lengths, department.slug)]),
+    ),
+    official: asOf ? lengths.filter((point) => point.period === asOf.period) : [],
     asOfPeriod: asOf?.period ?? null,
     conclusions: buildConclusions(sections, kmBySurface, kmByDepartment, totalKm, pavedShare, asOf),
   };

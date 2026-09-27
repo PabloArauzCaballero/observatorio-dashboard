@@ -47,8 +47,43 @@ const NETWORK_LABEL = Object.fromEntries(NETWORKS.map((one) => [one.network, one
 const NETWORK_SHORT: Record<RoadSection['network'], string> = {
   FUNDAMENTAL: 'Fundamental',
   DEPARTAMENTAL: 'Departamental',
-  SIN_REFERENCIA: 'Sin ruta',
+  SIN_REFERENCIA: 'Sin código',
 };
+
+/**
+ * La longitud oficial del recorte, del último año del INE.
+ *
+ * El INE publica tres cortes —país por red y rodadura, departamento por
+ * rodadura, departamento por red— y ninguno cruza las tres cosas, así que la
+ * cifra oficial sigue al departamento y a la red, no a la rodadura. Las vías
+ * «sin código» no tienen contraparte oficial: si sólo se eligen ellas, no hay
+ * cifra que comparar.
+ */
+function officialKm(
+  official: RoadBoard['official'],
+  department: Choice,
+  network: Choice,
+): { km: number; networks: string[] } | null {
+  const geographies = department.size ? [...department] : ['BOLIVIA'];
+  const wanted = network.size
+    ? [...network].filter((one) => one === 'FUNDAMENTAL' || one === 'DEPARTAMENTAL')
+    : ['TOTAL'];
+  if (!wanted.length) return null;
+  let km = 0;
+  let found = false;
+  for (const geography of geographies) {
+    for (const one of wanted) {
+      const point = official.find(
+        (candidate) => candidate.geography === geography && candidate.network === one && candidate.surface === 'TOTAL',
+      );
+      if (point) {
+        km += point.lengthKm;
+        found = true;
+      }
+    }
+  }
+  return found ? { km, networks: wanted } : null;
+}
 
 /** «f4», «F 4» y «f-4» son la misma ruta que «F-4». */
 const squash = (value: string): string =>
@@ -221,7 +256,11 @@ export function RoadsExplorer({ board }: { board: RoadBoard }) {
     return { total, paved, share: total > 0 ? (paved / total) * 100 : 0 };
   }, [inCut, liveRoute]);
 
-  const officialLast = board.annual.find((one) => one.surface === 'TOTAL')?.data.at(-1);
+  const official = officialKm(board.official, department, network);
+  /* Un solo departamento elegido: su propia serie del INE; si no, la del país. */
+  const onlyDepartment = department.size === 1 ? [...department][0]! : null;
+  const annual = (onlyDepartment ? board.annualByGeography[onlyDepartment] : undefined) ?? board.annual;
+  const annualWhere = onlyDepartment ? departmentName(onlyDepartment) : 'todo el país';
   const filtered = department.size + network.size + surface.size > 0 || Boolean(query);
   const zoomTo = department.size > 0 || liveRoute !== null;
 
@@ -243,8 +282,9 @@ export function RoadsExplorer({ board }: { board: RoadBoard }) {
         <div className="panel-head">
           <h2>Red vial de Bolivia (km trazados por OpenStreetMap)</h2>
           <p className="panel-sub">
-            Las vías principales (motorway, trunk, primary, secondary) que OpenStreetMap traza dentro
-            del país, cortadas por departamento y agrupadas en tramos que comparten ruta, rodadura y
+            Las vías troncales, primarias, secundarias y terciarias que OpenStreetMap traza dentro
+            del país, y toda vía menor que lleve un código de ruta F o D propio o de su relación de
+            ruta, cortadas por departamento y agrupadas en tramos que comparten ruta, rodadura y
             estado. El Sistema de Información Vial y la Transitabilidad de la ABC no respondieron al
             construir este corpus, así que la geometría viene de OpenStreetMap y el kilometraje
             oficial, por separado, del INE.
@@ -266,7 +306,7 @@ export function RoadsExplorer({ board }: { board: RoadBoard }) {
           </span>
           <span className="stat-value">{number(figures.total)} km</span>
           <span className="stat-hint">
-            {filtered || liveRoute ? `de ${number(board.totalKm)} km en todo el país` : 'motorway, trunk, primary, secondary · OpenStreetMap'}
+            {filtered || liveRoute ? `de ${number(board.totalKm)} km en todo el país` : 'troncales a terciarias y toda vía con código · OpenStreetMap'}
           </span>
         </div>
         <div className="panel stat">
@@ -276,8 +316,16 @@ export function RoadsExplorer({ board }: { board: RoadBoard }) {
         </div>
         <div className="panel stat">
           <span className="stat-label">Longitud oficial (INE, {board.asOfPeriod ?? '—'})</span>
-          <span className="stat-value">{officialLast ? number(officialLast.value) : '—'} km</span>
-          <span className="stat-hint">Todo el país · Red Fundamental y Departamental, ABC y SEDECA vía el INE</span>
+          <span className="stat-value">{official ? `${number(official.km)} km` : '—'}</span>
+          <span className="stat-hint">
+            {official
+              ? `${where} · ${
+                  official.networks[0] === 'TOTAL'
+                    ? 'Red Fundamental y Departamental'
+                    : official.networks.map((one) => `Red ${NETWORK_SHORT[one as RoadSection['network']]}`).join(' y ')
+                } · ABC y SEDECA vía el INE`
+              : 'El INE no cuenta las vías sin código de ruta'}
+          </span>
         </div>
       </div>
 
@@ -414,7 +462,7 @@ export function RoadsExplorer({ board }: { board: RoadBoard }) {
                 {liveRoute ? `, ruta ${liveRoute}` : ''})
               </h2>
               <p className="panel-sub">
-                La Red Fundamental va en trazo grueso, la Departamental en medio y las vías sin ruta
+                La Red Fundamental va en trazo grueso, la Departamental en medio y las vías sin código de ruta
                 asignada en fino, debajo. Cada escudo es el número de una ruta.
               </p>
             </div>
@@ -468,18 +516,22 @@ export function RoadsExplorer({ board }: { board: RoadBoard }) {
         </div>
       </div>
 
-      {board.annual.length ? (
+      <OfficialComparison board={board} />
+
+      {annual.length ? (
         <div className="panel">
           <div className="panel-head">
-            <h2>Longitud oficial de caminos por rodadura, 2000-{board.asOfPeriod ?? '—'} (km, INE)</h2>
+            <h2>
+              Longitud oficial de caminos por rodadura, {annualWhere}, 2000-{board.asOfPeriod ?? '—'} (km, INE)
+            </h2>
             <p className="panel-sub">
-              Kilómetros de la Red Fundamental y Departamental juntas, todo el país. No es la misma
-              cifra que el mapa de arriba: ésta es el inventario oficial y aquélla, lo que
-              OpenStreetMap ha trazado.
+              Kilómetros de la Red Fundamental y Departamental juntas. Sigue al filtro de
+              departamento cuando se elige uno solo. No es la misma cifra que el mapa de arriba: ésta
+              es el inventario oficial y aquélla, lo que OpenStreetMap ha trazado.
             </p>
           </div>
           <div className="grid-two">
-            {board.annual.map((serie) => {
+            {annual.map((serie) => {
               const name =
                 serie.surface === 'TOTAL'
                   ? 'Total'
@@ -501,6 +553,79 @@ export function RoadsExplorer({ board }: { board: RoadBoard }) {
         </div>
       ) : null}
     </>
+  );
+}
+
+/**
+ * Lo trazado frente a lo oficial, departamento por departamento.
+ *
+ * Es la tabla que faltaba para leer el mapa: el INE cuenta 36.000 km de Red
+ * Departamental y OpenStreetMap sólo le pone código a una parte; el resto está
+ * dibujado como secundaria o terciaria sin código. Sin esta comparación, un
+ * mapa con la Departamental casi vacía parecía decir que no existe.
+ */
+function OfficialComparison({ board }: { board: RoadBoard }) {
+  if (!board.official.length) return null;
+  const rows = board.kmByDepartment.map((department) => {
+    const mine = board.sections.filter((section) => section.department === department.department);
+    const traced = (network: RoadSection['network']) =>
+      mine.filter((section) => section.network === network).reduce((sum, section) => sum + section.lengthKm, 0);
+    const official = (network: 'FUNDAMENTAL' | 'DEPARTAMENTAL') =>
+      board.official.find(
+        (point) => point.geography === department.department && point.network === network && point.surface === 'TOTAL',
+      )?.lengthKm ?? null;
+    return {
+      department: department.department,
+      name: department.name,
+      officialF: official('FUNDAMENTAL'),
+      tracedF: traced('FUNDAMENTAL'),
+      officialD: official('DEPARTAMENTAL'),
+      tracedD: traced('DEPARTAMENTAL'),
+      uncoded: traced('SIN_REFERENCIA'),
+    };
+  });
+  const cell = (value: number | null) => (value === null ? '—' : number(value));
+  return (
+    <section className="panel places-table">
+      <div className="tile-head">
+        <Icon name="balanza" size={14} />
+        <h3 className="tile-title">
+          Red vial trazada frente a la oficial por departamento (km, INE {board.asOfPeriod ?? '—'} y OpenStreetMap)
+        </h3>
+      </div>
+      <p className="panel-sub">
+        «Oficial» es el inventario de la ABC y los SEDECA que publica el INE; «con código», lo que
+        OpenStreetMap traza con su número de ruta F o D. La columna «sin código» son secundarias y
+        terciarias trazadas sin número: ahí está la mayor parte de la Red Departamental que el mapa
+        no nombra, y también caminos municipales que el INE no cuenta.
+      </p>
+      <div className="table-wrap">
+        <table className="grid-table roads-table">
+          <thead>
+            <tr>
+              <th>Departamento</th>
+              <th className="num">Fundamental oficial</th>
+              <th className="num">Fundamental con código</th>
+              <th className="num">Departamental oficial</th>
+              <th className="num">Departamental con código</th>
+              <th className="num">Sin código en el mapa</th>
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map((row) => (
+              <tr key={row.department}>
+                <td>{row.name}</td>
+                <td className="num">{cell(row.officialF)}</td>
+                <td className="num">{number(row.tracedF)}</td>
+                <td className="num">{cell(row.officialD)}</td>
+                <td className="num">{number(row.tracedD)}</td>
+                <td className="num">{number(row.uncoded)}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </section>
   );
 }
 

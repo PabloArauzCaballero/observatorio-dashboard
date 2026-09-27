@@ -46,7 +46,7 @@ export const SourcesSection = dynamic(
   () => import('@/components/sources-section').then((module) => module.SourcesSection),
   { loading: () => <OnOpenNotice what="las fuentes" failed={false} /> },
 );
-export const RoadsSection = dynamic(
-  () => import('@/components/roads-section').then((module) => module.RoadsSection),
-  { loading: () => <OnOpenNotice what="la red vial" failed={false} /> },
+export const TransportSection = dynamic(
+  () => import('@/components/transport-section').then((module) => module.TransportSection),
+  { loading: () => <OnOpenNotice what="la red de transporte" failed={false} /> },
 );
