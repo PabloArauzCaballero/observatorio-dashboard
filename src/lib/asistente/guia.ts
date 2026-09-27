@@ -9,7 +9,7 @@
  * Puro, como `alcance.ts`, para poder probarlo sin levantar nada.
  */
 
-export const GUIA_VERSION = 'guia-tablero-v1-2026-09-26';
+export const GUIA_VERSION = 'guia-tablero-v2-2026-09-27';
 
 /** Las ocho pestañas, con el rótulo exacto del botón. */
 export const PESTANAS = [
@@ -95,6 +95,58 @@ export const PESTANA_DE_PAQUETE: Record<string, Pestana> = {
   PRENSA: 'Prensa',
   METODO: 'Método',
 };
+
+/**
+ * El lugar exacto de cada paquete: la pestaña y, si la tiene, su página. Es el
+ * enlace de la respuesta; los rótulos son los de los botones, así que un
+ * cambio de nombre en el tablero se nota en las pruebas.
+ */
+export interface Destino {
+  pestana: Pestana;
+  pagina?: string;
+}
+
+export const DESTINO_DE_PAQUETE: Record<string, Destino> = {
+  HOY: { pestana: 'Hoy' },
+  DOLAR: { pestana: 'Tipo de cambio' },
+  MERCADOS: { pestana: 'Hoy' },
+  MACRO: { pestana: 'Macroeconomía', pagina: 'Series de Bolivia' },
+  DEPTO: { pestana: 'Macroeconomía', pagina: 'Series de Bolivia' },
+  DEPTOS: { pestana: 'Macroeconomía', pagina: 'Series de Bolivia' },
+  POLITICA: { pestana: 'Macroeconomía', pagina: 'Social Info' },
+  ENERGIA: { pestana: 'Macroeconomía', pagina: 'Series de Bolivia' },
+  RECURSOS: { pestana: 'Macroeconomía', pagina: 'Series de Bolivia' },
+  AMBIENTE: { pestana: 'Macroeconomía', pagina: 'Series de Bolivia' },
+  EXOGENAS: { pestana: 'Macroeconomía', pagina: 'Variables exógenas' },
+  MUNDO: { pestana: 'Macroeconomía', pagina: 'Bolivia ante el mundo' },
+  COMERCIO: { pestana: 'Empresas', pagina: 'Comercio exterior' },
+  EMPRESAS: { pestana: 'Empresas', pagina: 'Bolsa de valores (BBV)' },
+  CIUDADES: { pestana: 'Ciudades' },
+  CARRETERAS: { pestana: 'Carreteras' },
+  PRENSA: { pestana: 'Prensa', pagina: 'Cobertura' },
+  METODO: { pestana: 'Método' },
+};
+
+export interface Enlace extends Destino {
+  /** «Macroeconomía › Variables exógenas», el texto del botón. */
+  etiqueta: string;
+}
+
+/**
+ * Los destinos a ofrecer, sin repetir y en el orden del tablero. La dirección
+ * la pone quien arma la respuesta con `hrefDe`, para que este archivo siga sin
+ * importar nada y se pruebe con `node --test`.
+ */
+export function enlacesPara(paquetes: readonly string[]): Enlace[] {
+  const vistos = new Map<string, Enlace>();
+  for (const paquete of paquetes) {
+    const destino = DESTINO_DE_PAQUETE[paquete];
+    if (!destino) continue;
+    const etiqueta = destino.pagina ? `${destino.pestana} › ${destino.pagina}` : destino.pestana;
+    if (!vistos.has(etiqueta)) vistos.set(etiqueta, { ...destino, etiqueta });
+  }
+  return [...vistos.values()].sort((a, b) => PESTANAS.indexOf(a.pestana) - PESTANAS.indexOf(b.pestana)).slice(0, 3);
+}
 
 /** Dónde está cada cosa dentro de su pestaña, para decirlo en la respuesta. */
 export const RUTA_DE_PAQUETE: Record<string, string> = {

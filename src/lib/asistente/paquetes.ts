@@ -43,6 +43,7 @@ import { buildTodayBoard } from '@/lib/today-board';
 import { PLACE_LABEL, WORLD_CODES, WORLD_INDICATORS, WORLD_PLACE_CODES, sayWorldFigure } from '@/lib/world-board';
 import { nombreDepartamento, type PaqueteId } from './alcance';
 import { guiaCompleta } from './guia';
+import { tabla, type Celda, type Tabla } from './tabla';
 
 /**
  * Los datos con que se contesta, leídos en el momento.
@@ -72,6 +73,14 @@ export interface Paquete {
   id: PaqueteId;
   texto: string;
   leido: boolean;
+  /** Las mismas cifras del texto, para la vista previa y el CSV de la respuesta. */
+  tabla?: Tabla | undefined;
+}
+
+/** Lo que arma cada paquete: el texto para el modelo y, si tiene cifras, su tabla. */
+interface Salida {
+  texto: string;
+  tabla?: Tabla | undefined;
 }
 
 export interface Contexto {
@@ -131,6 +140,18 @@ function cifra(value: number, unit: string): string {
 }
 
 const conclusion = (c: FxConclusion): string => `- ${c.claim}: ${c.figure}. ${c.detail}`;
+
+/** Una cifra para la tabla: redondeada, y `null` si no hay dato en vez de «s/d». */
+const r = (value: number | null | undefined, decimals = 2): Celda =>
+  value === null || value === undefined || !Number.isFinite(value) ? null : Number(value.toFixed(decimals));
+
+const filaDeConclusion = (c: FxConclusion): Celda[] => [c.claim, c.figure, c.detail];
+const COLUMNAS_CONCLUSION = ['Hallazgo', 'Cifra', 'Detalle'];
+
+/** La descarga completa de `/api/export`, con los mismos filtros que usaría el tablero. */
+function exportar(parametros: Record<string, string>, etiqueta: string): Tabla['completa'] {
+  return { href: `/api/export?${new URLSearchParams({ ...parametros, format: 'csv' }).toString()}`, etiqueta };
+}
 
 function hoyEnLaPaz(): { fecha: string; anio: number } {
   const fecha = new Intl.DateTimeFormat('en-CA', {
@@ -213,7 +234,7 @@ function econometria(): Promise<FxConclusion[]> {
 
 /* ---------------------------------------------------------------- paquetes */
 
-async function hoy(): Promise<string> {
+async function hoy(): Promise<Salida> {
   const { anio } = hoyEnLaPaz();
   const [macro, gap, press] = await Promise.all([
     readMacroAnnual(),
@@ -226,15 +247,25 @@ async function hoy(): Promise<string> {
       `- ${b.title} [${b.verdict}]: ${b.reading} Cifra: ${b.value}${b.unit ? ` ${b.unit}` : ''} (${b.measure}, ${b.asOf}${b.lag >= 2 ? `, dato de hace ${b.lag} años` : ''}). Regla: ${b.rule}${b.publisher ? ` Fuente: ${b.publisher}.` : ''}`,
   );
   const novedades = board.changes.slice(0, 8).map((c) => `- ${c.date} · ${c.outlet} · ${c.topic}: «${c.headline}»`);
-  return [
+  const texto = [
     'CUADRO DE MANDO (pestaña «Hoy»; veredictos favorable / vigilar / adverso / sin-lectura):',
     ...lineas,
     novedades.length ? `NOVEDADES DE PRENSA del ${board.changesDate ?? 's/f'} (${board.changesOutlets} medios):` : '',
     ...novedades,
   ].filter(Boolean).join('\n');
+  return {
+    texto,
+    tabla: tabla(
+      'hoy',
+      'Cuadro de mando de «Hoy»',
+      ['Indicador', 'Veredicto', 'Cifra', 'Unidad', 'Medida', 'Al', 'Fuente'],
+      board.blocks.map((b) => [b.title, b.verdict, String(b.value), b.unit || null, b.measure, b.asOf, b.publisher || null]),
+      'Varias; cada fila dice la suya',
+    ),
+  };
 }
 
-async function dolar(): Promise<string> {
+async function dolar(): Promise<Salida> {
   const [fx, observatory, pruebas] = await Promise.all([
     readFxSnapshot(),
     readObservatory(),
@@ -268,11 +299,24 @@ async function dolar(): Promise<string> {
     pruebas.length ? 'PRUEBAS ECONOMÉTRICAS (informe PDF de «Tipo de cambio»):' : '',
     ...pruebas.slice(0, 8).map(conclusion),
   ];
-  return lineas.filter(Boolean).join('\n');
+  return {
+    texto: lineas.filter(Boolean).join('\n'),
+    tabla: tabla(
+      'dolar',
+      'Dólar oficial, paralelo y brecha, últimos 30 días con lectura',
+      ['Fecha', 'Oficial (Bs por US$)', 'Paralelo, punto medio (Bs por US$)', 'Brecha (%)'],
+      mid.slice(-30).reverse().map((p) => {
+        const oficial = enFecha(official, p.date);
+        return [p.date, r(oficial?.value), r(p.value), oficial ? r((p.value / oficial.value - 1) * 100) : null];
+      }),
+      'Banco Central de Bolivia (oficial) y mercado paralelo que recoge el Observatorio',
+      ultimo ? exportar({ dataset: 'series', desde: haceDias(ultimo.date, 365) }, 'Todas las series diarias del último año') : undefined,
+    ),
+  };
 }
 
 /** Los códigos con definición en el glosario llevan su lectura; el resto, solo la cifra. */
-async function macro(): Promise<string> {
+async function macro(): Promise<Salida> {
   const puntos = ultimos((await readMacroAnnual()).filter((p) => SECTORES_MACRO.has(p.sector)));
   const porSector = new Map<string, MacroPoint[]>();
   for (const p of puntos) porSector.set(p.sector, [...(porSector.get(p.sector) ?? []), p]);
@@ -288,7 +332,20 @@ async function macro(): Promise<string> {
       );
     }
   }
-  return lineas.join('\n');
+  const desde = String(hoyEnLaPaz().anio - 5);
+  return {
+    texto: lineas.join('\n'),
+    tabla: tabla(
+      'macro',
+      'Indicadores anuales de Bolivia, último dato de cada serie',
+      ['Rubro', 'Indicador', 'Código', 'Periodo', 'Valor', 'Unidad', 'Anterior', 'Fuente'],
+      [...puntos]
+        .sort((a, b) => a.sector.localeCompare(b.sector) || a.indicatorCode.localeCompare(b.indicatorCode))
+        .map((p) => [SECTOR_LABEL[p.sector] ?? p.sector, p.name ?? p.indicatorCode, p.indicatorCode, p.period, r(p.value, 4), p.unit, r(p.previousValue, 4), p.publisher ?? null]),
+      'Varias; cada fila dice la suya',
+      exportar({ dataset: 'macro', desde }, `Todas las series anuales desde ${desde}`),
+    ),
+  };
 }
 
 function valorDepto(board: DepartmentBoard, medida: string, lugar: string): YearValue | undefined {
@@ -303,7 +360,7 @@ function crecimientoDecada(board: DepartmentBoard, lugar: string): { desde: numb
   return { desde: inicio.year, hasta: fin.year, cambio: (fin.value / inicio.value - 1) * 100 };
 }
 
-async function departamento(slug: string): Promise<string> {
+async function departamento(slug: string): Promise<Salida> {
   const nombre = nombreDepartamento(slug) ?? slug;
   const [macroPoints, prensa, sections, lengths] = await Promise.all([
     readMacroAnnual(),
@@ -313,10 +370,14 @@ async function departamento(slug: string): Promise<string> {
   ]);
   const board = departmentBoard(macroPoints);
   const lineas: string[] = [`DEPARTAMENTO DE ${nombre.toUpperCase()} (cuentas regionales del INE):`];
+  const filas: Celda[][] = [];
 
   for (const medida of MEASURES) {
     const v = valorDepto(board, medida.slug, slug);
-    if (v) lineas.push(`- ${medida.label} (${medida.unit}), ${v.year}: ${num(v.value, medida.decimals)}`);
+    if (v) {
+      lineas.push(`- ${medida.label} (${medida.unit}), ${v.year}: ${num(v.value, medida.decimals)}`);
+      filas.push([medida.label, medida.unit, v.year, r(v.value, medida.decimals)]);
+    }
   }
   const growth = board.series.GDP_GROWTH?.[slug]?.slice(-5);
   if (growth?.length) lineas.push(`- Crecimiento anual de los últimos años: ${growth.map((g) => `${g.year} ${signo(g.value)}`).join(', ')}`);
@@ -361,25 +422,48 @@ async function departamento(slug: string): Promise<string> {
   if (prensa?.articles.length) {
     lineas.push(`NOTICIAS RECIENTES QUE NOMBRAN A ${nombre.toUpperCase()} (las más recientes; no es el total del archivo):`, ...prensa.articles.slice(0, 10).map(nota));
   }
-  return lineas.join('\n');
+  for (const g of growth ?? []) filas.push(['Crecimiento anual', '%', g.year, r(g.value)]);
+  for (const a of actividades) filas.push([`Participación de «${a.name}» en el producto`, '%', board.activityYear, r(a.value)]);
+  return {
+    texto: lineas.join('\n'),
+    tabla: tabla(
+      `depto-${slug}`,
+      `Departamento de ${nombre}`,
+      ['Dato', 'Unidad', 'Año', 'Valor'],
+      filas,
+      'INE, cuentas regionales',
+      exportar({ dataset: 'prensa', region: slug, desde: haceDias(fechaDeHoy(), 90) }, `Noticias que nombran a ${nombre}, últimos 90 días`),
+    ),
+  };
 }
 
-async function departamentos(): Promise<string> {
+async function departamentos(): Promise<Salida> {
   const board = departmentBoard(await readMacroAnnual());
+  const tablaFilas: Celda[][] = [];
   const filas = DEPARTMENTS.map((d) => {
     const share = valorDepto(board, 'GDP_SHARE', d.slug);
     const growth = valorDepto(board, 'GDP_GROWTH', d.slug);
     const pc = valorDepto(board, 'GDP_PER_CAPITA', d.slug);
     const exp = valorDepto(board, 'EXPORTS_USD', d.slug);
     const decada = crecimientoDecada(board, d.slug);
+    tablaFilas.push([d.name, r(share?.value), share?.year ?? null, r(growth?.value), growth?.year ?? null, r(decada?.cambio, 1), r(pc?.value, 0), pc?.year ?? null, r(exp?.value, 1), exp?.year ?? null]);
     return `- ${d.name}: participación ${pct(share?.value)} (${share?.year ?? 's/f'}); crecimiento ${signo(growth?.value)} (${growth?.year ?? 's/f'}); en diez años ${signo(decada?.cambio)}; PIB por habitante ${pc ? `${entero(pc.value)} Bs (${pc.year})` : 's/d'}; exportaciones ${exp ? `${num(exp.value, 1)} millones de US$ (${exp.year})` : 's/d'}`;
   });
-  return ['LOS NUEVE DEPARTAMENTOS (INE):', ...filas, 'CONCLUSIONES:', ...board.conclusions.map(conclusion)].join('\n');
+  return {
+    texto: ['LOS NUEVE DEPARTAMENTOS (INE):', ...filas, 'CONCLUSIONES:', ...board.conclusions.map(conclusion)].join('\n'),
+    tabla: tabla(
+      'departamentos',
+      'Los nueve departamentos',
+      ['Departamento', 'Participación en el PIB (%)', 'Año', 'Crecimiento (%)', 'Año', 'Crecimiento en diez años (%)', 'PIB por habitante (Bs)', 'Año', 'Exportaciones (millones de US$)', 'Año'],
+      tablaFilas,
+      'INE, cuentas regionales',
+    ),
+  };
 }
 
 const TEMAS_POLITICOS = ['POLITICA', 'CONFLICTO', 'JUDICIAL', 'SOCIAL'];
 
-async function politica(): Promise<string> {
+async function politica(): Promise<Salida> {
   const [macroPoints, prensa] = await Promise.all([
     readMacroAnnual(),
     readPressPage({ topic: TEMAS_POLITICOS }, 60).catch(() => null),
@@ -401,19 +485,42 @@ async function politica(): Promise<string> {
       ...prensa.articles.slice(0, 14).map(nota),
     );
   }
-  return lineas.join('\n');
+  return {
+    texto: lineas.join('\n'),
+    tabla: tabla(
+      'instituciones',
+      `Índices institucionales${inst.asOfYear ? `, último año ${inst.asOfYear}` : ''}`,
+      COLUMNAS_CONCLUSION,
+      inst.conclusions.map(filaDeConclusion),
+      'V-Dem, Freedom House, Fraser, Banco Mundial (WGI) y Transparencia Internacional',
+      exportar({ dataset: 'macro', sector: 'INSTITUCIONAL' }, 'Todos los índices institucionales'),
+    ),
+  };
 }
 
-async function prensa(busqueda: string | null): Promise<string> {
+async function prensa(busqueda: string | null): Promise<Salida> {
   const page = await readPressPage(busqueda ? { search: busqueda } : {}, 30);
   const temas = new Map<string, number>();
   for (const a of page.articles) temas.set(a.topic, (temas.get(a.topic) ?? 0) + 1);
-  return [
+  const texto = [
     busqueda
       ? `PRENSA QUE MENCIONA «${busqueda}»: las ${page.articles.length} más recientes (no es el total del archivo; para contar, usar la búsqueda de «Prensa»):`
       : `PRENSA RECIENTE (las últimas ${page.articles.length} notas de todos los temas; por tema: ${[...temas.entries()].sort((a, b) => b[1] - a[1]).map(([t, n]) => `${t} ${n}`).join(', ')}):`,
     ...page.articles.slice(0, 20).map(nota),
   ].join('\n');
+  return {
+    texto,
+    tabla: tabla(
+      'prensa',
+      busqueda ? `Notas recientes que mencionan «${busqueda}»` : 'Notas de prensa recientes',
+      ['Fecha', 'Medio', 'Tema', 'Tono', 'Región', 'Titular', 'Enlace'],
+      page.articles.map((a) => [a.eventDate, a.outlet, a.topic, a.tone, a.region ?? null, a.headline, a.url ?? null]),
+      'Medios bolivianos; el tema y el tono los deriva el Observatorio del titular',
+      busqueda
+        ? exportar({ dataset: 'prensa', buscar: busqueda }, `Todas las notas del archivo que mencionan «${busqueda}»`)
+        : exportar({ dataset: 'prensa', desde: haceDias(fechaDeHoy(), 30) }, 'Todas las notas del último mes'),
+    ),
+  };
 }
 
 function bolivia(latest: Record<string, Record<string, YearValue>>, indicators: ReadonlyArray<{ code: string; label: string; unit: string }>): string[] {
@@ -423,12 +530,25 @@ function bolivia(latest: Record<string, Record<string, YearValue>>, indicators: 
   });
 }
 
-async function energia(): Promise<string> {
-  const board = buildEnergyBoard(await readWorldBoard(ENERGY_CODES, ENERGY_PLACE_CODES));
-  return ['ENERGÍA (Banco Mundial):', ...board.conclusions.map(conclusion), 'ÚLTIMOS DATOS DE BOLIVIA:', ...bolivia(board.latest, ENERGY_INDICATORS)].join('\n');
+/** Las mismas cifras de `bolivia`, como filas de «Dato, Unidad, Año, Valor». */
+function filasBolivia(latest: Record<string, Record<string, YearValue>>, indicators: ReadonlyArray<{ code: string; label: string; unit: string }>): Celda[][] {
+  return indicators.flatMap((i) => {
+    const v = latest[i.code]?.BOL;
+    return v ? [[i.label, i.unit, v.year, r(v.value, Math.abs(v.value) >= 100 ? 0 : 2)]] : [];
+  });
 }
 
-async function recursos(): Promise<string> {
+const COLUMNAS_DATO = ['Dato', 'Unidad', 'Año', 'Valor'];
+
+async function energia(): Promise<Salida> {
+  const board = buildEnergyBoard(await readWorldBoard(ENERGY_CODES, ENERGY_PLACE_CODES));
+  return {
+    texto: ['ENERGÍA (Banco Mundial):', ...board.conclusions.map(conclusion), 'ÚLTIMOS DATOS DE BOLIVIA:', ...bolivia(board.latest, ENERGY_INDICATORS)].join('\n'),
+    tabla: tabla('energia', 'Energía en Bolivia, último dato de cada indicador', COLUMNAS_DATO, filasBolivia(board.latest, ENERGY_INDICATORS), 'Banco Mundial'),
+  };
+}
+
+async function recursos(): Promise<Salida> {
   const [points, measured] = await Promise.all([readWorldBoard(RESOURCE_CODES, RESOURCE_PLACE_CODES), readMacroAnnual()]);
   const board = buildResourceBoard(points, measured);
   const partidas = board.commodities
@@ -437,22 +557,38 @@ async function recursos(): Promise<string> {
     .sort((a, b) => b.v.value - a.v.value)
     .slice(0, 12)
     .map(({ c, v }) => `- ${c.label}, ${v.year}: ${num(v.value / 1e6, 1)} millones de US$${c.weight.at(-1) ? `, ${entero((c.weight.at(-1)?.value ?? 0) / 1000)} t` : ''}`);
-  return [
-    'RECURSOS NATURALES:',
-    ...board.conclusions.map(conclusion),
-    'ÚLTIMOS DATOS DE BOLIVIA:',
-    ...bolivia(board.latest, RESOURCE_INDICATORS),
-    partidas.length ? 'EXPORTACIONES POR PARTIDA DE MATERIA PRIMA:' : '',
-    ...partidas,
-  ].filter(Boolean).join('\n');
+  const filasPartidas: Celda[][] = board.commodities.flatMap((c) => {
+    const v = c.value.at(-1);
+    return v ? [[`Exportación de ${c.label}`, 'millones de US$', v.year, r(v.value / 1e6, 1)]] : [];
+  });
+  return {
+    texto: [
+      'RECURSOS NATURALES:',
+      ...board.conclusions.map(conclusion),
+      'ÚLTIMOS DATOS DE BOLIVIA:',
+      ...bolivia(board.latest, RESOURCE_INDICATORS),
+      partidas.length ? 'EXPORTACIONES POR PARTIDA DE MATERIA PRIMA:' : '',
+      ...partidas,
+    ].filter(Boolean).join('\n'),
+    tabla: tabla(
+      'recursos',
+      'Recursos naturales de Bolivia',
+      COLUMNAS_DATO,
+      [...filasBolivia(board.latest, RESOURCE_INDICATORS), ...filasPartidas],
+      'Banco Mundial y UN Comtrade',
+    ),
+  };
 }
 
-async function ambiente(): Promise<string> {
+async function ambiente(): Promise<Salida> {
   const board = buildEnvironmentBoard(await readWorldBoard(ENVIRONMENT_CODES, ENVIRONMENT_PLACE_CODES));
-  return ['MEDIO AMBIENTE (Banco Mundial):', ...board.conclusions.map(conclusion), 'ÚLTIMOS DATOS DE BOLIVIA:', ...bolivia(board.latest, ENVIRONMENT_INDICATORS)].join('\n');
+  return {
+    texto: ['MEDIO AMBIENTE (Banco Mundial):', ...board.conclusions.map(conclusion), 'ÚLTIMOS DATOS DE BOLIVIA:', ...bolivia(board.latest, ENVIRONMENT_INDICATORS)].join('\n'),
+    tabla: tabla('ambiente', 'Medio ambiente en Bolivia, último dato de cada indicador', COLUMNAS_DATO, filasBolivia(board.latest, ENVIRONMENT_INDICATORS), 'Banco Mundial'),
+  };
 }
 
-async function comercio(): Promise<string> {
+async function comercio(): Promise<Salida> {
   const macroPoints = await readMacroAnnual();
   const depts = departmentBoard(macroPoints);
   const trade = buildForeignTradeBoard(macroPoints.filter((p) => p.indicatorCode.startsWith('COMTRADE_')));
@@ -462,15 +598,29 @@ async function comercio(): Promise<string> {
     .sort((a, b) => a.rank - b.rank)
     .slice(0, 10)
     .map((e) => `- ${e.rank}. ${e.name}: ${pct(e.share)} de las exportaciones`);
-  return [
+  const conclusiones = foreignTradeConclusions(depts, trade);
+  const ranking = exporters.exporters.slice().sort((a, b) => a.rank - b.rank).slice(0, 10);
+  const texto = [
     'COMERCIO EXTERIOR:',
-    ...foreignTradeConclusions(depts, trade).map(conclusion),
+    ...conclusiones.map(conclusion),
     top.length ? `PRINCIPALES EXPORTADORAS (${exporters.exportYear ?? 's/f'}; las diez primeras suman ${pct(concentration(exporters, 10))}; ranking de fuente privada, no oficial):` : '',
     ...top,
   ].filter(Boolean).join('\n');
+  return {
+    texto,
+    tabla: ranking.length
+      ? tabla(
+          'exportadoras',
+          `Principales exportadoras${exporters.exportYear ? `, ${exporters.exportYear}` : ''}`,
+          ['Puesto', 'Empresa', 'Participación en las exportaciones (%)'],
+          ranking.map((e) => [e.rank, e.name, r(e.share)]),
+          'Ranking de fuente privada, no oficial',
+        )
+      : tabla('comercio', 'Comercio exterior', COLUMNAS_CONCLUSION, conclusiones.map(filaDeConclusion), 'INE y UN Comtrade'),
+  };
 }
 
-async function empresas(): Promise<string> {
+async function empresas(): Promise<Salida> {
   const [filings, macroPoints] = await Promise.all([readCompanyFilings(200), readMacroAnnual()]);
   const exporters = buildExportersBoard(macroPoints.filter((p) => p.sector === 'EMPRESARIAL'));
   const edicion = exporters.reputationYear;
@@ -479,38 +629,69 @@ async function empresas(): Promise<string> {
     .sort((a, b) => a.rank - b.rank)
     .slice(0, 10)
     .map((s) => `- ${s.rank}. ${s.name}${s.score !== null ? ` (${entero(s.score)} puntos)` : ''}`);
-  const recientes = filings
-    .slice()
-    .sort((a, b) => b.eventDate.localeCompare(a.eventDate))
+  const ordenados = filings.slice().sort((a, b) => b.eventDate.localeCompare(a.eventDate));
+  const recientes = ordenados
     .slice(0, 12)
     .map((f) => `- ${f.eventDate} · ${f.filer} (${f.sector}) · ${f.category}: ${f.subject}`);
-  return [
+  const texto = [
     `HECHOS RELEVANTES RECIENTES EN LA BOLSA BOLIVIANA DE VALORES (${filings.length} leídos):`,
     ...recientes,
     merco.length ? `MONITOR MERCO DE REPUTACIÓN, edición ${edicion}:` : '',
     ...merco,
   ].filter(Boolean).join('\n');
+  return {
+    texto,
+    tabla: tabla(
+      'bolsa',
+      'Hechos relevantes recientes en la Bolsa Boliviana de Valores',
+      ['Fecha', 'Emisor', 'Rubro', 'Tipo de hecho', 'Asunto', 'Fuente'],
+      ordenados.slice(0, 30).map((f) => [f.eventDate, f.filer, f.sector, f.category, f.subject, f.sourceUrl ?? null]),
+      'Bolsa Boliviana de Valores',
+      exportar({ dataset: 'filings', desde: haceDias(fechaDeHoy(), 365) }, 'Todos los hechos relevantes del último año'),
+    ),
+  };
 }
 
-async function exogenas(): Promise<string> {
+async function exogenas(): Promise<Salida> {
   const board = await readExogenousBoard();
+  const filas: Celda[][] = [];
   const lineas = board.series.map((s) => {
-    const r = summarize(s);
-    if (!r.last) return null;
-    return `- ${s.name} (${s.market}; ${s.unit}; ${s.publisher}): ${r.last[0]} ${num(r.last[1], Math.abs(r.last[1]) >= 100 ? 0 : 2)}; contra hace un año ${signo(r.yearChange)}; contra el promedio de cinco años ${signo(r.versusFiveYears)}`;
+    const resumen = summarize(s);
+    if (!resumen.last) return null;
+    const decimales = Math.abs(resumen.last[1]) >= 100 ? 0 : 2;
+    filas.push([s.name, s.market, s.unit, resumen.last[0], r(resumen.last[1], decimales), r(resumen.yearChange, 1), r(resumen.versusFiveYears, 1), s.publisher]);
+    return `- ${s.name} (${s.market}; ${s.unit}; ${s.publisher}): ${resumen.last[0]} ${num(resumen.last[1], decimales)}; contra hace un año ${signo(resumen.yearChange)}; contra el promedio de cinco años ${signo(resumen.versusFiveYears)}`;
   });
-  return [`PRECIOS INTERNACIONALES QUE AFECTAN A BOLIVIA (último mes ${board.latestMonth ?? 's/f'}):`, ...lineas.filter(Boolean)].join('\n');
+  return {
+    texto: [`PRECIOS INTERNACIONALES QUE AFECTAN A BOLIVIA (último mes ${board.latestMonth ?? 's/f'}):`, ...lineas.filter(Boolean)].join('\n'),
+    tabla: tabla(
+      'exogenas',
+      board.latestMonth ? `Precios internacionales, último mes ${board.latestMonth}` : 'Precios internacionales',
+      ['Serie', 'Mercado', 'Unidad', 'Mes', 'Último valor', 'Contra hace un año (%)', 'Contra el promedio de cinco años (%)', 'Fuente'],
+      filas,
+      'Varias; cada fila dice la suya',
+    ),
+  };
 }
 
-async function mercados(): Promise<string> {
+async function mercados(): Promise<Salida> {
   const markets = await readMarkets();
-  return [
-    'MERCADOS (Binance):',
-    ...markets.map((m) => `- ${m.name} (${m.unit}): ${num(m.latest, m.latest >= 100 ? 0 : 4)} el ${m.latestDate}; día ${signo(m.changePercent)}; en toda la ventana ${signo(m.windowPercent)} desde ${m.points[0]?.date ?? 's/f'}`),
-  ].join('\n');
+  return {
+    texto: [
+      'MERCADOS (Binance):',
+      ...markets.map((m) => `- ${m.name} (${m.unit}): ${num(m.latest, m.latest >= 100 ? 0 : 4)} el ${m.latestDate}; día ${signo(m.changePercent)}; en toda la ventana ${signo(m.windowPercent)} desde ${m.points[0]?.date ?? 's/f'}`),
+    ].join('\n'),
+    tabla: tabla(
+      'mercados',
+      'Bitcoin, USDT y oro',
+      ['Activo', 'Unidad', 'Último', 'Fecha', 'Variación del día (%)', 'Desde', 'Variación en la ventana (%)'],
+      markets.map((m) => [m.name, m.unit, r(m.latest, m.latest >= 100 ? 0 : 4), m.latestDate, r(m.changePercent), m.points[0]?.date ?? null, r(m.windowPercent)]),
+      'Binance',
+    ),
+  };
 }
 
-async function mundo(): Promise<string> {
+async function mundo(): Promise<Salida> {
   const points = await readWorldBoard(WORLD_CODES, WORLD_PLACE_CODES);
   const ultimo = new Map<string, { year: number; value: number }>();
   for (const p of points) {
@@ -527,21 +708,48 @@ async function mundo(): Promise<string> {
       .map(({ c, v }) => `${PLACE_LABEL[c] ?? c} ${sayWorldFigure(v.value, i)}`);
     return [`- ${i.label} (${i.unit}), Bolivia ${bol.year}: ${sayWorldFigure(bol.value, i)}; ${otros.join('; ')}`];
   });
-  return ['BOLIVIA ANTE EL MUNDO (Banco Mundial; mundo y regiones):', ...lineas].join('\n');
+  const lugares = ['BOL', ...WORLD_PLACE_CODES.filter((c) => c !== 'BOL')];
+  const filas: Celda[][] = WORLD_INDICATORS.flatMap((i) => {
+    const bol = ultimo.get(`${i.code}|BOL`);
+    if (!bol) return [];
+    return [[i.label, i.unit, bol.year, ...lugares.map((c) => r(ultimo.get(`${i.code}|${c}`)?.value))]];
+  });
+  const desde = String(hoyEnLaPaz().anio - 10);
+  return {
+    texto: ['BOLIVIA ANTE EL MUNDO (Banco Mundial; mundo y regiones):', ...lineas].join('\n'),
+    tabla: tabla(
+      'mundo',
+      'Bolivia ante el mundo, último dato de cada lugar',
+      ['Indicador', 'Unidad', 'Año (Bolivia)', ...lugares.map((c) => PLACE_LABEL[c] ?? c)],
+      filas,
+      'Banco Mundial, World Development Indicators',
+      exportar({ dataset: 'mundo', desde }, `La comparación completa desde ${desde}`),
+    ),
+  };
 }
 
-async function carreteras(): Promise<string> {
+async function carreteras(): Promise<Salida> {
   const [sections, lengths] = await Promise.all([readRoadSections(), readRoadLengths()]);
   const board = buildRoadBoard(sections, lengths);
-  return [
+  const texto = [
     `RED VIAL: ${entero(board.totalKm)} km mapeados, ${pct(board.pavedShare)} pavimentados${board.asOfPeriod ? `; longitud oficial del INE al ${board.asOfPeriod}` : ''}.`,
     ...board.conclusions.map(conclusion),
     'POR DEPARTAMENTO:',
     ...board.kmByDepartment.map((d) => `- ${d.name}: ${entero(d.totalKm)} km`),
   ].join('\n');
+  return {
+    texto,
+    tabla: tabla(
+      'carreteras',
+      'Red vial mapeada por departamento',
+      ['Departamento', 'Kilómetros'],
+      board.kmByDepartment.map((d) => [d.name, r(d.totalKm, 0)]),
+      'Red vial mapeada por el Observatorio; la longitud oficial del INE está en la pestaña «Carreteras»',
+    ),
+  };
 }
 
-async function ciudades(): Promise<string> {
+async function ciudades(): Promise<Salida> {
   const families = await readPlaceFamilies();
   const porCiudad = new Map<string, Map<string, number>>();
   for (const f of families) {
@@ -549,28 +757,47 @@ async function ciudades(): Promise<string> {
     grupos.set(f.entityGroup, (grupos.get(f.entityGroup) ?? 0) + f.places);
     porCiudad.set(f.city, grupos);
   }
-  const lineas = [...porCiudad.entries()]
-    .map(([ciudad, grupos]) => ({ ciudad, total: [...grupos.values()].reduce((a, b) => a + b, 0), grupos }))
-    .sort((a, b) => b.total - a.total)
-    .map(({ ciudad, total, grupos }) => `- ${ciudad}: ${entero(total)} lugares; ${[...grupos.entries()].sort((a, b) => b[1] - a[1]).slice(0, 8).map(([g, n]) => `${g} ${entero(n)}`).join(', ')}`);
-  return ['LUGARES Y NEGOCIOS MAPEADOS POR CIUDAD (OpenStreetMap y Overture; conteos de lo mapeado, no un censo):', ...lineas].join('\n');
+  const resumen = [...porCiudad.entries()]
+    .map(([ciudad, grupos]) => ({ ciudad, total: [...grupos.values()].reduce((a, b) => a + b, 0), grupos: [...grupos.entries()].sort((a, b) => b[1] - a[1]) }))
+    .sort((a, b) => b.total - a.total);
+  const lineas = resumen.map(({ ciudad, total, grupos }) => `- ${ciudad}: ${entero(total)} lugares; ${grupos.slice(0, 8).map(([g, n]) => `${g} ${entero(n)}`).join(', ')}`);
+  return {
+    texto: ['LUGARES Y NEGOCIOS MAPEADOS POR CIUDAD (OpenStreetMap y Overture; conteos de lo mapeado, no un censo):', ...lineas].join('\n'),
+    tabla: tabla(
+      'ciudades',
+      'Lugares mapeados por ciudad (no es un censo)',
+      ['Ciudad', 'Lugares', 'Grupos con más lugares'],
+      resumen.map(({ ciudad, total, grupos }) => [ciudad, total, grupos.slice(0, 5).map(([g, n]) => `${g} ${n}`).join('; ')]),
+      'OpenStreetMap y Overture Maps',
+    ),
+  };
 }
 
-async function metodo(): Promise<string> {
+async function metodo(): Promise<Salida> {
   const sources = await readSources();
   const porFuente = new Map<string, number>();
   for (const s of sources) porFuente.set(s.publisher, (porFuente.get(s.publisher) ?? 0) + 1);
-  return [
+  const texto = [
     'FUENTES DE LAS SERIES DIARIAS Y SU COBERTURA:',
     ...sources.slice(0, 25).map((s) => `- ${s.name ?? s.indicator} · ${s.publisher} · ${s.frequency ?? 's/f'} · del ${s.firstDay} al ${s.lastDay} (${entero(s.readings)} lecturas)`),
     `Editoriales: ${[...porFuente.keys()].join(', ')}.`,
     'Los indicadores anuales vienen del Banco Mundial, el FMI, el INE, V-Dem, Freedom House, Fraser y Transparencia Internacional; cada serie cita su fuente en el tablero.',
   ].join('\n');
+  return {
+    texto,
+    tabla: tabla(
+      'fuentes',
+      'Fuentes de las series diarias',
+      ['Serie', 'Editor', 'Frecuencia', 'Desde', 'Hasta', 'Lecturas'],
+      sources.map((f) => [f.name ?? f.indicator, f.publisher, f.frequency ?? null, f.firstDay, f.lastDay, f.readings]),
+      'Registro de fuentes del Observatorio',
+    ),
+  };
 }
 
 /* ---------------------------------------------------------------- armado */
 
-function armar(id: PaqueteId, ctx: Contexto): Promise<string> {
+function armar(id: PaqueteId, ctx: Contexto): Promise<Salida> {
   switch (id) {
     case 'HOY': return hoy();
     case 'DOLAR': return dolar();
@@ -590,7 +817,7 @@ function armar(id: PaqueteId, ctx: Contexto): Promise<string> {
     case 'CARRETERAS': return carreteras();
     case 'CIUDADES': return ciudades();
     case 'METODO': return metodo();
-    case 'GUIA': return Promise.resolve(guiaCompleta());
+    case 'GUIA': return Promise.resolve({ texto: guiaCompleta() });
   }
 }
 
@@ -606,7 +833,8 @@ export async function leerPaquetes(ids: readonly PaqueteId[], ctx: Contexto): Pr
   return Promise.all(
     ids.map(async (id) => {
       try {
-        return { id, texto: await conPlazo(armar(id, ctx), PAQUETE_MS), leido: true };
+        const salida = await conPlazo(armar(id, ctx), PAQUETE_MS);
+        return { id, texto: salida.texto, leido: true, tabla: salida.tabla };
       } catch (error) {
         const code = (error as { code?: string } | null)?.code ?? (error instanceof Error ? error.message : 'sin codigo');
         console.warn(`[asistente] paquete ${id} sin leer (${code})`);

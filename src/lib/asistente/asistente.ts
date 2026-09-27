@@ -11,7 +11,9 @@ import {
   type PaqueteId,
   type Tipo,
 } from './alcance';
-import { GUIA_VERSION, guiaBreve, pestanasPara, type Pestana } from './guia';
+import { hrefDe } from '../enlace-tablero';
+import { GUIA_VERSION, enlacesPara, guiaBreve, pestanasPara, type Enlace, type Pestana } from './guia';
+import type { Tabla } from './tabla';
 import { fechaDeHoy, leerPaquetes } from './paquetes';
 import { configurado, modelo, pedir, ProveedorError, type Mensaje, type Uso } from './proveedor';
 import {
@@ -42,6 +44,10 @@ export interface Respuesta {
   tipo: Tipo | 'FIJA';
   paquetes: PaqueteId[];
   pestanas: Pestana[];
+  /** Adónde ir en el tablero: pestaña y página exactas, con su dirección para copiar o abrir aparte. */
+  enlaces: Array<Enlace & { href: string }>;
+  /** Las cifras con que se contestó, una tabla por paquete leído: la vista previa y su CSV. */
+  tablas: Tabla[];
   departamento: string | null;
   faltantes: PaqueteId[];
   fecha: string;
@@ -153,6 +159,8 @@ function fija(texto: string, inicio: number): Respuesta {
     tipo: 'FIJA',
     paquetes: [],
     pestanas: [],
+    enlaces: [],
+    tablas: [],
     departamento: null,
     faltantes: [],
     fecha: fechaDeHoy(),
@@ -285,6 +293,9 @@ export async function responder(pregunta: string, historial: readonly Turno[], i
       console.error('[asistente] respuesta retenida: traía algo con forma de credencial');
       return fija(RESPUESTA_SEGURIDAD, inicio);
     }
+    // Si el modelo aplicó la regla 9 o la 10, es una negativa: sin tablas ni enlaces de datos que no se usaron.
+    if (r.contenido.includes(RESPUESTA_FUERA.slice(0, 60))) return fija(RESPUESTA_FUERA, inicio);
+    if (r.contenido.includes(RESPUESTA_SEGURIDAD.slice(0, 60))) return fija(RESPUESTA_SEGURIDAD, inicio);
 
     const respuesta = clasificacion.tipo === 'ASESORIA' ? `${r.contenido}\n\n${AVISO_ASESORIA}` : r.contenido;
     return {
@@ -292,6 +303,8 @@ export async function responder(pregunta: string, historial: readonly Turno[], i
       tipo: clasificacion.tipo,
       paquetes: clasificacion.paquetes,
       pestanas: pestanasPara(clasificacion.paquetes),
+      enlaces: enlacesPara(clasificacion.paquetes).map((e) => ({ ...e, href: hrefDe(e) })),
+      tablas: paquetes.flatMap((p) => (p.leido && p.tabla ? [p.tabla] : [])).slice(0, 4),
       departamento: clasificacion.departamento,
       faltantes: paquetes.filter((p) => !p.leido).map((p) => p.id),
       fecha: hoy,

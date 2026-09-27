@@ -31,7 +31,7 @@ import type { CompanyFiling } from '@/lib/series';
  */
 export function FilingsSection() {
   return (
-    <SubTabs
+    <SubTabs enlace
       labels={['Bolsa de valores (BBV)', 'Comercio exterior', 'Reputación empresarial']}
       icons={['velas', 'globo', 'escudo']}
     >

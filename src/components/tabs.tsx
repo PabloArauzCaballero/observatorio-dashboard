@@ -3,6 +3,32 @@
 import { useEffect, useId, useRef, useState } from 'react';
 import { Icon } from './icons';
 import type { IconName } from './icons';
+import { EVENTO_ENLACE, PARAM_PAGINA, PARAM_PESTANA, anotar, indicePorSlug, leerParametro, slug } from '@/lib/enlace-tablero';
+
+/**
+ * Sigue la dirección: al montar, cuando el asistente pide un destino y cuando
+ * el lector usa «atrás». Así `/?pestana=…&pagina=…` abre el lugar exacto.
+ * La clave es el texto de los rótulos y no el arreglo, que llega nuevo en cada
+ * render del padre.
+ */
+function useSeguirDireccion(labels: readonly string[], parametro: string, setActive: (index: number) => void, activo: boolean) {
+  const clave = labels.join('|');
+  useEffect(() => {
+    if (!activo) return;
+    const rotulos = clave.split('|');
+    const sincronizar = () => {
+      const index = indicePorSlug(rotulos, leerParametro(parametro));
+      if (index >= 0) setActive(index);
+    };
+    sincronizar();
+    window.addEventListener(EVENTO_ENLACE, sincronizar);
+    window.addEventListener('popstate', sincronizar);
+    return () => {
+      window.removeEventListener(EVENTO_ENLACE, sincronizar);
+      window.removeEventListener('popstate', sincronizar);
+    };
+  }, [clave, parametro, setActive, activo]);
+}
 
 /**
  * Roving-tabindex keyboard behaviour shared by Tabs and SubTabs: arrow keys
@@ -64,21 +90,20 @@ export function Tabs({
 }) {
   const [active, setActive] = useState(0);
   const baseId = useId();
-  const { buttonsRef, onKeyDown } = useTablistKeyboard(labels.length, setActive);
+  // Elegir una pestaña la anota en la dirección y olvida la página de la anterior.
+  const elegir = (index: number) => {
+    setActive(index);
+    const label = labels[index];
+    if (label) anotar({ [PARAM_PESTANA]: slug(label), [PARAM_PAGINA]: null });
+  };
+  const { buttonsRef, onKeyDown } = useTablistKeyboard(labels.length, elegir);
 
   /*
-   * El asistente remite a una pestaña por su rótulo («Ir a «Macroeconomía»»).
-   * Un evento de ventana y no un contexto, porque el chat vive en el layout,
-   * fuera del árbol de las pestañas.
+   * El asistente remite a una pestaña con un enlace (`/?pestana=…`). Un evento
+   * de ventana y no un contexto, porque el chat vive fuera del árbol de las
+   * pestañas.
    */
-  useEffect(() => {
-    const alPedir = (event: Event) => {
-      const index = labels.indexOf(String((event as CustomEvent<string>).detail));
-      if (index >= 0) setActive(index);
-    };
-    window.addEventListener('observatorio:pestana', alPedir);
-    return () => window.removeEventListener('observatorio:pestana', alPedir);
-  }, [labels]);
+  useSeguirDireccion(labels, PARAM_PESTANA, setActive, true);
 
   return (
     <>
@@ -96,7 +121,7 @@ export function Tabs({
             aria-controls={`${baseId}-panel`}
             tabIndex={index === active ? 0 : -1}
             className={index === active ? 'tab tab-active' : 'tab'}
-            onClick={() => setActive(index)}
+            onClick={() => elegir(index)}
             onKeyDown={(event) => onKeyDown(event, index)}
           >
             <Icon name={icons[index] ?? 'cajas'} size={15} />
@@ -133,14 +158,27 @@ export function SubTabs({
   labels,
   icons,
   children,
+  enlace = false,
 }: {
   labels: string[];
   icons: IconName[];
   children: React.ReactNode[];
+  /**
+   * Si esta barra es la que nombra `pagina=` en la dirección. Solo la de
+   * primer nivel de cada pestaña: una anidada («Comercio», «Pagos») pisaría la
+   * página de su madre.
+   */
+  enlace?: boolean;
 }) {
   const [active, setActive] = useState(0);
   const baseId = useId();
-  const { buttonsRef, onKeyDown } = useTablistKeyboard(labels.length, setActive);
+  const elegir = (index: number) => {
+    setActive(index);
+    const label = labels[index];
+    if (enlace && label) anotar({ [PARAM_PAGINA]: slug(label) });
+  };
+  const { buttonsRef, onKeyDown } = useTablistKeyboard(labels.length, elegir);
+  useSeguirDireccion(labels, PARAM_PAGINA, setActive, enlace);
 
   return (
     <>
@@ -158,7 +196,7 @@ export function SubTabs({
             aria-controls={`${baseId}-subpanel`}
             tabIndex={index === active ? 0 : -1}
             className={index === active ? 'subtab subtab-active' : 'subtab'}
-            onClick={() => setActive(index)}
+            onClick={() => elegir(index)}
             onKeyDown={(event) => onKeyDown(event, index)}
           >
             <Icon name={icons[index] ?? 'cajas'} size={13} />
