@@ -74,7 +74,7 @@ const VENTANA_IP_MS = 10 * 60 * 1000;
 /** Cuántas preguntas por IP cada diez minutos. Público y sin sesión: es lo que frena el abuso. */
 function admitirIp(ip: string): void {
   const ahora = Date.now();
-  const limite = entero('ASISTENTE_POR_IP', 20);
+  const limite = entero('ASISTENTE_POR_IP', 40);
   const recientes = (porIp.get(ip) ?? []).filter((t) => ahora - t < VENTANA_IP_MS);
   if (recientes.length >= limite) {
     const espera = Math.ceil((VENTANA_IP_MS - (ahora - (recientes[0] ?? ahora))) / 1000);
@@ -118,7 +118,8 @@ FORMA
 - Español claro, voseo boliviano, tono sereno y profesional. Entendé faltas de ortografía y habla coloquial.
 - Empezá con la respuesta directa en una o dos frases. Seguí con tres a cinco viñetas «- » con las cifras que la sostienen. Podés usar **negrita** para la cifra clave. Sin tablas ni títulos.
 - Entre 90 y 220 palabras.
-- Terminá con una línea que empiece con «Dónde verlo:» y la ruta en el tablero según la GUÍA.`;
+- Terminá con una línea que empiece con «Dónde verlo:» y la ruta en el tablero copiada de la GUÍA o de los rótulos «rubro …» de los DATOS. No inventes nombres de pestañas, páginas ni rubros: la red vial está en la pestaña «Carreteras» y los lugares en «Ciudades», no dentro de «Macroeconomía».
+- No agregues avisos sobre inversión si la pregunta no es sobre invertir o ahorrar.`;
 
 function clasificador(): string {
   return `Sos un clasificador para el asistente del Observatorio Económico de Bolivia. No respondas la pregunta. Devolvé solo JSON, sin texto adicional, con esta forma:
@@ -232,6 +233,20 @@ export async function responder(pregunta: string, historial: readonly Turno[], i
       departamento: clasificacion.departamento,
       busqueda: clasificacion.busqueda,
     });
+
+    /*
+     * Ningún paquete llegó: es el servidor recién arrancado, con la memoria
+     * vacía, no un dato que falte. Contestar con el modelo daría una respuesta
+     * de «no hay información» que es falsa y gasta tokens; la lectura sigue en
+     * curso por detrás y queda sostenida, así que en unos segundos sí contesta.
+     */
+    if (paquetes.every((p) => !p.leido)) {
+      throw new AsistenteError(
+        'Estoy terminando de cargar los datos del tablero (el servidor se reinició hace poco). Probá de nuevo en unos segundos.',
+        503,
+        10,
+      );
+    }
 
     const hoy = fechaDeHoy();
     const datos = paquetes.map((p) => `### ${p.id}\n${p.texto}`).join('\n\n');

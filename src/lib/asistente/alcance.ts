@@ -142,13 +142,13 @@ const REGLAS: ReadonlyArray<{ patron: RegExp; paquetes: readonly PaqueteId[] }> 
   { patron: palabra(['empresa', 'bolsa boliviana', 'bolsa de valores', 'bbv$', 'hechos? relevantes?', 'merco$', 'reputaci', 'emisor', 'bonos?$']), paquetes: ['EMPRESAS'] },
   { patron: palabra(['precios? internacional', 'materias primas', 'commodit', 'exogen', 'trigo', 'fertilizante', 'cobre', 'aluminio', 'crudo', 'brent', 'wti$']), paquetes: ['EXOGENAS'] },
   { patron: palabra(['bitcoin', 'btc$', 'cripto', 'oro$']), paquetes: ['MERCADOS'] },
-  { patron: palabra(['vecinos?$', 'el mundo', 'compara', 'latinoameric', 'america latina', 'la region', 'peru$', 'chile$', 'paraguay', 'argentina', 'brasil']), paquetes: ['MUNDO'] },
+  { patron: palabra(['vecinos?$', 'el mundo', 'comparad[oa] con (?:el mundo|los vecinos|la region|otros paises|america)', 'frente al mundo', 'otros paises', 'latinoameric', 'america latina', 'la region', 'peru$', 'chile$', 'paraguay', 'argentina', 'brasil']), paquetes: ['MUNDO'] },
   { patron: palabra(['carretera', 'rutas?$', 'caminos?$', 'red vial', 'vial$', 'asfalt', 'paviment']), paquetes: ['CARRETERAS'] },
   { patron: palabra(['restaurant', 'farmacia', 'negocios', 'comercios', 'lugares', 'tiendas', 'supermercado', 'hotel', 'ciudades']), paquetes: ['CIUDADES'] },
   { patron: palabra(['noticia', 'prensa', 'periodic', 'medios', 'titular', 'que paso', 'que esta pasando', 'actualidad', 'ultimas']), paquetes: ['PRENSA'] },
   { patron: palabra(['fuente', 'de donde salen', 'metodolog', 'confiable', 'se actualiza', 'actualizan', 'cada cuanto']), paquetes: ['METODO'] },
   { patron: palabra(['departamentos', 'regiones', 'por departamento']), paquetes: ['DEPTOS'] },
-  { patron: palabra(['situacion', 'como esta bolivia', 'como va bolivia', 'panorama', 'resumen', 'economia boliviana', 'economia de bolivia', 'como estamos', 'la economia']), paquetes: ['HOY', 'DOLAR', 'MACRO'] },
+  { patron: palabra(['situacion(?! politic| social| institucional)', 'como esta bolivia', 'como va bolivia', 'panorama', 'resumen', 'economia boliviana', 'economia de bolivia', 'como estamos', 'la economia']), paquetes: ['HOY', 'DOLAR', 'MACRO'] },
 ];
 
 /** Preguntas sobre cómo usar la herramienta, no sobre el país. */

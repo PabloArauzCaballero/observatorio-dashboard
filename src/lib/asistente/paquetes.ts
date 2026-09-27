@@ -20,6 +20,7 @@ import { readFxSnapshot } from '@/lib/fx-reader';
 import type { FxConclusion } from '@/lib/fx-snapshot';
 import { buildForeignTradeBoard, foreignTradeConclusions } from '@/lib/foreign-trade-board';
 import { held } from '@/lib/hold';
+import { SECTOR_LABEL } from '@/components/macro-vocabulary';
 import { GLOSSARY } from '@/lib/indicator-glossary';
 import { buildInstitutionsBoard } from '@/lib/institutions-board';
 import { readPlaceFamilies } from '@/lib/places';
@@ -59,8 +60,13 @@ import { guiaCompleta } from './guia';
 
 const TIME_ZONE = 'America/La_Paz';
 
-/** Cuánto espera cada paquete. Por debajo del corte de la respuesta del modelo. */
-const PAQUETE_MS = 12_000;
+/**
+ * Cuánto espera cada paquete. Con la memoria caliente todos llegan en uno o dos
+ * segundos; el plazo es para el servidor recién arrancado, donde la brecha sola
+ * tarda cerca de treinta en Contabo. Lo que no llega sigue leyéndose por detrás
+ * y queda sostenido para la pregunta siguiente.
+ */
+const PAQUETE_MS = 18_000;
 
 export interface Paquete {
   id: PaqueteId;
@@ -272,7 +278,9 @@ async function macro(): Promise<string> {
   for (const p of puntos) porSector.set(p.sector, [...(porSector.get(p.sector) ?? []), p]);
   const lineas: string[] = ['INDICADORES ANUALES DE BOLIVIA (último dato de cada serie; entre paréntesis el anterior):'];
   for (const [sector, lista] of [...porSector.entries()].sort()) {
-    lineas.push(`[${sector}]`);
+    // El rótulo es el del botón del rubro en «Series de Bolivia»: así la ruta
+    // que cite la respuesta existe de verdad.
+    lineas.push(`[rubro «${SECTOR_LABEL[sector] ?? sector}» en «Macroeconomía» › «Series de Bolivia»]`);
     for (const p of lista.sort((a, b) => a.indicatorCode.localeCompare(b.indicatorCode))) {
       const glosa = GLOSSARY[p.indicatorCode];
       lineas.push(
