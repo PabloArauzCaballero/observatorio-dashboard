@@ -50,6 +50,8 @@ export interface SummaryExplorerProps {
    * que impide que alguien lo cablee al filtro sin querer.
    */
   board?: React.ReactNode;
+  /** Lo que cambió en la prensa: va después de las cifras, no delante. */
+  news?: React.ReactNode;
   /**
    * La brecha no llego porque el servidor no termino de leerla.
    *
@@ -82,6 +84,7 @@ export function SummaryExplorer({
   latestDate,
   markets,
   board,
+  news,
   gapUnread,
 }: SummaryExplorerProps) {
   const [range, setRange] = useState('todo');
@@ -270,21 +273,25 @@ export function SummaryExplorer({
             <div
               style={{
                 display: 'flex',
+                flexWrap: 'wrap',
+                gap: '0.2rem 1rem',
                 marginTop: '0.5rem',
                 fontFamily: 'var(--mono)',
                 fontSize: '0.72rem',
                 color: 'var(--ink-faint)',
               }}
             >
-              <span>
+              <span style={{ whiteSpace: 'nowrap' }}>
                 máx {percent(peak.gapPercent)} · {peak.date}
               </span>
-              <span style={{ marginLeft: 'auto' }}>
+              <span style={{ marginLeft: 'auto', whiteSpace: 'nowrap' }}>
                 mín {percent(trough.gapPercent)} · {trough.date}
               </span>
             </div>
           ) : null}
         </div>
+
+        {news ?? null}
 
         {/*
           El análisis va plegado, como la lectura de cada capítulo (`DerivedReading`
