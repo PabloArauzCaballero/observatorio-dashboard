@@ -6209,11 +6209,8 @@ button.download-btn {
 /* Cotización del dólar ---------------------------------------------------- */
 
 /*
- * Lo primero de la portada. Las tres cotizaciones van en una fila también en
- * un teléfono: compararlas de un vistazo es para lo que existe la tarjeta, y
- * apiladas el lector tendría que recordar la primera cifra al llegar a la
- * tercera. Por eso a 375 px se achica la letra y se quitan adornos, pero no se
- * rompe la fila.
+ * Lo primero de la portada: tres columnas en el escritorio, una fila por
+ * cotización en el teléfono (ver el bloque de 640 px).
  */
 .board-head {
   margin-bottom: var(--s2);
@@ -6423,104 +6420,188 @@ button.download-btn {
   margin: 0;
 }
 
+/*
+ * En el teléfono, una cotización por fila y la cifra en grande.
+ *
+ * La primera versión metía las tres en una fila de 375 px: cabían, pero a
+ * 1,3rem la cifra se leía como un dato más y no como la respuesta. Ahora cada
+ * cotización ocupa el ancho entero, con el precio a la derecha a tamaño de
+ * titular y, debajo, compra, venta y la chispa. Las tres siguen entrando en la
+ * primera pantalla después de la cabecera.
+ */
 @media (max-width: 640px) {
   .quotes {
-    padding: var(--s2) 0.7rem 0.75rem;
+    padding: var(--s2) 0.75rem 0.85rem;
+  }
+
+  .quotes-head {
+    margin-bottom: 0.75rem;
+  }
+
+  .quotes-head h2 {
+    font-size: 1.2rem;
+  }
+
+  /* Cada cifra ya lleva «Bs»; el rótulo solo partía el título en dos líneas. */
+  .quotes-head .tile-hint {
+    display: none;
   }
 
   .quotes-grid {
-    gap: 0.45rem;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0.6rem;
   }
 
   .quote {
-    padding: 0.6rem 0.5rem 0.5rem;
-    gap: 0.15rem;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-areas:
+      'head   figure'
+      'detail change'
+      'sides  sides'
+      'spark  spark';
+    align-items: center;
+    column-gap: 0.75rem;
+    row-gap: 0.15rem;
+    padding: 0.75rem 0.95rem 0.6rem;
+    border-top-width: 1px;
+    border-left: 4px solid var(--quote-accent);
   }
 
-  /* El nombre arriba y la fecha debajo: juntos no caben en 100 px. */
   .quote-head {
+    grid-area: head;
+    align-self: end;
     flex-wrap: wrap;
-    row-gap: 0;
+    column-gap: 0.4rem;
+  }
+
+  .quote-name {
+    font-size: 1rem;
   }
 
   .quote-date {
-    width: 100%;
     margin-left: 0;
+    font-size: 0.7rem;
   }
 
-  .quote-head svg,
-  .quote-detail,
+  .quote-detail {
+    grid-area: detail;
+    align-self: start;
+    font-size: 0.74rem;
+  }
+
+  .quote-figure {
+    grid-area: figure;
+    justify-self: end;
+    align-self: end;
+    margin-top: 0;
+  }
+
+  .quote-value {
+    font-size: clamp(2.1rem, 9.5vw, 2.6rem);
+  }
+
+  .quote-unit {
+    font-size: 0.85rem;
+  }
+
+  .quote-change {
+    grid-area: change;
+    justify-self: end;
+    align-self: start;
+    font-size: 0.78rem;
+  }
+
+  .quote-sides {
+    grid-area: sides;
+    gap: 0 1.4rem;
+    margin-top: 0.35rem;
+    padding-top: 0.4rem;
+  }
+
+  .quote-sides dt {
+    font-size: 0.7rem;
+  }
+
+  .quote-sides dd {
+    font-size: 1rem;
+  }
+
+  .quote-spark {
+    grid-area: spark;
+  }
+
+  .quote-spark .sparkline {
+    height: 30px;
+  }
+
+  /* Las plazas ya las dice el pie; en la fila solo sumarían una línea. */
   .quote-venues {
     display: none;
   }
 
-  .quote-name {
+  .quotes-foot {
+    font-size: 0.8rem;
+  }
+
+  .quotes-foot > span:last-child {
     font-size: 0.72rem;
   }
 
-  .quote-date {
-    font-size: 0.58rem;
+  /*
+   * Las tendencias también en grande: son lo segundo que el lector vino a
+   * mirar. La prosa de presentación se queda en el escritorio; en el teléfono
+   * la dice cada tarjeta con su regla.
+   */
+  .board-intro {
+    display: none;
   }
 
-  .quote-unit {
-    font-size: 0.66rem;
+  .board-trends-head {
+    margin-bottom: 0.75rem;
   }
 
-  /* El porcentaje se cae a su propia línea antes que salirse de la columna. */
-  .quote-change {
-    display: flex;
-    flex-wrap: wrap;
-    column-gap: 0.25rem;
-    font-size: 0.64rem;
-    white-space: normal;
+  .board-trends-head h3 {
+    font-size: 1.2rem;
   }
 
-  .quote-change-pct {
-    margin-left: 0;
-  }
-
-  .quote-sides {
-    flex-direction: column;
-    gap: 0.05rem;
-  }
-
-  .quote-sides div {
-    justify-content: space-between;
-  }
-
-  .quote-sides dt {
-    font-size: 0.58rem;
-  }
-
-  .quote-sides dd {
-    font-size: 0.7rem;
-  }
-
-  .quote-spark .sparkline {
-    height: 24px;
-  }
-
-  .quotes-foot {
-    font-size: 0.7rem;
-  }
-
-  /* Las tendencias, más densas: la cifra y el color se leen igual. */
   .board-card {
-    gap: 0.3rem;
-    padding: 0.75rem 0.85rem 0.85rem;
+    gap: 0.4rem;
+    padding: 0.95rem 1rem 1rem;
+  }
+
+  .board-card-head h3 {
+    font-size: 1.02rem;
+  }
+
+  .board-verdict {
+    font-size: 0.7rem;
   }
 
   .board-value {
-    font-size: 1.45rem;
+    font-size: 2.2rem;
+  }
+
+  .board-unit {
+    font-size: 0.85rem;
+  }
+
+  .board-measure {
+    font-size: 0.82rem;
   }
 
   .board-spark .sparkline {
-    height: 30px;
+    height: 44px;
   }
 
   .board-reading {
-    font-size: 0.8rem;
-    line-height: 1.45;
+    font-size: 0.92rem;
+    line-height: 1.5;
+    color: var(--ink);
+  }
+
+  .board-rule {
+    font-size: 0.82rem;
   }
 
   .board-news {
@@ -6543,41 +6624,34 @@ button.download-btn {
   }
 
   .figure {
-    padding: 0.7rem 0.75rem;
+    padding: 0.8rem 0.85rem;
   }
 
   .figure .value {
-    font-size: 1.25rem;
+    font-size: 1.45rem;
   }
 
   .figure .unit {
-    font-size: 0.68rem;
+    font-size: 0.72rem;
   }
 
   .figure .sparkline {
-    height: 28px;
+    height: 30px;
   }
 }
 
-/*
- * Los teléfonos más angostos (320 px). La cabecera ya dice «Bs por dólar», así
- * que la unidad de cada cifra es lo primero que se puede soltar sin perder nada.
- */
+/* Los más angostos (320 px): la cifra cede un poco, la fila no se parte. */
 @media (max-width: 360px) {
   .quote {
-    padding-inline: 0.4rem;
+    padding-inline: 0.75rem;
+  }
+
+  .quote-value {
+    font-size: 1.95rem;
   }
 
   .quote-unit {
     display: none;
-  }
-
-  .quote-value {
-    font-size: 1.2rem;
-  }
-
-  .quote-sides dd {
-    font-size: 0.66rem;
   }
 }
 

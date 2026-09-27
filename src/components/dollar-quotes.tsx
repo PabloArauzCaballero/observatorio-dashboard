@@ -9,9 +9,9 @@ import type { DollarQuote, DollarQuotes, QuoteKey } from '@/lib/dollar-quotes';
  * Tres cotizaciones lado a lado y en la misma escala, cada una con el color que
  * ya tiene en el capítulo del tipo de cambio —USDT naranja, USDC rosa, el
  * oficial azul—, así que quien pasa de aquí a los gráficos no tiene que volver
- * a aprender la paleta. En un teléfono las tres caben en una fila: es la única
- * pantalla de la portada que no se deja apilar, porque compararlas de un
- * vistazo es para lo que existe.
+ * a aprender la paleta. En un teléfono van una por fila y a todo el ancho, con
+ * la cifra a tamaño de titular: apretadas en tres columnas cabían, pero se
+ * leían chicas.
  */
 
 const TONE: Record<QuoteKey, { accent: string; icon: IconName }> = {
