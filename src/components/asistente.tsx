@@ -1,22 +1,34 @@
 'use client';
 
 import { Fragment, useCallback, useEffect, useId, useRef, useState } from 'react';
-import type { ReactNode } from 'react';
+import type { MouseEvent, ReactNode } from 'react';
+
+import { aCsv, aMarkdown, nombreDeArchivo, type Tabla } from '@/lib/asistente/tabla';
+import { navegar, type Destino } from '@/lib/enlace-tablero';
 
 /**
  * «Preguntale al Observatorio»: el chat que contesta con los datos del tablero.
  *
  * Un botón fijo abre un panel lateral (una hoja a pantalla completa en el
  * teléfono). La conversación vive en `sessionStorage` y viaja con cada
- * pregunta, así el servidor no guarda nada de nadie. Las respuestas traen las
- * pestañas donde ver el detalle, y el botón «Ir a…» cambia la pestaña del
- * tablero con un evento que escucha `Tabs`.
+ * pregunta, así el servidor no guarda nada de nadie. Las respuestas traen
+ * enlaces reales a la pestaña y la página donde ver el detalle (se pueden
+ * copiar o abrir aparte), las tablas con las cifras que se usaron para
+ * contestar —con su CSV— y la opción de bajar la respuesta entera.
  */
+
+interface Enlace extends Destino {
+  etiqueta: string;
+  href: string;
+}
 
 interface Turno {
   rol: 'usuario' | 'asistente';
   texto: string;
+  /** Las respuestas guardadas antes de los enlaces solo traen la pestaña. */
   pestanas?: string[];
+  enlaces?: Enlace[];
+  tablas?: Tabla[];
   fecha?: string;
   error?: boolean;
 }
@@ -24,12 +36,17 @@ interface Turno {
 interface RespuestaApi {
   respuesta?: string;
   pestanas?: string[];
+  enlaces?: Enlace[];
+  tablas?: Tabla[];
   fecha?: string;
   error?: string;
 }
 
 const CLAVE = 'observatorio-asistente-v1';
-export const EVENTO_PESTANA = 'observatorio:pestana';
+/** Solo las últimas respuestas guardan sus tablas: el almacenamiento de la pestaña es chico. */
+const TURNOS_CON_TABLAS = 12;
+/** Cuántas filas se ven en la vista previa; el CSV lleva todas. */
+const FILAS_A_LA_VISTA = 8;
 
 const SUGERENCIAS = [
   '¿Cómo está el dólar hoy?',
@@ -52,7 +69,13 @@ function leerGuardado(): Turno[] {
 
 function guardar(turnos: Turno[]): void {
   try {
-    sessionStorage.setItem(CLAVE, JSON.stringify(turnos.slice(-30)));
+    const recientes = turnos.slice(-30);
+    const livianos = recientes.map((t, i) => {
+      if (i >= recientes.length - TURNOS_CON_TABLAS || !t.tablas) return t;
+      const { tablas: _descartadas, ...resto } = t;
+      return resto;
+    });
+    sessionStorage.setItem(CLAVE, JSON.stringify(livianos));
   } catch {
     // Sin almacenamiento (ventana privada, bloqueado): la conversación vive solo en memoria.
   }
@@ -94,6 +117,87 @@ function Texto({ texto }: { texto: string }) {
   }
   cerrar();
   return <>{bloques}</>;
+}
+
+/** Baja un archivo armado en el navegador, sin volver a pedirle nada al servidor. */
+function bajar(nombre: string, contenido: string, tipo: string): void {
+  const url = URL.createObjectURL(new Blob([contenido], { type: tipo }));
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = nombre;
+  document.body.append(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 1_000);
+}
+
+/** La respuesta entera como Markdown: la pregunta, el texto, los enlaces y las tablas. */
+function respuestaComoMarkdown(pregunta: string | undefined, turno: Turno): string {
+  const origen = window.location.origin;
+  const partes = [
+    '# Observatorio Económico de Bolivia',
+    pregunta ? `**Pregunta:** ${pregunta}` : '',
+    turno.fecha ? `**Datos al:** ${turno.fecha}` : '',
+    turno.texto,
+    turno.enlaces?.length
+      ? ['## Dónde verlo en el tablero', ...turno.enlaces.map((e) => `- [${e.etiqueta}](${origen}${e.href})`)].join('\n')
+      : '',
+    turno.tablas?.length ? ['## Datos consultados', ...turno.tablas.map(aMarkdown)].join('\n\n') : '',
+  ];
+  return `${partes.filter(Boolean).join('\n\n')}\n`;
+}
+
+function VistaPrevia({ tabla, fecha }: { tabla: Tabla; fecha: string }) {
+  const visibles = tabla.filas.slice(0, FILAS_A_LA_VISTA);
+  const resto = tabla.filas.length - visibles.length;
+  return (
+    <details className="asistente-datos">
+      <summary>
+        {tabla.titulo} <em>{tabla.filas.length === 1 ? '1 fila' : `${tabla.filas.length} filas`}</em>
+      </summary>
+      <div className="asistente-tabla" tabIndex={0} role="region" aria-label={`Vista previa: ${tabla.titulo}`}>
+        <table>
+          <thead>
+            <tr>
+              {tabla.columnas.map((c, j) => (
+                <th key={j} scope="col">
+                  {c}
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {visibles.map((fila, i) => (
+              <tr key={i}>
+                {fila.map((celda, j) => (
+                  <td key={j} className={typeof celda === 'number' ? 'num' : undefined}>
+                    {celda === null ? '—' : typeof celda === 'number' ? celda.toLocaleString('es-BO') : celda}
+                  </td>
+                ))}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      <p className="asistente-fuente">
+        Fuente: {tabla.fuente}.{resto > 0 ? ` La vista muestra ${visibles.length}; el CSV trae las ${tabla.filas.length}.` : ''}
+      </p>
+      <div className="asistente-ir">
+        <button
+          type="button"
+          className="chip"
+          onClick={() => bajar(nombreDeArchivo(tabla.id, fecha, 'csv'), aCsv(tabla, fecha), 'text/csv;charset=utf-8')}
+        >
+          Descargar CSV
+        </button>
+        {tabla.completa ? (
+          <a className="chip" href={tabla.completa.href} download>
+            {tabla.completa.etiqueta} (CSV)
+          </a>
+        ) : null}
+      </div>
+    </details>
+  );
 }
 
 function Burbuja() {
@@ -169,6 +273,8 @@ export function Asistente() {
                 rol: 'asistente',
                 texto: datos.respuesta,
                 ...(datos.pestanas ? { pestanas: datos.pestanas } : {}),
+                ...(datos.enlaces?.length ? { enlaces: datos.enlaces } : {}),
+                ...(datos.tablas?.length ? { tablas: datos.tablas } : {}),
                 ...(datos.fecha ? { fecha: datos.fecha } : {}),
               }
             : { rol: 'asistente', texto: datos.error ?? 'No se pudo responder. Probá de nuevo.', error: true };
@@ -183,8 +289,15 @@ export function Asistente() {
     [esperando, turnos],
   );
 
-  const irA = (pestana: string) => {
-    window.dispatchEvent(new CustomEvent(EVENTO_PESTANA, { detail: pestana }));
+  /*
+   * El enlace es un <a> de verdad: se copia, se abre en otra pestaña con la
+   * rueda o Ctrl+clic, y quien lo recibe llega al mismo lugar. El clic simple
+   * no recarga la página: cambia la dirección y el tablero la sigue.
+   */
+  const irA = (destino: Destino, evento?: MouseEvent<HTMLAnchorElement>) => {
+    if (evento && (evento.button !== 0 || evento.ctrlKey || evento.metaKey || evento.shiftKey || evento.altKey)) return;
+    evento?.preventDefault();
+    navegar(destino);
     if (window.matchMedia('(max-width: 720px)').matches) setAbierto(false);
     document.querySelector('nav.tabs')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   };
@@ -244,15 +357,57 @@ export function Asistente() {
             ) : null}
 
             {turnos.map((t, i) => (
-              <div key={i} className={`asistente-turno asistente-${t.rol}${t.error ? ' asistente-error' : ''}`}>
+              <div
+                key={i}
+                className={`asistente-turno asistente-${t.rol}${t.error ? ' asistente-error' : ''}${t.tablas?.length ? ' asistente-ancho' : ''}`}
+              >
                 {t.rol === 'asistente' ? <Texto texto={t.texto} /> : <p>{t.texto}</p>}
-                {t.pestanas?.length ? (
+                {t.enlaces?.length ? (
+                  <div className="asistente-ir">
+                    {t.enlaces.map((e) => (
+                      <a key={e.href} className="chip" href={e.href} onClick={(ev) => irA(e, ev)}>
+                        Ir a «{e.etiqueta}»
+                      </a>
+                    ))}
+                  </div>
+                ) : t.pestanas?.length ? (
                   <div className="asistente-ir">
                     {t.pestanas.map((p) => (
-                      <button key={p} type="button" className="chip" onClick={() => irA(p)}>
+                      <button key={p} type="button" className="chip" onClick={() => irA({ pestana: p })}>
                         Ir a «{p}»
                       </button>
                     ))}
+                  </div>
+                ) : null}
+                {t.tablas?.length ? (
+                  <div className="asistente-consultados">
+                    <p className="asistente-rotulo">Datos consultados para esta respuesta</p>
+                    {t.tablas.map((tabla) => (
+                      <VistaPrevia key={tabla.id} tabla={tabla} fecha={t.fecha ?? ''} />
+                    ))}
+                  </div>
+                ) : null}
+                {t.rol === 'asistente' && !t.error && t.fecha ? (
+                  <div className="asistente-ir">
+                    <button
+                      type="button"
+                      className="chip"
+                      onClick={() =>
+                        bajar(
+                          nombreDeArchivo('respuesta', t.fecha ?? '', 'md'),
+                          respuestaComoMarkdown(
+                            turnos
+                              .slice(0, i)
+                              .reverse()
+                              .find((x) => x.rol === 'usuario')?.texto,
+                            t,
+                          ),
+                          'text/markdown;charset=utf-8',
+                        )
+                      }
+                    >
+                      Descargar respuesta
+                    </button>
                   </div>
                 ) : null}
                 {t.error && i === turnos.length - 1 && ultimaPregunta ? (

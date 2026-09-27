@@ -20,7 +20,7 @@ import type { PressArticle, PressCube, TermMonth, TermTotal } from '@/lib/series
  */
 export function PressSection() {
   return (
-    <SubTabs labels={['Cobertura', 'Temas']} icons={['ventana', 'etiqueta']}>
+    <SubTabs enlace labels={['Cobertura', 'Temas']} icons={['ventana', 'etiqueta']}>
       <CoveragePanel />
       <SubjectsPanel />
     </SubTabs>

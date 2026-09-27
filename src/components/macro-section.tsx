@@ -44,7 +44,7 @@ import type { MacroBundle } from '@/lib/macro-transport';
  */
 export function MacroSection() {
   return (
-    <SubTabs
+    <SubTabs enlace
       labels={['Series de Bolivia', 'Social Info', 'Bolivia ante el mundo', 'Variables exógenas']}
       icons={['linea', 'capas', 'globo', 'monedas']}
     >
