@@ -1620,6 +1620,10 @@ code {
   white-space: nowrap;
 }
 
+.rail-item > svg {
+  flex: none;
+}
+
 .rail-item .rail-name {
   flex: 1 1 auto;
   overflow: hidden;
@@ -3764,6 +3768,20 @@ button.download-btn {
   background: var(--official);
   border-color: var(--official);
   color: #fff;
+}
+
+/*
+ * `.chip-on` se declara arriba, junto a las pastillas del carril, y esta
+ * sección vuelve a declarar `.chip` con la misma especificidad y más abajo:
+ * su fondo, su borde y su tinta pisaban los de `.chip-on`, y ninguna pastilla
+ * elegida —tipo de gráfico, flujo, nivel de producto— se distinguía de las
+ * demás. Con la clase doble gana sin depender del orden.
+ */
+.chip.chip-on,
+.chip.chip-on:hover {
+  background: var(--ink);
+  border-color: var(--ink);
+  color: var(--paper);
 }
 
 .chip-count {

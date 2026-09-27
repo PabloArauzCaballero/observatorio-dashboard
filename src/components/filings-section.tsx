@@ -5,6 +5,7 @@ import { FilingExplorer } from './filing-explorer';
 import { ForeignTradeSection } from './foreign-trade-section';
 import { OnOpenNotice, useOnOpen } from './on-open';
 import { SubTabs } from './tabs';
+import { TradeRecordsSection } from './trade-records-section';
 import type { CompanyFiling } from '@/lib/series';
 
 /**
@@ -24,6 +25,12 @@ import type { CompanyFiling } from '@/lib/series';
  * mide percepción con encuestas y cuya cabeza son marcas de consumo que ni
  * cotizan ni exportan: se queda aparte porque mide algo distinto, no comercio.
  *
+ * «Detalle aduanero (INE)» es la base de datos del INE, declaración por
+ * declaración resumida a partida × país × departamento × mes: el detalle que
+ * «Comercio exterior» no puede cruzar. Va en su propia página porque se lee
+ * distinto —se filtra y se desglosa, no se recorre— y porque pide su dato a
+ * cada cambio de filtro, que no tiene por qué pagar quien sólo abre la otra.
+ *
  * `SubTabs` monta sólo la página activa, así que abrir «Empresas» sigue pidiendo
  * únicamente los hechos relevantes; las otras dos esperan a que alguien las
  * elija, y «Comercio exterior» y «Reputación empresarial» leen la misma
@@ -31,12 +38,19 @@ import type { CompanyFiling } from '@/lib/series';
  */
 export function FilingsSection() {
   return (
-    <SubTabs enlace
-      labels={['Bolsa de valores (BBV)', 'Comercio exterior', 'Reputación empresarial']}
-      icons={['velas', 'globo', 'escudo']}
+    <SubTabs
+      enlace
+      labels={[
+        'Bolsa de valores (BBV)',
+        'Comercio exterior',
+        'Detalle aduanero (INE)',
+        'Reputación empresarial',
+      ]}
+      icons={['velas', 'globo', 'cajas', 'escudo']}
     >
       <FilingsPage />
       <ForeignTradeSection />
+      <TradeRecordsSection />
       <ReputationSection />
     </SubTabs>
   );

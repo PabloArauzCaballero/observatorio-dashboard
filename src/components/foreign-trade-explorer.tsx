@@ -950,10 +950,10 @@ export function ForeignTradeExplorer({
         </div>
         <div className="callout">
           <strong>Bolivia declara su comercio exterior en dólares estadounidenses (USD).</strong>{' '}
-          Lo que hay: producto, país y año, con fuentes oficiales. Lo que no hay y no va a haber:
-          el valor en dólares que exporta cada empresa —es secreto por ley, así que el ránking de
-          más abajo sólo publica orden y cuota— y la granularidad mensual, porque ni el INE ni
-          Comtrade publican comercio exterior por mes.
+          Lo que hay: producto, país y año, con fuentes oficiales; el detalle por partida NANDINA,
+          país, departamento y mes —cruzados entre sí— está en la pestaña «Detalle aduanero
+          (INE)». Lo que no hay y no va a haber: el valor en dólares que exporta cada empresa —es
+          secreto por ley, así que el ránking de más abajo sólo publica orden y cuota—.
         </div>
         <DerivedReading
           title="Qué dicen estos datos"
@@ -1156,10 +1156,10 @@ export function ForeignTradeExplorer({
         <div className="workspace-main">
           {crossFilterGap ? (
             <div className="callout">
-              <strong>País y producto no se cruzan todavía.</strong> Comtrade publica el comercio
+              <strong>Aquí país y producto no se cruzan.</strong> Comtrade publica el comercio
               boliviano por socio y por capítulo del arancel como dos recortes separados del mismo
-              total —no hay, para el país elegido, cuánto de ese comercio fue del capítulo
-              elegido—. Abajo se ve cada filtro aplicado por su cuenta: el país en «A quién le
+              total. El cruce —cuánto de ese comercio fue del capítulo elegido— sí existe en la
+              base del INE: está en la pestaña «Detalle aduanero (INE)». Abajo se ve cada filtro aplicado por su cuenta: el país en «A quién le
               vende/compra Bolivia» y el producto en «Qué capítulos exporta/importa más».
             </div>
           ) : null}
