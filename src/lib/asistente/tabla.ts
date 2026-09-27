@@ -86,3 +86,35 @@ export function nombreDeArchivo(id: string, fecha: string, extension: string): s
   const base = id.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9]+/g, '-');
   return `observatorio-${base}-${fecha}.${extension}`;
 }
+
+/**
+ * Cuántos decimales lleva cada columna en la vista previa: los mismos para
+ * toda la columna, así «11» y «11,89» se leen «11,00» y «11,89» y los números
+ * quedan alineados. Tope de cuatro.
+ */
+export function decimalesPorColumna(t: Tabla): number[] {
+  return t.columnas.map((_, j) =>
+    Math.min(
+      4,
+      Math.max(0, ...t.filas.map((f) => {
+        const v = f[j];
+        return typeof v === 'number' && !Number.isInteger(v) ? (String(v).split('.')[1]?.length ?? 0) : 0;
+      })),
+    ),
+  );
+}
+
+/**
+ * Una celda como se lee en Bolivia: coma decimal y punto de miles, pero sin
+ * punto en los números de cuatro cifras, que casi siempre son años («2023»,
+ * no «2.023»).
+ */
+export function celdaLegible(valor: Celda, decimales: number): string {
+  if (valor === null) return '—';
+  if (typeof valor !== 'number') return valor;
+  return valor.toLocaleString('es-BO', {
+    minimumFractionDigits: decimales,
+    maximumFractionDigits: decimales,
+    useGrouping: Math.abs(valor) >= 10_000,
+  });
+}

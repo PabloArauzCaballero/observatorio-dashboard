@@ -68,3 +68,16 @@ test('el CSV se abre bien en Excel y no ejecuta fórmulas', () => {
   assert.match(aMarkdown(t), /\| Fecha \| Titular \| Valor \|/);
   assert.equal(nombreDeArchivo('depto-SANTA_CRUZ', '2026-09-27', 'csv'), 'observatorio-depto-santa-cruz-2026-09-27.csv');
 });
+
+test('la vista previa alinea decimales por columna y no pone punto en los años', async () => {
+  const { celdaLegible, decimalesPorColumna } = await import('../../src/lib/asistente/tabla.ts');
+  const t = tabla('d', 'D', ['Fecha', 'Oficial', 'Año', 'Kilómetros'], [['2026-09-19', 11, 2023, 12345], ['2026-09-18', 10.01, 2024, 980]], 'F');
+  const d = decimalesPorColumna(t);
+  assert.deepEqual(d, [0, 2, 0, 0]);
+  assert.equal(celdaLegible(11, d[1]), '11,00');
+  assert.equal(celdaLegible(10.01, d[1]), '10,01');
+  assert.equal(celdaLegible(2023, d[2]), '2023');
+  assert.equal(celdaLegible(12345, d[3]), '12.345');
+  assert.equal(celdaLegible(null, 0), '—');
+  assert.equal(celdaLegible('texto', 0), 'texto');
+});
