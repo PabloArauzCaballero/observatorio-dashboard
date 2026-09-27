@@ -180,6 +180,72 @@ const MANIPULACION = palabra([
 ]);
 
 /**
+ * Lo que toca la seguridad del sistema: credenciales, infraestructura, formas
+ * de vulnerarlo. Se contesta con una negativa fija aunque la pregunta nombre
+ * el dólar, porque el modelo no tiene nada de eso y no debe improvisarlo.
+ *
+ * Las raíces van acotadas a propósito: «clave», «inyección», «vulnerable»,
+ * «puertos» y «administrador» son también vocabulario económico («variables
+ * clave», «inyección de liquidez», «hogares vulnerables», «puertos de Arica»,
+ * «administradora de fondos»).
+ */
+const SENSIBLE = palabra([
+  'contrasena', 'password', 'passwd', 'credencial', 'api ?key', 'api_key', 'apikey',
+  'clave (?:de (?:acceso|la api|api|admin|administrador|la base|usuario|root|openrouter|github|coolify)|secreta|privada|del (?:servidor|sistema|sitio|admin|administrador|tablero))',
+  'llaves? (?:privadas?|de (?:la )?api|de acceso)', 'private key', 'frase semilla', 'seed phrase',
+  'secrets?$', 'tokens? de (?:acceso|api|autenticacion|sesion|github|coolify|openrouter)', 'access token', 'bearer$', 'jwt$',
+  '\\.env$', 'variables? de entorno', 'env vars?$', 'openrouter', 'database_url', 'cadena de conexion', 'connection string',
+  '(?:acceso|acceder|conect[a-z]*|entr[a-z]*|meterme) (?:a|en|al|con) (?:la |el )?(?:base de datos|servidor|panel|admin)',
+  '(?:usuario|tablas?|esquema|dump|respaldo|backup) de (?:la )?base de datos', 'que base de datos (?:usa|tiene|corre)',
+  'sql$', 'select \\*', 'drop table',
+  'ssh$', 'sudo$', 'acceso root', 'usuario root', 'ip del servidor', 'direccion ip', 'que servidor', 'donde (?:esta|estan) alojad',
+  'hosting', 'coolify', 'contabo', 'docker', 'postgres', 'nginx', 'firewall', 'escaneo de puertos', 'nmap$',
+  'admin$', 'panel de administraci', '(?:cuenta|acceso|usuario|permisos?) de administrador', '/admin',
+  'hacke', 'hack$', 'vulnerar', 'vulnerabilidad(?:es)? (?:del|de la|de este|en el|en la|en este) (?:sistema|sitio|pagina|web|servidor|tablero|app|api|chat|bot|asistente)',
+  'exploit', 'inyeccion (?:sql|de (?:sql|codigo|prompt|comandos))', 'sql injection', 'prompt injection', 'xss$', 'ddos', 'bypass',
+  '(?:salt[a-z]*|evad[a-z]*|burlar) (?:el|la|los|las|tus|sus) (?:limites?|filtros?|seguridad|restricciones|reglas)', 'codigo fuente', 'repositorio',
+  'datos de (?:los )?usuarios', 'quien (?:mas )?(?:usa|pregunta|consulta)', 'historial de (?:otros|los) usuarios',
+]);
+
+/**
+ * Pedidos que nunca son una pregunta sobre la economía, aunque nombren el
+ * dólar: redactar, programar, traducir, resolver tareas. «Escribime un poema
+ * sobre la inflación» sigue siendo un poema.
+ */
+const FUERA_TAREA = palabra([
+  'escribi(?:me)? (?:un|una) (?:poema|cuento|cancion|carta|ensayo|historia|chiste|codigo|programa|script|correo|mail|novela)',
+  'redacta(?:me)?$', 'redactame', 'poema', 'poesia', 'cancion', 'chiste', 'cuento', 'receta', 'cocinar', 'horoscopo', 'signo zodiacal',
+  'traduc', 'translate', 'programa(?:r|me|cion)', 'python', 'javascript', 'typescript', 'java$', 'html$', 'css$',
+  'codigo (?:en|de|para|que)', 'script$', 'algoritmo', 'funcion en', 'regex',
+  '(?:hago|hacer|crear|creo|armar|armo|disenar|diseno|programar) (?:una|mi|un) (?:pagina|sitio|web|app|aplicacion|programa|bot|juego)',
+  'resolve(?:r|me)? (?:esta|la|este|el|mi) (?:ecuacion|ejercicio|problema|tarea|integral|examen)', 'mi tarea', 'tarea de', 'deberes',
+]);
+
+/**
+ * Temas ajenos. Si la pregunta además trae una palabra económica («¿cuánto
+ * mueve el fútbol en la economía?») decide el clasificador; si no trae
+ * ninguna, se contesta que queda fuera sin gastar modelo.
+ */
+const FUERA_TEMA = palabra([
+  'futbol', 'deporte', 'mundial de', 'partido de (?:futbol|hoy|manana)', 'goles', 'campeonato', 'pelicula', 'netflix', 'musica',
+  'videojuego', 'anime', 'famos', 'farandula', 'novio', 'novia', 'enamor', 'mi pareja', 'sintomas?$', 'me duele', 'dolor de',
+  'va a llover', 'pronostico del tiempo', 'que tiempo hace', 'mascota', 'perro', 'gato', 'dieta', 'ejercicios? (?:fisico|para)',
+  'capital de (?:francia|espana|peru|chile|brasil|argentina|italia|alemania|japon|china)', 'quien (?:invento|descubrio|pinto|escribio)',
+  'chatgpt', 'inteligencia artificial',
+]);
+
+/**
+ * Una respuesta del modelo que trae algo con forma de secreto no sale. El
+ * modelo no ve ninguno —solo recibe los paquetes de datos—, así que esto es la
+ * red por si algún día un paquete arrastra uno.
+ */
+export function pareceSecreto(texto: string): boolean {
+  return /sk-(?:or-v1-)?[A-Za-z0-9_-]{20,}|(?:postgres(?:ql)?|mysql|mongodb(?:\+srv)?|redis):\/\/\S+|-----BEGIN [A-Z ]*PRIVATE KEY-----|\bgh[pousr]_[A-Za-z0-9]{30,}|\bAKIA[0-9A-Z]{16}\b|\beyJ[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}\./.test(
+    texto,
+  );
+}
+
+/**
  * Lo que la pregunta dice sola, sin modelo.
  *
  * Devuelve `null` en `paquetes` cuando ninguna palabra decide: esas preguntas
@@ -188,6 +254,7 @@ const MANIPULACION = palabra([
 export interface Previo {
   saludo: boolean;
   manipulacion: boolean;
+  sensible: boolean;
   tipo: Tipo;
   paquetes: PaqueteId[] | null;
   departamento: string | null;
@@ -217,6 +284,7 @@ export function preclasificar(pregunta: string): Previo {
   const departamento = detectarDepartamento(t);
   const saludo = SALUDO.test(t);
   const manipulacion = tiene(t, MANIPULACION);
+  const sensible = tiene(t, SENSIBLE);
 
   const paquetes = new Set<PaqueteId>();
   for (const regla of REGLAS) if (tiene(t, regla.patron)) regla.paquetes.forEach((p) => paquetes.add(p));
@@ -244,10 +312,23 @@ export function preclasificar(pregunta: string): Previo {
   const busqueda = terminoDePrensa(pregunta);
   if (busqueda) paquetes.add('PRENSA');
 
+  // Una tarea ajena queda fuera aunque nombre un tema económico; un tema ajeno,
+  // solo si no nombra ninguno (si nombra uno, decide el clasificador).
+  if (tiene(t, FUERA_TAREA)) {
+    return { saludo, manipulacion, sensible, tipo: 'FUERA', paquetes: [], departamento, busqueda: null };
+  }
+  if (tiene(t, FUERA_TEMA)) {
+    const economicos = [...paquetes].filter((p) => p !== 'GUIA');
+    return economicos.length === 0
+      ? { saludo, manipulacion, sensible, tipo: 'FUERA', paquetes: [], departamento, busqueda: null }
+      : { saludo, manipulacion, sensible, tipo, paquetes: null, departamento, busqueda };
+  }
+
   const lista = ordenar([...paquetes]).slice(0, 5);
   return {
     saludo,
     manipulacion,
+    sensible,
     tipo,
     paquetes: lista.length > 0 ? lista : null,
     departamento,
