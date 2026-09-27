@@ -7918,6 +7918,10 @@ button.download-btn {
   white-space: nowrap;
 }
 
+.asistente-tabla td:first-child {
+  white-space: nowrap;
+}
+
 .asistente-tabla td.num {
   text-align: right;
   font-variant-numeric: tabular-nums;

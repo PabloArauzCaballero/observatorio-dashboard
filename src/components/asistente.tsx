@@ -3,7 +3,7 @@
 import { Fragment, useCallback, useEffect, useId, useRef, useState } from 'react';
 import type { MouseEvent, ReactNode } from 'react';
 
-import { aCsv, aMarkdown, nombreDeArchivo, type Tabla } from '@/lib/asistente/tabla';
+import { aCsv, aMarkdown, celdaLegible, decimalesPorColumna, nombreDeArchivo, type Tabla } from '@/lib/asistente/tabla';
 import { navegar, type Destino } from '@/lib/enlace-tablero';
 
 /**
@@ -150,6 +150,7 @@ function respuestaComoMarkdown(pregunta: string | undefined, turno: Turno): stri
 function VistaPrevia({ tabla, fecha }: { tabla: Tabla; fecha: string }) {
   const visibles = tabla.filas.slice(0, FILAS_A_LA_VISTA);
   const resto = tabla.filas.length - visibles.length;
+  const decimales = decimalesPorColumna(tabla);
   return (
     <details className="asistente-datos">
       <summary>
@@ -171,7 +172,7 @@ function VistaPrevia({ tabla, fecha }: { tabla: Tabla; fecha: string }) {
               <tr key={i}>
                 {fila.map((celda, j) => (
                   <td key={j} className={typeof celda === 'number' ? 'num' : undefined}>
-                    {celda === null ? '—' : typeof celda === 'number' ? celda.toLocaleString('es-BO') : celda}
+                    {celdaLegible(celda, decimales[j] ?? 0)}
                   </td>
                 ))}
               </tr>
