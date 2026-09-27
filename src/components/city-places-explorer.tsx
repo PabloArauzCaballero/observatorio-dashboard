@@ -20,7 +20,12 @@ import type { IconName } from './icons';
 import { Pager } from './pager';
 import { PlacesMap, mapsHref } from './places-map';
 import type { Place, PlaceFamily } from '@/lib/places';
-import { LOW_CONFIDENCE_NOTE, isLowConfidence } from '@/lib/place-confidence';
+import {
+  APPROXIMATE_POSITION_NOTE,
+  LOW_CONFIDENCE_NOTE,
+  isApproximatePosition,
+  isLowConfidence,
+} from '@/lib/place-confidence';
 import { tallySectors } from '@/lib/place-sectors';
 import type { SectorTally } from '@/lib/place-sectors';
 
@@ -848,6 +853,7 @@ function PlacesTable({ places, total }: { places: Place[]; total: number }) {
   const first = places.length ? (page - 1) * PAGE_SIZE + 1 : 0;
   const last = (page - 1) * PAGE_SIZE + shown.length;
   const doubtful = useMemo(() => places.filter(isLowConfidence).length, [places]);
+  const approximate = useMemo(() => places.filter(isApproximatePosition).length, [places]);
 
   if (places.length === 0) return null;
 
@@ -869,6 +875,14 @@ function PlacesTable({ places, total }: { places: Place[]; total: number }) {
           <span className="place-flag-low">Confianza baja</span> {NUMBER.format(doubtful)} de{' '}
           {NUMBER.format(places.length)} lugares tienen confianza menor al 50 %: la fuente no
           confirma que existan o sigan abiertos. Van marcados en la tabla.
+        </p>
+      ) : null}
+      {approximate > 0 ? (
+        <p className="places-low-confidence-note" role="note">
+          <span className="place-flag-low">Ubicación aproximada</span> {NUMBER.format(approximate)}{' '}
+          de {NUMBER.format(places.length)} lugares están ubicados en su comunidad y no en su
+          edificio: el registro del Ministerio de Salud no trae coordenada. Van marcados en la
+          tabla.
         </p>
       ) : null}
 
@@ -965,6 +979,11 @@ function PlacesTable({ places, total }: { places: Place[]; total: number }) {
                   >
                     Google Maps
                   </a>
+                  {isApproximatePosition(place) ? (
+                    <span className="place-flag-low" title={APPROXIMATE_POSITION_NOTE}>
+                      Ubicación aproximada
+                    </span>
+                  ) : null}
                 </td>
               </tr>
             ))}

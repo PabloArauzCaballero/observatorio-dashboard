@@ -171,6 +171,7 @@ async function collect(dataset: Dataset, selection: Selection): Promise<Row[]> {
       registro_que_lo_confirmaria: place.officialValidationSource,
       confianza: place.confidence,
       grado_de_calidad: place.qualityGrade,
+      metodo_de_ubicacion: place.positionMethod,
       id_de_lugar: place.placeId,
     }));
   }

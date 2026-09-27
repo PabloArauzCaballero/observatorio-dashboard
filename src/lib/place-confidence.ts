@@ -20,3 +20,21 @@ export const LOW_CONFIDENCE_NOTE =
 export function isLowConfidence(place: { confidence: number | null }): boolean {
   return place.confidence !== null && place.confidence < LOW_CONFIDENCE;
 }
+
+/**
+ * Cuándo el punto es el de la comunidad y no el del establecimiento.
+ *
+ * Es otra duda que la de arriba: el lugar existe —lo registra el Ministerio de
+ * Salud—, pero el registro no trae coordenada y el punto es el de la comunidad
+ * homónima de OpenStreetMap. Medido donde hay los dos, la mediana del error es
+ * 480 m y uno de cada diez pasa de 3,4 km: sirve para saber en qué comunidad
+ * está la posta, no para llegar a su puerta.
+ */
+const APPROXIMATE_POSITIONS = new Set(['centro_de_la_comunidad_osm_homonima']);
+
+export const APPROXIMATE_POSITION_NOTE =
+  'Ubicación aproximada: el registro no trae coordenada y el punto es el de la comunidad, no el del edificio.';
+
+export function isApproximatePosition(place: { positionMethod: string | null }): boolean {
+  return place.positionMethod !== null && APPROXIMATE_POSITIONS.has(place.positionMethod);
+}

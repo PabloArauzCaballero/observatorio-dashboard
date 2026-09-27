@@ -3,7 +3,12 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { Icon } from './icons';
 import type { Place } from '@/lib/places';
-import { LOW_CONFIDENCE_NOTE, isLowConfidence } from '@/lib/place-confidence';
+import {
+  APPROXIMATE_POSITION_NOTE,
+  LOW_CONFIDENCE_NOTE,
+  isApproximatePosition,
+  isLowConfidence,
+} from '@/lib/place-confidence';
 
 /**
  * The places of one city, on the city.
@@ -602,6 +607,8 @@ export function PlacesMap({
     if (place.address) rows.push({ term: 'Dirección', value: place.address });
     if (place.zone) rows.push({ term: 'Zona', value: place.zone });
     rows.push({ term: 'Ciudad', value: place.city });
+    if (isApproximatePosition(place))
+      rows.push({ term: 'Ubicación', value: APPROXIMATE_POSITION_NOTE });
     if (place.confidence !== null) {
       rows.push({
         term: 'Confianza',

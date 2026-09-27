@@ -62,6 +62,7 @@ const PLACE_UNION = `(
   SELECT place_id, name, city AS locality, zone, latitude, longitude,
          entity_group, entity_family, is_regulated, address, brand,
          confidence, quality_grade, official_validation_source,
+         NULL::text AS position_method,
          'ciudades' AS corpus, status, superseded
   FROM read_models.city_place
   UNION ALL
@@ -70,6 +71,7 @@ const PLACE_UNION = `(
          NULL::text AS zone, latitude, longitude,
          entity_group, entity_family, is_regulated, address, NULL::text AS brand,
          confidence, NULL::text AS quality_grade, official_validation_source,
+         position_method,
          'nacional' AS corpus, status, superseded
   FROM read_models.national_place
 ) AS lugares`;
@@ -102,6 +104,8 @@ export interface Place {
   qualityGrade: string | null;
   /** Which Bolivian register would confirm a regulated place. */
   officialValidationSource: string | null;
+  /** How the source arrived at the point; see `isApproximatePosition`. */
+  positionMethod: string | null;
 }
 
 /**
@@ -423,9 +427,7 @@ export async function readPlaces(
      * podría dejar fuera pizzerías que sí calificaban. El tope duro sigue
      * siendo el mismo de siempre (`todos=1`).
      */
-    const fetchLimit = plan.cuisines
-      ? 20000
-      : Math.min(Math.max(limit, 1), 20000);
+    const fetchLimit = plan.cuisines ? 20000 : Math.min(Math.max(limit, 1), 20000);
 
     /*
      * El recuento y las filas a la vez, cada uno en su conexión del pool.
@@ -456,10 +458,11 @@ export async function readPlaces(
       confidence: string | null;
       quality_grade: string | null;
       official_validation_source: string | null;
+      position_method: string | null;
     }>(
       `SELECT place_id, name, locality AS city, zone, latitude::text, longitude::text,
               entity_group, entity_family, is_regulated, address, brand,
-              confidence::text, quality_grade, official_validation_source
+              confidence::text, quality_grade, official_validation_source, position_method
        FROM ${PLACE_UNION}
        ${where}
        -- Los mas fiables primero, para que un recorte deje fuera lo peor medido
@@ -486,6 +489,7 @@ export async function readPlaces(
       confidence: row.confidence === null ? null : Number(row.confidence),
       qualityGrade: row.quality_grade,
       officialValidationSource: row.official_validation_source,
+      positionMethod: row.position_method,
     }));
     let total = Number(counted.rows[0]?.total ?? 0);
 
@@ -520,7 +524,6 @@ export async function readPlacesForExport(
   const plan = planFamilies(families);
   const { where, values } = placeScope(cities, plan.queryFamilies);
   try {
-
     const { rows } = await pool().query<{
       place_id: string;
       name: string;
@@ -536,10 +539,11 @@ export async function readPlacesForExport(
       confidence: string | null;
       quality_grade: string | null;
       official_validation_source: string | null;
+      position_method: string | null;
     }>(
       `SELECT place_id, name, locality AS city, zone, latitude::text, longitude::text,
               entity_group, entity_family, is_regulated, address, brand,
-              confidence::text, quality_grade, official_validation_source
+              confidence::text, quality_grade, official_validation_source, position_method
        FROM ${PLACE_UNION}
        ${where}
        ORDER BY city, entity_family, name
@@ -562,6 +566,7 @@ export async function readPlacesForExport(
       confidence: row.confidence === null ? null : Number(row.confidence),
       qualityGrade: row.quality_grade,
       officialValidationSource: row.official_validation_source,
+      positionMethod: row.position_method,
     }));
     return filterByCuisine(places, plan);
   } catch (error) {
