@@ -7050,6 +7050,50 @@ button.download-btn {
   color: var(--ink-soft);
 }
 
+/* Ferrocarril y ríos: estaciones y puertos como rombos, para no confundirlos
+   con el círculo de las capitales. */
+.network-map-points rect {
+  fill: var(--panel);
+  stroke: var(--ink-soft);
+  stroke-width: 1.4px;
+  vector-effect: non-scaling-stroke;
+}
+
+.network-map-points rect:hover {
+  stroke: var(--ink);
+  stroke-width: 2.2px;
+}
+
+/* Un nombre de la tabla que además aísla su línea en el mapa. */
+.table-link {
+  all: unset;
+  cursor: pointer;
+  color: var(--ink);
+  text-decoration: underline dotted var(--ink-faint);
+  text-underline-offset: 3px;
+}
+
+.table-link:hover,
+.table-link[aria-pressed="true"] {
+  text-decoration-color: var(--ink);
+  font-weight: 600;
+}
+
+.table-link:focus-visible {
+  outline: 2px solid var(--official);
+  outline-offset: 2px;
+  border-radius: 2px;
+}
+
+.network-map-legend-point {
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  transform: rotate(45deg);
+  background: var(--panel);
+  border: 1.4px solid var(--ink-soft);
+}
+
 .roads-map-tools {
   align-items: center;
   margin-bottom: var(--s1);

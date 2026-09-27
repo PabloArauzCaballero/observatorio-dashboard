@@ -72,6 +72,21 @@ const CAPITALS: readonly { name: string; at: [number, number] }[] = [
   { name: 'Cobija', at: [-68.769, -11.0267] },
 ];
 
+/** Las clases de OpenStreetMap en castellano, para la ficha. */
+const CLASS_LABEL: Record<string, string> = {
+  motorway: 'autopista',
+  trunk: 'troncal',
+  primary: 'primaria',
+  secondary: 'secundaria',
+  tertiary: 'terciaria',
+  unclassified: 'sin clasificar',
+  track: 'pista',
+  road: 'camino',
+  residential: 'calle',
+  living_street: 'calle',
+  service: 'de servicio',
+};
+
 const km = (value: number): string =>
   value.toLocaleString('es-BO', { minimumFractionDigits: 1, maximumFractionDigits: 1 });
 
@@ -452,7 +467,7 @@ function RoadCard({
   return (
     <div className="tooltip">
       <div className="t-date">{network}</div>
-      <b className="map-card-name">{section.route ? `Ruta ${section.route}` : 'Vía sin ruta asignada'}</b>
+      <b className="map-card-name">{section.route ? `Ruta ${section.route}` : 'Vía sin código de ruta'}</b>
       {section.name ? <div className="roads-map-tip-name">{section.name}</div> : null}
       <div className="t-row">
         <span>
@@ -466,6 +481,10 @@ function RoadCard({
       <div className="t-row">
         <span>Departamento</span>
         <strong>{departmentName(section.department)}</strong>
+      </div>
+      <div className="t-row">
+        <span>Clase en OpenStreetMap</span>
+        <strong>{CLASS_LABEL[section.highwayClass] ?? section.highwayClass}</strong>
       </div>
       {total ? (
         <>

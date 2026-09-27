@@ -17,7 +17,7 @@ import {
   FilingsSection,
   MacroSection,
   PressSection,
-  RoadsSection,
+  TransportSection,
   SourcesSection,
 } from './lazy-sections';
 import { dailyAnalysis } from '@/lib/daily-analysis';
@@ -635,7 +635,7 @@ export default function Page() {
           'Macroeconomía',
           'Empresas',
           'Ciudades',
-          'Carreteras',
+          'Transporte',
           'Prensa',
           'Método',
         ]}
@@ -673,7 +673,7 @@ export default function Page() {
         </section>
 
         <section className="stack">
-          <RoadsSection />
+          <TransportSection />
         </section>
 
         <section className="stack">

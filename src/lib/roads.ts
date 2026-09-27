@@ -34,6 +34,8 @@ export interface RoadSection {
   department: string;
   surface: RoadSurface;
   status: RoadStatus;
+  /** La clase de OpenStreetMap: trunk, primary, secondary, tertiary… */
+  highwayClass: string;
   lengthKm: number;
   maxspeed: string | null;
   /** Una o más líneas, `[longitud, latitud]`, ya simplificadas. */
@@ -88,12 +90,13 @@ async function buildRoadSections(): Promise<RoadSection[]> {
       department: string;
       surface: RoadSurface;
       status: RoadStatus;
+      highway_class: string;
       length_km: string;
       maxspeed: string | null;
       geometry: [number, number][][];
     }>(
       `SELECT section_id, route, network, name, department, surface, status,
-              length_km::text, maxspeed, geometry
+              highway_class, length_km::text, maxspeed, geometry
        FROM read_models.road_section
        WHERE claim_status = 'PUBLISHED' AND NOT superseded
        ORDER BY department, network, route NULLS LAST`,
@@ -106,6 +109,7 @@ async function buildRoadSections(): Promise<RoadSection[]> {
       department: row.department,
       surface: row.surface,
       status: row.status,
+      highwayClass: row.highway_class,
       lengthKm: Number(row.length_km),
       maxspeed: row.maxspeed,
       geometry: row.geometry,

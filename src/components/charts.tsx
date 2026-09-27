@@ -2551,16 +2551,24 @@ export function WorldLines({
   series,
   format,
   tick,
+  countsOnly = false,
 }: {
   data: WorldLinePoint[];
   series: WorldLineSeries[];
   format: (value: number) => string;
   tick: (value: number) => string;
+  /**
+   * Personas, toneladas: magnitudes que no bajan de cero. El margen del eje
+   * dibujaba «-74.466 pasajeros» debajo de una serie que llega a casi nada.
+   */
+  countsOnly?: boolean;
 }) {
   const values = data.flatMap((row) =>
     series.map((one) => row[one.key]).filter((value): value is number => typeof value === 'number'),
   );
-  const domain = values.length ? fittedDomain(values) : undefined;
+  const fitted = values.length ? fittedDomain(values) : undefined;
+  const domain: [number, number] | undefined =
+    fitted && countsOnly ? [Math.max(0, fitted[0]), fitted[1]] : fitted;
 
   /**
    * Wide enough for the longest label the axis will print. A fixed width fit the
