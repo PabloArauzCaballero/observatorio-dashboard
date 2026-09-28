@@ -25,6 +25,19 @@ test('la cadena lleva solo los proveedores con clave, en orden', () => {
   assert.equal(armarCadena({ GEMINI_API_KEY: 'g', ASISTENTE_MODELO_GEMINI: 'gemini-otro' })[0].modelo, 'gemini-otro');
 });
 
+test('varios modelos gratuitos son varios eslabones, para saltear el saturado', () => {
+  const c = armarCadena({ OPENROUTER_API_KEY: 'or', ASISTENTE_MODELO_GRATIS: ' nvidia/nemotron:free , openrouter/free ,' });
+  assert.deepEqual(c.map((e) => [e.nombre, e.modelo]), [
+    ['openrouter', 'google/gemini-3.1-flash-lite-preview'],
+    ['openrouter-gratis', 'nvidia/nemotron:free'],
+    ['openrouter-gratis-2', 'openrouter/free'],
+  ]);
+  const i = new Interruptor();
+  i.fallo('openrouter', 402, 0);
+  i.fallo('openrouter-gratis', 429, 0);
+  assert.deepEqual(i.aProbar(c, 1_000).map((e) => e.nombre), ['openrouter-gratis-2']);
+});
+
 test('un proveedor sin crédito se saltea diez minutos; un error suelto no castiga', () => {
   assert.equal(pausaPorFallo(402), 600_000);
   assert.equal(pausaPorFallo(401), 600_000);

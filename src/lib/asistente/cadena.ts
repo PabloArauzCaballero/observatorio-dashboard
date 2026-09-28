@@ -40,8 +40,11 @@ const extraGemini = (modelo: string): Record<string, unknown> =>
  * - `OPENROUTER_API_KEY` + `ASISTENTE_MODELO`: el principal.
  * - `GEMINI_API_KEY` + `ASISTENTE_MODELO_GEMINI` (por defecto, el mismo modelo
  *   sin el prefijo `google/`): el respaldo con capa gratuita de Google.
- * - `ASISTENTE_MODELO_GRATIS`: un modelo `:free` de OpenRouter, que no gasta
- *   crédito pero tiene cupo diario. Sin valor por defecto: cuáles hay cambia.
+ * - `ASISTENTE_MODELO_GRATIS`: uno o varios modelos gratuitos de OpenRouter,
+ *   separados por coma, que no gastan crédito pero tienen cupo diario y a
+ *   veces están saturados (429). Cada uno es su propio eslabón, así uno
+ *   saturado se saltea y se prueba el siguiente. Sin valor por defecto: cuáles
+ *   hay cambia; `GET https://openrouter.ai/api/v1/models` los lista.
  */
 export function armarCadena(env: Entorno): Eslabon[] {
   const cadena: Eslabon[] = [];
@@ -55,9 +58,11 @@ export function armarCadena(env: Entorno): Eslabon[] {
     const modelo = valor(env, 'ASISTENTE_MODELO_GEMINI') || principal.replace(/^google\//, '');
     cadena.push({ nombre: 'gemini', url: GEMINI_URL, clave: gemini, modelo, extra: extraGemini(modelo) });
   }
-  const gratis = valor(env, 'ASISTENTE_MODELO_GRATIS');
-  if (openrouter && gratis) {
-    cadena.push({ nombre: 'openrouter-gratis', url: OPENROUTER_URL, clave: openrouter, modelo: gratis, extra: {} });
+  const gratis = valor(env, 'ASISTENTE_MODELO_GRATIS').split(',').map((m) => m.trim()).filter(Boolean);
+  if (openrouter) {
+    gratis.forEach((modelo, i) => {
+      cadena.push({ nombre: i === 0 ? 'openrouter-gratis' : `openrouter-gratis-${i + 1}`, url: OPENROUTER_URL, clave: openrouter, modelo, extra: {} });
+    });
   }
   return cadena;
 }
