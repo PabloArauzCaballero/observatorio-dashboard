@@ -58,12 +58,48 @@ export function hechos(texto: string): string[] {
     .filter((l) => l.length > 2);
 }
 
-export function respuestaSinIa(paquetes: readonly PaqueteLeido[], motivo: Motivo): string {
+/** Minúsculas, sin tildes: «Educación» y «educacion» son la misma palabra. */
+const plano = (texto: string): string =>
+  texto.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
+
+/** Las palabras de la pregunta que sirven para buscar: de cinco letras o más, recortadas a su raíz. */
+export function raices(pregunta: string): string[] {
+  const vacias = new Set(['sobre', 'cuanto', 'cuanta', 'cuales', 'donde', 'bolivia', 'comparada', 'comparado', 'opinas', 'esta', 'estan', 'tiene', 'datos']);
+  return [...new Set(
+    plano(pregunta)
+      .split(/[^a-z0-9]+/)
+      .filter((w) => w.length >= 5 && !vacias.has(w))
+      .map((w) => w.slice(0, 6)),
+  )];
+}
+
+/**
+ * Las líneas de un paquete, primero las que nombran lo que se preguntó.
+ *
+ * Sin modelo no hay quien elija el dato: «¿cómo está la educación comparada con
+ * los vecinos?» traía las cuatro primeras líneas del paquete, que eran de PIB.
+ * Ordenar por palabras compartidas con la pregunta pone arriba la de
+ * educación; a igualdad, queda el orden del paquete.
+ */
+export function ordenarPorPregunta(lineas: readonly string[], pregunta: string): string[] {
+  const buscadas = raices(pregunta);
+  if (buscadas.length === 0) return [...lineas];
+  const puntaje = (l: string) => {
+    const t = plano(l);
+    return buscadas.filter((r) => t.includes(r)).length;
+  };
+  return lineas
+    .map((l, i) => ({ l, i, p: puntaje(l) }))
+    .sort((a, b) => b.p - a.p || a.i - b.i)
+    .map((x) => x.l);
+}
+
+export function respuestaSinIa(paquetes: readonly PaqueteLeido[], motivo: Motivo, pregunta = ''): string {
   const partes: string[] = [ENCABEZADO[motivo]];
   let quedan = EN_TOTAL;
   for (const p of paquetes) {
     if (!p.leido || !TITULO[p.id] || quedan <= 0) continue;
-    const lineas = hechos(p.texto).slice(0, Math.min(POR_PAQUETE, quedan));
+    const lineas = ordenarPorPregunta(hechos(p.texto), pregunta).slice(0, Math.min(POR_PAQUETE, quedan));
     if (lineas.length === 0) continue;
     quedan -= lineas.length;
     partes.push(`**${TITULO[p.id]}**`, ...lineas);

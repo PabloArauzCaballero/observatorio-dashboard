@@ -8,7 +8,7 @@ import assert from 'node:assert/strict';
 import { test } from 'node:test';
 
 import { GEMINI_URL, Interruptor, OPENROUTER_URL, armarCadena, clasificarSaldo, pausaPorFallo } from '../../src/lib/asistente/cadena.ts';
-import { hechos, respuestaSinIa } from '../../src/lib/asistente/sin-ia.ts';
+import { hechos, ordenarPorPregunta, raices, respuestaSinIa } from '../../src/lib/asistente/sin-ia.ts';
 
 test('la cadena lleva solo los proveedores con clave, en orden', () => {
   assert.deepEqual(armarCadena({}), [], 'sin claves no hay cadena');
@@ -88,4 +88,19 @@ test('sin IA la respuesta no se hace interminable', () => {
   const largo = Array.from({ length: 30 }, (_, i) => `- hecho ${i}`).join('\n');
   const r = respuestaSinIa(['HOY', 'DOLAR', 'MACRO', 'PRENSA'].map((id) => ({ id, texto: largo, leido: true })), 'fallo');
   assert.equal(r.split('\n').filter((l) => l.startsWith('- ')).length, 12);
+});
+
+test('sin IA primero van las líneas que nombran lo preguntado', () => {
+  const mundo = [
+    '- Crecimiento del PIB (% anual), Bolivia 2025: -1,6 %; Mundo 2,9 %',
+    '- PIB (dólares corrientes), Bolivia 2025: 64,8 mil M US$',
+    '- Inversión bruta (% del PIB), Bolivia 2024: 17,9 %',
+    '- Gasto público en educación (% del PIB), Bolivia 2022: 8,4 %; América Latina 4,1 %',
+    '- Escolarización secundaria (% bruto), Bolivia 2022: 91 %',
+  ];
+  assert.deepEqual(raices('¿Qué opinás de la educación en Bolivia comparada con los vecinos?'), ['educac', 'vecino']);
+  assert.match(ordenarPorPregunta(mundo, '¿Cómo está la educación comparada con los vecinos?')[0], /educación/);
+  assert.deepEqual(ordenarPorPregunta(mundo, '¿y eso?'), mundo, 'sin palabras útiles queda el orden del paquete');
+  const r = respuestaSinIa([{ id: 'MUNDO', texto: mundo.join('\n'), leido: true }], 'fallo', 'la educación');
+  assert.match(r.split('\n')[2], /educación/);
 });
