@@ -873,8 +873,9 @@ function PlacesTable({ places, total }: { places: Place[]; total: number }) {
       {doubtful > 0 ? (
         <p className="places-low-confidence-note" role="note">
           <span className="place-flag-low">Confianza baja</span> {NUMBER.format(doubtful)} de{' '}
-          {NUMBER.format(places.length)} lugares tienen confianza menor al 50 %: la fuente no
-          confirma que existan o sigan abiertos. Van marcados en la tabla.
+          {NUMBER.format(places.length)} lugares tienen confianza baja (Overture bajo el 50 % o
+          fichas de Foursquare sin actualizar desde antes de 2020): la fuente no confirma que
+          existan o sigan abiertos. Van marcados en la tabla.
         </p>
       ) : null}
       {approximate > 0 ? (
