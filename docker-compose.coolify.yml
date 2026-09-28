@@ -10,7 +10,8 @@
 # Variables que hay que definir en la UI de Coolify (las demas tienen valor por
 # defecto aqui):
 #   DASHBOARD_DATABASE_URL  cadena de solo lectura a `economic_observatory`.
-#   OPENROUTER_API_KEY      clave del asistente (opcional; sin ella no responde).
+#   OPENROUTER_API_KEY      clave del asistente (opcional; sin ella contesta sin IA).
+#   GEMINI_API_KEY          respaldo del asistente con la capa gratuita de Google (opcional).
 
 services:
   web:
@@ -35,11 +36,16 @@ services:
       # rechaza el handshake, asi que exigir TLS deja todos los paneles vacios.
       # El trafico no sale de la red Docker del servidor.
       DASHBOARD_DATABASE_SSL: 'false'
-      # El asistente «Preguntale al Observatorio». Sin clave, el panel se
-      # muestra pero dice que no está disponible y la ruta responde 503; el
-      # resto del tablero no depende de ella. La clave nunca llega al navegador.
+      # El asistente «Preguntale al Observatorio». Recorre OpenRouter, Gemini
+      # directo y un modelo gratuito, con los que tengan clave; sin ninguno, o si
+      # todos fallan, contesta sin IA con las cifras del tablero. Las claves
+      # nunca llegan al navegador.
       OPENROUTER_API_KEY: ${OPENROUTER_API_KEY:-}
       ASISTENTE_MODELO: ${ASISTENTE_MODELO:-google/gemini-3.1-flash-lite-preview}
+      GEMINI_API_KEY: ${GEMINI_API_KEY:-}
+      ASISTENTE_MODELO_GEMINI: ${ASISTENTE_MODELO_GEMINI:-}
+      ASISTENTE_MODELO_GRATIS: ${ASISTENTE_MODELO_GRATIS:-}
+      ASISTENTE_SALDO_MINIMO: ${ASISTENTE_SALDO_MINIMO:-2}
       # Preguntas por IP cada diez minutos y tope diario de tokens: el tablero
       # es público y sin sesión, y esto es lo que separa un abuso de una factura.
       ASISTENTE_POR_IP: ${ASISTENTE_POR_IP:-40}
