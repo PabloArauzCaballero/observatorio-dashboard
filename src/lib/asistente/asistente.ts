@@ -310,7 +310,7 @@ export async function responder(pregunta: string, historial: readonly Turno[], i
       version: GUIA_VERSION,
     };
     const sinModelo = (motivo: Motivo): Respuesta => {
-      const cuerpo = respuestaSinIa(paquetes, motivo);
+      const cuerpo = respuestaSinIa(paquetes, motivo, texto);
       return {
         ...comun,
         respuesta: clasificacion.tipo === 'ASESORIA' ? `${cuerpo}\n\n${AVISO_ASESORIA}` : cuerpo,
