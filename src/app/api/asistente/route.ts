@@ -4,8 +4,9 @@ import { AsistenteError, estado, responder, type Turno } from '@/lib/asistente/a
  * El asistente del Observatorio.
  *
  * `POST` recibe `{ pregunta, historial? }` y devuelve la respuesta armada con
- * los datos del tablero. `GET` dice si está activo y con qué modelo, sin
- * gastar nada: es lo que prueba que un despliegue ya trae el asistente.
+ * los datos del tablero. `GET` dice si está activo, con qué proveedores y en
+ * qué estado está el saldo (sin montos), sin gastar nada: es lo que prueba que
+ * un despliegue ya trae el asistente y lo que mira el aviso diario de saldo.
  *
  * El historial lo guarda el navegador, no el servidor —la base es de solo
  * lectura y una conversación de un visitante no tiene por qué quedar en ella—,
@@ -17,8 +18,8 @@ export const dynamic = 'force-dynamic';
 const MAX_PREGUNTA = 1_000;
 const MAX_TURNOS = 6;
 
-export function GET(): Response {
-  return Response.json(estado(), { headers: { 'Cache-Control': 'no-store' } });
+export async function GET(): Promise<Response> {
+  return Response.json(await estado(), { headers: { 'Cache-Control': 'no-store' } });
 }
 
 function ipDe(request: Request): string {

@@ -1,0 +1,80 @@
+# Aviso de saldo del asistente.
+#
+# El 27-sep-2026 el asistente se quedó sin crédito en OpenRouter y nadie lo supo
+# hasta que un usuario vio el error. Este workflow mira una vez por día el estado
+# que publica GET /api/asistente en cada servidor —solo «ok», «bajo» o «agotado»,
+# nunca montos— y, si no está bien, abre un issue con la etiqueta
+# `asistente-sin-saldo` (o comenta el que ya esté abierto). Cuando vuelve a estar
+# bien, lo cierra. No necesita ninguna clave: lee lo mismo que cualquier visitante.
+#
+# Los workflows programados corren desde la rama por defecto (`main`): este
+# archivo tiene que estar ahí para que el cron dispare.
+
+name: saldo-ia
+
+on:
+  schedule:
+    - cron: '0 13 * * *' # 09:00 en Bolivia
+  workflow_dispatch:
+
+permissions:
+  issues: write
+
+jobs:
+  revisar:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    env:
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: ${{ github.repository }}
+      ETIQUETA: asistente-sin-saldo
+    steps:
+      - name: Leer el estado de cada servidor
+        id: estado
+        run: |
+          set -u
+          problemas=""
+          for par in "test|https://test.datosbolivia.com" "dev|https://pablo-h310.taila8f993.ts.net:10000"; do
+            nombre="${par%%|*}"; base="${par#*|}"
+            cuerpo=$(curl -fsS -m 60 "$base/api/asistente" || echo '')
+            if [ -z "$cuerpo" ]; then
+              echo "::warning::$nombre: no respondió $base/api/asistente"
+              continue
+            fi
+            saldo=$(echo "$cuerpo" | jq -r '.saldo // "desconocido"')
+            ia=$(echo "$cuerpo" | jq -r '.ia // false')
+            pausas=$(echo "$cuerpo" | jq -r '[.proveedores[]? | select(.enPausa) | .nombre] | join(", ")')
+            echo "$nombre: saldo=$saldo ia=$ia en_pausa=${pausas:-ninguno}"
+            if [ "$saldo" = "bajo" ] || [ "$saldo" = "agotado" ] || [ "$ia" != "true" ]; then
+              problemas="$problemas- **$nombre** ($base): saldo \`$saldo\`, IA configurada: \`$ia\`, proveedores en pausa: ${pausas:-ninguno}"$'\n'
+            fi
+          done
+          {
+            echo "problemas<<FIN"
+            printf '%s' "$problemas"
+            echo "FIN"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Abrir o comentar el aviso
+        if: steps.estado.outputs.problemas != ''
+        env:
+          PROBLEMAS: ${{ steps.estado.outputs.problemas }}
+        run: |
+          gh label create "$ETIQUETA" --color d93f0b --description "El asistente se queda sin saldo de IA" 2>/dev/null || true
+          cuerpo=$(printf '%s\n\n%s\n\n%s\n' \
+            "El asistente del Observatorio se está quedando sin IA:" \
+            "$PROBLEMAS" \
+            "Mientras tanto contesta sin IA, con las cifras del tablero. Para arreglarlo: cargar crédito en https://openrouter.ai/settings/credits (o revisar la clave en Coolify). Este aviso se cierra solo cuando el saldo vuelve a estar bien.")
+          abierto=$(gh issue list --label "$ETIQUETA" --state open --json number --jq '.[0].number // empty')
+          if [ -n "$abierto" ]; then
+            gh issue comment "$abierto" --body "$cuerpo"
+          else
+            gh issue create --title "Asistente: saldo de IA bajo o agotado" --label "$ETIQUETA" --body "$cuerpo"
+          fi
+
+      - name: Cerrar el aviso si ya está bien
+        if: steps.estado.outputs.problemas == ''
+        run: |
+          for n in $(gh issue list --label "$ETIQUETA" --state open --json number --jq '.[].number'); do
+            gh issue close "$n" --comment "El saldo volvió a estar bien en todos los servidores."
+          done

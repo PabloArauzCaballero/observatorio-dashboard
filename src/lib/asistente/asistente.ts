@@ -15,7 +15,9 @@ import { hrefDe } from '../enlace-tablero';
 import { GUIA_VERSION, enlacesPara, guiaBreve, pestanasPara, type Enlace, type Pestana } from './guia';
 import type { Tabla } from './tabla';
 import { fechaDeHoy, leerPaquetes } from './paquetes';
-import { configurado, modelo, pedir, ProveedorError, type Mensaje, type Uso } from './proveedor';
+import { configurado, modelo, pedir, proveedores, ProveedorError, type Mensaje, type Uso } from './proveedor';
+import { estadoDelSaldo, type EstadoSaldo } from './saldo';
+import { respuestaSinIa, type Motivo } from './sin-ia';
 import {
   AVISO_ASESORIA,
   RESPUESTA_DATO_PERSONAL,
@@ -32,6 +34,10 @@ import {
  * modelo (saludos, datos personales, intentos de manipulación); lo que las
  * palabras no alcanzan pasa por un clasificador corto; y la respuesta se
  * escribe solo con los paquetes de datos leídos en ese momento.
+ *
+ * Si ningún modelo contesta —sin clave, sin crédito, sin presupuesto del día o
+ * con todos los proveedores caídos— no hay error: se contesta sin IA, con las
+ * cifras de los mismos paquetes, sus tablas y sus enlaces (`sin-ia.ts`).
  */
 
 export interface Turno {
@@ -41,7 +47,8 @@ export interface Turno {
 
 export interface Respuesta {
   respuesta: string;
-  tipo: Tipo | 'FIJA';
+  /** `SIN_IA`: ningún modelo contestó y la respuesta son las cifras de los paquetes, sin redacción. */
+  tipo: Tipo | 'FIJA' | 'SIN_IA';
   paquetes: PaqueteId[];
   pestanas: Pestana[];
   /** Adónde ir en el tablero: pestaña y página exactas, con su dirección para copiar o abrir aparte. */
@@ -52,6 +59,8 @@ export interface Respuesta {
   faltantes: PaqueteId[];
   fecha: string;
   modelo: string | null;
+  /** Qué proveedor de la cadena contestó, o `null` si no hubo modelo. */
+  proveedor: string | null;
   latenciaMs: number;
   version: string;
 }
@@ -95,13 +104,11 @@ function admitirIp(ip: string): void {
   }
 }
 
-/** Tope diario de tokens, para que un abuso no se convierta en una factura. */
-function admitirPresupuesto(): void {
+/** Tope diario de tokens, para que un abuso no se convierta en una factura. Pasado, se contesta sin IA. */
+function quedaPresupuesto(): boolean {
   const hoy = fechaDeHoy();
   if (presupuesto.dia !== hoy) presupuesto = { dia: hoy, tokens: 0 };
-  if (presupuesto.tokens >= entero('ASISTENTE_TOKENS_DIA', 4_000_000)) {
-    throw new AsistenteError('El asistente llegó a su límite de uso de hoy. Volvé a intentar mañana.', 503);
-  }
+  return presupuesto.tokens < entero('ASISTENTE_TOKENS_DIA', 4_000_000);
 }
 
 function gastar(uso: Uso): void {
@@ -165,6 +172,7 @@ function fija(texto: string, inicio: number): Respuesta {
     faltantes: [],
     fecha: fechaDeHoy(),
     modelo: null,
+    proveedor: null,
     latenciaMs: Math.round(performance.now() - inicio),
     version: GUIA_VERSION,
   };
@@ -197,8 +205,27 @@ async function clasificar(pregunta: string, historial: readonly Turno[]): Promis
   };
 }
 
-export function estado(): { activo: boolean; modelo: string; version: string } {
-  return { activo: configurado(), modelo: modelo(), version: GUIA_VERSION };
+/**
+ * Lo que `GET /api/asistente` publica: si contesta, con qué, y el estado del
+ * saldo (sin montos). `activo` es siempre verdadero: sin modelo contesta igual,
+ * sin IA; `ia` dice si hay algún proveedor configurado.
+ */
+export async function estado(): Promise<{
+  activo: boolean;
+  ia: boolean;
+  modelo: string;
+  proveedores: ReturnType<typeof proveedores>;
+  saldo: EstadoSaldo;
+  version: string;
+}> {
+  return {
+    activo: true,
+    ia: configurado(),
+    modelo: modelo(),
+    proveedores: proveedores(),
+    saldo: await estadoDelSaldo(),
+    version: GUIA_VERSION,
+  };
 }
 
 export async function responder(pregunta: string, historial: readonly Turno[], ip: string): Promise<Respuesta> {
@@ -212,9 +239,9 @@ export async function responder(pregunta: string, historial: readonly Turno[], i
   if (previo.saludo) return fija(RESPUESTA_SALUDO, inicio);
   if (previo.tipo === 'FUERA') return fija(RESPUESTA_FUERA, inicio);
 
-  if (!configurado()) throw new AsistenteError('El asistente todavía no está configurado en este servidor.', 503);
   admitirIp(ip);
-  admitirPresupuesto();
+  // Sin modelo disponible no se deja de contestar: se contesta sin IA.
+  let sinIa: Motivo | null = !configurado() ? 'sin-proveedor' : !quedaPresupuesto() ? 'presupuesto' : null;
   if (enCurso >= entero('ASISTENTE_SIMULTANEAS', 4)) {
     throw new AsistenteError('Hay otras consultas en curso. Probá de nuevo en unos segundos.', 429, 3);
   }
@@ -229,10 +256,19 @@ export async function responder(pregunta: string, historial: readonly Turno[], i
         departamento: previo.departamento,
         busqueda: previo.busqueda,
       };
+    } else if (sinIa) {
+      clasificacion = { tipo: 'DATOS', paquetes: ['HOY', 'DOLAR', 'MACRO'], departamento: previo.departamento, busqueda: previo.busqueda };
     } else {
-      const { c, uso } = await clasificar(texto, historial);
-      gastar(uso);
-      clasificacion = c;
+      try {
+        const { c, uso } = await clasificar(texto, historial);
+        gastar(uso);
+        clasificacion = c;
+      } catch (error) {
+        if (!(error instanceof ProveedorError)) throw error;
+        // Si la cadena no contestó para clasificar, tampoco va a contestar para redactar: sin IA desde ya.
+        sinIa = 'fallo';
+        clasificacion = { tipo: 'DATOS', paquetes: ['HOY', 'DOLAR', 'MACRO'], departamento: previo.departamento, busqueda: previo.busqueda };
+      }
     }
 
     if (clasificacion.tipo === 'FUERA') return fija(RESPUESTA_FUERA, inicio);
@@ -263,6 +299,29 @@ export async function responder(pregunta: string, historial: readonly Turno[], i
     }
 
     const hoy = fechaDeHoy();
+    const comun = {
+      paquetes: clasificacion.paquetes,
+      pestanas: pestanasPara(clasificacion.paquetes),
+      enlaces: enlacesPara(clasificacion.paquetes).map((e) => ({ ...e, href: hrefDe(e) })),
+      tablas: paquetes.flatMap((p) => (p.leido && p.tabla ? [p.tabla] : [])).slice(0, 4),
+      departamento: clasificacion.departamento,
+      faltantes: paquetes.filter((p) => !p.leido).map((p) => p.id),
+      fecha: hoy,
+      version: GUIA_VERSION,
+    };
+    const sinModelo = (motivo: Motivo): Respuesta => {
+      const cuerpo = respuestaSinIa(paquetes, motivo);
+      return {
+        ...comun,
+        respuesta: clasificacion.tipo === 'ASESORIA' ? `${cuerpo}\n\n${AVISO_ASESORIA}` : cuerpo,
+        tipo: 'SIN_IA',
+        modelo: null,
+        proveedor: null,
+        latenciaMs: Math.round(performance.now() - inicio),
+      };
+    };
+    if (sinIa) return sinModelo(sinIa);
+
     const datos = paquetes.map((p) => `### ${p.id}\n${p.texto}`).join('\n\n');
     const indicacion =
       clasificacion.tipo === 'ASESORIA'
@@ -287,7 +346,13 @@ export async function responder(pregunta: string, historial: readonly Turno[], i
       { role: 'user', content: texto },
     ];
 
-    const r = await pedir(mensajes, 900, 0.2, 25_000);
+    let r: Awaited<ReturnType<typeof pedir>>;
+    try {
+      r = await pedir(mensajes, 900, 0.2, 25_000);
+    } catch (error) {
+      if (error instanceof ProveedorError) return sinModelo('fallo');
+      throw error;
+    }
     gastar(r.uso);
     if (pareceSecreto(r.contenido)) {
       console.error('[asistente] respuesta retenida: traía algo con forma de credencial');
@@ -299,18 +364,12 @@ export async function responder(pregunta: string, historial: readonly Turno[], i
 
     const respuesta = clasificacion.tipo === 'ASESORIA' ? `${r.contenido}\n\n${AVISO_ASESORIA}` : r.contenido;
     return {
+      ...comun,
       respuesta,
       tipo: clasificacion.tipo,
-      paquetes: clasificacion.paquetes,
-      pestanas: pestanasPara(clasificacion.paquetes),
-      enlaces: enlacesPara(clasificacion.paquetes).map((e) => ({ ...e, href: hrefDe(e) })),
-      tablas: paquetes.flatMap((p) => (p.leido && p.tabla ? [p.tabla] : [])).slice(0, 4),
-      departamento: clasificacion.departamento,
-      faltantes: paquetes.filter((p) => !p.leido).map((p) => p.id),
-      fecha: hoy,
       modelo: r.modelo,
+      proveedor: r.proveedor,
       latenciaMs: Math.round(performance.now() - inicio),
-      version: GUIA_VERSION,
     };
   } catch (error) {
     if (error instanceof ProveedorError) throw new AsistenteError(error.message, error.status);
