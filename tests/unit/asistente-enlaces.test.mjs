@@ -4,7 +4,7 @@
  * Correr con: node --test tests/unit/
  */
 import assert from 'node:assert/strict';
-import { readFileSync } from 'node:fs';
+import { readFileSync, readdirSync } from 'node:fs';
 import { test } from 'node:test';
 
 import { DESTINO_DE_PAQUETE, PESTANAS, enlacesPara } from '../../src/lib/asistente/guia.ts';
@@ -32,7 +32,12 @@ test('una dirección escrita a mano también encuentra su pestaña', () => {
 
 test('cada destino del asistente nombra una pestaña y una página que existen en el tablero', () => {
   const pagina = leer('src/app/page.tsx');
-  const secciones = ['src/components/macro-section.tsx', 'src/components/filings-section.tsx', 'src/components/press-section.tsx'].map(leer).join('\n');
+  // Las páginas son las de toda barra que sigue la dirección, esté en el archivo que esté.
+  const secciones = readdirSync(new URL('../../src/components/', import.meta.url))
+    .filter((f) => f.endsWith('.tsx'))
+    .map((f) => leer(`src/components/${f}`))
+    .filter((codigo) => /<SubTabs[^>]*\benlace\b/.test(codigo))
+    .join('\n');
   for (const p of PESTANAS) assert.ok(pagina.includes(`'${p}'`), `la pestaña «${p}» está en page.tsx`);
   for (const [paquete, destino] of Object.entries(DESTINO_DE_PAQUETE)) {
     assert.ok(PESTANAS.includes(destino.pestana), paquete);
