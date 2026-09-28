@@ -15,9 +15,20 @@
 export const LOW_CONFIDENCE = 0.5;
 
 export const LOW_CONFIDENCE_NOTE =
-  'Confianza baja: la fuente (Overture) no confirma que este lugar exista o siga abierto. Verificar antes de usar.';
+  'Confianza baja: la fuente no confirma que este lugar exista o siga abierto (Overture bajo el 50 %, o una ficha de Foursquare que nadie actualiza desde antes de 2020). Verificar antes de usar.';
 
-export function isLowConfidence(place: { confidence: number | null }): boolean {
+/**
+ * Foursquare no publica un número de confianza, pero sí cuándo se tocó la ficha por última
+ * vez: el 70 % de Bolivia no se actualiza desde antes de 2020. Esa es la duda equivalente, y
+ * la carga la deja escrita en `data_level`.
+ */
+const STALE_DIRECTORY = 'DIRECTORIO_COLABORATIVO_SIN_ACTUALIZAR';
+
+export function isLowConfidence(place: {
+  confidence: number | null;
+  dataLevel?: string | null;
+}): boolean {
+  if (place.dataLevel === STALE_DIRECTORY) return true;
   return place.confidence !== null && place.confidence < LOW_CONFIDENCE;
 }
 

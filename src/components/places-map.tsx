@@ -618,6 +618,9 @@ export function PlacesMap({
     } else if (place.qualityGrade) {
       rows.push({ term: 'Calidad', value: place.qualityGrade });
     }
+    // Foursquare no publica confianza: su aviso sale de la fecha de la ficha.
+    if (place.confidence === null && isLowConfidence(place))
+      rows.push({ term: 'Aviso', value: LOW_CONFIDENCE_NOTE });
     if (place.officialValidationSource) {
       rows.push({ term: 'Verificar en', value: place.officialValidationSource });
     }
