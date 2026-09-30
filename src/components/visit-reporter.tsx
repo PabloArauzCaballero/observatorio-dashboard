@@ -18,6 +18,9 @@ import { describeVisit, report } from '@/lib/analytics';
 export function VisitReporter(): null {
   useEffect(() => {
     if (typeof window === 'undefined') return;
+    // El portal administrativo no es tráfico del sitio: medirlo hace que abrir
+    // la pantalla de tráfico suba el contador que está mirando.
+    if (window.location.pathname.startsWith('/admin')) return;
     const marker = '__observatorioVisitReported';
     const flags = window as unknown as Record<string, unknown>;
     if (flags[marker] === window.location.pathname) return;

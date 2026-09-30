@@ -23,6 +23,7 @@ import {
 import { DEFINITION_AUTHOR, GLOSSARY, UNIT_MEANING } from '@/lib/indicator-glossary';
 import { captureBlock, captureFigure, printAnalysis } from '@/lib/analysis-pdf';
 import type { PdfFigure } from '@/lib/analysis-pdf';
+import { reportDownloadIntent } from '@/lib/analytics';
 import {
   autocorrelation,
   density,
@@ -185,6 +186,7 @@ export function MacroAnalysis({
       },
     ];
 
+    reportDownloadIntent('analisis-pdf');
     printAnalysis({
       title: point.name ?? point.indicatorCode,
       code: point.indicatorCode,

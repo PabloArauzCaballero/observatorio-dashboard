@@ -8,6 +8,7 @@ import { Icon } from './icons';
 import { OnOpenNotice } from './on-open';
 import { AUTO_DRAWN, FREQUENCY_LABEL, MAX_SELECTED, PAGE, shortLabels } from '@/lib/bcb-board';
 import type { BcbCatalogPage, BcbSeriesData, BcbSeriesInfo } from '@/lib/bcb-board';
+import { reportDownloadIntent } from '@/lib/analytics';
 
 /**
  * Las estadísticas del Banco Central, con la misma estructura que las otras pestañas.
@@ -60,6 +61,7 @@ function csvOf(series: readonly BcbSeriesData[]): string {
 }
 
 function download(series: readonly BcbSeriesData[]): void {
+  reportDownloadIntent('bcb-csv');
   const url = URL.createObjectURL(new Blob([csvOf(series)], { type: 'text/csv;charset=utf-8' }));
   const link = document.createElement('a');
   link.href = url;

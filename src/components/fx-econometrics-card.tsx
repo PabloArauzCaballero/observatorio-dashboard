@@ -1,7 +1,7 @@
 'use client';
 
 import { Icon } from './icons';
-import { describeVisit, report } from '@/lib/analytics';
+import { reportDownloadIntent } from '@/lib/analytics';
 
 /**
  * Las pruebas econométricas del tipo de cambio, como una oferta y no como un panel.
@@ -18,10 +18,7 @@ import { describeVisit, report } from '@/lib/analytics';
  * registra una intención, igual que las demás descargas (`download.tsx`).
  */
 export function FxEconometricsCard() {
-  const announce = (): void => {
-    const visit = describeVisit('DOWNLOAD_INTENT');
-    if (visit) report({ ...visit, route: '/descarga/econometria' });
-  };
+  const announce = (): void => reportDownloadIntent('econometria');
 
   return (
     <div className="panel">

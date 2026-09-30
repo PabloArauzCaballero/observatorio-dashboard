@@ -1,5 +1,7 @@
 'use client';
 
+import { reportDownloadIntent } from '@/lib/analytics';
+
 /**
  * Taking a map away with you.
  *
@@ -26,6 +28,7 @@ const CARRIED = [
 ] as const;
 
 function handOver(url: string, fileName: string): void {
+  reportDownloadIntent(`mapa-${fileName.split('.').pop() ?? 'archivo'}`);
   const link = document.createElement('a');
   link.href = url;
   link.download = fileName;

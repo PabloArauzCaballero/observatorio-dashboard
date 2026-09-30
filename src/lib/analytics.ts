@@ -86,6 +86,18 @@ export function describeVisit(kind: TrafficKind = 'PAGE_VIEW'): ReportedEvent | 
 }
 
 /**
+ * Reporta la intención de bajar un archivo que el navegador arma por su cuenta.
+ *
+ * Esas descargas no pasan por `/api/export`, así que el servidor no las ve y sin
+ * esto el panel de tráfico las subcontaría. `name` es el nombre de la descarga
+ * (`mapa-png`, `bcb-csv`); queda en la ruta `/descarga/<name>`.
+ */
+export function reportDownloadIntent(name: string): void {
+  const visit = describeVisit('DOWNLOAD_INTENT');
+  if (visit) report({ ...visit, route: `/descarga/${name}` });
+}
+
+/**
  * Sends without holding anything up, and without caring whether it arrived.
  *
  * `sendBeacon` survives the page being closed, which is exactly when a download
