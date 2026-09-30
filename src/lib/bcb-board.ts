@@ -43,6 +43,7 @@ export const PAGE = 60;
 export const MAX_SELECTED = 4;
 
 export const FAMILY_LABEL: Record<string, string> = {
+  'activos-virtuales': 'Activos virtuales (BCB)',
   'sector-externo': 'Sector externo',
   'sector-monetario': 'Dinero y bancos',
   'sistema-de-pagos': 'Sistema de pagos',
