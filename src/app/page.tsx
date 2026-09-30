@@ -541,17 +541,17 @@ async function TodaySection() {
           <TodayBoardPanel
             board={board}
             lead={
-              <>
-                <Suspense fallback={<Armando que="la cotización del dólar" />}>
-                  <DollarQuotesSection />
-                </Suspense>
-                <BankQuoteCards />
-              </>
+              <Suspense fallback={<Armando que="la cotización del dólar" />}>
+                <DollarQuotesSection />
+              </Suspense>
             }
           />
         }
         news={<BoardNews board={board} />}
       />
+      {/* Al final de la portada, después de todo lo demás: es contexto de las
+          cotizaciones de arriba, no lo primero que el lector vino a buscar. */}
+      <BankQuoteCards />
     </>
   );
 }

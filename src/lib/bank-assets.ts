@@ -19,21 +19,40 @@ export function readBankAssets(): Promise<BankAssetsBoard> {
 
 async function buildBoard(): Promise<BankAssetsBoard> {
   try {
-    const { rows } = await pool().query<BankAssetRow>(
-      `SELECT indicator_code, bank, bank_name, product, asset, kind, limit_name, unit, note,
-              to_char(reading_date, 'YYYY-MM-DD') AS reading_date, value::text, basis, source_url
-       FROM read_models.bank_virtual_asset
-       ORDER BY indicator_code, reading_date`,
-    );
-    return buildBankBoard(rows);
+    return buildBankBoard(await readRows(true));
   } catch (error) {
-    // El tablero se despliega a veces antes que la migración 0089 del núcleo:
-    // un modelo que todavía no existe es un panel vacío que lo dice.
     const code = (error as { code?: string }).code;
-    if (code === '42P01' || code === '42501' || code === '42703') {
-      console.warn(`[observatorio] modelo ilegible: read_models.bank_virtual_asset (${code})`);
-      return EMPTY_BANK_BOARD;
+    // El tablero se despliega a veces antes que las migraciones del núcleo. Sin
+    // la 0090 falta la columna del lado (42703): se lee sin ella y las
+    // cotizaciones esperan, en vez de llevarse consigo el panel entero.
+    if (code === '42703') {
+      try {
+        return buildBankBoard(await readRows(false));
+      } catch (inner) {
+        return emptyOrThrow(inner);
+      }
     }
-    throw error;
+    return emptyOrThrow(error);
   }
+}
+
+async function readRows(withSide: boolean): Promise<BankAssetRow[]> {
+  const side = withSide ? 'side' : 'NULL::text AS side';
+  const { rows } = await pool().query<BankAssetRow>(
+    `SELECT indicator_code, bank, bank_name, product, asset, kind, limit_name, ${side}, unit, note,
+            to_char(reading_date, 'YYYY-MM-DD') AS reading_date, value::text, basis, source_url
+     FROM read_models.bank_virtual_asset
+     ORDER BY indicator_code, reading_date`,
+  );
+  return rows;
+}
+
+/** Un modelo que todavía no existe es un panel vacío que lo dice; lo demás se propaga. */
+function emptyOrThrow(error: unknown): BankAssetsBoard {
+  const code = (error as { code?: string }).code;
+  if (code === '42P01' || code === '42501' || code === '42703') {
+    console.warn(`[observatorio] modelo ilegible: read_models.bank_virtual_asset (${code})`);
+    return EMPTY_BANK_BOARD;
+  }
+  throw error;
 }

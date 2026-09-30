@@ -1,9 +1,12 @@
 /**
  * Los bancos que ofrecen dólar digital, armados para dibujarse.
  *
- * Ningún banco publica su cotización fuera de la aplicación: lo que el
- * observatorio sigue es si el servicio existe, desde cuándo y con qué límites.
- * Este módulo no toca la base; recibe las filas de la vista y las ordena.
+ * Ningún banco publica su cotización fuera de la aplicación: lo que se lee solo
+ * es si el servicio existe, desde cuándo y con qué límites. La cotización —lo
+ * que el banco cobra y paga por cada ficha— llega a mano, de una captura de la
+ * aplicación, y viaja aparte (`quotes`) para que el gráfico no dibuje nada que
+ * nadie haya visto. Este módulo no toca la base; recibe las filas de la vista y
+ * las ordena.
  */
 
 export interface BankAssetRow {
@@ -12,13 +15,14 @@ export interface BankAssetRow {
   bank_name: string;
   product: string;
   asset: string;
-  kind: 'OFFERED' | 'LIMIT';
+  kind: 'OFFERED' | 'LIMIT' | 'QUOTE';
   limit_name: string | null;
+  side: 'CLIENT_BUYS' | 'CLIENT_SELLS' | null;
   unit: string;
   note: string;
   reading_date: string;
   value: string;
-  basis: 'ANNOUNCEMENT' | 'FIRST_PUBLIC_DOCUMENT' | 'OFFICIAL_PAGE';
+  basis: 'ANNOUNCEMENT' | 'FIRST_PUBLIC_DOCUMENT' | 'OFFICIAL_PAGE' | 'USER_CAPTURE';
   source_url: string | null;
 }
 
@@ -26,6 +30,15 @@ export interface BankLimit {
   label: string;
   value: number;
   unit: string;
+}
+
+/** Lo último que se anotó de lo que un banco cobra y paga por ficha. */
+export interface BankQuote {
+  /** Bolivianos que el cliente paga por cada ficha. */
+  clientBuys: number | null;
+  /** Bolivianos que el cliente recibe por cada ficha. */
+  clientSells: number | null;
+  date: string;
 }
 
 export interface BankProduct {
@@ -36,30 +49,30 @@ export interface BankProduct {
   /** El día desde el que el servicio consta. */
   since: string;
   /** Cómo consta: anunciado, o solo por el primer documento oficial. */
-  sinceBasis: BankAssetRow['basis'];
+  sinceBasis: Exclude<BankAssetRow['basis'], 'USER_CAPTURE' | 'OFFICIAL_PAGE'>;
   sinceSource: string | null;
   /** `null` si el banco no tiene lectura diaria de su página. */
   offeredNow: boolean | null;
   lastRead: string | null;
   limits: BankLimit[];
+  quote: BankQuote | null;
   note: string;
 }
 
-export interface AdoptionPoint {
+/** Una fila del gráfico: el día y, por banco, lo que el cliente paga por ficha. */
+export interface QuotePoint {
   date: string;
-  total: number;
-  usdt: number;
-  usdc: number;
-  [key: string]: string | number;
+  [bank: string]: string | number | null;
 }
 
 export interface BankAssetsBoard {
   banks: BankProduct[];
-  adoption: AdoptionPoint[];
+  /** Cuánto paga el cliente por cada ficha, un renglón por día con alguna cotización. */
+  quotes: QuotePoint[];
   latestRead: string | null;
 }
 
-export const EMPTY_BANK_BOARD: BankAssetsBoard = { banks: [], adoption: [], latestRead: null };
+export const EMPTY_BANK_BOARD: BankAssetsBoard = { banks: [], quotes: [], latestRead: null };
 
 const LIMIT_LABEL: Record<string, string> = {
   TRADE_MIN: 'Mínimo por compra o venta',
@@ -68,111 +81,91 @@ const LIMIT_LABEL: Record<string, string> = {
   TRANSFER_MAX_DAY: 'Máximo por día en giros al exterior',
 };
 
-const DAY = 86_400_000;
-const isoDay = (time: number): string => new Date(time).toISOString().slice(0, 10);
+const byDate = (a: BankAssetRow, b: BankAssetRow): number =>
+  a.reading_date.localeCompare(b.reading_date);
 
-/** Un día del calendario a la vez, sin que el cambio de hora mueva ninguno. */
-function daysBetween(first: string, last: string): string[] {
-  const out: string[] = [];
-  for (let time = Date.parse(`${first}T00:00:00Z`); isoDay(time) <= last; time += DAY) {
-    out.push(isoDay(time));
-  }
-  return out;
-}
-
-interface Track {
-  readonly product: BankProduct;
-  readonly points: readonly { date: string; on: boolean }[];
-}
-
-/** El estado de un día es el de la última lectura que no sea posterior a él. */
-function stateOn(track: Track, day: string): boolean {
-  let on = false;
-  for (const point of track.points) {
-    if (point.date > day) break;
-    on = point.on;
-  }
-  return on;
+/** Lo último que se anotó de cada lado, y el día más reciente de los dos. */
+function latestQuote(rows: readonly BankAssetRow[]): BankQuote | null {
+  const buys = rows
+    .filter((row) => row.side === 'CLIENT_BUYS')
+    .sort(byDate)
+    .at(-1);
+  const sells = rows
+    .filter((row) => row.side === 'CLIENT_SELLS')
+    .sort(byDate)
+    .at(-1);
+  const dates = [buys?.reading_date, sells?.reading_date].filter((d): d is string => !!d);
+  if (!dates.length) return null;
+  return {
+    clientBuys: buys ? Number(buys.value) : null,
+    clientSells: sells ? Number(sells.value) : null,
+    date: dates.sort().at(-1) ?? '',
+  };
 }
 
 export function buildBankBoard(rows: readonly BankAssetRow[]): BankAssetsBoard {
-  const byCode = new Map<string, BankAssetRow[]>();
-  for (const row of rows) {
-    const own = byCode.get(row.indicator_code);
-    if (own) own.push(row);
-    else byCode.set(row.indicator_code, [row]);
-  }
+  const service = rows.filter((row) => row.kind === 'OFFERED');
+  const limits = rows.filter((row) => row.kind === 'LIMIT');
+  const quoted = rows.filter((row) => row.kind === 'QUOTE');
 
-  const limitsByBank = new Map<string, BankLimit[]>();
-  const tracks: Track[] = [];
-  for (const own of byCode.values()) {
-    const sorted = [...own].sort((a, b) => a.reading_date.localeCompare(b.reading_date));
-    const first = sorted[0];
-    const last = sorted.at(-1);
-    if (!first || !last) continue;
-    if (first.kind === 'LIMIT') {
-      const value = Number(last.value);
-      const label = LIMIT_LABEL[first.limit_name ?? ''];
-      if (!label || !Number.isFinite(value)) continue;
-      const bucket = limitsByBank.get(first.bank) ?? [];
-      bucket.push({ label, value, unit: first.unit });
-      limitsByBank.set(first.bank, bucket);
-      continue;
+  const codes = [...new Set(service.map((row) => row.indicator_code))];
+  const banks: BankProduct[] = [];
+  for (const code of codes) {
+    const own = service.filter((row) => row.indicator_code === code).sort(byDate);
+    const first = own[0];
+    if (!first || first.basis === 'USER_CAPTURE' || first.basis === 'OFFICIAL_PAGE') continue;
+    const lastPage = own.filter((row) => row.basis === 'OFFICIAL_PAGE').at(-1);
+    const ownLimits: BankLimit[] = [];
+    for (const key of Object.keys(LIMIT_LABEL)) {
+      const latest = limits
+        .filter((row) => row.bank === first.bank && row.limit_name === key)
+        .sort(byDate)
+        .at(-1);
+      const value = latest ? Number(latest.value) : NaN;
+      if (latest && Number.isFinite(value)) {
+        ownLimits.push({ label: LIMIT_LABEL[key] ?? key, value, unit: latest.unit });
+      }
     }
-    const pageReads = sorted.filter((row) => row.basis === 'OFFICIAL_PAGE');
-    const lastPage = pageReads.at(-1);
-    tracks.push({
-      points: sorted.map((row) => ({ date: row.reading_date, on: Number(row.value) === 1 })),
-      product: {
-        bank: first.bank,
-        bankName: first.bank_name,
-        product: first.product,
-        asset: first.asset,
-        since: first.reading_date,
-        sinceBasis: first.basis,
-        sinceSource: first.source_url,
-        offeredNow: lastPage ? Number(lastPage.value) === 1 : null,
-        lastRead: lastPage?.reading_date ?? null,
-        limits: [],
-        note: first.note,
-      },
+    banks.push({
+      bank: first.bank,
+      bankName: first.bank_name,
+      product: first.product,
+      asset: first.asset,
+      since: first.reading_date,
+      sinceBasis: first.basis,
+      sinceSource: first.source_url,
+      offeredNow: lastPage ? Number(lastPage.value) === 1 : null,
+      lastRead: lastPage?.reading_date ?? null,
+      limits: ownLimits,
+      quote: latestQuote(quoted.filter((row) => row.bank === first.bank)),
+      note: first.note,
     });
   }
+  banks.sort((a, b) => a.since.localeCompare(b.since));
 
-  const order = Object.keys(LIMIT_LABEL);
-  for (const track of tracks) {
-    track.product.limits = (limitsByBank.get(track.product.bank) ?? []).sort(
-      (a, b) =>
-        order.findIndex((key) => LIMIT_LABEL[key] === a.label) -
-        order.findIndex((key) => LIMIT_LABEL[key] === b.label),
-    );
+  const days = new Map<string, QuotePoint>();
+  for (const row of quoted.filter((one) => one.side === 'CLIENT_BUYS')) {
+    const value = Number(row.value);
+    if (!Number.isFinite(value)) continue;
+    const point = days.get(row.reading_date) ?? { date: row.reading_date };
+    point[row.bank] = value;
+    days.set(row.reading_date, point);
   }
-  tracks.sort((a, b) => a.product.since.localeCompare(b.product.since));
+  const bankKeys = banks.map((bank) => bank.bank);
+  const quotes = [...days.values()]
+    .map((point) => {
+      const full: QuotePoint = { date: point.date };
+      for (const key of bankKeys) full[key] = point[key] ?? null;
+      return full;
+    })
+    .sort((a, b) => a.date.localeCompare(b.date));
 
-  const dates = rows.map((row) => row.reading_date).sort();
-  const firstDay = dates[0];
-  const latestRead = rows
-    .filter((row) => row.basis === 'OFFICIAL_PAGE')
-    .map((row) => row.reading_date)
-    .sort()
-    .at(-1);
-  const lastDay = dates.at(-1);
-  const adoption: AdoptionPoint[] =
-    firstDay && lastDay
-      ? daysBetween(firstDay, lastDay).map((date) => {
-          const on = tracks.filter((track) => stateOn(track, date));
-          return {
-            date,
-            total: on.length,
-            usdt: on.filter((track) => track.product.asset === 'USDT').length,
-            usdc: on.filter((track) => track.product.asset === 'USDC').length,
-          };
-        })
-      : [];
+  const latestRead =
+    rows
+      .filter((row) => row.basis === 'OFFICIAL_PAGE')
+      .map((row) => row.reading_date)
+      .sort()
+      .at(-1) ?? null;
 
-  return {
-    banks: tracks.map((track) => track.product),
-    adoption,
-    latestRead: latestRead ?? null,
-  };
+  return { banks, quotes, latestRead };
 }
