@@ -124,7 +124,7 @@ export default async function QualityIssuePage({
                 role="region"
                 aria-label="Tabla desplazable"
               >
-                <table className="admin-table">
+                <table className="admin-table" data-stack>
                   <thead>
                     <tr>
                       <th scope="col">Instante</th>
@@ -136,14 +136,14 @@ export default async function QualityIssuePage({
                   <tbody>
                     {result.body.data.history.map((entry) => (
                       <tr key={`${entry.occurredAt}-${entry.action}`}>
-                        <td>{instant(entry.occurredAt)}</td>
-                        <td className="wrap">
+                        <td data-label="Instante">{instant(entry.occurredAt)}</td>
+                        <td data-label="Actor" className="wrap">
                           {entry.actorSubject}
                           <br />
                           <small>{entry.actorRoles.join(', ')}</small>
                         </td>
-                        <td className="admin-mono wrap">{entry.action}</td>
-                        <td>
+                        <td data-label="Acción" className="admin-mono wrap">{entry.action}</td>
+                        <td data-label="Resultado">
                           <StateBadge
                             tone={entry.outcome === 'SUCCESS' ? 'ok' : 'bad'}
                             label={entry.outcome === 'SUCCESS' ? 'Aplicada' : 'Rechazada'}

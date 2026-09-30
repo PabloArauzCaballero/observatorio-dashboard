@@ -12,8 +12,10 @@ export const dynamic = 'force-dynamic';
 export default async function AdminLoginPage() {
   if (await currentSession()) redirect('/admin');
   return (
-    <Suspense fallback={<p className="admin-note">Cargando…</p>}>
-      <LoginForm />
-    </Suspense>
+    <main className="admin-login-wrap">
+      <Suspense fallback={<p className="admin-note">Cargando…</p>}>
+        <LoginForm />
+      </Suspense>
+    </main>
   );
 }

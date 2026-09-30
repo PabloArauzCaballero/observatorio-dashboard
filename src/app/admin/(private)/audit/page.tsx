@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { instant } from '@/components/admin/format';
+import { PageHeader } from '@/components/admin/page-header';
 import { EmptyNote, Panel, ProblemNote } from '@/components/admin/panel';
 import { StateBadge } from '@/components/admin/state-badge';
 import type { AuditEvent, Paged } from '@/lib/admin/contracts';
@@ -43,15 +44,13 @@ export default async function AuditPage({
 
   return (
     <>
-      <div className="admin-head">
-        <div>
-          <h1>Auditoría</h1>
-          <p>
-            Acciones autorizadas y rechazos, tal como quedaron registrados. La auditoría es
-            inmutable: aquí no se edita nada.
-          </p>
-        </div>
-      </div>
+      <PageHeader
+        title="Auditoría"
+        lead="Acciones autorizadas y rechazos, tal como quedaron registrados. La auditoría es inmutable: aquí no se edita nada."
+        {...(result.ok
+          ? { observedAt: result.body.meta.observedAt, requestId: result.body.meta.requestId }
+          : {})}
+      />
 
       <Panel
         title="Eventos"
@@ -92,7 +91,7 @@ export default async function AuditPage({
         ) : (
           <>
             <div className="admin-scroll" tabIndex={0} role="region" aria-label="Tabla desplazable">
-              <table className="admin-table">
+              <table className="admin-table" data-stack>
                 <thead>
                   <tr>
                     <th scope="col">Instante</th>
@@ -106,14 +105,14 @@ export default async function AuditPage({
                 <tbody>
                   {result.body.data.items.map((event) => (
                     <tr key={event.auditLogId}>
-                      <td>{instant(event.occurredAt)}</td>
-                      <td className="wrap">
+                      <td data-label="Instante">{instant(event.occurredAt)}</td>
+                      <td data-label="Actor" className="wrap">
                         {event.actorSubject}
                         <br />
                         <small>{event.actorRoles.join(', ') || 'sin roles declarados'}</small>
                       </td>
-                      <td className="admin-mono wrap">{event.action}</td>
-                      <td className="wrap">
+                      <td data-label="Acción" className="admin-mono wrap">{event.action}</td>
+                      <td data-label="Entidad" className="wrap">
                         {event.entityType}
                         {event.entityReference ? (
                           <>
@@ -122,13 +121,13 @@ export default async function AuditPage({
                           </>
                         ) : null}
                       </td>
-                      <td>
+                      <td data-label="Resultado">
                         <StateBadge
                           tone={event.outcome === 'SUCCESS' ? 'ok' : 'bad'}
                           label={event.outcome === 'SUCCESS' ? 'Aplicada' : 'Rechazada'}
                         />
                       </td>
-                      <td className="admin-mono">{event.correlationId}</td>
+                      <td data-label="Correlación" className="admin-mono">{event.correlationId}</td>
                     </tr>
                   ))}
                 </tbody>

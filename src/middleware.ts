@@ -32,7 +32,9 @@ export function middleware(request: NextRequest): NextResponse {
   // Detrás del proxy `request.url` trae el host interno del contenedor, no el
   // que escribió la persona: la redirección se arma con el host público.
   const proto = request.headers.get('x-forwarded-proto')?.split(',')[0]?.trim() ?? 'https';
-  return NextResponse.redirect(new URL('/admin/login', `${proto}://${forwarded.split(',')[0]?.trim()}`));
+  return NextResponse.redirect(
+    new URL('/admin/login', `${proto}://${forwarded.split(',')[0]?.trim()}`),
+  );
 }
 
 export const config = {

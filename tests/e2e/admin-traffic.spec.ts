@@ -127,6 +127,66 @@ test.describe('telemetría del sitio público', () => {
     expect(raw).toHaveLength(0);
   });
 
+  test('TRF-04 · abrir el portal no cuenta como tráfico del sitio', async ({ page }) => {
+    // Medir las pantallas del portal hacía que abrir «Tráfico» subiera el
+    // contador que esa pantalla está mostrando.
+    const adminRows = () =>
+      queryOne<{ total: string }>(
+        `SELECT count(*)::text AS total FROM operations.traffic_event WHERE route LIKE '/admin%'`,
+      );
+    const before = await adminRows();
+    await signIn(page);
+    await page.goto('/admin/traffic');
+    await expect(page.getByRole('heading', { name: 'Tráfico', level: 1 })).toBeVisible();
+    // La señal, si se enviara, sale al cargar la página.
+    await page.waitForTimeout(2500);
+    const after = await adminRows();
+    expect(Number(after?.total)).toBe(Number(before?.total));
+  });
+
+  test('TRF-05 · bajar el informe en PDF deja una intención de descarga', async ({ page }) => {
+    const intents = () =>
+      queryOne<{ total: string }>(
+        `SELECT count(*)::text AS total FROM operations.traffic_event
+          WHERE route = '/descarga/econometria' AND event_kind = 'DOWNLOAD_INTENT'`,
+      );
+    const before = await intents();
+    await page.goto('/');
+    await page.getByRole('tab', { name: 'Tipo de cambio' }).click();
+    await page.getByRole('link', { name: /Descargar el informe \(PDF\)/u }).click();
+    await expectEventually(
+      intents,
+      (row) => Number(row?.total) === Number(before?.total) + 1,
+      'el clic en el informe no dejó su intención de descarga',
+    );
+  });
+
+  test('TRF-06 · un agente de robot se guarda como robot y no entra en las vistas', async ({
+    request,
+  }) => {
+    const eventId = `robot${Date.now().toString(36)}`;
+    const response = await request.post('/api/analytics', {
+      headers: { 'user-agent': 'Mozilla/5.0 (compatible; Googlebot/2.1)' },
+      data: {
+        events: [
+          {
+            eventId,
+            route: '/prueba-robot',
+            kind: 'PAGE_VIEW',
+            device: 'DESKTOP',
+            referrer: 'DIRECT',
+          },
+        ],
+      },
+    });
+    expect(response.status()).toBe(202);
+    const stored = await queryOne<TrafficRow>(
+      'SELECT is_robot FROM operations.traffic_event WHERE event_key = $1',
+      [eventId],
+    );
+    expect(stored?.is_robot).toBe(true);
+  });
+
   test('la consola declara la cobertura antes de mostrar una cifra', async ({ page }) => {
     await signIn(page);
     await page.goto('/admin/traffic');
