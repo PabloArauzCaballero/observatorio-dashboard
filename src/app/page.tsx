@@ -7,6 +7,7 @@ import { FxSection } from '@/components/fx-section';
 import { MarketCards } from '@/components/market-cards';
 import { Icon } from '@/components/icons';
 import { SummaryExplorer } from '@/components/summary-explorer';
+import { BankQuoteCards } from '@/components/bank-quote-cards';
 import { DollarQuotesCard } from '@/components/dollar-quotes';
 import { BoardNews, TodayBoardPanel } from '@/components/today-board';
 import type { SummaryFigure } from '@/components/summary-explorer';
@@ -540,9 +541,12 @@ async function TodaySection() {
           <TodayBoardPanel
             board={board}
             lead={
-              <Suspense fallback={<Armando que="la cotización del dólar" />}>
-                <DollarQuotesSection />
-              </Suspense>
+              <>
+                <Suspense fallback={<Armando que="la cotización del dólar" />}>
+                  <DollarQuotesSection />
+                </Suspense>
+                <BankQuoteCards />
+              </>
             }
           />
         }
