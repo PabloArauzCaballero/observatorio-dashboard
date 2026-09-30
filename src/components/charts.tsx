@@ -2716,11 +2716,14 @@ export function DatedLines({
   bands,
   height,
   monthly = false,
+  domain: fixedDomain,
 }: {
   data: DatedLinePoint[];
   series: readonly DatedLineSeries[];
   unit: string;
   decimals?: number;
+  /** Eje vertical fijo, para lo que tiene un cero con sentido —un conteo—. */
+  domain?: [number, number];
   /** Level where crossing carries meaning — 100 on an index, 0 on a change. */
   referenceLine?: number;
   referenceLabel?: string;
@@ -2736,9 +2739,11 @@ export function DatedLines({
   const values = shown.flatMap((row) =>
     series.map((one) => row[one.key]).filter((value): value is number => typeof value === 'number'),
   );
-  const domain = values.length
-    ? fittedDomain(referenceLine === undefined ? values : [...values, referenceLine])
-    : undefined;
+  const domain =
+    fixedDomain ??
+    (values.length
+      ? fittedDomain(referenceLine === undefined ? values : [...values, referenceLine])
+      : undefined);
 
   const renderTooltip = ({ active, payload, label }: TooltipRender) => {
     if (!active || !payload?.length || typeof label !== 'string') return null;
