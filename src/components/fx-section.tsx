@@ -1,4 +1,4 @@
-import { BankAssetsSection } from './bank-assets-section';
+import { BankAssetsTable } from './bank-assets-section';
 import { FxExplorer } from './fx-explorer';
 import { FxMacroPanels } from './fx-macro-panels';
 import type { SidedPoint } from './fx-macro-panels';
@@ -87,12 +87,12 @@ export async function FxSection() {
         tokens={tokens}
         labelledFrom={labelled}
       />
-      <BankAssetsSection />
       <FxExplorer
         rows={buildRateSeries(observatory, official)}
         official={asObservations(official)}
         readingCount={observatory.readingCount}
       />
+      <BankAssetsTable />
     </>
   );
 }

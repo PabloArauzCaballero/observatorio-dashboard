@@ -2717,6 +2717,7 @@ export function DatedLines({
   height,
   monthly = false,
   domain: fixedDomain,
+  yearTicks = false,
 }: {
   data: DatedLinePoint[];
   series: readonly DatedLineSeries[];
@@ -2724,6 +2725,12 @@ export function DatedLines({
   decimals?: number;
   /** Eje vertical fijo, para lo que tiene un cero con sentido —un conteo—. */
   domain?: [number, number];
+  /**
+   * Las marcas del eje llevan mes y año («mar ’25») aunque los puntos sean días.
+   * Para series de más de un año donde «14-mar» y «19-mar» no dicen de cuál; el
+   * emergente sigue diciendo el día entero.
+   */
+  yearTicks?: boolean;
   /** Level where crossing carries meaning — 100 on an index, 0 on a change. */
   referenceLine?: number;
   referenceLabel?: string;
@@ -2732,7 +2739,7 @@ export function DatedLines({
   /** Points are months (the first of each): label month and year, not day. */
   monthly?: boolean;
 }) {
-  const tickLabel = monthly ? monthLabel : shortLabel;
+  const tickLabel = monthly || yearTicks ? monthLabel : shortLabel;
   const sayLabel = monthly ? longMonth : (label: string) => longDate.format(asDate(label));
   const zoom = useRangeZoom(data.map((point) => point.date));
   const shown = zoom.visible(data);

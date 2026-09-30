@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 
+import { BankAdoptionPanel } from './bank-adoption-panel';
 import { DatedLines } from './charts';
 import type { DatedBand, DatedLinePoint, DatedLineSeries } from './charts';
 import { Icon } from './icons';
@@ -285,13 +286,11 @@ export function FxMacroPanels({
    */
   const tokenSessions = plotted.map((entry) => ({
     token: entry.token,
-    sessions: entry.points.map(
-      (point): CandleSession => ({
-        date: point.date,
-        mid: point.value,
-        sides: [point.bid, point.ask].filter((side): side is number => typeof side === 'number'),
-      }),
-    ),
+    sessions: entry.points.map((point): CandleSession => ({
+      date: point.date,
+      mid: point.value,
+      sides: [point.bid, point.ask].filter((side): side is number => typeof side === 'number'),
+    })),
   }));
 
   return (
@@ -308,11 +307,12 @@ export function FxMacroPanels({
        * cuando la pregunta que resuelven juntas es si el dólar sube por sí
        * mismo o porque suben todos los precios. Lado a lado, el eje de fechas
        * de las dos empieza a la misma altura y la comparación se hace con los
-       * ojos. `grid-pair` es la rejilla de exactamente dos y se pliega a una
-       * columna por debajo de 1180 px, que es donde media pantalla deja de dar
-       * para un eje de ochocientas jornadas.
+       * ojos. Desde que se sumó el de los bancos son tres, en `grid-three`: dos
+       * columnas por debajo de 1100 px y una en el móvil. El de los bancos es
+       * el tercero y no va debajo porque cuenta lo mismo que los otros dos en
+       * el mismo calendario: cuándo se abrió cada puerta para comprar dólares.
        */}
-      <div className="grid-pair">
+      <div className="grid-three">
         <div className="panel">
           <div className="panel-head card-head">
             <button
@@ -363,7 +363,9 @@ export function FxMacroPanels({
               className={tokenCandles ? 'card-toggle card-toggle-on' : 'card-toggle'}
               onClick={() => setTokenCandles(!tokenCandles)}
               title={
-                tokenCandles ? 'Ver las fichas como líneas' : 'Ver una vela por jornada de cada ficha'
+                tokenCandles
+                  ? 'Ver las fichas como líneas'
+                  : 'Ver una vela por jornada de cada ficha'
               }
               aria-pressed={tokenCandles}
             >
@@ -426,6 +428,7 @@ export function FxMacroPanels({
             <StablecoinTable readings={snapshot.stablecoins} />
           )}
         </div>
+        <BankAdoptionPanel />
       </div>
     </>
   );
