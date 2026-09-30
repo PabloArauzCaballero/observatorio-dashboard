@@ -1,5 +1,8 @@
-import { elapsed, instant, plural } from '@/components/admin/format';
+import { count, elapsed, instant, plural } from '@/components/admin/format';
+import { PageHeader } from '@/components/admin/page-header';
 import { EmptyNote, Panel, ProblemNote } from '@/components/admin/panel';
+import { StatStrip } from '@/components/admin/stat';
+import { ShareBar } from '@/components/admin/viz/share-bar';
 import { SeedConsole } from '@/components/admin/seed-console';
 import { StateBadge, type Tone } from '@/components/admin/state-badge';
 import type { SeedPackageList } from '@/lib/admin/contracts';
@@ -46,24 +49,92 @@ export default async function SeedsPage() {
 
   return (
     <>
-      <div className="admin-head">
-        <div>
-          <h1>Sembradores</h1>
-          <p>
-            Cada paquete declara su versión y su checksum. Validar muestra la diferencia; aplicar
-            exige que esa versión y ese checksum sigan siendo los mismos.
-          </p>
-        </div>
-        {result.ok ? (
-          <div className="admin-meta">
-            <span>Perfil: {result.body.data.profile}</span>
-            <span>
-              Demostración: {result.body.data.demoEnabled ? 'habilitada' : 'deshabilitada'}
-            </span>
-            <span>Observado: {instant(result.body.meta.observedAt)}</span>
-          </div>
-        ) : null}
-      </div>
+      <PageHeader
+        title="Sembradores"
+        lead="Cada paquete declara su versión y su checksum. Validar muestra la diferencia; aplicar exige que esa versión y ese checksum sigan siendo los mismos."
+        {...(result.ok
+          ? { observedAt: result.body.meta.observedAt, requestId: result.body.meta.requestId }
+          : {})}
+      />
+
+      {result.ok
+        ? (() => {
+            const items = result.body.data.items;
+            const state = (ledger: string): number =>
+              items.filter((entry) => entry.ledgerState === ledger).length;
+            const missingRequired = items.filter(
+              (entry) => entry.ledgerState === 'absent' && entry.requiredFor.length > 0,
+            ).length;
+            return (
+              <>
+                <StatStrip
+                  label="Cifras de sembradores"
+                  stats={[
+                    {
+                      label: 'Paquetes aplicados',
+                      value: count(state('applied')),
+                      unit: `de ${count(items.length)}`,
+                      detail: `perfil ${result.body.data.profile}`,
+                    },
+                    {
+                      label: 'En conflicto',
+                      value: count(state('conflict')),
+                      detail: 'la misma versión con dos contenidos',
+                      state: {
+                        tone: state('conflict') > 0 ? 'bad' : 'ok',
+                        label: state('conflict') > 0 ? 'Subir la versión' : 'Ninguno',
+                      },
+                    },
+                    {
+                      label: 'Desactualizados',
+                      value: count(state('outdated')),
+                      detail: 'hay una versión más nueva que la aplicada',
+                      state: {
+                        tone: state('outdated') > 0 ? 'warn' : 'ok',
+                        label: state('outdated') > 0 ? 'Por aplicar' : 'Al día',
+                      },
+                    },
+                    {
+                      label: 'Obligatorios que faltan',
+                      value: count(missingRequired),
+                      detail: `demostración ${result.body.data.demoEnabled ? 'habilitada' : 'deshabilitada'}`,
+                      state: {
+                        tone: missingRequired > 0 ? 'bad' : 'ok',
+                        label: missingRequired > 0 ? 'Faltan' : 'Completos',
+                      },
+                    },
+                  ]}
+                />
+                <section className="admin-panel">
+                  <div className="admin-panel-body">
+                    <ShareBar
+                      title="Los paquetes, por estado en el registro"
+                      unit="paquetes"
+                      segments={[
+                        { label: 'Aplicados', value: state('applied'), color: 'var(--series-1)' },
+                        {
+                          label: 'Desactualizados',
+                          value: state('outdated'),
+                          color: 'var(--series-3)',
+                        },
+                        {
+                          label: 'En conflicto',
+                          value: state('conflict'),
+                          color: 'var(--critical)',
+                        },
+                        {
+                          label: 'No aplicados',
+                          value: state('absent'),
+                          color: 'var(--series-rest)',
+                        },
+                      ]}
+                    />
+                  </div>
+                </section>
+              </>
+            );
+          })()
+        : null}
 
       <Panel
         title="Paquetes"
@@ -78,7 +149,7 @@ export default async function SeedsPage() {
           />
         ) : (
           <div className="admin-scroll" tabIndex={0} role="region" aria-label="Tabla desplazable">
-            <table className="admin-table">
+            <table className="admin-table" data-stack>
               <thead>
                 <tr>
                   <th scope="col">Paquete</th>
@@ -93,7 +164,7 @@ export default async function SeedsPage() {
                   const applied = entry.appliedVersions[entry.appliedVersions.length - 1];
                   return (
                     <tr key={entry.code}>
-                      <td className="wrap">
+                      <td data-label="Paquete" className="wrap">
                         {entry.label}
                         <br />
                         <small className="admin-mono">
@@ -101,8 +172,8 @@ export default async function SeedsPage() {
                           {plural(entry.fileCount, 'archivo', 'archivos')}
                         </small>
                       </td>
-                      <td>{KIND_LABEL[entry.kind] ?? entry.kind}</td>
-                      <td title={entry.refusal?.message ?? undefined}>
+                      <td data-label="Clase">{KIND_LABEL[entry.kind] ?? entry.kind}</td>
+                      <td data-label="Estado" title={entry.refusal?.message ?? undefined}>
                         <StateBadge
                           tone={ledgerTone(entry.ledgerState, entry.kind)}
                           label={LEDGER_LABEL[entry.ledgerState] ?? entry.ledgerState}
@@ -114,10 +185,10 @@ export default async function SeedsPage() {
                           </>
                         ) : null}
                       </td>
-                      <td title={applied ? instant(applied.appliedAt) : undefined}>
+                      <td data-label="Aplicado" title={applied ? instant(applied.appliedAt) : undefined}>
                         {applied ? `v${applied.version} · ${elapsed(applied.appliedAt)}` : 'nunca'}
                       </td>
-                      <td>
+                      <td data-label="Acción">
                         <SeedConsole entry={entry} csrf={session.csrf} />
                       </td>
                     </tr>

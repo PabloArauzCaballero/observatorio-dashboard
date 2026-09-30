@@ -135,7 +135,8 @@ test.describe('las pantallas del portal', () => {
     if (Number(probes?.total) === 0) {
       await expect(page.getByText('Sin telemetría de disponibilidad')).toBeVisible();
       await page.goto('/admin');
-      await expect(page.getByText('Sin telemetría')).toBeVisible();
+      // El Resumen lo dice en el veredicto y otra vez en la lista de áreas.
+      await expect(page.getByText('Sin telemetría').first()).toBeVisible();
     } else {
       await expect(page.getByRole('heading', { name: 'Comprobaciones' })).toBeVisible();
     }

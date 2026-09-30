@@ -1,5 +1,6 @@
 'use client';
 
+import { Icon } from '@/components/icons';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useEffect, useState, type FormEvent } from 'react';
 
@@ -75,6 +76,12 @@ export function LoginForm() {
      * costs one attribute and makes that window harmless.
      */
     <form className="admin-login" method="post" onSubmit={(event) => void submit(event)}>
+      <div className="admin-brand">
+        <span className="admin-brand-mark" aria-hidden="true">
+          <Icon name="barras" size={16} />
+        </span>
+        <span>Observatorio Económico</span>
+      </div>
       <h1>Portal administrativo</h1>
       <p>Solo para personas autorizadas del Observatorio.</p>
       {problem ? (

@@ -126,7 +126,7 @@ export default async function IngestionRunPage({
           />
         ) : (
           <div className="admin-scroll" tabIndex={0} role="region" aria-label="Tabla desplazable">
-            <table className="admin-table">
+            <table className="admin-table" data-stack>
               <thead>
                 <tr>
                   <th scope="col">Instante</th>
@@ -150,19 +150,19 @@ export default async function IngestionRunPage({
               <tbody>
                 {run.stages.map((stage) => (
                   <tr key={stage.eventId}>
-                    <td title={instant(stage.occurredAt)}>{instant(stage.occurredAt)}</td>
-                    <td>{STAGE_LABEL[stage.stage] ?? stage.stage}</td>
-                    <td title={stage.reason ?? undefined}>
+                    <td data-label="Instante" title={instant(stage.occurredAt)}>{instant(stage.occurredAt)}</td>
+                    <td data-label="Etapa">{STAGE_LABEL[stage.stage] ?? stage.stage}</td>
+                    <td data-label="Resultado" title={stage.reason ?? undefined}>
                       <StateBadge
                         tone={outcomeTone(stage.outcome)}
                         label={OUTCOME_LABEL[stage.outcome] ?? stage.outcome}
                       />
                     </td>
-                    <td className="num">{count(stage.counters.received)}</td>
-                    <td className="num">{count(stage.counters.accepted)}</td>
-                    <td className="num">{count(stage.counters.rejected)}</td>
-                    <td className="num">{count(stage.counters.skipped)}</td>
-                    <td className="admin-mono wrap">
+                    <td data-label="Recibidos" className="num">{count(stage.counters.received)}</td>
+                    <td data-label="Aceptados" className="num">{count(stage.counters.accepted)}</td>
+                    <td data-label="Rechazados" className="num">{count(stage.counters.rejected)}</td>
+                    <td data-label="Omitidos" className="num">{count(stage.counters.skipped)}</td>
+                    <td data-label="Evidencia" className="admin-mono wrap">
                       {stage.artifactSha256 ?? stage.artifactReference ?? 'sin artefacto'}
                     </td>
                   </tr>

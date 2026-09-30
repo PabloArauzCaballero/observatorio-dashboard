@@ -1,6 +1,9 @@
 import Link from 'next/link';
 import { count, instant, share } from '@/components/admin/format';
+import { PageHeader } from '@/components/admin/page-header';
 import { EmptyNote, Panel, ProblemNote } from '@/components/admin/panel';
+import { StatStrip } from '@/components/admin/stat';
+import { Meter, ShareBar } from '@/components/admin/viz/share-bar';
 import { QUALITY_LABEL, StateBadge, qualityTone } from '@/components/admin/state-badge';
 import type { Paged, QualityEvaluation, QualitySummary } from '@/lib/admin/contracts';
 import { callCore } from '@/lib/admin/core-client';
@@ -52,15 +55,95 @@ export default async function QualityPage({
 
   return (
     <>
-      <div className="admin-head">
-        <div>
-          <h1>Calidad</h1>
-          <p>
-            Cada resultado trae numerador, denominador y cuántos no se pudieron evaluar. «0 de 0» no
-            es cien por ciento y no aparece como tal.
-          </p>
-        </div>
-      </div>
+      <PageHeader
+        title="Calidad"
+        lead="Cada resultado trae numerador, denominador y cuántos no se pudieron evaluar. «0 de 0» no es cien por ciento y no aparece como tal."
+        {...(summary.ok
+          ? { observedAt: summary.body.meta.observedAt, requestId: summary.body.meta.requestId }
+          : {})}
+      />
+
+      {summary.ok
+        ? (() => {
+            const data = summary.body.data;
+            const last = (status: string): number =>
+              data.rules.filter((rule) => rule.lastStatus === status).length;
+            const openIssues = data.issues
+              .filter((entry) => entry.status !== 'RESOLVED' && entry.status !== 'CLOSED')
+              .reduce((sum, entry) => sum + entry.issues, 0);
+            return (
+              <>
+                <StatStrip
+                  label="Cifras de calidad"
+                  stats={[
+                    {
+                      label: 'Reglas evaluadas alguna vez',
+                      value: count(data.coverage.evaluated),
+                      unit: `de ${count(data.coverage.declared)}`,
+                      detail:
+                        data.coverage.declared > data.coverage.evaluated
+                          ? `${count(data.coverage.declared - data.coverage.evaluated)} declaradas y nunca ejecutadas`
+                          : 'todas las declaradas se han ejecutado',
+                      state: {
+                        tone: data.coverage.declared > data.coverage.evaluated ? 'warn' : 'ok',
+                        label:
+                          data.coverage.declared > data.coverage.evaluated
+                            ? 'Cobertura incompleta'
+                            : 'Cobertura completa',
+                      },
+                    },
+                    {
+                      label: 'Incumplimientos bloqueantes',
+                      value: count(data.blocking),
+                      detail: 'reglas críticas que fallan ahora',
+                      state: {
+                        tone: data.blocking > 0 ? 'bad' : 'ok',
+                        label: data.blocking > 0 ? 'Bloquean publicar' : 'Ninguno',
+                      },
+                    },
+                    {
+                      label: 'Incidencias abiertas',
+                      value: count(openIssues),
+                      detail: `${count(data.issues.length)} combinaciones de severidad y estado`,
+                      state: {
+                        tone: openIssues > 0 ? 'warn' : 'ok',
+                        label: openIssues > 0 ? 'Por resolver' : 'Sin abiertas',
+                      },
+                    },
+                  ]}
+                />
+                {data.rules.length > 0 ? (
+                  <section className="admin-panel">
+                    <div className="admin-panel-body">
+                      <ShareBar
+                        title="Último resultado de cada regla"
+                        unit="reglas"
+                        segments={[
+                          { label: 'Cumplen', value: last('PASS'), color: 'var(--series-1)' },
+                          {
+                            label: 'Advertencia',
+                            value: last('WARNING'),
+                            color: 'var(--series-3)',
+                          },
+                          {
+                            label: 'Incumplen',
+                            value: last('FAIL') + last('ERROR'),
+                            color: 'var(--critical)',
+                          },
+                          {
+                            label: 'Sin evaluar',
+                            value: last('NOT_EVALUATED') + last('NOT_APPLICABLE'),
+                            color: 'var(--series-rest)',
+                          },
+                        ]}
+                      />
+                    </div>
+                  </section>
+                ) : null}
+              </>
+            );
+          })()
+        : null}
 
       <Panel
         title="Cobertura de reglas"
@@ -85,7 +168,7 @@ export default async function QualityPage({
               <dd>{count(summary.body.data.blocking)}</dd>
             </dl>
             <div className="admin-scroll" tabIndex={0} role="region" aria-label="Tabla desplazable">
-              <table className="admin-table">
+              <table className="admin-table" data-stack>
                 <thead>
                   <tr>
                     <th scope="col">Regla</th>
@@ -100,20 +183,20 @@ export default async function QualityPage({
                 <tbody>
                   {summary.body.data.rules.map((rule) => (
                     <tr key={rule.ruleCode}>
-                      <td className="wrap">
+                      <td data-label="Regla" className="wrap">
                         {rule.ruleName}
                         <br />
                         <small className="admin-mono">{rule.ruleCode}</small>
                       </td>
-                      <td>{rule.severity}</td>
-                      <td>
+                      <td data-label="Severidad">{rule.severity}</td>
+                      <td data-label="Último resultado">
                         <StateBadge
                           tone={qualityTone(rule.lastStatus)}
                           label={QUALITY_LABEL[rule.lastStatus] ?? rule.lastStatus}
                         />
                       </td>
-                      <td>{rule.lastAssessedAt ? instant(rule.lastAssessedAt) : 'nunca'}</td>
-                      <td className="num">{count(rule.evaluations)}</td>
+                      <td data-label="Evaluada">{rule.lastAssessedAt ? instant(rule.lastAssessedAt) : 'nunca'}</td>
+                      <td data-label="Evaluaciones" className="num">{count(rule.evaluations)}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -169,7 +252,7 @@ export default async function QualityPage({
           />
         ) : (
           <div className="admin-scroll" tabIndex={0} role="region" aria-label="Tabla desplazable">
-            <table className="admin-table">
+            <table className="admin-table" data-stack>
               <thead>
                 <tr>
                   <th scope="col">Evaluada</th>
@@ -185,8 +268,8 @@ export default async function QualityPage({
               <tbody>
                 {evaluations.body.data.items.map((evaluation) => (
                   <tr key={evaluation.evaluationId}>
-                    <td>{instant(evaluation.assessedAt)}</td>
-                    <td className="wrap">
+                    <td data-label="Evaluada">{instant(evaluation.assessedAt)}</td>
+                    <td data-label="Regla" className="wrap">
                       {evaluation.ruleName}
                       <br />
                       <small className="admin-mono">
@@ -194,15 +277,30 @@ export default async function QualityPage({
                         {evaluation.ruleVersion ? ` v${evaluation.ruleVersion}` : ''}
                       </small>
                     </td>
-                    <td className="admin-mono">{evaluation.scope ?? 'sin alcance'}</td>
-                    <td>
+                    <td data-label="Alcance" className="admin-mono">{evaluation.scope ?? 'sin alcance'}</td>
+                    <td data-label="Resultado">
                       <StateBadge
                         tone={qualityTone(evaluation.status)}
                         label={QUALITY_LABEL[evaluation.status] ?? evaluation.status}
                       />
                     </td>
-                    <td>{share(evaluation.numerator, evaluation.denominator, evaluation.share)}</td>
-                    <td className="num">{count(evaluation.notEvaluated)}</td>
+                    <td data-label="Cumplimiento">
+                      <Meter
+                        numerator={evaluation.numerator}
+                        denominator={evaluation.denominator}
+                        text={share(evaluation.numerator, evaluation.denominator, evaluation.share)}
+                        color={
+                          evaluation.status === 'PASS'
+                            ? 'var(--series-1)'
+                            : evaluation.status === 'WARNING'
+                              ? 'var(--series-3)'
+                              : evaluation.status === 'FAIL' || evaluation.status === 'ERROR'
+                                ? 'var(--critical)'
+                                : 'var(--series-rest)'
+                        }
+                      />
+                    </td>
+                    <td data-label="Sin evaluar" className="num">{count(evaluation.notEvaluated)}</td>
                   </tr>
                 ))}
               </tbody>
@@ -224,7 +322,7 @@ export default async function QualityPage({
           />
         ) : (
           <div className="admin-scroll" tabIndex={0} role="region" aria-label="Tabla desplazable">
-            <table className="admin-table">
+            <table className="admin-table" data-stack>
               <thead>
                 <tr>
                   <th scope="col">Severidad</th>
@@ -237,14 +335,14 @@ export default async function QualityPage({
               <tbody>
                 {summary.body.data.issues.map((issue) => (
                   <tr key={`${issue.severity}-${issue.status}`}>
-                    <td>
+                    <td data-label="Severidad">
                       <StateBadge
                         tone={issue.severity === 'CRITICAL' ? 'bad' : 'warn'}
                         label={issue.severity}
                       />
                     </td>
-                    <td>{issue.status}</td>
-                    <td className="num">{count(issue.issues)}</td>
+                    <td data-label="Estado">{issue.status}</td>
+                    <td data-label="Incidencias" className="num">{count(issue.issues)}</td>
                   </tr>
                 ))}
               </tbody>

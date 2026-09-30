@@ -22,6 +22,7 @@ export default async function PrivateLayout({ children }: { children: React.Reac
   return (
     <AdminShell
       environmentId={process.env.ADMIN_ENVIRONMENT_LABEL ?? 'por confirmar'}
+      environmentKnown={Boolean(process.env.ADMIN_ENVIRONMENT_LABEL)}
       operator={session.name}
     >
       {children}

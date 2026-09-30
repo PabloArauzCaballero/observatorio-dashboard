@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react';
 import type { CoreResult } from '@/lib/admin/core-client';
+import { EmptyState, ErrorState } from '@/components/admin/states';
 
 /**
  * The four things a section can be, told apart in words.
@@ -35,38 +36,14 @@ export function Panel({
   );
 }
 
+/** Alias de `EmptyState`: las pantallas anteriores conservan su importación. */
 export function EmptyNote({ title, detail }: { title: string; detail: string }) {
-  return (
-    <p className="admin-note" role="status">
-      <strong>{title}</strong>
-      <span>{detail}</span>
-    </p>
-  );
+  return <EmptyState title={title} detail={detail} />;
 }
 
-/**
- * Renders a refusal the way the core meant it.
- *
- * A 403 is «no tiene permiso», not «no hay datos»; a 503 is «el núcleo no
- * respondió», not an empty list. Collapsing them into one blank screen is how a
- * missing permission gets mistaken for a missing dataset for a week.
- */
+/** Alias de `ErrorState`, por la misma razón. */
 export function ProblemNote({ problem }: { problem: Extract<CoreResult<unknown>, { ok: false }> }) {
-  const title =
-    problem.status === 403
-      ? 'No tiene permiso para ver esto'
-      : problem.status === 401
-        ? 'La sesión ya no es válida'
-        : problem.status === 503
-          ? 'El núcleo no respondió'
-          : 'No se pudo leer';
-  return (
-    <div className="admin-note" role="alert">
-      <strong>{title}</strong>
-      <span>{problem.message}</span>
-      <span className="admin-mono">{problem.code}</span>
-    </div>
-  );
+  return <ErrorState problem={problem} />;
 }
 
 /** A determinate shape while a section streams in; never a fabricated percentage. */

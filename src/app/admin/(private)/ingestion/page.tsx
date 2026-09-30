@@ -1,6 +1,9 @@
 import Link from 'next/link';
 import { count, elapsed, instant, plural } from '@/components/admin/format';
+import { PageHeader } from '@/components/admin/page-header';
 import { EmptyNote, Panel, ProblemNote } from '@/components/admin/panel';
+import { StatStrip } from '@/components/admin/stat';
+import { OutcomeBar, ShareBar } from '@/components/admin/viz/share-bar';
 import {
   FRESHNESS_LABEL,
   RUN_LABEL,
@@ -58,15 +61,101 @@ export default async function IngestionPage({
 
   return (
     <>
-      <div className="admin-head">
-        <div>
-          <h1>Ingesta</h1>
-          <p>
-            Qué prometió cada fuente, cuándo cumplió y qué etapa alcanzó cada ejecución. Abrir un
-            detalle no reintenta nada.
-          </p>
-        </div>
-      </div>
+      <PageHeader
+        title="Ingesta"
+        lead="Qué prometió cada fuente, cuándo cumplió y qué etapa alcanzó cada ejecución. Abrir un detalle no reintenta nada."
+        {...(runs.ok
+          ? { observedAt: runs.body.meta.observedAt, requestId: runs.body.meta.requestId }
+          : {})}
+      />
+
+      {sources.ok && runs.ok
+        ? (() => {
+            const items = sources.body.data.items;
+            const onTime = items.filter((source) => source.freshness.state === 'on_time').length;
+            const byStatus = (status: string): number =>
+              runs.body.data.items.filter((run) => run.status === status).length;
+            const total = runs.body.data.items.length;
+            return (
+              <>
+                <StatStrip
+                  label="Cifras de ingesta"
+                  stats={[
+                    {
+                      label: 'Fuentes al día',
+                      value: count(onTime),
+                      unit: `de ${count(items.length)}`,
+                      detail: `${count(sources.body.data.late)} atrasadas · ${count(sources.body.data.withoutSchedule)} sin calendario`,
+                      state: {
+                        tone:
+                          sources.body.data.late > 0
+                            ? 'bad'
+                            : sources.body.data.withoutSchedule > 0
+                              ? 'warn'
+                              : 'ok',
+                        label:
+                          sources.body.data.late > 0
+                            ? 'Incumplen calendario'
+                            : 'Dentro del calendario',
+                      },
+                    },
+                    {
+                      label: 'Ejecuciones fallidas',
+                      value: count(byStatus('FAILED')),
+                      detail: `de las ${count(total)} más recientes`,
+                      state: {
+                        tone: byStatus('FAILED') > 0 ? 'bad' : 'ok',
+                        label: byStatus('FAILED') > 0 ? 'Con fallos' : 'Sin fallos',
+                      },
+                    },
+                    {
+                      label: 'Parciales',
+                      value: count(byStatus('PARTIAL')),
+                      detail: 'la recolección cerró con una etapa a medias',
+                    },
+                    {
+                      label: 'En curso',
+                      value: count(byStatus('RUNNING')),
+                      detail: 'todavía no terminan',
+                    },
+                  ]}
+                />
+                {total > 0 ? (
+                  <section className="admin-panel">
+                    <div className="admin-panel-body">
+                      <ShareBar
+                        title={`Las ${count(total)} ejecuciones más recientes, por resultado`}
+                        unit="ejecuciones"
+                        segments={[
+                          {
+                            label: 'Terminadas',
+                            value: byStatus('SUCCEEDED'),
+                            color: 'var(--series-1)',
+                          },
+                          {
+                            label: 'Parciales',
+                            value: byStatus('PARTIAL'),
+                            color: 'var(--series-3)',
+                          },
+                          {
+                            label: 'Fallidas',
+                            value: byStatus('FAILED'),
+                            color: 'var(--critical)',
+                          },
+                          {
+                            label: 'En curso',
+                            value: byStatus('RUNNING'),
+                            color: 'var(--series-rest)',
+                          },
+                        ]}
+                      />
+                    </div>
+                  </section>
+                ) : null}
+              </>
+            );
+          })()
+        : null}
 
       <Panel
         title="Fuentes"
@@ -81,7 +170,7 @@ export default async function IngestionPage({
           />
         ) : (
           <div className="admin-scroll" tabIndex={0} role="region" aria-label="Tabla desplazable">
-            <table className="admin-table">
+            <table className="admin-table" data-stack>
               <caption>
                 {plural(sources.body.data.items.length, 'fuente', 'fuentes')} ·{' '}
                 {plural(sources.body.data.late, 'atrasada', 'atrasadas')} ·{' '}
@@ -104,25 +193,25 @@ export default async function IngestionPage({
               <tbody>
                 {sources.body.data.items.map((source) => (
                   <tr key={source.sourceId}>
-                    <td className="admin-mono">{source.code}</td>
-                    <td className="wrap">
+                    <td data-label="Código" className="admin-mono">{source.code}</td>
+                    <td data-label="Fuente" className="wrap">
                       {source.name}
                       <br />
                       <small>{source.organization}</small>
                     </td>
-                    <td>{source.cadence ?? 'sin declarar'}</td>
-                    <td title={source.freshness.reason}>
+                    <td data-label="Cadencia">{source.cadence ?? 'sin declarar'}</td>
+                    <td data-label="Estado" title={source.freshness.reason}>
                       <StateBadge
                         tone={freshnessTone(source.freshness.state)}
                         label={FRESHNESS_LABEL[source.freshness.state] ?? source.freshness.state}
                       />
                     </td>
-                    <td title={instant(source.lastSuccessAt)}>{elapsed(source.lastSuccessAt)}</td>
-                    <td title={instant(source.lastObservedAt)}>{elapsed(source.lastObservedAt)}</td>
-                    <td title={instant(source.lastPublishedAt)}>
+                    <td data-label="Última consulta con éxito" title={instant(source.lastSuccessAt)}>{elapsed(source.lastSuccessAt)}</td>
+                    <td data-label="Último dato" title={instant(source.lastObservedAt)}>{elapsed(source.lastObservedAt)}</td>
+                    <td data-label="Publicado" title={instant(source.lastPublishedAt)}>
                       {source.lastPublishedAt ? elapsed(source.lastPublishedAt) : 'sin registro'}
                     </td>
-                    <td className="num">{count(source.artifactCount)}</td>
+                    <td data-label="Artefactos" className="num">{count(source.artifactCount)}</td>
                   </tr>
                 ))}
               </tbody>
@@ -178,7 +267,7 @@ export default async function IngestionPage({
         ) : (
           <>
             <div className="admin-scroll" tabIndex={0} role="region" aria-label="Tabla desplazable">
-              <table className="admin-table">
+              <table className="admin-table" data-stack>
                 <thead>
                   <tr>
                     <th scope="col">Inicio</th>
@@ -196,25 +285,34 @@ export default async function IngestionPage({
                     <th scope="col" className="num">
                       En cuarentena
                     </th>
+                    <th scope="col">Resultado</th>
                     <th scope="col">Detalle</th>
                   </tr>
                 </thead>
                 <tbody>
                   {runs.body.data.items.map((run) => (
                     <tr key={run.agentRunId}>
-                      <td title={instant(run.startedAt)}>{elapsed(run.startedAt)}</td>
-                      <td className="wrap">{run.sourceCode}</td>
-                      <td title={run.errorSummary ?? undefined}>
+                      <td data-label="Inicio" title={instant(run.startedAt)}>{elapsed(run.startedAt)}</td>
+                      <td data-label="Fuente" className="wrap">{run.sourceCode}</td>
+                      <td data-label="Estado" title={run.errorSummary ?? undefined}>
                         <StateBadge
                           tone={runTone(run.status)}
                           label={RUN_LABEL[run.status] ?? run.status}
                         />
                       </td>
-                      <td className="num">{count(run.counters.received)}</td>
-                      <td className="num">{count(run.counters.accepted)}</td>
-                      <td className="num">{count(run.counters.rejected)}</td>
-                      <td className="num">{count(run.counters.quarantined)}</td>
-                      <td>
+                      <td data-label="Recibidos" className="num">{count(run.counters.received)}</td>
+                      <td data-label="Aceptados" className="num">{count(run.counters.accepted)}</td>
+                      <td data-label="Rechazados" className="num">{count(run.counters.rejected)}</td>
+                      <td data-label="En cuarentena" className="num">{count(run.counters.quarantined)}</td>
+                      <td data-label="Resultado">
+                        <OutcomeBar
+                          received={run.counters.received}
+                          accepted={run.counters.accepted}
+                          rejected={run.counters.rejected}
+                          quarantined={run.counters.quarantined}
+                        />
+                      </td>
+                      <td data-label="Detalle">
                         <Link href={`/admin/ingestion/runs/${run.agentRunId}`}>Ver etapas</Link>
                       </td>
                     </tr>

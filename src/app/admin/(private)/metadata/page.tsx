@@ -1,6 +1,8 @@
 import Link from 'next/link';
 import { instant, plural } from '@/components/admin/format';
+import { PageHeader } from '@/components/admin/page-header';
 import { EmptyNote, Panel, ProblemNote } from '@/components/admin/panel';
+import { SegmentedLinks } from '@/components/admin/segmented';
 import { StateBadge } from '@/components/admin/state-badge';
 import type { MetadataCatalog } from '@/lib/admin/contracts';
 import { callCore } from '@/lib/admin/core-client';
@@ -50,33 +52,24 @@ export default async function MetadataPage({
 
   return (
     <>
-      <div className="admin-head">
-        <div>
-          <h1>Metadatos</h1>
-          <p>
-            Catálogos, su origen y qué depende de cada entrada. Una entrada referenciada se versiona
-            o se deprecia; no se borra.
-          </p>
-        </div>
-        {result.ok ? (
-          <div className="admin-meta">
-            <span>Observado: {instant(result.body.meta.observedAt)}</span>
-          </div>
-        ) : null}
-      </div>
+      <PageHeader
+        title="Metadatos"
+        lead="Catálogos, su origen y qué depende de cada entrada. Una entrada referenciada se versiona o se deprecia; no se borra."
+        {...(result.ok
+          ? { observedAt: result.body.meta.observedAt, requestId: result.body.meta.requestId }
+          : {})}
+      />
 
       <Panel title="Catálogo" subtitle="El nombre viene de una lista cerrada, nunca de una tabla.">
-        <div className="admin-form">
-          {CATALOGS.map((catalog) => (
-            <Link
-              key={catalog.code}
-              className="admin-button"
-              href={`/admin/metadata?catalog=${catalog.code}`}
-              aria-current={catalog.code === selected.code ? 'page' : undefined}
-            >
-              {catalog.label}
-            </Link>
-          ))}
+        <div className="pg-filters">
+          <SegmentedLinks
+            label="Catálogo"
+            options={CATALOGS.map((catalog) => ({
+              href: `/admin/metadata?catalog=${catalog.code}`,
+              label: catalog.label,
+              current: catalog.code === selected.code,
+            }))}
+          />
         </div>
 
         {!result.ok ? (
@@ -88,7 +81,7 @@ export default async function MetadataPage({
           />
         ) : (
           <div className="admin-scroll" tabIndex={0} role="region" aria-label="Tabla desplazable">
-            <table className="admin-table">
+            <table className="admin-table" data-stack>
               <caption>
                 {plural(result.body.data.entries.length, 'entrada', 'entradas')} en {selected.label}
               </caption>
@@ -107,10 +100,10 @@ export default async function MetadataPage({
               <tbody>
                 {result.body.data.entries.map((entry) => (
                   <tr key={entry.identity}>
-                    <td className="admin-mono">{entry.code}</td>
-                    <td className="wrap">{entry.name}</td>
-                    <td className="wrap">{entry.detail ?? '—'}</td>
-                    <td>
+                    <td data-label="Código" className="admin-mono">{entry.code}</td>
+                    <td data-label="Nombre" className="wrap">{entry.name}</td>
+                    <td data-label="Detalle" className="wrap">{entry.detail ?? '—'}</td>
+                    <td data-label="Vigencia">
                       {entry.active === null ? (
                         <StateBadge tone="unknown" label="No aplica" />
                       ) : (
@@ -120,8 +113,8 @@ export default async function MetadataPage({
                         />
                       )}
                     </td>
-                    <td className="num">{entry.references}</td>
-                    <td>
+                    <td data-label="Referencias" className="num">{entry.references}</td>
+                    <td data-label="Edición">
                       {entry.references > 0 ? (
                         <StateBadge tone="warn" label="Protegida" />
                       ) : (
