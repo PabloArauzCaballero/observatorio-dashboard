@@ -1,5 +1,6 @@
 'use client';
 
+import { BcbSection } from './bcb-section';
 import { DepartmentsSection } from './departments-section';
 import { EnergySection } from './energy-section';
 import { EnvironmentSection } from './environment-section';
@@ -44,9 +45,16 @@ import type { MacroBundle } from '@/lib/macro-transport';
  */
 export function MacroSection() {
   return (
-    <SubTabs enlace
-      labels={['Series de Bolivia', 'Social Info', 'Bolivia ante el mundo', 'Variables exógenas']}
-      icons={['linea', 'capas', 'globo', 'monedas']}
+    <SubTabs
+      enlace
+      labels={[
+        'Series de Bolivia',
+        'Social Info',
+        'Bolivia ante el mundo',
+        'Variables exógenas',
+        'Series del BCB',
+      ]}
+      icons={['linea', 'capas', 'globo', 'monedas', 'banco']}
     >
       <MeasuresPanel />
       <PanelSection
@@ -54,6 +62,7 @@ export function MacroSection() {
       />
       <WorldExplorer />
       <ExogenousSection />
+      <BcbSection />
     </SubTabs>
   );
 }
