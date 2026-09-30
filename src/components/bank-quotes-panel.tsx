@@ -28,6 +28,11 @@ export function BankQuotesPanel() {
   }));
   const latest = quotes.at(-1)?.date;
 
+  // Sin ninguna cotización anotada no hay nada que dibujar, y un panel vacío con un aviso
+  // ocupando la fila era peor que no tenerlo: el gráfico aparece solo cuando hay cifras.
+  // Que los bancos no publican su precio ya lo dicen las tarjetas y la tabla.
+  if (!quotes.length || !series.length || failed) return null;
+
   return (
     <div className="panel">
       <div className="panel-head">
@@ -38,17 +43,7 @@ export function BankQuotesPanel() {
           {latest ? ` (la última, del ${sayLong(latest)})` : ''}.
         </p>
       </div>
-      {quotes.length > 0 && series.length > 0 ? (
-        <DatedLines data={quotes} series={series} unit="Bs" decimals={2} yearTicks />
-      ) : (
-        <div className="callout">
-          {failed
-            ? 'No se pudieron leer los bancos. El resto del informe sigue al día.'
-            : board
-              ? 'Todavía no hay ninguna cotización anotada. Ningún banco la publica fuera de su aplicación: en cuanto se anote la primera captura, esta línea empieza a dibujarse.'
-              : 'Leyendo los bancos…'}
-        </div>
-      )}
+      <DatedLines data={quotes} series={series} unit="Bs" decimals={2} yearTicks />
     </div>
   );
 }

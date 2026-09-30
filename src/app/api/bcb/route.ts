@@ -19,6 +19,8 @@ export async function GET(request: Request): Promise<Response> {
       {
         page: await searchBcb({
           family: (url.searchParams.get('familia') ?? '').slice(0, 40),
+          workbook: (url.searchParams.get('informe') ?? '').slice(0, 300),
+          sheet: (url.searchParams.get('hoja') ?? '').slice(0, 120),
           frequency: (url.searchParams.get('frecuencia') ?? '').slice(0, 20),
           text: (url.searchParams.get('q') ?? '').slice(0, 120),
           offset: Number(url.searchParams.get('desde') ?? 0) || 0,
