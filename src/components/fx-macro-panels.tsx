@@ -3,6 +3,7 @@
 import { useState } from 'react';
 
 import { BankQuotesPanel } from './bank-quotes-panel';
+import { BcbUsdtMarket } from './bcb-usdt-market';
 import { DatedLines } from './charts';
 import type { DatedBand, DatedLinePoint, DatedLineSeries } from './charts';
 import { Icon } from './icons';
@@ -428,6 +429,7 @@ export function FxMacroPanels({
             <StablecoinTable readings={snapshot.stablecoins} />
           )}
         </div>
+        <BcbUsdtMarket />
         <BankQuotesPanel />
       </div>
     </>

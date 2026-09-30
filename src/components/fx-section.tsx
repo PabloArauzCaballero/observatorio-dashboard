@@ -1,5 +1,4 @@
 import { BankAssetsTable } from './bank-assets-section';
-import { BcbUsdtMarket } from './bcb-usdt-market';
 import { FxExplorer } from './fx-explorer';
 import { FxMacroPanels } from './fx-macro-panels';
 import type { SidedPoint } from './fx-macro-panels';
@@ -94,7 +93,6 @@ export async function FxSection() {
         readingCount={observatory.readingCount}
       />
       <BankAssetsTable />
-      <BcbUsdtMarket />
     </>
   );
 }
