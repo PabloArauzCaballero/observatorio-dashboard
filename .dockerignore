@@ -5,3 +5,5 @@ node_modules
 tsconfig.tsbuildinfo
 README.md
 render.yaml
+.github
+infra

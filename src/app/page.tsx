@@ -1,41 +1,49 @@
-import {
-  GapChart,
-  Histogram,
-  MacroChart,
-  RateChart,
-  SeriesChart,
-  Sparkline,
-} from '@/components/charts';
+import { Suspense } from 'react';
+import { Asistente } from '@/components/asistente';
 import type { GapChartPoint, RatePoint } from '@/components/charts';
-import { Download } from '@/components/download';
-import { MacroExplorer } from '@/components/macro-explorer';
+import { Donate } from '@/components/donate';
+import { FxEconometricsCard } from '@/components/fx-econometrics-card';
+import { FxSection } from '@/components/fx-section';
+import { MarketCards } from '@/components/market-cards';
+import { Icon } from '@/components/icons';
+import { SummaryExplorer } from '@/components/summary-explorer';
+import { BankQuoteCards } from '@/components/bank-quote-cards';
+import { DollarQuotesCard } from '@/components/dollar-quotes';
+import { BoardNews, TodayBoardPanel } from '@/components/today-board';
+import type { SummaryFigure } from '@/components/summary-explorer';
 import { Tabs } from '@/components/tabs';
+// Las pestañas que se leen al abrirse, en su propio trozo de JavaScript.
+import {
+  CitiesSection,
+  FilingsSection,
+  MacroSection,
+  PressSection,
+  TransportSection,
+  SourcesSection,
+} from './lazy-sections';
 import { dailyAnalysis } from '@/lib/daily-analysis';
+import { buildDollarQuotes } from '@/lib/dollar-quotes';
+import { buildTodayBoard } from '@/lib/today-board';
+import { packMarketCards } from '@/lib/market-transport';
 import {
-  aggregationBoundary,
-  drawdown,
-  histogram,
-  logReturns,
-  moments,
-  rollingCorrelation,
-  rollingVolatility,
-} from '@/lib/econometrics';
-import type { Observation } from '@/lib/econometrics';
-import {
+  isUnaffordableRead,
   officialSeries,
   readCompanyFilings,
+  readMarkets,
+  readPressPage,
   readGap,
   readMacroAnnual,
   readObservatory,
-  readSources,
+  readStablecoins,
 } from '@/lib/series';
 import type {
   CompanyFiling,
+  MarketSeries,
+  PressArticle,
   DailyPoint,
   GapPoint,
   MacroPoint,
   Observatory,
-  SourceNote,
 } from '@/lib/series';
 
 /**
@@ -52,6 +60,23 @@ import type {
  * that row"; an analyst is asking "where has this been going", and only a line
  * answers that. The numbers behind every line are one click away in both
  * formats, from the same control in the same place on every section.
+ *
+ * ESTA PÁGINA ES LA PRIMERA PESTAÑA Y NADA MÁS. Fue las siete durante meses, y
+ * lo que eso costaba se midió el 2026-09-22 contra `test`: la portada respondía
+ * la cabecera al segundo 1 y después la conexión quedaba **muda hasta el
+ * segundo 16**, con el informe completo entre los 16 y los 23 s. Ni la red ni el
+ * peso lo explicaban —el mismo servidor entrega un megabyte en dos segundos—:
+ * era que el servidor esperaba a que las veinte lecturas de las siete pestañas
+ * terminaran antes de emitir una línea de contenido, y después serializaba 7,9
+ * MB de los que unos 6,3 eran de pestañas que el lector no había abierto.
+ *
+ * `Tabs` ya dibujaba sólo la pestaña activa **en el navegador**. Ahora las otras
+ * seis tampoco se leen en el servidor: cada una pide lo suyo al montarse, que es
+ * lo que «Social Info» y «Bolivia ante el mundo» llevaban haciendo desde que se vio
+ * que mil quinientas series no caben en una primera pantalla. Aquí quedan las
+ * lecturas que el resumen necesita para existir, y de ellas viaja lo que el
+ * resumen enseña —el cuadro de mando, el análisis, los contadores— y no el
+ * corpus del que salen.
  */
 
 // The exchange rate in force is not a cacheable fact.
@@ -84,80 +109,19 @@ const instant = (value: string): string =>
     timeZone: TIME_ZONE,
   }).format(new Date(value));
 
-const SIDE_LABEL: Record<string, string> = {
-  OFFICIAL: 'tipo de cambio oficial',
-  BUY: 'lado «buy»',
-  SELL: 'lado «sell»',
-};
-
-const MACRO_TONE: Record<string, string> = {
-  CPI_INFLATION_ANNUAL_PCT: 'var(--parallel)',
-  GDP_GROWTH_ANNUAL_PCT: 'var(--official)',
-  INTERNATIONAL_RESERVES_USD: 'var(--gap)',
-  CURRENT_ACCOUNT_PCT_GDP: 'var(--official)',
-  LENDING_RATE_PCT: 'var(--parallel)',
-};
-const UNIT_LABEL: Record<string, string> = {
-  PERCENT: '%',
-  PERCENT_OF_GDP: '% del PIB',
-  USD: 'USD',
-};
-
 interface RateRow extends RatePoint {
   parallelAggregation?: 'POINT_IN_TIME' | 'DAILY_AVERAGE';
   officialAggregation?: 'POINT_IN_TIME' | 'DAILY_AVERAGE';
   officialSide?: string | null;
 }
 
-/** One statistic, stated with the unit it is measured in. */
-function Stat({ label, value, hint }: { label: string; value: string; hint?: string }) {
-  return (
-    <div className="stat">
-      <span className="stat-label">{label}</span>
-      <span className="stat-value">{value}</span>
-      {hint ? <span className="stat-hint">{hint}</span> : null}
-    </div>
-  );
-}
+const SIDE_LABEL: Record<string, string> = {
+  OFFICIAL: 'tipo de cambio oficial',
+  BUY: 'lado «buy»',
+  SELL: 'lado «sell»',
+};
 
 /** A headline number with the shape of its own history under it. */
-function Figure({
-  label,
-  value,
-  unit,
-  meta,
-  spark,
-  tone,
-}: {
-  label: string;
-  value: string;
-  unit?: string;
-  meta?: string;
-  spark?: number[];
-  tone?: string;
-}) {
-  return (
-    <div className="figure">
-      <div className="label">{label}</div>
-      <div className="value">
-        {value}
-        {unit ? <span className="unit">{unit}</span> : null}
-      </div>
-      {meta ? <div className="meta">{meta}</div> : null}
-      {spark && spark.length > 2 ? (
-        <Sparkline data={spark} tone={tone ?? 'var(--ink-faint)'} />
-      ) : null}
-    </div>
-  );
-}
-
-/**
- * Aligns the series on one date axis without inventing missing days.
- *
- * Each series keeps its own aggregation on the row. A day where the parallel
- * rate was observed and the official one came from the archive is not "an
- * averaged day".
- */
 function buildRateSeries(buy: DailyPoint[], sell: DailyPoint[], official: DailyPoint[]): RateRow[] {
   const byDate = new Map<string, RateRow>();
   const at = (date: string): RateRow => byDate.get(date) ?? { date };
@@ -197,161 +161,186 @@ function midpoint(row: RateRow): number | null {
 }
 
 /**
- * The date on which the ordering of the two published sides reverses.
+ * Cuando el resumen no se pudo leer.
  *
- * A bid and an ask cannot swap places. That this happens in the series is the
- * evidence that the two fields do not carry the meaning a Spanish
- * «compra/venta» pair would.
+ * Va dentro del informe y no en lugar de el. Antes reemplazaba la pagina entera
+ * —cabecera, pestañas y todo— porque la pagina ERA el resumen; ahora el resumen
+ * es la primera pestaña de siete, y las otras seis leen por su cuenta. Que la
+ * lectura del resumen falle no es razon para esconderle al lector los seis
+ * capitulos que si se pueden servir, ni para quitarle las pestañas con que
+ * llegar a ellos.
  */
-function sideOrderReversal(rows: RateRow[]): string | null {
-  let previous: boolean | null = null;
-  for (const row of rows) {
-    if (typeof row.parallelBuy !== 'number' || typeof row.parallelSell !== 'number') continue;
-    const buyAbove = row.parallelBuy > row.parallelSell;
-    if (previous !== null && buyAbove !== previous) return row.date;
-    previous = buyAbove;
-  }
-  return null;
-}
-
-/** Latest published year of each indicator, which is not the same for all. */
-function latestByIndicator(points: MacroPoint[]): MacroPoint[] {
-  const latest = new Map<string, MacroPoint>();
-  for (const point of points) {
-    const current = latest.get(point.indicatorCode);
-    if (!current || point.period > current.period) latest.set(point.indicatorCode, point);
-  }
-  return [...latest.values()].sort((left, right) =>
-    (left.name ?? left.indicatorCode).localeCompare(right.name ?? right.indicatorCode),
-  );
-}
-
-function macroValue(point: MacroPoint): string {
-  if (point.unit !== 'USD') return rate(point.value, 2);
-  const billions = point.value / 1_000_000_000;
-  return Math.abs(billions) >= 1
-    ? `${rate(billions, 2)} mil M`
-    : `${rate(point.value / 1_000_000, 0)} M`;
-}
-
-/** One indicator: its latest reading, its move, and its whole history. */
-function MacroCard({ point, series }: { point: MacroPoint; series: MacroPoint[] }) {
-  const history = series
-    .filter((row) => row.indicatorCode === point.indicatorCode)
-    .map((row) => ({ period: row.period, value: row.value }));
-
+function Unreadable() {
   return (
-    <article className="card">
-      <header className="card-head">
-        <h3>{point.name ?? point.indicatorCode}</h3>
-        <div className="card-figure">
-          <span className="card-value">{macroValue(point)}</span>
-          <span className="card-unit">{UNIT_LABEL[point.unit] ?? point.unit}</span>
-        </div>
-        <div className="card-meta">
-          <span>{point.period}</span>
-          {point.changePercent === null ? null : (
-            <span className={point.changePercent >= 0 ? 'delta-up' : 'delta-down'}>
-              {percent(point.changePercent)} anual
-            </span>
-          )}
-        </div>
-      </header>
-      <MacroChart
-        data={history}
-        unit={point.unit}
-        tone={MACRO_TONE[point.indicatorCode] ?? 'var(--ink-soft)'}
-      />
-    </article>
+    <div className="error">
+      <strong>No fue posible leer la base de datos.</strong>
+      <p>
+        Este resumen no muestra cifras que no pudo verificar, así que no muestra ninguna. El detalle
+        del fallo queda en el registro del servidor; las demás pestañas leen aparte y pueden estar
+        al día.
+      </p>
+    </div>
   );
+}
+
+/** El nombre que un lector reconoce, para cada lectura que puede faltar. */
+const NOMBRE_DE_SECCION: Record<string, string> = {
+  gap: 'brecha cambiaria',
+  macro: 'macroeconomía anual',
+  filings: 'hechos relevantes',
+  pressToday: 'prensa',
+  markets: 'mercados',
+};
+
+/** Las secciones perdidas en castellano, sin repetir las que comparten nombre. */
+function SECCIONES_PERDIDAS(perdidas: ReadonlySet<string>): string {
+  const nombres = [...new Set([...perdidas].map((clave) => NOMBRE_DE_SECCION[clave] ?? clave))];
+  return nombres.sort((left, right) => left.localeCompare(right, 'es')).join(', ');
 }
 
 /**
- * Filings as a time line rather than a grid.
+ * El esqueleto de una pestaña que el servidor todavía está armando.
  *
- * What matters about a filing is when it landed relative to the others, which a
- * row in a table hides and a spine down the page makes obvious.
+ * El capítulo del tipo de cambio sigue leyéndose en el servidor —son pruebas
+ * formales sobre las mismas series que el resumen ya tiene, y hacerlas aquí
+ * evita mandarlas dos veces— pero ya no retiene la página: va detrás de un
+ * `Suspense`, así que la primera pantalla se emite en cuanto el resumen está y
+ * el capítulo llega detrás, por el mismo flujo, sin una petición más.
  */
-function FilingTimeline({ filings }: { filings: CompanyFiling[] }) {
-  return (
-    <ol className="timeline">
-      {filings.map((filing, index) => (
-        <li key={filing.factClaimId} style={{ animationDelay: `${Math.min(index, 12) * 45}ms` }}>
-          <div className="tl-stamp">{filing.statedInstant ?? filing.eventDate}</div>
-          <div className="tl-body">
-            <h4>{filing.subject}</h4>
-            <p className="tl-filer">{filing.filer}</p>
-            {filing.excerpt ? <p className="tl-excerpt">{filing.excerpt.slice(0, 260)}…</p> : null}
-            <p className="tl-foot">
-              {filing.instantStatedInDocument
-                ? 'Fecha confirmada por la ficha'
-                : 'Fecha sin confirmar'}
-              {filing.sourceUrl ? (
-                <>
-                  {' · '}
-                  <a href={filing.sourceUrl} target="_blank" rel="noreferrer noopener">
-                    ficha completa
-                  </a>
-                </>
-              ) : null}
-            </p>
-          </div>
-        </li>
-      ))}
-    </ol>
-  );
+function Armando({ que }: { que: string }) {
+  return <div className="callout">Armando {que}…</div>;
 }
 
-function SourceList({ sources }: { sources: SourceNote[] }) {
-  return (
-    <ul className="sources">
-      {sources.map((source) => (
-        <li key={`${source.indicator}-${source.sourceUrl}`}>
-          <code>{source.indicator}</code>
-          <span>{source.publisher}</span>
-          <span className="src-span">
-            {source.firstDay} → {source.lastDay} · {source.readings.toLocaleString('es-BO')}{' '}
-            lecturas
-          </span>
-          <a href={source.sourceUrl} target="_blank" rel="noreferrer noopener">
-            abrir
-          </a>
-        </li>
-      ))}
-    </ul>
-  );
-}
-
-function Unreadable() {
-  return (
-    <main>
-      <div className="masthead">
-        <h1>Observatorio económico de Bolivia</h1>
+/**
+ * La cotización del dólar, lo primero de la portada.
+ *
+ * Lee por su cuenta y detrás de su propio `Suspense`. Las fichas son la lectura
+ * más cara de la página, y el capítulo del tipo de cambio ya la pide en cada
+ * carga: aquí la encuentra sostenida (o se suma a la misma consulta en vuelo,
+ * que `held` no duplica), así que no es una consulta más. Aparte, porque el
+ * cuadro de tendencias no depende de ella y no tiene por qué esperarla.
+ *
+ * Un fallo aquí se queda aquí: sin el `catch`, el `Suspense` no lo atrapa y se
+ * llevaría la pestaña entera por una tarjeta.
+ */
+async function DollarQuotesSection() {
+  try {
+    const [observatory, stablecoins] = await Promise.all([readObservatory(), readStablecoins()]);
+    const today = new Intl.DateTimeFormat('en-CA', {
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      timeZone: TIME_ZONE,
+    }).format(new Date());
+    const data = buildDollarQuotes({
+      stablecoins,
+      official: officialSeries(observatory),
+      officialSides: {
+        buy: observatory.series.get('FX_OFFICIAL_USD_BOB:BUY') ?? [],
+        sell: observatory.series.get('FX_OFFICIAL_USD_BOB:SELL') ?? [],
+      },
+      today,
+    });
+    return <DollarQuotesCard data={data} />;
+  } catch (error) {
+    console.error('[observatorio] cotización del dólar sin leer', error);
+    return (
+      <div className="callout">
+        La cotización del dólar no se pudo leer en esta carga. El resto del resumen es correcto; el
+        detalle está en «Tipo de cambio».
       </div>
-      <div className="error">
-        <strong>No fue posible leer la base de datos.</strong>
-        <p>
-          Esta página no muestra cifras que no pudo verificar, así que no muestra ninguna. El
-          detalle del fallo queda en el registro del servidor.
-        </p>
-      </div>
-    </main>
-  );
+    );
+  }
 }
 
-export default async function Page() {
+async function TodaySection() {
   let observatory: Observatory;
   let gap: GapPoint[];
-  let sources: SourceNote[];
   let macro: MacroPoint[];
   let filings: CompanyFiling[];
+  let pressToday: PressArticle[];
+  let markets: MarketSeries[];
+  /*
+   * Las secciones que no llegan se cuentan, para no publicar su ausencia como
+   * un cero. «Macro anuales: 0» y «Macro anuales: no se pudo leer» dicen cosas
+   * opuestas, y la primera es falsa: hay nueve mil filas ahi.
+   */
+  const perdidas = new Set<string>();
+
+  /**
+   * Una lectura que puede faltar sin llevarse el informe.
+   *
+   * Solo se perdona lo que el servidor no termino de leer — el plazo agotado,
+   * el sitio que la ordenacion necesitaba. Cualquier otro fallo sigue tumbando
+   * la pagina entera, que es lo correcto cuando lo que falla es la conexion y
+   * no una vista cara: un informe que se dibuja a medias sin saber por que no
+   * es un informe degradado, es uno que miente.
+   */
+  async function seccion<T>(nombre: string, read: () => Promise<T>, vacio: T): Promise<T> {
+    try {
+      return await read();
+    } catch (error) {
+      if (!isUnaffordableRead(error)) throw error;
+      // El codigo va al registro; el mensaje puede llevar el host y el rol.
+      console.warn(
+        `[observatorio] seccion sin leer: ${nombre} (${(error as { code?: string }).code})`,
+      );
+      perdidas.add(nombre);
+      return vacio;
+    }
+  }
+
   try {
-    [observatory, gap, sources, macro, filings] = await Promise.all([
-      readObservatory(),
-      readGap(),
-      readSources(),
-      readMacroAnnual(),
-      readCompanyFilings(),
+    /*
+     * El tipo de cambio no se perdona: sin el no hay fecha sobre la que
+     * construir la portada ni cifra que publicar, y una pagina sin eso no es
+     * una pagina degradada, es una vacia.
+     *
+     * LA BRECHA SI SE PERDONA, y aprendimos por que. Estaba aqui, sin colador,
+     * con el argumento de que era la espina del informe. El 2026-09-21 su
+     * consulta empezo a agotar el plazo en el servidor mas flojo de los dos
+     * —solo en ese; en el otro la misma consulta devuelve sus setecientas
+     * noventa filas— y el resultado fue que el tablero publico entero
+     * desaparecio detras de «no fue posible leer la base de datos»: sin macro,
+     * sin prensa, sin empresas, sin ciudades. Trece lectores sanos borrados por
+     * uno agotado.
+     *
+     * Una seccion cara no puede llevarse las baratas. La brecha que falta se
+     * anuncia arriba como lo que es, y el resto del informe se sirve.
+     */
+    observatory = await readObservatory();
+    gap = await seccion('gap', readGap, []);
+
+    /*
+     * Las cuatro que el resumen necesita para existir, y ninguna más.
+     *
+     * Eran once. Las otras siete —fuentes, el cubo de prensa, su pulso, los dos
+     * recuentos de temas, las familias de lugares y el panel empaquetado— sólo
+     * alimentaban pestañas que esta página ya no dibuja, y cada una era una
+     * consulta en el camino crítico del primer pintado. Ahora las pide la
+     * pestaña que las enseña, cuando alguien la abre.
+     *
+     * De estas cuatro no viaja el corpus: macro y los hechos relevantes se leen
+     * para fechar el cuadro de mando y citar el comunicado del día, y lo que
+     * llega al navegador son esas conclusiones. La lectura queda sostenida cinco
+     * minutos, así que cuando el lector abre «Macroeconomía» o «Empresas» su
+     * petición la encuentra hecha en vez de volver a la base.
+     */
+    [macro, filings, pressToday, markets] = await Promise.all([
+      seccion('macro', readMacroAnnual, []),
+      seccion('filings', () => readCompanyFilings(), []),
+      /*
+       * El archivo sin filtrar por tema, para el cuadro de mando.
+       *
+       * La pestaña de prensa lee lo mismo dejando fuera `OTROS`, que es lo
+       * correcto para un capítulo de prensa económica y lo contrario de lo que
+       * necesita la portada: un bloqueo de caminos o una medida de combustible
+       * entran por ahí, y son exactamente las novedades que un inversor externo
+       * busca. El limite alcanza para los ultimos dias con holgura, que es lo
+       * unico que el tablero mira.
+       */
+      seccion('pressToday', () => readPressPage({}, 120).then((page) => page.articles), []),
+      seccion('markets', readMarkets, []),
     ]);
   } catch (error) {
     // The message can carry the host, the user and the port. It belongs in the
@@ -359,6 +348,10 @@ export default async function Page() {
     console.error('[observatorio] lectura fallida', error);
     return <Unreadable />;
   }
+
+  /** Un recuento, o el hecho de que no se pudo contar. Nunca un cero prestado. */
+  const contar = (nombre: string, valores: readonly unknown[]): string =>
+    perdidas.has(nombre) ? 'sin leer' : valores.length.toLocaleString('es-BO');
 
   const buy = observatory.series.get(PARALLEL_BUY) ?? [];
   const sell = observatory.series.get(PARALLEL_SELL) ?? [];
@@ -378,40 +371,10 @@ export default async function Page() {
     null,
   );
 
-  const reversal = sideOrderReversal(rows);
   const gapSeries: GapChartPoint[] = gap.map((point) => ({
     date: point.date,
     gapPercent: point.gapPercent,
   }));
-
-  /**
-   * The market series the statistics are computed on.
-   *
-   * The mid-point rather than either published side, because the two labels do
-   * not carry a stable meaning and the mid is invariant to that.
-   */
-  const midSeries: Observation[] = rows
-    .map((row) => ({
-      date: row.date,
-      value: midpoint(row),
-      aggregation: row.parallelAggregation ?? 'POINT_IN_TIME',
-    }))
-    .filter((point): point is Observation => point.value !== null)
-    .map((point) => ({ ...point, value: point.value }));
-  const officialObservations: Observation[] = official.map((point) => ({
-    date: point.date,
-    value: point.value,
-    aggregation: point.aggregation,
-  }));
-
-  const midReturns = logReturns(midSeries);
-  const returnSeries = midReturns.map((point) => ({ date: point.date, value: point.ret }));
-  const volatility = rollingVolatility(midReturns, 30);
-  const correlation = rollingCorrelation(midReturns, logReturns(officialObservations), 60);
-  const drawdownSeries = drawdown(midSeries);
-  const buckets = histogram(midReturns);
-  const stats = moments(midReturns);
-  const boundary = aggregationBoundary(midSeries);
 
   /** Enough of the tail to show direction without redrawing the whole year. */
   const tail = <T,>(values: T[], count = 90): T[] => values.slice(-count);
@@ -419,7 +382,94 @@ export default async function Page() {
     .map((row) => midpoint(row))
     .filter((value): value is number => value !== null);
 
-  const analysis = dailyAnalysis({
+  const summaryFigures: SummaryFigure[] = [
+    ...(lastOfficial
+      ? [
+          {
+            label: 'Oficial',
+            value: rate(lastOfficial.value, 2),
+            unit: 'Bs/USD',
+            meta: SIDE_LABEL[lastOfficial.side ?? ''] ?? 'lado publicado',
+            spark: tail(official).map((point) => point.value),
+            tone: 'var(--official)',
+            icon: 'banco' as const,
+          },
+        ]
+      : []),
+    ...(latestMid !== null
+      ? [
+          {
+            label: 'Paralelo (punto medio)',
+            value: rate(latestMid),
+            unit: 'Bs/USD',
+            spark: midSpark,
+            tone: 'var(--parallel)',
+            icon: 'monedas' as const,
+          },
+        ]
+      : []),
+    ...(lastGap
+      ? [
+          {
+            label: 'Brecha cambiaria',
+            value: percent(lastGap.gapPercent),
+            meta: `al ${lastGap.date}`,
+            spark: tail(gap).map((point) => point.gapPercent),
+            tone: 'var(--gap)',
+            icon: 'balanza' as const,
+          },
+        ]
+      : []),
+    ...(peakGap && lastGap && peakGap.date !== lastGap.date
+      ? [
+          {
+            label: 'Máximo histórico',
+            value: percent(peakGap.gapPercent),
+            meta: `el ${peakGap.date}`,
+            icon: 'tendencia' as const,
+          },
+        ]
+      : []),
+    ...(lastUfv
+      ? [
+          {
+            label: 'UFV',
+            value: rate(lastUfv.value, 5),
+            unit: 'Bs/UFV',
+            meta: lastUfv.date,
+            icon: 'etiqueta' as const,
+          },
+        ]
+      : []),
+  ];
+
+  /*
+   * El año contra el que se mide la edad de cada dato macro.
+   *
+   * Se toma en La Paz y no en el reloj del servidor, que corre en UTC: entre
+   * las 20:00 y la medianoche boliviana los dos no coinciden, y el 31 de
+   * diciembre esa diferencia envejece de golpe cada cifra del tablero.
+   */
+  const currentYear = Number(
+    new Intl.DateTimeFormat('en-CA', { year: 'numeric', timeZone: TIME_ZONE }).format(new Date()),
+  );
+
+  const board = buildTodayBoard({ macro, gap, press: pressToday, currentYear });
+
+  /*
+   * Lo que el analisis dice cuando no hay brecha, y por que aqui no vale.
+   *
+   * Sin brecha, `dailyAnalysis` publica una sola viñeta: «ninguna jornada tiene
+   * cotizacion oficial y de mercado a la vez». Eso es cierto cuando la serie
+   * esta vacia de verdad y es FALSO cuando la consulta se agoto — hay
+   * setecientas noventa jornadas con las dos cotizaciones, y el informe estaria
+   * afirmando lo contrario con la misma cara con que afirma lo que sabe.
+   *
+   * Asi que esa viñeta se retira cuando la ausencia es un fallo de lectura. El
+   * aviso de arriba ya nombra la seccion perdida, que es lo unico que aqui se
+   * puede sostener.
+   */
+  const analysisInput = dailyAnalysis({
     latestDate: observatory.latestDate,
     gap,
     parallelBuy: buy,
@@ -430,321 +480,217 @@ export default async function Page() {
     macro,
   });
 
+  const analysis = perdidas.has('gap')
+    ? {
+        ...analysisInput,
+        bullets: analysisInput.bullets.filter((bullet) => bullet.key !== 'sin-brecha'),
+      }
+    : analysisInput;
+
+  return (
+    <>
+      {/*
+        Una seccion que falta se dice, no se disimula. Sin este aviso un
+        explorador vacio se lee como «no hay nada cargado», que es justo lo
+        contrario de lo que pasa: hay datos y el servidor no termino de leerlos.
+        Van los nombres de las secciones y nada mas — ni el codigo, ni el host,
+        ni el rol —, que es lo que puede publicarse en una direccion abierta.
+
+        Va dentro del resumen y ya no sobre las pestañas, porque solo nombra lo
+        que el resumen lee. Las que se piden al abrirse avisan cada una en su
+        sitio, que es donde el lector esta mirando cuando se entera.
+      */}
+      {perdidas.size > 0 ? (
+        <div className="callout">
+          No se pudieron leer a tiempo estas secciones: {SECCIONES_PERDIDAS(perdidas)}. El resto del
+          informe es correcto y esta al dia; lo que falta volvera cuando la consulta que lo arma
+          deje de agotar su plazo.
+        </div>
+      ) : null}
+
+      <SummaryExplorer
+        gap={gapSeries}
+        gapUnread={perdidas.has('gap')}
+        figures={summaryFigures}
+        coverage={[
+          {
+            label: 'Series diarias',
+            count: observatory.readingCount.toLocaleString('es-BO'),
+            icon: 'linea',
+          },
+          {
+            label: 'Macro anuales',
+            count: contar('macro', macro),
+            icon: 'globo',
+          },
+          {
+            label: 'Hechos relevantes',
+            count: contar('filings', filings),
+            icon: 'edificio',
+          },
+          {
+            label: 'Días con brecha',
+            count: contar('gap', gap),
+            icon: 'balanza',
+          },
+        ]}
+        analysis={analysis.bullets}
+        latestDate={observatory.latestDate}
+        markets={<MarketCards markets={packMarketCards(markets)} />}
+        board={
+          <TodayBoardPanel
+            board={board}
+            lead={
+              <Suspense fallback={<Armando que="la cotización del dólar" />}>
+                <DollarQuotesSection />
+              </Suspense>
+            }
+          />
+        }
+        news={<BoardNews board={board} />}
+      />
+      {/* Al final de la portada, después de todo lo demás: es contexto de las
+          cotizaciones de arriba, no lo primero que el lector vino a buscar. */}
+      <BankQuoteCards />
+    </>
+  );
+}
+
+/**
+ * La fecha del dato mas reciente, en la cabecera.
+ *
+ * Aparte del resto de la cabecera a proposito, y es el detalle que decide si la
+ * pagina se ve en un segundo o en dieciseis. El nombre, el rotulo y las siete
+ * pestañas no dependen de ninguna lectura; esta linea si, y mientras estuvo en
+ * el mismo componente que ellos los retenia a todos: la cabecera no podia
+ * emitirse hasta que el observatorio hubiera contestado. Medido contra Contabo
+ * con la memoria vencida, eso eran quince segundos de pagina en blanco por una
+ * frase.
+ *
+ * Detras de su propio `Suspense`, la cabecera y las pestañas salen enseguida y
+ * la fecha llega cuando el observatorio contesta. La lectura esta sostenida
+ * cinco minutos y el resumen pide la misma, asi que no es una consulta mas.
+ *
+ * Si no se puede leer, dice «Sin datos» y no se lleva la cabecera: un `Suspense`
+ * atrapa una espera, no un fallo, asi que lo que aqui no se recoja tumbaria la
+ * pagina entera por una frase de fecha.
+ */
+async function Stamp() {
+  let observatory: Observatory;
+  try {
+    observatory = await readObservatory();
+  } catch (error) {
+    // The message can carry the host, the user and the port. It belongs in the
+    // log, not in a page served to the public.
+    console.error('[observatorio] fecha de cabecera sin leer', error);
+    return <span>Sin datos</span>;
+  }
+
+  return (
+    <span>
+      {observatory.latestDate ? `Datos al ${longDate(observatory.latestDate)}` : 'Sin datos'}
+      {observatory.lastReceivedAt ? ` · carga ${instant(observatory.lastReceivedAt)}` : ''}
+    </span>
+  );
+}
+
+/**
+ * El informe: una cabecera, siete pestañas y ni una lectura.
+ *
+ * No lee nada, y eso es el arreglo. Mientras esta funcion era el resumen, el
+ * servidor no emitia una linea de contenido hasta tener todas sus consultas
+ * hechas: contra Contabo con la memoria vencida eso median dieciseis segundos
+ * con la conexion muda, y el lector no tenia ni las pestañas con que irse a otro
+ * capitulo mientras esperaba. Ahora la cabecera y la lista de pestañas salen con
+ * el primer byte —medido en 0,9 s en el servidor lento— y cada capitulo llega
+ * cuando lo suyo esta: el resumen y el tipo de cambio por el mismo flujo, detras
+ * de un `Suspense`; los otros cinco pidiendo su direccion al abrirse.
+ */
+export default function Page() {
   return (
     <main>
-      <header className="masthead">
-        <div className="dateline">
-          {observatory.latestDate ? `Datos al ${longDate(observatory.latestDate)}` : 'Sin datos'}
-          {observatory.lastReceivedAt
-            ? ` · última carga ${instant(observatory.lastReceivedAt)} (hora de Bolivia)`
-            : ''}
+      {/* The pane holds a hundred controls; this is the way past them. */}
+      <a className="skip-link" href="#tablero">
+        Saltar los filtros e ir al tablero
+      </a>
+      <header className="topbar">
+        <div className="brand">
+          <span className="brand-mark">
+            <Icon name="barras" size={19} />
+          </span>
+          <div>
+            <h1>Observatorio Económico de Bolivia</h1>
+            <div className="dateline">Situación económica y de los mercados</div>
+          </div>
         </div>
-        <h1>Tipo de cambio y brecha cambiaria en Bolivia</h1>
+        <div className="topbar-stamp">
+          <Icon name="reloj" size={14} />
+          <Suspense fallback={<span>Leyendo la fecha del último dato…</span>}>
+            <Stamp />
+          </Suspense>
+        </div>
+        <Donate />
       </header>
 
-      <Tabs labels={['Resumen', 'Tipo de cambio', 'Macroeconomía', 'Empresas', 'Método']}>
+      <Tabs
+        labels={[
+          'Hoy',
+          'Tipo de cambio',
+          'Macroeconomía',
+          'Empresas',
+          'Ciudades',
+          'Transporte',
+          'Prensa',
+          'Método',
+        ]}
+        icons={['diana', 'linea', 'globo', 'edificio', 'mapa', 'camion', 'ventana', 'info']}
+      >
         <section className="stack">
-          <div className="figures">
-            {lastOfficial ? (
-              <Figure
-                label="Oficial"
-                value={rate(lastOfficial.value, 2)}
-                unit="Bs/USD"
-                meta={SIDE_LABEL[lastOfficial.side ?? ''] ?? 'lado publicado'}
-                spark={tail(official).map((point) => point.value)}
-                tone="var(--official)"
-              />
-            ) : null}
-            {latestMid !== null ? (
-              <Figure
-                label="Paralelo (punto medio)"
-                value={rate(latestMid)}
-                unit="Bs/USD"
-                spark={midSpark}
-                tone="var(--parallel)"
-              />
-            ) : null}
-            {lastGap ? (
-              <Figure
-                label="Brecha cambiaria"
-                value={percent(lastGap.gapPercent)}
-                meta={`al ${lastGap.date}`}
-                spark={tail(gap).map((point) => point.gapPercent)}
-                tone="var(--gap)"
-              />
-            ) : null}
-            {peakGap && lastGap && peakGap.date !== lastGap.date ? (
-              <Figure
-                label="Máximo del periodo"
-                value={percent(peakGap.gapPercent)}
-                meta={`el ${peakGap.date}`}
-              />
-            ) : null}
-            {lastUfv ? (
-              <Figure
-                label="UFV"
-                value={rate(lastUfv.value, 5)}
-                unit="Bs/UFV"
-                meta={lastUfv.date}
-              />
-            ) : null}
-          </div>
-
-          <div className="panel">
-            <div className="panel-head">
-              <h2>Brecha cambiaria</h2>
-              <p className="panel-sub">
-                Porcentaje sobre el oficial, contra el punto medio del paralelo
-              </p>
-            </div>
-            {gapSeries.length >= 2 ? (
-              <GapChart data={gapSeries} tall />
-            ) : (
-              <div className="callout">
-                La brecha solo puede calcularse en los días con ambas cotizaciones.
-              </div>
-            )}
-          </div>
-
-          <div className="analysis">
-            <h2>Análisis del día</h2>
-            <p className="analysis-note">
-              Derivado de las observaciones, no redactado: cada cifra procede de las series de este
-              informe y se recalcula con cada carga.
-            </p>
-            {analysis.lines.map((line) => (
-              <p key={line.slice(0, 40)}>{line}</p>
-            ))}
-          </div>
+          <Suspense fallback={<Armando que="el resumen de hoy" />}>
+            <TodaySection />
+          </Suspense>
         </section>
 
         <section className="stack">
-          <div className="panel">
-            <div className="panel-head">
-              <h2>Nivel</h2>
-              <p className="panel-sub">
-                Bolivianos por dólar. Naranja: los dos lados que publica la fuente para el paralelo.
-                Azul: tipo de cambio oficial. El eje no arranca en cero.
-              </p>
-            </div>
-            <RateChart data={rows} tall />
-          </div>
-
-          <div className="stat-strip">
-            <Stat
-              label="Volatilidad anualizada"
-              value={`${rate(stats.volatilityAnnual, 1)} %`}
-              hint="desviación típica de los retornos diarios, √365"
-            />
-            <Stat
-              label="Retorno medio diario"
-              value={`${percent(stats.meanDaily)}`}
-              hint={`${stats.observations.toLocaleString('es-BO')} observaciones`}
-            />
-            <Stat
-              label="Asimetría"
-              value={rate(stats.skewness, 2)}
-              hint={stats.skewness > 0 ? 'sesgo a depreciaciones' : 'sesgo a apreciaciones'}
-            />
-            <Stat
-              label="Curtosis en exceso"
-              value={rate(stats.excessKurtosis, 2)}
-              hint={stats.excessKurtosis > 0 ? 'colas más gruesas que la normal' : 'colas finas'}
-            />
-            <Stat
-              label="VaR 95 % diario"
-              value={`${rate(stats.valueAtRisk95, 2)} %`}
-              hint="pérdida no superada en 19 de cada 20 días"
-            />
-            {stats.worstDay ? (
-              <Stat
-                label="Peor jornada"
-                value={`${percent(stats.worstDay.ret)}`}
-                hint={stats.worstDay.date}
-              />
-            ) : null}
-          </div>
-
-          <div className="panel">
-            <div className="panel-head">
-              <h2>Retornos diarios</h2>
-              <p className="panel-sub">
-                Variación logarítmica del punto medio del paralelo. Las barras hacen visibles los
-                saltos que una línea de nivel suaviza.
-              </p>
-            </div>
-            <SeriesChart
-              data={returnSeries}
-              kind="bar"
-              tone="var(--parallel)"
-              unit="%"
-              zeroLine
-              {...(boundary ? { boundary } : {})}
-            />
-          </div>
-
-          <div className="grid-two">
-            <div className="panel">
-              <div className="panel-head">
-                <h2>Volatilidad realizada</h2>
-                <p className="panel-sub">Ventana móvil de 30 días, anualizada</p>
-              </div>
-              <SeriesChart
-                data={volatility}
-                kind="area"
-                tone="var(--gap)"
-                unit="%"
-                decimals={1}
-                {...(boundary ? { boundary } : {})}
-              />
-            </div>
-
-            <div className="panel">
-              <div className="panel-head">
-                <h2>Distribución de retornos</h2>
-                <p className="panel-sub">Días por tramo; en rojo, la cola inferior del 5 %</p>
-              </div>
-              <Histogram data={buckets} />
-            </div>
-          </div>
-
-          <div className="grid-two">
-            <div className="panel">
-              <div className="panel-head">
-                <h2>Correlación oficial–paralelo</h2>
-                <p className="panel-sub">
-                  Ventana móvil de 60 días. Cerca de cero mientras el oficial estuvo fijo; se
-                  despega cuando empieza a moverse con el mercado.
-                </p>
-              </div>
-              {correlation.length >= 2 ? (
-                <SeriesChart
-                  data={correlation}
-                  kind="line"
-                  tone="var(--official)"
-                  unit=""
-                  zeroLine
-                  domain={[-1, 1]}
-                />
-              ) : (
-                <div className="callout">
-                  Se necesitan al menos 60 jornadas con ambas series para estimarla.
-                </div>
-              )}
-            </div>
-
-            <div className="panel">
-              <div className="panel-head">
-                <h2>Caída desde el máximo</h2>
-                <p className="panel-sub">
-                  Distancia del paralelo respecto al mayor nivel alcanzado hasta la fecha
-                </p>
-              </div>
-              <SeriesChart data={drawdownSeries} kind="area" tone="var(--up)" unit="%" zeroLine />
-            </div>
-          </div>
-
-          <Download dataset="series" label="Serie diaria completa" />
+          {/*
+            Las pruebas formales van después de la lectura y de los gráficos,
+            pero ya no se leen aquí: se descargan como informe. La tarjeta no
+            lee nada, así que no necesita su propio `Suspense`; el cálculo corre
+            en `/api/econometria` cuando alguien pide el documento.
+          */}
+          <Suspense fallback={<Armando que="el capítulo del tipo de cambio" />}>
+            <FxSection />
+          </Suspense>
+          <FxEconometricsCard />
         </section>
 
         <section className="stack">
-          <div className="panel-head">
-            <h2>Contexto macroeconómico</h2>
-            <p className="panel-sub">
-              Cuarenta y cuatro series anuales en ocho rubros, cada una en su propia escala. Los
-              filtros se componen entre sí y la descarga sigue a la selección.
-            </p>
-          </div>
-          <MacroExplorer points={macro} />
+          <MacroSection />
         </section>
 
         <section className="stack">
-          <div className="panel-head">
-            <h2>Hechos relevantes</h2>
-            <p className="panel-sub">
-              Comunicaciones de emisores registradas por la Bolsa Boliviana de Valores, con el sello
-              que les asigna
-            </p>
-          </div>
-          {filings.length ? (
-            <FilingTimeline filings={filings} />
-          ) : (
-            <div className="callout">Todavía no hay hechos relevantes cargados.</div>
-          )}
-          <Download dataset="filings" label="Hechos relevantes" />
+          <FilingsSection />
         </section>
 
-        <section className="stack notes">
-          <div className="panel-head">
-            <h2>Fuentes</h2>
-          </div>
-          <SourceList sources={sources} />
+        <section className="stack">
+          <CitiesSection />
+        </section>
 
-          <h2 className="section-gap">Notas metodológicas</h2>
-          <dl>
-            <dt>Los dos lados del paralelo no son una horquilla compra/venta</dt>
-            <dd>
-              La fuente publica dos valores por día bajo las etiquetas <code>buy</code> y{' '}
-              <code>sell</code>.
-              {reversal ? (
-                <>
-                  {' '}
-                  Su orden <strong>se invierte el {reversal}</strong>: antes de esa fecha uno es
-                  sistemáticamente mayor y después el otro. Una horquilla de compra y venta no puede
-                  intercambiarse, así que estas etiquetas no corresponden a la convención boliviana.
-                </>
-              ) : (
-                ' Se reportan tal como las publica la fuente.'
-              )}{' '}
-              Por eso el informe no las traduce, encabeza con el <strong>punto medio</strong> —que
-              no depende de esa distinción— y mide la brecha contra él.
-            </dd>
+        <section className="stack">
+          <TransportSection />
+        </section>
 
-            <dt>El oficial sí es consistente</dt>
-            <dd>
-              En el tipo de cambio oficial el lado «sell» es mayor o igual al «buy» en toda la
-              serie. Cuando existe el valor único que publica el Banco Central, el informe usa ese;
-              si no, el lado «sell», que es lo que paga quien adquiere dólares.
-            </dd>
+        <section className="stack">
+          <PressSection />
+        </section>
 
-            <dt>Valor del día</dt>
-            <dd>
-              Cuando varias plazas cotizan el mismo día, el valor publicado es la{' '}
-              <strong>mediana discreta</strong>: resiste que una plaza se desvíe y devuelve un
-              precio efectivamente cotizado en lugar de un valor intermedio que nadie ofreció.
-            </dd>
-
-            <dt>Promedio diario frente a lectura puntual</dt>
-            <dd>
-              La serie anterior al inicio de la recolección diaria es un{' '}
-              <strong>promedio diario</strong> de las cotizaciones intradía; desde que el recolector
-              opera, cada lectura es el precio <strong>en el momento</strong> de la consulta. Son
-              estadísticos distintos y no se promedian entre sí.
-            </dd>
-
-            <dt>Frecuencias separadas</dt>
-            <dd>
-              Una cifra anual y un precio cotizado a diario viven en modelos de lectura distintos,
-              de modo que ningún gráfico puede ponerlas en el mismo eje ni promediarlas.
-            </dd>
-
-            <dt>Trazabilidad y sus límites</dt>
-            <dd>
-              Cada lectura cita su fuente y conserva el hash del documento del que se obtuvo. En la
-              serie histórica del <strong>oficial</strong> y en los hechos relevantes, la cita es el
-              fragmento literal del que se leyó el dato. En la del <strong>paralelo</strong>,
-              cargada antes de esa mejora, es una reformulación de los valores y no un extracto
-              literal: sigue siendo trazable hasta el documento y su hash, pero no al nivel de la
-              cita.
-            </dd>
-          </dl>
-
-          <p className="panel-sub section-gap">
-            {observatory.readingCount.toLocaleString('es-BO')} puntos de serie leídos del núcleo del
-            observatorio.
-          </p>
+        <section className="stack">
+          <SourcesSection />
         </section>
       </Tabs>
+
+      {/* El chat que contesta con los datos de estas pestañas; no lee nada hasta que se abre. */}
+      <Asistente />
     </main>
   );
 }

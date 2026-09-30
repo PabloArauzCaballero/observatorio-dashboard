@@ -6,6 +6,12 @@
 #
 # Requisito previo en la UI de Coolify: "Connect To Predefined Network" activado
 # en este recurso. Sin eso el contenedor no resuelve el nombre de la base.
+#
+# Variables que hay que definir en la UI de Coolify (las demas tienen valor por
+# defecto aqui):
+#   DASHBOARD_DATABASE_URL  cadena de solo lectura a `economic_observatory`.
+#   OPENROUTER_API_KEY      clave del asistente (opcional; sin ella contesta sin IA).
+#   GEMINI_API_KEY          respaldo del asistente con la capa gratuita de Google (opcional).
 
 services:
   web:
@@ -21,35 +27,72 @@ services:
       # no por loopback.
       HOSTNAME: 0.0.0.0
       PORT: 3000
-      # Unica variable que el codigo lee. Apunta a `economic_observatory`, no a
-      # la base `postgres` del mismo servidor, que conserva una copia antigua.
+      NEXT_TELEMETRY_DISABLED: '1'
+      # Unica variable que el codigo lee para hablar con la base. Apunta a
+      # `economic_observatory`, no a la base `postgres` del mismo servidor, que
+      # conserva una copia antigua.
       DASHBOARD_DATABASE_URL: ${DASHBOARD_DATABASE_URL:?requerida}
       # Fijo, no heredado de la UI: este PostgreSQL corre con `ssl = off` y
       # rechaza el handshake, asi que exigir TLS deja todos los paneles vacios.
       # El trafico no sale de la red Docker del servidor.
       DASHBOARD_DATABASE_SSL: 'false'
+      # El asistente «Preguntale al Observatorio». Recorre OpenRouter, Gemini
+      # directo y un modelo gratuito, con los que tengan clave; sin ninguno, o si
+      # todos fallan, contesta sin IA con las cifras del tablero. Las claves
+      # nunca llegan al navegador.
+      OPENROUTER_API_KEY: ${OPENROUTER_API_KEY:-}
+      ASISTENTE_MODELO: ${ASISTENTE_MODELO:-google/gemini-3.1-flash-lite-preview}
+      GEMINI_API_KEY: ${GEMINI_API_KEY:-}
+      ASISTENTE_MODELO_GEMINI: ${ASISTENTE_MODELO_GEMINI:-}
+      ASISTENTE_MODELO_GRATIS: ${ASISTENTE_MODELO_GRATIS:-}
+      ASISTENTE_SALDO_MINIMO: ${ASISTENTE_SALDO_MINIMO:-2}
+      # Preguntas por IP cada diez minutos y tope diario de tokens: el tablero
+      # es público y sin sesión, y esto es lo que separa un abuso de una factura.
+      ASISTENTE_POR_IP: ${ASISTENTE_POR_IP:-40}
+      ASISTENTE_TOKENS_DIA: ${ASISTENTE_TOKENS_DIA:-4000000}
     expose: ['3000']
-    # Publicado solo sobre la interfaz de Tailscale, igual que la API. El 3000 y
-    # el 3002 del servidor ya estan tomados, de ahi el 3003.
+    # Publicado unicamente sobre la interfaz de Tailscale, nunca en 0.0.0.0 ni en
+    # loopback. El 3000 y el 3002 del servidor ya estan tomados, de ahi el 3003;
+    # y el 3003 de LOOPBACK es de AloVida, otro proyecto que vive en esta misma
+    # maquina. Son interfaces distintas y por eso conviven, pero publicar aqui
+    # tambien en loopback le arrebataria el puerto en el proximo despliegue.
+    # El tunel publico apunta a esta direccion, no a loopback: ver
+    # infra/tailscale-funnel.sh.
     ports:
       - '${WEB_PUBLISH_ADDRESS:-100.101.207.88}:${WEB_PUBLISH_PORT:-3003}:3000'
     init: true
     read_only: true
-    tmpfs: [/tmp]
+    # El proceso no escribe nada que deba sobrevivir a un reinicio, pero Next
+    # abre `.next/cache` al arrancar; sin este tmpfs el sistema de archivos de
+    # solo lectura lo tumbaria.
+    tmpfs:
+      - /tmp
+      - /app/.next/cache
     cap_drop: [ALL]
     security_opt: ['no-new-privileges:true']
+    # Late contra `/api/version`, nunca contra la portada. La portada es
+    # `force-dynamic`: cada sonda armaba sus trece lecturas, cuatro de ellas
+    # rearmando cifras desde la evidencia de un millon y medio de observaciones.
+    # A veinte segundos son cuatro mil trescientos renders al dia sin que nadie
+    # mire la pagina — y el 2026-09-09 esto, sumado al latido del Dockerfile,
+    # dejo al servidor en carga 95 sobre seis nucleos y mato los despliegues
+    # durante seis horas. Un latido dice «el proceso vive y alcanza la base»;
+    # no tiene por que construir un informe para decirlo.
     healthcheck:
       test:
         [
           'CMD',
           'node',
           '-e',
-          "fetch('http://127.0.0.1:3000/').then(r=>{if(!r.ok)process.exit(1)}).catch(()=>process.exit(1))",
+          "fetch('http://127.0.0.1:3000/api/version').then(r=>{if(!r.ok)process.exit(1)}).catch(()=>process.exit(1))",
         ]
-      interval: 20s
-      timeout: 5s
+      interval: 60s
+      timeout: 10s
       retries: 5
-      start_period: 30s
+      # Ya no hace falta el margen que pedia la portada en frio: esta ruta
+      # responde en cuanto el proceso escucha. Se deja holgado igualmente
+      # porque el arranque compite con lo que el servidor tenga entre manos.
+      start_period: 60s
     stop_grace_period: 30s
     networks: [coolify]
     restart: unless-stopped

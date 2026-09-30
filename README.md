@@ -79,18 +79,40 @@ npm run typecheck  # tipos
 npm run start      # servir la compilación
 ```
 
-## Despliegue en Render
+## Despliegue
 
-El repositorio incluye `render.yaml`. Al crear el servicio desde el blueprint, Render pide
-`DASHBOARD_DATABASE_URL`: ese valor vive solo en el panel y **nunca se versiona**.
+El tablero corre como contenedor en **Coolify**, en el servidor `pablo-h310`, junto a la API del
+observatorio y a la base que ambos leen.
 
-Las páginas se sirven bajo demanda (`force-dynamic`): un tipo de cambio cacheado sería un tipo de
-cambio que ya no está en vigor.
+```
+push a dev  ->  GitHub Actions  ->  tailnet  ->  Coolify  ->  docker compose  ->  contenedor
+```
+
+**Auto deploy.** `.github/workflows/deploy.yml` se dispara con cada push a `dev`. Coolify no está
+publicado en internet, así que el runner entra a la tailnet con
+`PABLO_H310_TAILSCALE_AUTHKEY` y llama al webhook del recurso por la dirección privada del servidor
+(`PABLO_H310_COOLIFY_WEBHOOK`, `PABLO_H310_COOLIFY_TOKEN`). La red es la frontera: el panel de
+administración de Coolify nunca escucha fuera de ella.
+
+**Imagen.** `Dockerfile` compila el bundle `standalone` de Next y lo sirve con `node server.js`
+como usuario sin privilegios. `docker-compose.coolify.yml` describe el servicio: sistema de archivos
+de solo lectura, sin capacidades, sin privilegios nuevos, y en la red `coolify` —que es donde el
+hostname interno de la base resuelve—. En la UI del recurso hay que dejar activado **Connect To
+Predefined Network** y definir `DASHBOARD_DATABASE_URL`; esa credencial vive solo ahí y **nunca se
+versiona**.
+
+**URL pública.** El servidor no tiene puertos abiertos hacia afuera y su IP doméstica cambia, así
+que la publicación va por Tailscale Funnel: `infra/tailscale-funnel.sh`, que se corre **una vez** en
+el servidor y deja el tablero en `https://pablo-h310.taila8f993.ts.net`. La configuración queda en
+el estado de `tailscaled` y sobrevive a reinicios, así que ningún despliegue posterior la repite.
+La API vecina **no** se publica por ahí: hoy corre con la autenticación desactivada.
+
+`render.yaml` queda en el repositorio para el despliegue anterior en Render, que lee la base de Neon.
 
 ## Ramas
 
-- `main` — lo que se despliega.
-- `dev` — integración de cambios antes de pasarlos a `main`.
+- `dev` — la rama que Coolify despliega. Un push aquí actualiza el tablero en producción.
+- `main` — integración estable; no dispara ningún despliegue.
 
 ## Estructura
 

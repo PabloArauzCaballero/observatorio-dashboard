@@ -21,11 +21,137 @@
   --panel: #ffffff;
   --panel-tint: #f6f8fa;
 
-  --official: #1b4f9c;
-  --parallel: #c2551f;
-  --gap: #7a5197;
-  --up: #a32b1f;
-  --down: #1c6b4a;
+  /*
+   * La escala de color de los gráficos, verificada y no elegida a ojo.
+   *
+   * Cada color de una serie hace exactamente un trabajo —identidad, magnitud,
+   * polaridad o estado— y la escala categórica se validó con el comprobador de
+   * la disciplina (separación bajo protanopía y deuteranopía, piso de
+   * distinción a vista plena, banda de luminosidad, piso de croma y contraste
+   * contra la superficie) en los dos modos. Los valores anteriores no pasaban:
+   * el azul y el violeta se fundían en uno bajo daltonismo, el rojo y el
+   * naranja eran casi el mismo color incluso a vista plena, y el verde caía por
+   * debajo del piso de croma. Cambiarlos «porque se ven bien» es volver a ahí,
+   * así que cualquier valor nuevo se vuelve a pasar por el comprobador.
+   *
+   * ORDEN. El orden de las casillas ES el mecanismo de seguridad, no un
+   * capricho: se enumeraron las permutaciones y esta es la que maximiza la
+   * peor separación entre vecinas (ΔE 16,9 en claro y en oscuro, sin avisos).
+   * Las series se asignan en orden y NUNCA se ciclan: una séptima serie se
+   * pliega en «Otros», no inventa un color.
+   */
+  --series-1: #2a78d6; /* azul     — oficial */
+  --series-2: #eb6834; /* naranja  — paralelo */
+  --series-3: #963b8c; /* púrpura  — brecha */
+  --series-4: #a87c00; /* ámbar */
+  --series-5: #4a3aa7; /* violeta */
+  --series-6: #0f8f62; /* verde azulado */
+  --series-rest: #6b7688; /* el resto plegado, deliberadamente sin color */
+
+  /*
+   * Los tres personajes del informe. Son las tres primeras casillas porque esas
+   * tres —y solo esas tres— pasan la prueba dura de «todos contra todos», que
+   * es la que aplica cuando dos marcas cualesquiera pueden quedar una al lado
+   * de la otra (dispersión, mapas, pequeños múltiplos).
+   */
+  --official: var(--series-1);
+  --parallel: var(--series-2);
+  --gap: var(--series-3);
+
+  /*
+   * Polaridad: los dos polos de una escala divergente y su punto neutro.
+   *
+   * Eran rojo contra verde, que es el par que un lector daltónico NO puede
+   * separar (ΔE 4,1: por debajo del piso, sin excusa posible). El polo frío
+   * pasa a verde azulado, que conserva la lectura «frío = a favor, cálido = en
+   * contra» del informe y separa limpio en los dos modos (ΔE 12,2 y 11,9).
+   */
+  --up: #d03b3b; /* por encima de la referencia, al alza, adverso */
+  --down: #0d7f85; /* por debajo, a la baja, a favor */
+  --mid: #f0efec; /* el cero de una escala divergente: gris, nunca un tono */
+
+  /*
+   * Estado. Escala fija, jamás tematizada y jamás reutilizada como «serie 4»;
+   * siempre acompañada de icono y etiqueta, nunca solo el color.
+   */
+  --good: #0ca30c;
+  --warning: #fab219;
+  --serious: #ec835a;
+  --critical: #d03b3b;
+
+  /*
+   * Magnitud: un solo tono, de claro a oscuro. Un arcoíris para «cuánto» es
+   * ilegible; esta rampa es la que usan las retículas de calor y los pesos.
+   */
+  --seq-100: #cde2fb;
+  --seq-200: #9ec5f4;
+  --seq-300: #6da7ec;
+  --seq-400: #3987e5;
+  --seq-500: #256abf;
+  --seq-600: #184f95;
+  --seq-700: #0d366b;
+
+  /*
+   * La tinta que le toca a cada paso de la rampa, medida contra ese paso.
+   *
+   * Un umbral fijo («blanco a partir del paso 3») no sirve, porque la rampa se
+   * ancla al revés en oscuro: ahí el paso 3 es CLARO y el blanco encima de él
+   * se quedaba en 3,2:1 — justo la celda con la cuenta más alta era la que no
+   * se leía. Emparejar tinta y paso uno a uno es lo único que aguanta el
+   * cambio de modo; el peor par de esta lista es 4,8:1.
+   */
+  --seq-ink-1: #14181f;
+  --seq-ink-2: #14181f;
+  --seq-ink-3: #14181f;
+  --seq-ink-4: #ffffff;
+  --seq-ink-5: #ffffff;
+
+  /*
+   * Rampa ordinal: los pasos de una escala que SÍ tiene orden pero no es una
+   * magnitud —informal, mixto, formal—. Es un solo tono con la luminosidad
+   * escalonada, para que el orden se vea en el color; el paso más claro se
+   * queda por encima de 2:1 contra la superficie, que es donde un tramo de
+   * barra deja de confundirse con el fondo.
+   */
+  --ord-1: #86b6ef;
+  --ord-2: #2a78d6;
+  --ord-3: #104281;
+
+  /*
+   * La rampa del tono adverso, la única escala de este informe que se pinta
+   * sobre TEXTO —la nube de temas—. Por eso sus tres pasos están elegidos para
+   * pasar 4,5:1 contra el papel, no solo el 3:1 de una marca: una palabra
+   * escrita en un rojo claro no es una marca pálida, es una palabra que no se
+   * lee. `--adv-0` es el gris de «no se midió», deliberadamente sin color.
+   */
+  --adv-0: var(--series-rest);
+  --adv-1: #c04d44;
+  --adv-2: #a5332e;
+  --adv-3: #8a1616;
+
+  /*
+   * Cromo del gráfico.
+   *
+   * `--chart-surface` es el color con el que se separan dos marcas que se tocan
+   * —la rendija de 2 px de un apilado, el anillo de un punto— así que tiene que
+   * ser el fondo real del panel y no un gris parecido. `--axis-ink` sube el
+   * contraste de los rótulos de eje de 3,8:1 a 4,6:1, que es donde un número de
+   * 11 px deja de ser una sugerencia.
+   */
+  --chart-surface: var(--panel);
+  --grid: #e6e9ef;
+  --axis-ink: #6b7688;
+
+  /*
+   * La raya del cero, que NO es el gris del rótulo.
+   *
+   * Al subir el contraste de los rótulos de eje se usó el mismo gris para las
+   * reglas del cero, y sobre un gráfico de retornos eso dibujaba un listón
+   * claro de lado a lado del panel que pesaba más que las propias barras: la
+   * referencia tapando el dato. Una regla se ve y no se mira, así que vive un
+   * paso por encima de la rejilla y bastante por debajo del texto.
+   */
+  --axis-rule: #c9d0da;
 
   --serif: ui-serif, Georgia, 'Times New Roman', serif;
   --sans: ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
@@ -42,7 +168,34 @@
   --ease: cubic-bezier(0.22, 0.61, 0.36, 1);
   --fast: 160ms;
   --slow: 420ms;
+
+  /*
+   * Stacking order, named so two unrelated overlays never fight by accident.
+   * Values are unchanged from before this token existed — only the name is new.
+   */
+  --z-sticky: 1; /* a header or column pinned inside its own scroll container */
+  --z-sticky-raised: 2; /* a sticky element that must sit above --z-sticky in the same table */
+  --z-sticky-corner: 3; /* the one cell above both a sticky row and a sticky column, or a
+                            floating tip anchored to on-screen content */
+  --z-overlay: 40; /* content that leaves the page flow entirely: skip link, modal backdrop */
 }
+
+/*
+ * Breakpoint reference — there is no build-time preprocessor here (no
+ * PostCSS), so this is documentation, not an enforced token: it exists so a
+ * new media query reaches for one of these widths instead of inventing a
+ * nearby one. Existing rules below keep the exact width each was tuned
+ * against; see each rule's own comment for why that width and not another.
+ *
+ *   360px  — smallest phones this site is checked against
+ *   640px  — phones, portrait ceiling
+ *   768px  — small tablets / large phones, landscape
+ *   900px  — the point most two-column layouts here (rail + content,
+ *            admin grid) fold to one column
+ *   1024px — tablets, landscape
+ *   1180-1280px — the point paired charts/cards stop fitting side by side
+ *   1600px — wide desktop, where the shell gets extra side padding
+ */
 
 @media (prefers-color-scheme: dark) {
   :root {
@@ -55,11 +208,55 @@
     --panel: #151a21;
     --panel-tint: #1a202a;
 
-    --official: #6fa8e8;
-    --parallel: #ee9161;
-    --gap: #b696d6;
-    --up: #e8776a;
-    --down: #58c39a;
+    /*
+     * El modo oscuro es una escala elegida, no un volteo automático: son los
+     * mismos seis tonos escalonados contra la superficie oscura y validados
+     * como conjunto contra ella (los pasos claros, puestos aquí, se salen de la
+     * banda de luminosidad y el púrpura claro se funde con el azul).
+     */
+    --series-1: #3987e5;
+    --series-2: #d95926;
+    --series-3: #c06fb0;
+    --series-4: #c98500;
+    --series-5: #9085e9;
+    --series-6: #199e70;
+    --series-rest: #98a3b5;
+
+    --up: #e66767;
+    --down: #2aa6ad;
+    --mid: #383835;
+
+    --good: #0ca30c;
+    --warning: #fab219;
+    --serious: #ec835a;
+    --critical: #d03b3b;
+
+    /* La rampa de magnitud se ancla al otro extremo: en oscuro «mucho» es claro. */
+    --seq-100: #0d366b;
+    --seq-200: #184f95;
+    --seq-300: #256abf;
+    --seq-400: #3987e5;
+    --seq-500: #6da7ec;
+    --seq-600: #9ec5f4;
+    --seq-700: #cde2fb;
+
+    --seq-ink-1: #eef1f6;
+    --seq-ink-2: #eef1f6;
+    --seq-ink-3: #0e1116;
+    --seq-ink-4: #0e1116;
+    --seq-ink-5: #0e1116;
+
+    --ord-1: #9ec5f4;
+    --ord-2: #3987e5;
+    --ord-3: #184f95;
+
+    --adv-1: #d55f56;
+    --adv-2: #f47c70;
+    --adv-3: #ff988b;
+
+    --grid: #262d39;
+    --axis-ink: #98a3b5;
+    --axis-rule: #3c4553;
 
     --shadow: 0 1px 2px rgb(0 0 0 / 0.3), 0 10px 28px -14px rgb(0 0 0 / 0.7);
   }
@@ -92,10 +289,25 @@ a:hover {
   text-decoration-color: currentColor;
 }
 
+/*
+ * Full bleed, because the filter rail is docked rather than stacked.
+ *
+ * A centred 1140px column was right while filters sat above the content and
+ * everything read top to bottom. With a pane pinned to the side, that column
+ * spends a third of a wide screen on margin and squeezes the charts into what
+ * is left. The page now takes the viewport and caps only where a line of prose
+ * would otherwise run too long to read.
+ */
 .shell {
-  max-width: 1140px;
-  margin: 0 auto;
-  padding: var(--s4) 1.25rem var(--s5);
+  width: 100%;
+  margin: 0;
+  padding: var(--s3) var(--s3) var(--s5);
+}
+
+@media (min-width: 1600px) {
+  .shell {
+    padding-inline: var(--s4);
+  }
 }
 
 /* Motion ---------------------------------------------------------------- */
@@ -137,6 +349,118 @@ a:hover {
   }
 }
 
+/* Top bar and tabs ------------------------------------------------------- */
+
+.topbar {
+  display: flex;
+  align-items: center;
+  gap: var(--s2);
+  flex-wrap: wrap;
+  padding-bottom: var(--s2);
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
+  margin-right: auto;
+}
+
+.brand-mark {
+  width: 34px;
+  height: 34px;
+  border-radius: 9px;
+  background: var(--ink);
+  color: var(--paper);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+}
+
+.brand h1 {
+  font-family: var(--serif);
+  font-size: clamp(1.1rem, 2vw, 1.28rem);
+  font-weight: 600;
+  letter-spacing: -0.015em;
+  margin: 0;
+  line-height: 1.2;
+}
+
+.brand .dateline {
+  margin-bottom: 0;
+  margin-top: 1px;
+}
+
+.topbar-stamp {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+  font-family: var(--mono);
+  font-size: 0.7rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+}
+
+/*
+ * La cabecera, en un telefono, gastaba 350px antes de la primera pestaña: el
+ * titulo a dos lineas en cuerpo de escritorio, la marca de tiempo en otras dos
+ * y el boton de donar en una propia. Sigue diciendo lo mismo —quien publica,
+ * a que fecha estan los datos y donde donar— en poco mas de la mitad.
+ */
+@media (max-width: 720px) {
+  .topbar {
+    gap: var(--s1);
+    padding-bottom: var(--s1);
+  }
+
+  .brand-mark {
+    width: 28px;
+    height: 28px;
+    border-radius: 8px;
+  }
+
+  /*
+   * El titulo se mide contra la pantalla, no contra un tamaño fijo.
+   *
+   * A 320px «Observatorio Económico de Bolivia» partia en dos lineas y el
+   * subtitulo en otras dos, con el icono centrado a media altura del bloque,
+   * flotando junto a ninguna de las dos. Ahora el cuerpo sigue al ancho
+   * disponible y el icono se alinea con la primera linea, que es la que lleva
+   * el nombre.
+   */
+  .brand {
+    align-items: flex-start;
+    min-width: 0;
+  }
+
+  .brand > div {
+    min-width: 0;
+  }
+
+  .brand h1 {
+    font-size: clamp(0.82rem, 4.3vw, 1rem);
+    letter-spacing: -0.02em;
+    text-wrap: balance;
+    overflow-wrap: anywhere;
+  }
+
+  .topbar-stamp {
+    font-size: 0.62rem;
+    letter-spacing: 0.04em;
+    text-transform: none;
+  }
+}
+
+.tab .ic {
+  opacity: 0.8;
+}
+
+.tab-active .ic {
+  opacity: 1;
+}
+
 /* Masthead and tabs ------------------------------------------------------ */
 
 .masthead {
@@ -156,7 +480,7 @@ a:hover {
   font-size: 0.74rem;
   letter-spacing: 0.07em;
   text-transform: uppercase;
-  color: var(--ink-faint);
+  color: var(--ink-soft);
   margin-bottom: var(--s1);
 }
 
@@ -167,7 +491,36 @@ a:hover {
   margin: 0 0 var(--s4);
 }
 
+/*
+ * En un telefono las siete secciones envuelven en tres filas y se comen 135px
+ * —una sexta parte de la pantalla— antes de que empiece el informe. En una sola
+ * fila que se desliza ocupan una, que es como se navega en movil.
+ */
+@media (max-width: 720px) {
+  .tabs {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    overscroll-behavior-x: contain;
+    scrollbar-width: none;
+    scroll-snap-type: x proximity;
+    margin-bottom: var(--s3);
+  }
+
+  .tabs::-webkit-scrollbar {
+    display: none;
+  }
+
+  .tab {
+    flex: 0 0 auto;
+    scroll-snap-align: start;
+    padding-inline: 0.8rem;
+  }
+}
+
 .tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
   appearance: none;
   background: none;
   border: none;
@@ -176,7 +529,7 @@ a:hover {
   padding: 0.65rem 1rem;
   font: inherit;
   font-size: 0.92rem;
-  color: var(--ink-faint);
+  color: var(--ink-soft);
   cursor: pointer;
   transition:
     color var(--fast) var(--ease),
@@ -184,7 +537,7 @@ a:hover {
 }
 
 .tab:hover {
-  color: var(--ink-soft);
+  color: var(--ink);
 }
 
 .tab-active {
@@ -208,6 +561,39 @@ a:hover {
   margin: 0;
 }
 
+/*
+ * En vertical, la explicacion va detras del informe.
+ *
+ * La tarjeta de «que muestra esta seccion» ocupa casi una pantalla de telefono.
+ * Delante del contenido obliga a leer seis lineas de prosa para averiguar si
+ * abajo hay algo; detras sigue estando entera, para quien quiera el contexto
+ * despues de ver la cifra. En escritorio no se toca: alli cabe arriba sin
+ * empujar nada fuera de la vista.
+ */
+@media (max-width: 720px) {
+  .stack > .workspace {
+    order: 1;
+  }
+  .stack > .briefcard {
+    order: 2;
+  }
+  /*
+   * La tarjeta vive en dos sitios distintos y hay que alcanzarla en ambos.
+   *
+   * En «Tipo de cambio» es hermana de `.workspace`, dentro del `.stack`. En
+   * «Prensa», «Macroeconomia», «Empresas» y «Metodo» esta DENTRO de
+   * `.workspace-main`, de primera. Ordenar solo el primer caso dejaba a los
+   * otros cuatro exactamente como estaban —que es lo que seguia viendose en el
+   * telefono—, asi que se ordena tambien dentro de la columna de contenido.
+   */
+  .workspace-main > .briefcard {
+    order: 2;
+  }
+  .workspace-main > *:not(.briefcard) {
+    order: 1;
+  }
+}
+
 h2 {
   font-family: var(--serif);
   font-size: 1.18rem;
@@ -224,7 +610,13 @@ h2 {
   color: var(--ink-soft);
   font-size: 0.87rem;
   margin: 0.25rem 0 0;
-  max-width: 74ch;
+  /*
+   * Prose keeps a measure; a line 1,500 px long is not read, it is scanned and
+   * lost. The cap is the one thing on these panels that does not fill the row,
+   * and that is deliberate — but it was tighter than it needed to be, so on a
+   * wide screen it left more empty than the reading asked for.
+   */
+  max-width: 92ch;
 }
 
 .section-gap {
@@ -234,12 +626,14 @@ h2 {
 /* Figures ---------------------------------------------------------------- */
 
 .figures {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(196px, 1fr));
+  display: flex;
+  flex-wrap: wrap;
   gap: var(--s2);
 }
 
 .figure {
+  flex: 1 1 200px;
+  min-width: 0;
   background: var(--panel);
   border: 1px solid var(--rule);
   border-radius: var(--radius);
@@ -261,7 +655,7 @@ h2 {
   font-size: 0.73rem;
   letter-spacing: 0.05em;
   text-transform: uppercase;
-  color: var(--ink-faint);
+  color: var(--ink-soft);
   margin-bottom: 0.35rem;
 }
 
@@ -275,7 +669,7 @@ h2 {
 
 .figure .unit {
   font-size: 0.78rem;
-  color: var(--ink-faint);
+  color: var(--ink-soft);
   margin-left: 0.3rem;
 }
 
@@ -287,7 +681,8 @@ h2 {
 }
 
 .sparkline {
-  height: 34px;
+  /* Same rule as the frames above: 34px is the floor, not the whole answer. */
+  height: clamp(34px, 4.2vh, 56px);
   margin: 0.5rem -0.35rem -0.35rem;
 }
 
@@ -308,17 +703,119 @@ h2 {
   box-shadow: var(--shadow);
 }
 
+/*
+ * A plot's height follows the screen, not the laptop it was drawn on.
+ *
+ * These frames were fixed at the pixel figures that read well on a 900-pixel
+ * display. On anything taller the plot stayed exactly that tall while the
+ * screen grew, so the chart that is the point of its section took a third of
+ * the viewport and pushed everything under it below the fold — the container
+ * was the only thing the drawing ever measured itself against.
+ *
+ * The old figure is now the floor, so nothing shrinks on a small screen. Above
+ * it the frame takes a share of the viewport, and caps before a line chart
+ * stretches into a wall no reader can take in at once.
+ */
 .chart-frame {
   width: 100%;
-  height: 300px;
+  height: clamp(300px, 33vh, 520px);
 }
 
 .chart-frame-tall {
-  height: 380px;
+  height: clamp(380px, 46vh, 720px);
 }
 
 .chart-frame-small {
-  height: 132px;
+  height: clamp(132px, 15vh, 224px);
+}
+
+/*
+ * A chart and the key that names its colours, as one block.
+ *
+ * The frame's height is fixed so the page does not jump while the data loads,
+ * so a legend put inside it would be drawn on top of the axis. It goes under
+ * the frame, and this is the box that holds the two together.
+ */
+.chart-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+}
+
+.chart-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem 1rem;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  font-size: 0.72rem;
+  color: var(--ink-soft);
+}
+
+.chart-legend li {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+/*
+ * La marca de la leyenda imita la marca del gráfico.
+ *
+ * Una leyenda de líneas dibujada con cuadraditos obliga al lector a traducir:
+ * ve un bloque y tiene que buscar qué línea era. El cuadrado queda para
+ * rellenos —barras, áreas, celdas— y la línea para las series que son línea,
+ * con su propio trazo discontinuo cuando el gráfico lo usa.
+ */
+.chart-legend-mark {
+  width: 0.7rem;
+  height: 0.7rem;
+  border-radius: 2px;
+  flex: none;
+}
+
+.chart-legend-mark-line {
+  width: 1.05rem;
+  height: 0;
+  border-radius: 0;
+  border-top: 2px solid currentColor;
+  /* El color viaja por `color` para que el borde discontinuo lo herede. */
+  background: none !important;
+}
+
+.chart-legend-mark-dashed {
+  border-top-style: dashed;
+}
+
+/*
+ * La nota al pie de un gráfico: de dónde sale el dato o qué no dice.
+ *
+ * Vivía suelta en cada panel con un tamaño distinto cada vez.
+ */
+.chart-note {
+  margin: 0.3rem 0 0;
+  font-size: 0.72rem;
+  line-height: 1.45;
+  color: var(--ink-soft);
+}
+
+/*
+ * Controls that belong to one panel, parked at the end of its heading.
+ *
+ * They sit after `.tile-hint`, which already takes the `margin-left: auto`, so
+ * the title stays left and the tools stay right without a second push fighting
+ * the first.
+ */
+.tile-tools {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  margin-left: 0.7rem;
+}
+
+.tile-tools .chip {
+  padding: 0.18rem 0.6rem;
+  font-size: 0.74rem;
 }
 
 .tooltip {
@@ -333,32 +830,64 @@ h2 {
 .tooltip .t-date {
   font-family: var(--mono);
   font-size: 0.73rem;
-  color: var(--ink-faint);
+  color: var(--ink-soft);
   margin-bottom: 0.3rem;
 }
 
+/*
+ * En el tooltip manda la cifra, no el rótulo.
+ *
+ * Es la jerarquía de la leyenda invertida a propósito: quien está apuntando ya
+ * sabe qué serie mira, lo que le falta es el número. La serie se identifica con
+ * un trazo corto de su color —a esta densidad un bloque relleno es tinta de
+ * dato haciendo el trabajo de una etiqueta— y el texto nunca se pinta del color
+ * de la serie: un ámbar o un verde claro como texto no se leen.
+ */
 .tooltip .t-row {
   display: flex;
+  align-items: baseline;
   justify-content: space-between;
   gap: 1.4rem;
   font-variant-numeric: tabular-nums;
 }
 
+.tooltip .t-row > span {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  color: var(--ink-soft);
+  min-width: 0;
+}
+
+.tooltip .t-row strong {
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+}
+
+.tooltip .t-key {
+  width: 0.85rem;
+  height: 0;
+  flex: none;
+  border-top: 2px solid currentColor;
+}
+
 .tooltip .t-note {
   margin-top: 0.35rem;
   font-size: 0.73rem;
-  color: var(--ink-faint);
+  color: var(--ink-soft);
 }
 
 /* Macro cards ------------------------------------------------------------ */
 
 .card-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(310px, 1fr));
+  display: flex;
+  flex-wrap: wrap;
   gap: var(--s2);
 }
 
 .card {
+  flex: 1 1 300px;
+  min-width: 0;
   background: var(--panel);
   border: 1px solid var(--rule);
   border-radius: var(--radius);
@@ -383,6 +912,7 @@ h2 {
   letter-spacing: 0.02em;
   color: var(--ink-soft);
   margin: 0 0 0.35rem;
+  min-height: 2.1em;
 }
 
 .card-figure {
@@ -400,14 +930,14 @@ h2 {
 
 .card-unit {
   font-size: 0.75rem;
-  color: var(--ink-faint);
+  color: var(--ink-soft);
 }
 
 .card-meta {
   display: flex;
   gap: 0.7rem;
   font-size: 0.76rem;
-  color: var(--ink-faint);
+  color: var(--ink-soft);
   font-variant-numeric: tabular-nums;
   margin-top: 0.15rem;
 }
@@ -443,7 +973,7 @@ h2 {
   font-family: var(--mono);
   font-size: 0.73rem;
   letter-spacing: 0.04em;
-  color: var(--ink-faint);
+  color: var(--ink-soft);
 }
 
 .tl-body h4 {
@@ -469,7 +999,7 @@ h2 {
 .tl-foot {
   margin: 0.4rem 0 0;
   font-size: 0.75rem;
-  color: var(--ink-faint);
+  color: var(--ink-soft);
 }
 
 /* Sources ---------------------------------------------------------------- */
@@ -498,7 +1028,7 @@ h2 {
 }
 
 .src-span {
-  color: var(--ink-faint);
+  color: var(--ink-soft);
   font-variant-numeric: tabular-nums;
   margin-left: auto;
 }
@@ -552,9 +1082,20 @@ h2 {
   margin-bottom: 0.15rem;
 }
 
+/*
+ * Plegado, la cabecera es todo lo que hay.
+ *
+ * El margen que la separa del texto queda colgando debajo del titulo y se suma
+ * al relleno de la caja: cerrado, el bloque se veia mas alto de lo que su
+ * contenido justifica.
+ */
+.analysis-folded .tile-head {
+  margin-bottom: 0;
+}
+
 .analysis-note {
   font-size: 0.76rem;
-  color: var(--ink-faint);
+  color: var(--ink-soft);
   margin: 0 0 var(--s2);
 }
 
@@ -652,7 +1193,7 @@ code {
   font-size: 0.7rem;
   letter-spacing: 0.07em;
   text-transform: uppercase;
-  color: var(--ink-faint);
+  color: var(--ink-soft);
 }
 
 .chips {
@@ -685,7 +1226,7 @@ code {
   font-style: normal;
   font-family: var(--mono);
   font-size: 0.7rem;
-  color: var(--ink-faint);
+  color: var(--ink-soft);
 }
 
 .chip:hover {
@@ -721,9 +1262,28 @@ code {
   border-color: var(--official);
 }
 
+.slicer select {
+  font: inherit;
+  font-size: 0.9rem;
+  padding: 0.42rem 0.7rem;
+  border: 1px solid var(--rule);
+  border-radius: 8px;
+  background: var(--panel);
+  color: var(--ink);
+  width: 100%;
+  max-width: 100%;
+  transition: border-color var(--fast) var(--ease);
+}
+
+.slicer select:focus {
+  outline: none;
+  border-color: var(--official);
+}
+
 .slicer input[type='range'] {
   accent-color: var(--official);
-  width: 200px;
+  width: 100%;
+  max-width: 200px;
 }
 
 .slicer output {
@@ -740,7 +1300,7 @@ code {
   border-top: 1px solid var(--rule-soft);
   padding-top: var(--s2);
   font-size: 0.83rem;
-  color: var(--ink-faint);
+  color: var(--ink-soft);
   font-variant-numeric: tabular-nums;
 }
 
@@ -753,15 +1313,64 @@ code {
   font-size: 0.65rem;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: var(--ink-faint);
+  color: var(--ink-soft);
   margin-bottom: 0.2rem;
+}
+
+/*
+ * Cuando la cabecera tiene botones flotantes, el nombre del rubro no puede
+ * usar todo el ancho de la tarjeta: a 320px, el sector mas largo del catalogo
+ * («Monetario y financiero») corria por debajo de ellos. Reservar su sitio
+ * hace que el nombre pase a una segunda linea antes de llegar ahi, en vez de
+ * superponerse.
+ */
+.card-head:has(.card-toggle) .card-sector {
+  max-width: calc(100% - 6rem);
+}
+
+/* Section preamble ------------------------------------------------------- */
+
+.brief {
+  border-left: 3px solid var(--official);
+  padding: var(--s2) 0 var(--s2) var(--s3);
+  animation: rise var(--slow) var(--ease) both;
+}
+
+.brief h2 {
+  font-size: 0.72rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+  margin: 0 0 var(--s2);
+}
+
+.brief p {
+  margin: 0 0 var(--s2);
+  max-width: 68ch;
+  font-size: 0.95rem;
+  line-height: 1.65;
+  color: var(--ink-soft);
+}
+
+.brief p:last-child {
+  margin-bottom: 0;
+}
+
+.brief strong {
+  color: var(--ink);
+  font-weight: 600;
+}
+
+.brief p.brief-note {
+  font-size: 0.85rem;
+  color: var(--ink-soft);
 }
 
 /* Econometric statistics ------------------------------------------------- */
 
 .stat-strip {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(158px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(158px, 100%), 1fr));
   gap: 1px;
   background: var(--rule);
   border: 1px solid var(--rule);
@@ -781,7 +1390,7 @@ code {
   font-size: 0.68rem;
   letter-spacing: 0.07em;
   text-transform: uppercase;
-  color: var(--ink-faint);
+  color: var(--ink-soft);
 }
 
 .stat-value {
@@ -793,12 +1402,6727 @@ code {
 
 .stat-hint {
   font-size: 0.72rem;
-  color: var(--ink-faint);
+  color: var(--ink-soft);
   line-height: 1.35;
 }
 
 .grid-two {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(360px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(360px, 100%), 1fr));
   gap: var(--s2);
+}
+
+/* Docked filter rail ----------------------------------------------------- */
+
+/*
+ * The report-pane layout: filters pinned to one side, content in tiles beside
+ * them. Stacking the slicers above the content pushed every chart below the
+ * fold and made the selection scroll away from what it was selecting; docked,
+ * the filters stay in view and the tiles get the full width.
+ */
+
+.workspace {
+  display: flex;
+  gap: var(--s3);
+  align-items: flex-start;
+}
+
+.rail {
+  width: 264px;
+  /*
+   * Nunca mas ancha que la columna que la sostiene.
+   *
+   * Con `flex: none` y un ancho fijo, una lista con un nombre largo dentro
+   * empuja: el municipio mas largo del pais ensanchaba el carril y el mapa de
+   * al lado encogia para dejarle sitio.
+   */
+  max-width: 100%;
+  min-width: 0;
+  flex: none;
+  position: sticky;
+  top: var(--s3);
+  background: var(--panel);
+  border: 1px solid var(--rule);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  /*
+   * The pane scrolls itself rather than growing past the screen.
+   *
+   * Fourteen sectors and nine subjects make a list taller than a laptop, and a
+   * sticky pane that overflows simply hides its own bottom — the reader can
+   * never reach the last filter, and nothing on screen says one is missing.
+   */
+  max-height: calc(100vh - var(--s3) * 2);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.rail::-webkit-scrollbar,
+.rail-list::-webkit-scrollbar {
+  width: 8px;
+}
+
+.rail::-webkit-scrollbar-thumb,
+.rail-list::-webkit-scrollbar-thumb {
+  background: var(--rule);
+  border-radius: 999px;
+}
+
+.rail::-webkit-scrollbar-thumb:hover,
+.rail-list::-webkit-scrollbar-thumb:hover {
+  background: var(--ink-faint);
+}
+
+/*
+ * Una lista de filtro que se desplaza dentro de su propia seccion.
+ *
+ * El carril entero ya se desplazaba, y eso bastaba mientras las listas fueran
+ * cortas. Desde que el capitulo de ciudades dejo de leer tres municipios y paso
+ * a leer el pais, la primera lista sola mide varias pantallas: el buscador de
+ * familias y la familia elegida quedan empujados tan abajo que hay que recorrer
+ * cuarenta ciudades para llegar al control que se venia a usar, y desde el
+ * buscador ya no se ve que ciudad esta puesta.
+ *
+ * Con un tope por seccion las dos caben a la vez y cada una se mueve por
+ * dentro. `overscroll-behavior` evita lo de siempre: llegar al final de la
+ * lista y que el gesto siga, ahora arrastrando la pagina.
+ */
+.rail-list {
+  max-height: 15.5rem;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+}
+
+/* Una lista mas corta que su tope no debe parecer recortada. */
+.rail-list-cut {
+  box-shadow: inset 0 -10px 8px -10px color-mix(in srgb, var(--ink) 28%, transparent);
+}
+
+/* The header stays put while the list under it moves. */
+.rail-top {
+  position: sticky;
+  top: 0;
+  z-index: var(--z-sticky);
+  background: var(--panel);
+}
+
+/*
+ * El atajo al carril de un capitulo demasiado largo para «a un scroll de
+ * distancia». Oculto por defecto: solo se muestra donde una pagina concreta
+ * lo necesita, dentro de la franja movil (ver el bloque de `.rail { order: 2 }`).
+ */
+.jump-to-filters {
+  display: none;
+  align-items: center;
+  gap: var(--s1);
+  align-self: flex-start;
+  margin-top: var(--s2);
+  padding: 0.5rem 0.9rem;
+  border: 1px solid var(--rule);
+  border-radius: var(--radius-pill, 999px);
+  background: var(--panel-tint);
+  color: var(--ink);
+  font-size: 0.85rem;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.jump-to-filters:hover,
+.jump-to-filters:focus-visible {
+  border-color: var(--parallel);
+}
+
+.rail-top {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.7rem 0.875rem;
+  border-bottom: 1px solid var(--rule-soft);
+}
+
+.rail-top .rail-title {
+  font-size: 0.7rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  font-weight: 600;
+}
+
+.rail-top .rail-count {
+  margin-left: auto;
+  font-family: var(--mono);
+  font-size: 0.68rem;
+  color: var(--ink-soft);
+}
+
+.rail-sec {
+  padding: 0.7rem 0 0.8rem;
+  border-bottom: 1px solid var(--rule-soft);
+}
+
+.rail-sec:last-child {
+  border-bottom: none;
+}
+
+.rail-head {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0 0.875rem 0.45rem;
+  font-size: 0.66rem;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+}
+
+.rail-item {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  width: 100%;
+  appearance: none;
+  background: none;
+  border: none;
+  border-left: 2px solid transparent;
+  padding: 0.36rem 0.875rem 0.36rem 0.75rem;
+  font: inherit;
+  font-size: 0.83rem;
+  color: var(--ink-soft);
+  cursor: pointer;
+  text-align: left;
+  transition:
+    background var(--fast) var(--ease),
+    color var(--fast) var(--ease);
+}
+
+.rail-item:hover {
+  background: var(--panel-tint);
+  color: var(--ink);
+}
+
+.rail-item-on {
+  background: var(--panel-tint);
+  border-left-color: var(--official);
+  color: var(--ink);
+  font-weight: 600;
+}
+
+/* Un producto pedido que no tiene serie: se lista, no se elige. */
+.rail-item-none,
+.rail-item-none:hover {
+  background: none;
+  cursor: default;
+  color: var(--ink-soft);
+}
+
+.rail-item-none .rail-hint {
+  font-style: italic;
+  white-space: nowrap;
+}
+
+.rail-item > svg {
+  flex: none;
+}
+
+.rail-item .rail-name {
+  flex: 1 1 auto;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.rail-item .rail-n {
+  font-family: var(--mono);
+  font-size: 0.68rem;
+  color: var(--ink-soft);
+  font-variant-numeric: tabular-nums;
+}
+
+.rail-item-on .rail-n {
+  color: var(--official);
+}
+
+/*
+ * El árbol de rubros de «Ciudades»: rubro → sub-rubro → familia.
+ *
+ * Desplegado ocupa más que una lista plana, así que su tope es el doble; sigue
+ * moviéndose por dentro para no empujar el buscador de familias fuera de la
+ * pantalla. La sangría sale de `--depth`, que pone cada fila: cuatro niveles
+ * con cuatro clases serían cuatro reglas diciendo lo mismo.
+ */
+.rail-tree {
+  max-height: 31rem;
+}
+
+.rail-tree-row {
+  display: flex;
+  align-items: stretch;
+  padding-left: calc(var(--depth, 0) * 0.8rem);
+}
+
+.rail-tree-row .rail-item {
+  min-width: 0;
+  padding-left: 0.3rem;
+}
+
+.rail-tree-kids .rail-item {
+  font-size: 0.8rem;
+}
+
+/* La flecha: apunta a la derecha plegada y hacia abajo desplegada. */
+.rail-twist {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.6rem;
+  margin-left: 0.3rem;
+  padding: 0;
+  appearance: none;
+  background: none;
+  border: none;
+  color: var(--ink-faint);
+  cursor: pointer;
+}
+
+span.rail-twist {
+  cursor: default;
+}
+
+.rail-twist:hover {
+  color: var(--ink);
+}
+
+.rail-twist .ic {
+  transform: rotate(-90deg);
+  transition: transform var(--fast) var(--ease);
+}
+
+.rail-twist[aria-expanded='true'] .ic {
+  transform: none;
+}
+
+/* Algunas de sus familias elegidas, no todas: el filete a medio tono. */
+.rail-item-part {
+  border-left-color: color-mix(in srgb, var(--official) 45%, transparent);
+  color: var(--ink);
+}
+
+@media (max-width: 720px) {
+  /* Un dedo necesita más que 1,6rem para acertar la flecha y no el nombre. */
+  .rail-twist {
+    width: 2.2rem;
+  }
+}
+
+/*
+ * El rótulo que separa los rubros del panel.
+ *
+ * Lleva una línea arriba porque lo de abajo no es un rubro más: «Social Info»
+ * ya tiene un rubro «Instituciones» con sus 51 series, y sin esta separación
+ * el mismo nombre aparecía dos veces en la misma columna.
+ */
+.rail-split {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin-top: 0.5rem;
+  padding: 0.5rem 0.875rem 0.35rem;
+  border-top: 1px solid var(--rule);
+  font-size: 0.62rem;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+}
+
+/*
+ * El rubro que abre un panel en vez de recortar la lista.
+ *
+ * Donde los demás dicen cuántas series tienen, este dice «panel»: no se puede
+ * sumar a otro con Ctrl+clic ni se le puede contar la selección, así que un
+ * número ahí prometería una aritmética que no existe. Va en versalitas para que
+ * se lea como una etiqueta y no como una cifra que no cupo.
+ */
+.rail-item .rail-n-word {
+  font-size: 0.6rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+}
+
+.rail-item-on .rail-n-word {
+  color: var(--official);
+}
+
+.rail-foot {
+  padding: 0.7rem 0.875rem;
+  background: var(--panel-tint);
+  font-size: 0.72rem;
+  color: var(--ink-soft);
+  font-variant-numeric: tabular-nums;
+  line-height: 1.5;
+}
+
+.rail-foot b {
+  color: var(--ink);
+  font-family: var(--mono);
+  font-weight: 600;
+}
+
+.rail-field {
+  padding: 0 0.875rem;
+}
+
+.rail-field input,
+.rail-field select {
+  font: inherit;
+  font-size: 0.85rem;
+  padding: 0.38rem 0.6rem;
+  border: 1px solid var(--rule);
+  border-radius: 8px;
+  background: var(--panel);
+  color: var(--ink);
+  width: 100%;
+  transition: border-color var(--fast) var(--ease);
+}
+
+.rail-field input:focus,
+.rail-field select:focus {
+  outline: none;
+  border-color: var(--official);
+}
+
+.rail-pills {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.3rem;
+  padding: 0 0.875rem;
+}
+
+.rail-pills .chip {
+  justify-content: center;
+}
+
+.workspace-main {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--s2);
+}
+
+/* Tiles ------------------------------------------------------------------ */
+
+.tile-head {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: var(--s1);
+}
+
+.tile-head h2 {
+  font-size: 1.05rem;
+}
+
+.tile-head .tile-hint {
+  margin-left: auto;
+  font-family: var(--mono);
+  font-size: 0.68rem;
+  letter-spacing: 0.05em;
+  color: var(--ink-soft);
+  text-transform: uppercase;
+}
+
+/*
+ * El rotulo cede el sitio del boton flotante.
+ *
+ * `.tile-hint` se empuja al borde derecho con `margin-left:auto`, y el
+ * `.card-toggle` esta posicionado sobre ese mismo borde: en un telefono el
+ * icono terminaba dibujado encima de los ultimos caracteres —«2026-09-19»
+ * se leia «2026-09-⊞9»—. Reservar su ancho los separa sin mover el boton.
+ */
+.tile-head:has(.card-toggle) .tile-hint,
+.tile-head:has(.card-tools) .tile-hint {
+  padding-right: 2.4rem;
+}
+
+/*
+ * On a phone the heading, its stamp and its controls do not fit on one line,
+ * and a flex row that cannot wrap resolves that by squeezing the title until it
+ * breaks one word per line — «Qué / se / cubrió / cada / mes» down the left
+ * edge. They wrap instead: the title keeps its line, the rest drops to the next.
+ */
+@media (max-width: 720px) {
+  .tile-head {
+    flex-wrap: wrap;
+  }
+
+  .tile-head h2 {
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+
+  .tile-tools {
+    margin-left: 0;
+  }
+}
+
+.strap {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: var(--panel);
+  border: 1px solid var(--rule);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: 0.6rem var(--s3);
+}
+
+.strap h2 {
+  font-size: 1.02rem;
+}
+
+/* Brief card ------------------------------------------------------------- */
+
+/*
+ * What was three paragraphs of preamble. The reader needs to know what is being
+ * measured before the first chart, but not at essay length: one sentence and
+ * three labelled points carry it, and the section starts a third of a screen
+ * higher.
+ */
+
+.briefcard {
+  display: flex;
+  gap: var(--s2);
+  background: var(--panel-tint);
+  border: 1px solid var(--rule);
+  border-left: 3px solid var(--official);
+  border-radius: var(--radius);
+  padding: var(--s2) var(--s3);
+  animation: rise var(--slow) var(--ease) both;
+}
+
+.briefcard-mark {
+  color: var(--official);
+  flex: none;
+  margin-top: 2px;
+}
+
+/*
+ * The card's body has to grow, or the card does not fill.
+ *
+ * As a flex item it sized to its own content — a paragraph capped at 92
+ * characters for readability — so on a wide screen the three points beneath it
+ * huddled into the left half and the rest of the card was empty. The measure
+ * belongs to the paragraph, not to the block that holds it.
+ */
+.briefcard > div {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.briefcard h2 {
+  font-family: var(--sans);
+  font-size: 0.7rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+  font-weight: 600;
+  margin: 0 0 0.3rem;
+}
+
+.briefcard p {
+  margin: 0;
+  font-size: 0.88rem;
+  line-height: 1.55;
+  color: var(--ink-soft);
+  max-width: 92ch;
+}
+
+.briefcard strong {
+  color: var(--ink);
+  font-weight: 600;
+}
+
+.brief-points {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(190px, 100%), 1fr));
+  gap: var(--s2);
+  margin-top: 0.7rem;
+}
+
+.brief-point {
+  display: flex;
+  gap: 0.5rem;
+  align-items: flex-start;
+}
+
+.brief-point-mark {
+  color: var(--official);
+  flex: none;
+  margin-top: 2px;
+}
+
+.brief-point b {
+  display: block;
+  font-size: 0.78rem;
+  color: var(--ink);
+  font-weight: 600;
+  line-height: 1.3;
+}
+
+.brief-point span {
+  display: block;
+  font-size: 0.74rem;
+  color: var(--ink-soft);
+  line-height: 1.35;
+}
+
+/* Bar list --------------------------------------------------------------- */
+
+.barlist {
+  display: flex;
+  flex-direction: column;
+  gap: 0.32rem;
+}
+
+.barlist-row {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+}
+
+.barlist-row .barlist-name {
+  width: 168px;
+  font-size: 0.76rem;
+  color: var(--ink-soft);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/*
+ * El carril y la barra.
+ *
+ * La punta redondeada va en el extremo al que crece la barra y el arranque
+ * queda a escuadra sobre su línea base, que es donde empieza a medir: una
+ * barra redondeada por los dos lados flota, y a 11 px de alto los 3 px de
+ * radio del arranque se comían medio punto porcentual de longitud.
+ */
+.barlist-track {
+  flex: 1 1 auto;
+  height: 11px;
+  background: var(--panel-tint);
+  border-radius: 0 4px 4px 0;
+  overflow: hidden;
+}
+
+.barlist-fill {
+  display: block;
+  height: 11px;
+  border-radius: 0 4px 4px 0;
+  transition: width var(--slow) var(--ease);
+}
+
+.barlist-row .barlist-n {
+  /* Wide enough for the whole register: five figures and a thousands stop. */
+  width: 52px;
+  text-align: right;
+  font-family: var(--mono);
+  font-size: 0.72rem;
+  color: var(--ink-soft);
+  font-variant-numeric: tabular-nums;
+}
+
+@media (max-width: 900px) {
+  /*
+   * Stacked, the two panes must still be told to fill the column.
+   *
+   * `.workspace` aligns its items to the start so the rail does not stretch to
+   * the height of the report beside it. Turned on its side that same rule sizes
+   * both panes to their CONTENT width instead of the screen's, and one wide
+   * table then drags the whole page — headings, intro card and all — off the
+   * right edge. Stretching is only correct once the axis has flipped.
+   */
+  .workspace {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .rail {
+    width: 100%;
+    position: static;
+  }
+  /*
+   * El informe primero, los filtros despues.
+   *
+   * Apilado, el carril quedaba ARRIBA: entre 586 y 801px de filtros —una
+   * pantalla entera— antes de la primera cifra, que en «Macroeconomia» caia en
+   * y=2033, casi dos pantallas y media de scroll. Nadie baja tanto para ver si
+   * la pagina tiene algo. En el escritorio el carril esta al lado y no estorba;
+   * en vertical tiene que ceder el turno. Se ordena, no se oculta: sigue
+   * completo y a un scroll de distancia.
+   */
+  .workspace-main {
+    order: 1;
+  }
+  .rail {
+    order: 2;
+  }
+  .barlist-row .barlist-name {
+    width: 120px;
+  }
+  /*
+   * Excepcion puntual a «el informe primero»: solo para el capitulo de
+   * comercio exterior, cuyo carril queda a quince pantallas de scroll y no a
+   * una. Ver el comentario en `foreign-trade-explorer.tsx`.
+   */
+  .jump-to-filters {
+    display: inline-flex;
+  }
+}
+
+/* Filing cards ----------------------------------------------------------- */
+
+/*
+ * The register as cards rather than as one column.
+ *
+ * Six hundred filings down a single full-width list ran nine thousand pixels
+ * and gave every communication the same weight as every other. In a grid the
+ * eye scans issuers and sectors instead of reading a wall, and the sector badge
+ * does the sorting work the indentation used to attempt.
+ */
+
+/*
+ * The last row fills, whatever is left over.
+ *
+ * A grid gives every track the same width, so eighty-nine cards over four
+ * columns leave the eighty-ninth alone in a row with three quarters of it
+ * empty — the hole a reader points at and calls the page broken. Wrapping with
+ * flex lets whatever lands on the last row grow into it, and the count that
+ * lands there changes with every filter, so no column count can be chosen in
+ * advance to avoid it.
+ */
+.filing-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s2);
+}
+
+.filing-card {
+  flex: 1 1 320px;
+  min-width: 0;
+}
+
+.filing-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  background: var(--panel);
+  border: 1px solid var(--rule);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: var(--s2) var(--s3) 0.75rem;
+  animation: rise var(--slow) var(--ease) both;
+  transition:
+    transform var(--fast) var(--ease),
+    box-shadow var(--fast) var(--ease);
+}
+
+.filing-card:hover {
+  transform: translateY(-2px);
+  box-shadow:
+    0 2px 4px rgb(16 24 40 / 0.05),
+    0 14px 32px -14px rgb(16 24 40 / 0.22);
+}
+
+.filing-top {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  font-size: 0.63rem;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+}
+
+.filing-top .filing-date {
+  margin-left: auto;
+  font-family: var(--mono);
+  letter-spacing: 0.04em;
+  font-variant-numeric: tabular-nums;
+  text-transform: none;
+}
+
+.filing-card h4 {
+  font-family: var(--serif);
+  font-size: 0.97rem;
+  font-weight: 600;
+  line-height: 1.35;
+  margin: 0;
+}
+
+/*
+ * Collapsed is a clamp, not a truncation of the data.
+ *
+ * A card that towers over its row makes the grid unreadable, so a long legal
+ * subject and its summary are clamped by default — but the whole text is in the
+ * DOM and one click releases it. Cutting the text itself would have meant the
+ * reader could never get to it.
+ */
+.filing-card-tight h4 {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.filing-filer {
+  margin: 0;
+  font-size: 0.78rem;
+  color: var(--ink-soft);
+  font-weight: 600;
+}
+
+.filing-summary {
+  margin: 0;
+  font-size: 0.8rem;
+  line-height: 1.5;
+  color: var(--ink-soft);
+}
+
+.filing-card-tight .filing-summary {
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+/* Expanded cards leave the row and take the width they need to be read. */
+.filing-card-open {
+  flex-basis: 100%;
+  border-color: var(--official);
+}
+
+.filing-card-open .filing-summary {
+  max-width: 92ch;
+}
+
+.filing-partial {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  margin: 0;
+  font-size: 0.73rem;
+  color: var(--ink-soft);
+}
+
+/* Expanded text keeps the line breaks the filing was written with. */
+.filing-card-open .filing-summary {
+  white-space: pre-line;
+}
+
+.filing-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  appearance: none;
+  background: none;
+  border: none;
+  padding: 0;
+  font: inherit;
+  font-size: 0.74rem;
+  color: var(--official);
+  cursor: pointer;
+  transition: color var(--fast) var(--ease);
+}
+
+.filing-toggle:hover {
+  color: var(--ink);
+}
+
+.filing-foot {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  /* Pinned to the bottom so a row of cards shares one baseline whatever the
+     summary's length. */
+  margin: auto 0 0;
+  padding-top: 0.5rem;
+  border-top: 1px solid var(--rule-soft);
+  font-size: 0.72rem;
+  color: var(--ink-soft);
+}
+
+.filing-foot > span {
+  margin-left: auto;
+}
+
+.filing-foot a {
+  color: var(--official);
+  text-decoration-color: var(--rule);
+  white-space: nowrap;
+}
+
+/* Market cards ----------------------------------------------------------- */
+
+/*
+ * Colour carries the instrument here rather than decorating the card. Each hue
+ * is the one that instrument already has on the charts, so the palette is
+ * learned once; the tint is the same hue at seven percent, which reads as a
+ * family rather than as three unrelated boxes.
+ */
+
+.market-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(230px, 100%), 1fr));
+  gap: var(--s2);
+}
+
+.market-card {
+  border: 1px solid var(--rule);
+  border-top-width: 3px;
+  border-radius: var(--radius);
+  padding: var(--s2) var(--s3) 0.6rem;
+  box-shadow: var(--shadow);
+  animation: rise var(--slow) var(--ease) both;
+  transition:
+    transform var(--fast) var(--ease),
+    box-shadow var(--fast) var(--ease);
+}
+
+.market-card:hover {
+  transform: translateY(-2px);
+  box-shadow:
+    0 2px 4px rgb(16 24 40 / 0.05),
+    0 14px 32px -14px rgb(16 24 40 / 0.22);
+}
+
+.market-top {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.7rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  font-weight: 600;
+  margin-bottom: 0.3rem;
+}
+
+.market-top .market-unit {
+  margin-left: auto;
+  font-family: var(--mono);
+  font-weight: 400;
+  letter-spacing: 0.04em;
+  color: var(--ink-soft);
+}
+
+.market-figure {
+  display: flex;
+  align-items: baseline;
+  gap: 0.5rem;
+}
+
+.market-value {
+  font-family: var(--mono);
+  font-size: 1.5rem;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.025em;
+  line-height: 1.15;
+}
+
+.market-figure .delta-up,
+.market-figure .delta-down {
+  font-size: 0.78rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.market-meta {
+  margin-top: 0.2rem;
+  font-size: 0.72rem;
+  line-height: 1.45;
+  color: var(--ink-soft);
+  font-variant-numeric: tabular-nums;
+}
+
+.market-meta b {
+  color: var(--ink);
+  font-family: var(--mono);
+}
+
+.market-card .sparkline {
+  margin-top: 0.4rem;
+}
+
+/* Coverage pulse --------------------------------------------------------- */
+
+/*
+ * Tone reads as a strip of cells rather than a chart: there are seven
+ * categories, they do not sum to a whole a reader cares about, and what matters
+ * is which one is largest and whether it is a warning hue.
+ */
+
+/*
+ * The strip wraps, and the last row fills.
+ *
+ * A grid gives every track the same width, so eight categories on a laptop put
+ * seven on one row and «Sin marca» alone on a second, the rest of it empty —
+ * the widest hole on the page and the one a reader points at. Flex wrapping
+ * lets whatever lands on the last row grow into it, whichever categories the
+ * current selection happens to leave standing.
+ */
+.tone-strip {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1px;
+  background: var(--rule);
+  border: 1px solid var(--rule);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+
+.tone-cell {
+  flex: 1 1 148px;
+  min-width: 0;
+  appearance: none;
+  border: none;
+  border-top: 3px solid var(--rule);
+  padding: 0.6rem 0.75rem 0.7rem;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+  transition: background var(--fast) var(--ease);
+}
+
+.tone-cell {
+  background: var(--panel);
+}
+
+/* Selection reads from the ring and the thicker rule, not from a grey fill:
+   a tinted cell looked disabled next to the white ones beside it. */
+.tone-cell:hover {
+  background: var(--panel) !important;
+  border-top-width: 5px;
+}
+
+.tone-cell-on {
+  background: var(--panel) !important;
+  border-top-width: 5px;
+  box-shadow: inset 0 0 0 2px var(--ink);
+}
+
+/*
+ * El icono lleva el color; el rótulo lleva tinta.
+ *
+ * El nombre de la categoría iba pintado del color de la categoría, y varios de
+ * esos tonos a 0,8 rem no llegan al contraste que necesita un texto. La
+ * identidad la da la marca de color que está AL LADO de la palabra, no la
+ * palabra teñida.
+ */
+.tone-icon {
+  display: inline-flex;
+  align-items: center;
+}
+
+/*
+ * El rótulo acompaña, la cifra manda.
+ *
+ * Estaba al revés: el nombre de la categoría iba en versalitas blancas y en
+ * negrita, y la cuenta —que es el dato de la celda— en un gris apagado y más
+ * grande. Una tarjeta de cifra se lee de un vistazo solo si lo primero que
+ * encuentra el ojo es el número.
+ */
+.tone-top {
+  color: var(--ink-soft);
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.68rem;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  font-weight: 600;
+}
+
+.tone-count {
+  color: var(--ink);
+  font-family: var(--mono);
+  font-size: 1.3rem;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.02em;
+  line-height: 1.15;
+}
+
+.tone-share {
+  font-family: var(--mono);
+  font-size: 0.72rem;
+  color: var(--ink-soft);
+}
+
+.tone-note {
+  font-size: 0.69rem;
+  color: var(--ink-soft);
+  line-height: 1.35;
+  margin-top: 0.15rem;
+}
+
+/* Term map --------------------------------------------------------------- */
+
+/*
+ * Size carries how often a term is said; the tint carries how many mastheads
+ * say it. Two facts, two channels — a big pale chip is one paper's campaign, a
+ * big saturated one is the country's conversation.
+ */
+
+.term-map {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.term-chip {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.3rem;
+  padding: 0.22rem 0.6rem;
+  border: 1px solid var(--rule);
+  border-radius: 999px;
+  color: var(--ink);
+  line-height: 1.35;
+}
+
+.term-chip em {
+  font-style: normal;
+  font-family: var(--mono);
+  font-size: 0.62rem;
+  color: var(--ink-soft);
+}
+
+/* Data tables ------------------------------------------------------------ */
+
+/*
+ * One table treatment for anything that is genuinely tabular: a header that
+ * stays while the body scrolls, figures right-aligned on tabular numerals so
+ * digits line up in a column, and a wrapper that scrolls sideways rather than
+ * letting the page do it.
+ */
+
+/*
+ * A wide table scrolls inside its own box; the page never scrolls sideways.
+ *
+ * `overflow-x` alone does not achieve that: as a flex item the wrapper keeps
+ * `min-width: auto`, so it grows to the table's intrinsic width and takes the
+ * whole column with it. On a phone that made the sources page 1,075 px wide
+ * and every other block on it — the intro card, the headings — drift off the
+ * right edge. The floor keeps the columns legible while they scroll.
+ */
+.table-wrap {
+  overflow-x: auto;
+  min-width: 0;
+  max-width: 100%;
+  border: 1px solid var(--rule);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  /*
+   * A shadow at each edge that has more to scroll to, so a table cut off by
+   * `overflow-x` says so instead of just stopping mid-column. The two
+   * `local`-attached gradients fade to the panel colour and scroll with the
+   * content, cancelling the `scroll`-attached shadow once that edge is
+   * reached — the classic CSS scroll-shadow pairing, no JS.
+   */
+  background:
+    linear-gradient(to right, var(--panel) 30%, transparent),
+    linear-gradient(to left, var(--panel) 30%, transparent) right,
+    linear-gradient(to right, color-mix(in srgb, var(--ink) 22%, transparent), transparent),
+    linear-gradient(to left, color-mix(in srgb, var(--ink) 22%, transparent), transparent) right;
+  background-repeat: no-repeat;
+  background-color: var(--panel);
+  background-size:
+    32px 100%,
+    32px 100%,
+    10px 100%,
+    10px 100%;
+  background-attachment: local, local, scroll, scroll;
+}
+
+.grid-table {
+  width: 100%;
+  min-width: 660px;
+  border-collapse: collapse;
+  font-size: 0.84rem;
+}
+
+.grid-table thead th {
+  position: sticky;
+  top: 0;
+  background: var(--panel-tint);
+  text-align: left;
+  font-size: 0.68rem;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+  font-weight: 600;
+  padding: 0.55rem var(--s3);
+  border-bottom: 1px solid var(--rule);
+  white-space: nowrap;
+}
+
+.grid-table td {
+  padding: 0.5rem var(--s3);
+  border-bottom: 1px solid var(--rule-soft);
+  color: var(--ink-soft);
+  vertical-align: baseline;
+}
+
+.grid-table tbody tr:hover td {
+  background: var(--panel-tint);
+}
+
+.grid-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.grid-table .num {
+  text-align: right;
+  font-family: var(--mono);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.grid-table code {
+  font-size: 0.78rem;
+  background: none;
+  border: none;
+  padding: 0;
+  color: var(--ink);
+}
+
+.grid-table tfoot td {
+  padding: 0.5rem var(--s3);
+  border-top: 1px solid var(--rule);
+  background: var(--panel-tint);
+  font-size: 0.78rem;
+  color: var(--ink);
+  font-weight: 600;
+}
+
+/* Year candles ----------------------------------------------------------- */
+
+/*
+ * A candle's body spans from last year's level to this one's, so its height is
+ * the annual change and its colour the direction. Rising takes the same red the
+ * report uses for a widening gap, because in most of these series a rising
+ * number is the bad news.
+ *
+ * Los dos colores son los polos de la escala divergente del informe, y eso no
+ * es cosmético: eran rojo y verde, el único par que un lector daltónico no
+ * puede separar, y en una vela el color es lo ÚNICO que dice la dirección —no
+ * hay eje ni posición que lo repita—. El polo frío es ahora verde azulado, que
+ * mantiene la lectura y separa limpio bajo protanopía y deuteranopía.
+ */
+
+.candles svg {
+  width: 100%;
+  height: clamp(152px, 18vh, 280px);
+  display: block;
+  /* The box is sized per candle, so a body is drawn on whole pixels. */
+  shape-rendering: crispEdges;
+}
+
+.candles .candle-wick {
+  shape-rendering: auto;
+}
+
+.candle-axis {
+  stroke: var(--rule);
+  stroke-width: 0.4;
+  vector-effect: non-scaling-stroke;
+}
+
+.candle-wick {
+  stroke-width: 0.5;
+  vector-effect: non-scaling-stroke;
+}
+
+.candle-up rect,
+.candle-up .candle-wick {
+  fill: var(--up);
+  stroke: var(--up);
+}
+
+.candle-down rect,
+.candle-down .candle-wick {
+  fill: var(--down);
+  stroke: var(--down);
+}
+
+.candle {
+  animation: rise var(--slow) var(--ease) both;
+}
+
+.candle-foot {
+  display: flex;
+  align-items: baseline;
+  gap: 0.5rem;
+  margin-top: 0.3rem;
+  font-family: var(--mono);
+  font-size: 0.68rem;
+  color: var(--ink-soft);
+  font-variant-numeric: tabular-nums;
+}
+
+.candle-scale {
+  margin: 0 auto;
+}
+
+/* The toggle that sits in a card's top corner. */
+.card-head {
+  position: relative;
+}
+
+/*
+ * El mismo conmutador, en un panel cuya cabecera es prosa.
+ *
+ * `.card-toggle` cuelga del borde derecho de la cabecera, y en `.tile-head` el
+ * rótulo ya le cede el sitio. En `.panel-head` lo que hay debajo es el título,
+ * que en un teléfono se parte en dos líneas y llevaba la primera hasta el
+ * borde: el icono caía encima de la última palabra. Reservarle el ancho al
+ * título lo separa sin mover el botón.
+ */
+.panel-head.card-head > h2 {
+  padding-right: 2.4rem;
+}
+
+/* La ventana de las velas: tres chips en fila, sin el riel que no hay aquí. */
+.candle-ranges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem;
+}
+
+/*
+ * La lectura del tramo se apoya bajo el pie de la vela, no pegada a él.
+ *
+ * Son cuatro cifras, y la rejilla general de `.stat-strip` las repartía en
+ * tres más una, con la casilla sobrante pintada del color de la regla. Con
+ * 200 px de mínimo salen cuatro en una fila ancha, dos por dos en media
+ * pantalla y una por fila en el teléfono: nunca un hueco.
+ */
+.candle-reading {
+  margin-top: 0.35rem;
+  grid-template-columns: repeat(auto-fit, minmax(min(200px, 100%), 1fr));
+}
+
+/* Una ficha dentro de la pila de velas: subtítulo, no un panel nuevo. */
+.candle-token + .candle-token {
+  margin-top: var(--s2);
+  padding-top: var(--s2);
+  border-top: 1px solid var(--rule);
+}
+
+.tile-head h3 {
+  font-family: var(--serif);
+  font-size: 0.98rem;
+  font-weight: 600;
+  margin: 0;
+}
+
+.card-toggle {
+  position: absolute;
+  top: -2px;
+  right: -6px;
+  appearance: none;
+  background: none;
+  border: 1px solid transparent;
+  border-radius: 7px;
+  padding: 3px 5px;
+  color: var(--ink-faint);
+  cursor: pointer;
+  line-height: 0;
+  transition:
+    color var(--fast) var(--ease),
+    border-color var(--fast) var(--ease);
+}
+
+.card-toggle:hover {
+  color: var(--ink);
+  border-color: var(--rule);
+}
+
+.card-toggle-on {
+  color: var(--official);
+  border-color: var(--official);
+}
+
+/* The day's reading, as points ------------------------------------------- */
+
+/*
+ * A point per reading: an icon that carries the direction, the label, the one
+ * figure that is the news, and the qualification under it. The figure is set
+ * apart from the label by a leader rather than crammed beside it, so the eye
+ * can run down the right-hand edge and read only the numbers.
+ */
+
+.bullets {
+  list-style: none;
+  margin: 0.9rem 0 0;
+  padding: 0;
+  display: grid;
+  gap: 0.15rem;
+}
+
+/*
+ * La columna del texto tiene que poder encoger.
+ *
+ * `1fr` no baja del contenido minimo de lo que lleva dentro, y dentro hay una
+ * cifra con `white-space: nowrap`. Con la letra del sistema agrandada —lo que
+ * hace cualquiera que no ve de cerca— el punto media 366px dentro de una
+ * pantalla de 320 y empujaba la pagina entera 112px a la derecha: la cabecera
+ * quedaba corrida y el titulo parecia cortado. `minmax(0, 1fr)` le devuelve el
+ * permiso de encoger, y la linea envuelve antes que empujar.
+ */
+.bullet {
+  display: grid;
+  grid-template-columns: 30px minmax(0, 1fr);
+  gap: 0.7rem;
+  align-items: start;
+  padding: 0.6rem 0.5rem;
+  border-radius: 10px;
+  transition: background var(--fast) var(--ease);
+}
+
+.bullet-body {
+  min-width: 0;
+}
+
+.bullet + .bullet {
+  border-top: 1px solid var(--rule-soft, var(--rule));
+}
+
+.bullet:hover {
+  background: var(--panel-tint);
+}
+
+.bullet-mark {
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 9px;
+  background: var(--panel-tint);
+  color: var(--ink-soft);
+  border: 1px solid var(--rule);
+}
+
+.bullet-mark-up {
+  color: var(--up);
+  border-color: color-mix(in srgb, var(--up) 40%, var(--rule));
+}
+
+.bullet-mark-down {
+  color: var(--down);
+  border-color: color-mix(in srgb, var(--down) 40%, var(--rule));
+}
+
+.bullet-line {
+  display: flex;
+  align-items: baseline;
+  gap: 0.5rem;
+  /* Antes de empujar, que baje de linea. */
+  flex-wrap: wrap;
+}
+
+/* The leader between name and figure: it is what makes a list read as a list. */
+.bullet-line::after {
+  content: '';
+  order: 1;
+  flex: 1;
+  height: 0;
+  margin: 0 0.1rem;
+  border-bottom: 1px dotted var(--rule);
+  transform: translateY(-0.2em);
+}
+
+.bullet-label {
+  font-size: 0.86rem;
+  letter-spacing: -0.01em;
+}
+
+.bullet-value {
+  order: 2;
+  font-family: var(--mono);
+  font-size: 0.92rem;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.bullet-value-up {
+  color: var(--up);
+}
+
+.bullet-value-down {
+  color: var(--down);
+}
+
+.bullet-detail {
+  margin: 0.15rem 0 0;
+  font-size: 0.78rem;
+  line-height: 1.5;
+  color: var(--ink-soft);
+  max-width: 62ch;
+}
+
+/* Cross-filtering ---------------------------------------------------------- */
+
+/*
+ * Every bar, cell and chip is a slicer, so every one of them has to look like
+ * it can be pressed and has to show whether it is. Selected state is a ring and
+ * an ink fill rather than a colour swap: the hue of a bar carries its category,
+ * and losing that on selection would mean the reader has to re-find which bar
+ * they picked.
+ */
+
+button.barlist-row {
+  appearance: none;
+  background: none;
+  border: none;
+  font: inherit;
+  color: inherit;
+  width: 100%;
+  padding: 0.2rem 0.35rem;
+  margin: -0.2rem -0.35rem;
+  border-radius: 7px;
+  cursor: pointer;
+  text-align: left;
+  transition: background var(--fast) var(--ease);
+}
+
+button.barlist-row:hover {
+  background: var(--panel-tint);
+}
+
+.barlist-row-on {
+  background: var(--panel-tint);
+  box-shadow: inset 0 0 0 1px var(--rule);
+}
+
+.barlist-row-on .barlist-name {
+  color: var(--ink);
+  font-weight: 600;
+}
+
+/* The year bars carry two figures: volume behind, alarm in front. */
+.barlist-track {
+  position: relative;
+}
+
+/*
+ * La barra de detrás es el volumen del año; la de delante, su alarma.
+ *
+ * Iba en `--rule-soft`, que en modo oscuro es el mismo gris que el carril: la
+ * cifra que el panel pone entre paréntesis para que nadie confunda «un año
+ * tranquilo» con «un año que nadie archivó» estaba dibujada y no se veía. Va
+ * en el propio tono de la barra de delante, rebajado contra el panel: es la
+ * misma magnitud vista en dos cortes, así que tono sobre tono dice eso y dos
+ * grises distintos no dicen nada.
+ */
+.barlist-ghost {
+  position: absolute;
+  inset: 0 auto 0 0;
+  display: block;
+  height: 11px;
+  border-radius: 0 4px 4px 0;
+  background: color-mix(in srgb, var(--up) 26%, var(--panel-tint));
+  transition: width var(--slow) var(--ease);
+}
+
+.barlist-fill {
+  position: relative;
+}
+
+button.term-chip {
+  appearance: none;
+  font-family: inherit;
+  cursor: pointer;
+  transition:
+    transform var(--fast) var(--ease),
+    background var(--fast) var(--ease);
+}
+
+button.term-chip:hover {
+  transform: translateY(-1px);
+}
+
+.term-chip-on em {
+  color: inherit;
+  opacity: 0.7;
+}
+
+/* While the stories for a new selection are on their way. */
+.filing-grid-loading {
+  opacity: 0.45;
+  transition: opacity var(--fast) var(--ease);
+}
+
+/*
+ * A metric label carries an icon and may run to two lines. The icon stays with
+ * the first line, and every label reserves two lines' height so the six figures
+ * beneath them share one baseline — a strip whose numbers sit at different
+ * heights reads as six unrelated boxes rather than one comparison.
+ */
+.stat-label {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.35rem;
+  min-height: 2.1em;
+  line-height: 1.25;
+}
+
+.stat-label svg {
+  flex: none;
+  margin-top: 0.15em;
+}
+
+/*
+ * A filing's card leads with the issuer, because the subject line repeats:
+ * three "Determinaciones de Directorio" are three identical headings, and the
+ * name above them is the only thing that says which company. The subject
+ * becomes the kicker, in the same voice as the other small labels.
+ */
+.filing-kicker {
+  margin: 0 0 0.1rem;
+  font-size: 0.72rem;
+  letter-spacing: 0.01em;
+  color: var(--ink-soft);
+}
+
+/*
+ * A chip names one choice, and one choice fits on one line.
+ *
+ * Y no se sale de su celda. La rejilla de dos columnas da a cada pastilla la
+ * mitad del carril, unos 115 px, y un nombre largo en `nowrap` desbordaba esa
+ * celda y se montaba encima de la vecina: «Russian Federation ×» tapaba a
+ * «HS 02 — Meat and edible meat offal ×». `min-width: 0` deja que la celda
+ * mande sobre el texto, y lo que no cabe se corta en vez de invadir.
+ */
+.rail-pills .chip {
+  max-width: 100%;
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+}
+
+/* Una pastilla que nombra un país o un capítulo usa las dos columnas. */
+.rail-pills .chip-wide {
+  grid-column: 1 / -1;
+  justify-content: flex-start;
+}
+
+/* El texto que se corta con puntos suspensivos; el icono y la × no. */
+.chip-text {
+  min-width: 0;
+  flex: 1 1 auto;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  text-align: left;
+}
+
+.chip > svg,
+.chip > [aria-hidden='true'] {
+  flex: none;
+}
+
+/* Sources and their caveats ------------------------------------------------ */
+
+/*
+ * A series row leads with what it measures and keeps its code underneath in the
+ * monospace the rest of the report uses for identifiers. The name is what a
+ * reader is scanning for; the code is what they quote when they ask for it.
+ */
+.cell-name {
+  display: block;
+  font-size: 0.82rem;
+}
+
+.cell-code {
+  display: block;
+  font-size: 0.66rem;
+  color: var(--ink-soft);
+  letter-spacing: 0.01em;
+}
+
+/*
+ * The caveats are cards, not a wall of prose: a reader comes here looking for
+ * the one note that applies to the figure they are about to quote, and a
+ * definition list makes them read all six to find it.
+ */
+.note-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(320px, 100%), 1fr));
+  gap: var(--s2);
+}
+
+.note-card {
+  display: grid;
+  grid-template-columns: 34px 1fr;
+  gap: 0.75rem;
+  align-items: start;
+  background: var(--panel);
+  border: 1px solid var(--rule);
+  border-radius: var(--radius);
+  padding: var(--s2) var(--s3);
+}
+
+.note-mark {
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+  background: var(--panel-tint);
+  border: 1px solid var(--rule);
+  color: var(--ink-soft);
+}
+
+.note-card h3 {
+  margin: 0 0 0.3rem;
+  font-size: 0.9rem;
+  line-height: 1.3;
+}
+
+.note-card p {
+  margin: 0;
+  font-size: 0.8rem;
+  line-height: 1.55;
+  color: var(--ink-soft);
+}
+
+/*
+ * On a phone the sources table keeps the columns that answer "what is this and
+ * can I check it". The frequency and the document count are context a reader
+ * can get from the rail and from the wider view; taking them out buys back the
+ * width the name needs.
+ */
+@media (max-width: 720px) {
+  /*
+   * Repartir el ancho de la tabla entre sus columnas fue peor que el problema.
+   *
+   * `table-layout: fixed` sobre ocho columnas en 390px da cuarenta y tres
+   * pixeles a cada una, y el nombre de la serie salia UNA LETRA POR LINEA:
+   * «A c c e s o  a  a g u a». El desplazamiento lateral que quise evitar era
+   * incomodo; esto era ilegible. Vuelve el suelo, y que la tabla se desplace
+   * dentro de su caja como el resto de las anchas del informe.
+   *
+   * Lo que esta tabla necesita en vertical no es un reparto de anchos sino una
+   * vista de fichas —una serie por bloque, con su fuente debajo—, que es un
+   * cambio de marcado y no de hoja de estilos. Queda anotado, no improvisado.
+   */
+  .grid-table {
+    min-width: 460px;
+  }
+  .grid-table th:nth-child(3),
+  .grid-table td:nth-child(3),
+  .grid-table th:nth-child(5),
+  .grid-table td:nth-child(5) {
+    display: none;
+  }
+}
+
+/*
+ * Controls a thumb can actually hit.
+ *
+ * Tapping a bar, a term or a tone cell IS how this report is filtered, so on a
+ * phone those cannot be 24 px tall — a miss selects the row above and the
+ * reader has to undo a filter they never meant to set. The density that makes
+ * a list of fourteen sectors readable on a laptop is the wrong density for a
+ * thumb, so it is raised here rather than everywhere.
+ */
+@media (max-width: 720px) {
+  button.barlist-row {
+    padding-block: 0.5rem;
+  }
+
+  .term-map {
+    gap: 0.45rem;
+  }
+
+  button.term-chip {
+    padding-block: 0.42rem;
+  }
+
+  .filing-toggle,
+  .filing-foot a {
+    padding-block: 0.35rem;
+  }
+
+  .card-toggle {
+    top: -6px;
+    right: -8px;
+    padding: 8px 10px;
+  }
+
+  .rail-item {
+    padding-block: 0.5rem;
+  }
+
+  .chip {
+    padding-block: 0.42rem;
+  }
+
+  /* The one control in each table row; the rows themselves are not tappable. */
+  .grid-table a {
+    display: inline-block;
+    padding-block: 0.4rem;
+  }
+}
+
+/* An empty result offers the way out of it, in the sentence that reports it. */
+.callout-link {
+  appearance: none;
+  background: none;
+  border: none;
+  padding: 0;
+  font: inherit;
+  color: var(--official);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  cursor: pointer;
+}
+
+/* A failed request is not an empty one, and must not look like it. */
+.callout-warn {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  border-color: color-mix(in srgb, var(--up) 45%, var(--rule));
+  background: color-mix(in srgb, var(--up) 6%, var(--panel));
+  color: var(--ink);
+}
+
+/*
+ * A fact is not a slicer.
+ *
+ * The coverage rows looked exactly like the filter rows beside them — same
+ * icon, same name, same figure on the right — so a reader clicked them and
+ * nothing happened. They keep the shape, because the shape is what makes a
+ * column of figures readable, and drop the affordances that promised a click.
+ */
+.rail-fact {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  width: 100%;
+  /* Alineado con los rótulos de la sección, no pegado al borde del carril. */
+  padding: 0.34rem 0.875rem;
+  cursor: default;
+  color: var(--ink-soft);
+}
+
+.rail-fact + .rail-fact {
+  border-top: 1px solid var(--rule-soft, var(--rule));
+}
+
+.rail-fact .rail-name {
+  flex: 1 1 auto;
+  font-size: 0.78rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.rail-fact .rail-n {
+  font-family: var(--mono);
+  font-size: 0.74rem;
+  font-variant-numeric: tabular-nums;
+  color: var(--ink);
+}
+
+.rail-note {
+  margin: 0.5rem 0 0;
+  font-family: var(--mono);
+  font-size: 0.68rem;
+  color: var(--ink-soft);
+  text-align: center;
+}
+
+/*
+ * Said before the register, not after it.
+ *
+ * The cards open on the newest coverage, so a reader who scrolls a screenful of
+ * August 2026 concludes the archive is all 2026 — the note that says otherwise
+ * was underneath, where they reached it only after forming the impression.
+ */
+.register-note {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  max-width: none;
+  padding: 0.5rem 0.7rem;
+  border: 1px dashed var(--rule);
+  border-radius: 9px;
+  background: var(--panel-tint);
+}
+
+/* The second figure on a bar row: present, but not competing with the first. */
+.barlist-aside {
+  color: var(--ink-soft);
+}
+
+/*
+ * The register's pager.
+ *
+ * Twenty-two thousand stories behind sixty on screen needed a way through that
+ * was not "narrow the filters until it fits". It reads in the direction the
+ * register runs — newest first — so the buttons say which way in time they go
+ * rather than "previous" and "next", which in a reverse-chronological list mean
+ * the opposite of what a reader expects.
+ */
+.pager {
+  display: flex;
+  align-items: center;
+  gap: var(--s2);
+  padding: var(--s2) var(--s3);
+  background: var(--panel);
+  border: 1px solid var(--rule);
+  border-radius: var(--radius);
+}
+
+.pager-step {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  appearance: none;
+  font: inherit;
+  font-size: 0.82rem;
+  color: var(--ink);
+  background: var(--panel);
+  border: 1px solid var(--rule);
+  border-radius: 9px;
+  padding: 0.42rem 0.8rem;
+  cursor: pointer;
+  transition:
+    background var(--fast) var(--ease),
+    border-color var(--fast) var(--ease);
+}
+
+.pager-step:hover:not(:disabled) {
+  background: var(--panel-tint);
+  border-color: var(--ink-faint);
+}
+
+.pager-step:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.pager-where {
+  margin: 0 auto;
+  font-family: var(--mono);
+  font-size: 0.76rem;
+  color: var(--ink-soft);
+  font-variant-numeric: tabular-nums;
+}
+
+/*
+ * What a candle says when the reader points at it.
+ *
+ * The body's length is the change, but a length is not a figure: the label
+ * gives the percentage an economist would quote and the two levels the body
+ * runs between. It replaces the axis footer rather than floating over the
+ * chart, so nothing the reader is looking at gets covered.
+ *
+ * The pointer target and the selection ring must out-rank `.candle-up rect`,
+ * which is a descendant selector and would otherwise paint them the candle's
+ * own colour — a full-height invisible target rendered solid, which turned the
+ * whole chart into a wall of red and green.
+ */
+.candle-up .candle-hit,
+.candle-down .candle-hit {
+  fill: transparent;
+  stroke: none;
+}
+
+/* The hovered candle is lit from behind rather than ringed: at this size a ring
+   is thicker than the body it is meant to outline. */
+.candle-up .candle-lit,
+.candle-down .candle-lit {
+  fill: var(--ink);
+  fill-opacity: 0.07;
+  stroke: none;
+  pointer-events: none;
+}
+
+.candle-tip {
+  display: flex;
+  align-items: baseline;
+  gap: 0.5rem;
+  margin-top: 0.3rem;
+  font-family: var(--mono);
+  font-size: 0.7rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.candle-tip-detail {
+  margin-left: auto;
+  color: var(--ink-soft);
+}
+
+.candles svg {
+  cursor: crosshair;
+}
+
+/* Keyboard ---------------------------------------------------------------- */
+
+/*
+ * Where the keyboard is.
+ *
+ * Every slicer on this report is a button, and not one of them showed a focus
+ * ring: a reader driving it from the keyboard could press Enter without knowing
+ * what they were about to filter by. `:focus-visible` rather than `:focus`, so
+ * the ring appears for the keyboard and stays out of the way of the mouse.
+ *
+ * The ring is drawn with `outline` and an offset rather than a border, because
+ * a border would move the layout of a bar or a cell every time focus landed on
+ * it. It goes on the elements themselves rather than on a wildcard, so a cell
+ * that already carries a selection ring does not end up with two.
+ */
+:where(button, a[href], input, select, summary, [tabindex]):focus-visible {
+  outline: 2px solid var(--official);
+  outline-offset: 2px;
+  border-radius: 6px;
+}
+
+.tone-cell:focus-visible,
+.filing-card:focus-visible {
+  outline-offset: -2px;
+}
+
+/*
+ * A way past the filters.
+ *
+ * The pane holds a hundred controls, so reaching the first chart from the
+ * keyboard meant a hundred presses of Tab. The link is the first thing focus
+ * lands on and is invisible until it is focused, which is the whole convention.
+ */
+.skip-link {
+  position: absolute;
+  left: -9999px;
+  top: 0;
+  z-index: var(--z-overlay);
+  padding: 0.55rem 0.9rem;
+  background: var(--panel);
+  color: var(--ink);
+  border: 1px solid var(--official);
+  border-radius: 8px;
+  font-size: 0.84rem;
+}
+
+.skip-link:focus {
+  left: var(--s3);
+  top: var(--s3);
+}
+
+/* The card's two controls, and what the first one opens ------------------- */
+
+.card-tools {
+  position: absolute;
+  top: -2px;
+  right: -6px;
+  display: inline-flex;
+  gap: 0.15rem;
+}
+
+.card-tools .card-toggle {
+  position: static;
+}
+
+/*
+ * What an indicator actually measures, opened from the card rather than sent
+ * to a glossary page. A reader who has to leave the figure to find out what it
+ * is usually does not come back, and by the time they do they have lost the
+ * comparison they were making.
+ */
+.card-note {
+  margin: 0.6rem 0 0.2rem;
+  padding: 0.7rem 0.8rem;
+  background: var(--panel-tint);
+  border: 1px solid var(--rule);
+  border-left: 3px solid var(--official);
+  border-radius: 9px;
+  animation: rise var(--fast) var(--ease) both;
+}
+
+.card-note p {
+  margin: 0 0 0.45rem;
+  font-size: 0.79rem;
+  line-height: 1.55;
+  color: var(--ink-soft);
+}
+
+.card-note p:last-child {
+  margin-bottom: 0;
+}
+
+.card-note b {
+  color: var(--ink);
+}
+
+.card-note-caveat {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.35rem;
+  color: var(--ink-soft) !important;
+}
+
+.card-note-source {
+  font-family: var(--mono);
+  font-size: 0.68rem !important;
+  color: var(--ink-soft) !important;
+}
+
+/*
+ * La misma nota, flotando sobre la tarjeta en vez de dentro de ella.
+ *
+ * Abierta en el flujo, la explicación empujaba la cifra, el año y el gráfico
+ * hacia abajo justo cuando el lector los estaba mirando. Flotando, la tarjeta
+ * no se mueve: la nota se pone encima, cuelga hacia la izquierda si no cabe y
+ * se va sin dejar hueco. Se abre con un clic —nunca al pasar por encima— y se
+ * cierra al salir de ella, al clicar fuera o con Escape.
+ */
+.info-pop {
+  position: relative;
+  display: inline-flex;
+}
+
+.info-pop .card-toggle {
+  position: static;
+}
+
+.info-pop-note {
+  position: absolute;
+  top: calc(100% + 7px);
+  /* `--pop-nudge` lo pone la nota al abrirse si no cabe en la pantalla. */
+  right: calc(-6px - var(--pop-nudge, 0px));
+  z-index: var(--z-sticky-corner);
+  width: min(19rem, calc(100vw - 2rem));
+  max-height: min(21rem, 60vh);
+  overflow-y: auto;
+  margin: 0;
+  text-align: left;
+  cursor: default;
+  box-shadow: var(--shadow);
+}
+
+/*
+ * La tarjeta que tiene la nota abierta pasa por delante de sus vecinas: sin
+ * esto, la tarjeta de la derecha —que se pinta después— tapa media nota.
+ */
+.card:has(.info-pop-note) {
+  position: relative;
+  z-index: var(--z-sticky-corner);
+}
+
+/* The view switch sits with the downloads: both act on the same selection. */
+.download-btn-on {
+  background: var(--ink);
+  color: var(--panel);
+  border-color: var(--ink);
+}
+
+.download-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.32rem;
+}
+
+/*
+ * Some of these takes are a button and not a link.
+ *
+ * A PNG of the map, and the rows the browser already holds, have no address to
+ * point at: they are made where the reader is standing. They have to look like
+ * the takes beside them all the same, so the element's own chrome is removed.
+ */
+button.download-btn {
+  cursor: pointer;
+  font: inherit;
+  font-family: var(--mono);
+  font-size: 0.75rem;
+  letter-spacing: 0.06em;
+  appearance: none;
+}
+
+/*
+ * Four controls on a strap that was built for two.
+ *
+ * Adding the view switch beside the downloads pushed the row past a phone's
+ * width. The strap wraps now, and the group of buttons wraps within it, so the
+ * heading keeps its line and the controls fall underneath instead of dragging
+ * the page sideways.
+ */
+.strap {
+  flex-wrap: wrap;
+}
+
+.download {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+@media (max-width: 720px) {
+  .download {
+    width: 100%;
+    margin-left: 0;
+  }
+
+  .download-btn {
+    flex: 1 1 auto;
+    justify-content: center;
+    /* A control a thumb has to hit, like every other one on a phone. */
+    padding-block: 0.45rem;
+  }
+
+  /*
+   * Except on the map's own strap, where they share the row with the zoom.
+   * Stretched to fill, a lone «PNG» becomes a banner across the map and reads
+   * as the section's main action rather than one take among three.
+   */
+  .places-map-tools .download-btn {
+    flex: 0 1 auto;
+  }
+
+  /* A divider between two groups means nothing once the groups are stacked. */
+  .places-map-sep {
+    display: none;
+  }
+}
+
+/* Zoom by dragging -------------------------------------------------------- */
+
+/*
+ * The way out of a zoom, and the only sign that there is one.
+ *
+ * It appears above the chart the moment a stretch is chosen and says which
+ * stretch, because a reader who steps away and comes back needs to know the
+ * chart is not showing everything. It disappears when there is nothing to
+ * return from, so a chart nobody has zoomed carries no chrome at all.
+ */
+.zoom-exit {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  appearance: none;
+  margin: 0 0 0.4rem;
+  padding: 0.3rem 0.6rem;
+  font: inherit;
+  font-family: var(--mono);
+  font-size: 0.68rem;
+  color: var(--ink-soft);
+  background: var(--panel-tint);
+  border: 1px solid var(--rule);
+  border-radius: 7px;
+  cursor: pointer;
+  transition:
+    color var(--fast) var(--ease),
+    border-color var(--fast) var(--ease);
+}
+
+.zoom-exit:hover {
+  color: var(--ink);
+  border-color: var(--ink-faint);
+}
+
+/* The plot itself says it can be dragged. */
+.chart-frame .recharts-surface {
+  cursor: crosshair;
+}
+
+/*
+ * On a wide screen the card reads across, not down.
+ *
+ * The paragraph keeps a measure — a line of prose 1,900 px long is scanned and
+ * lost, not read — so on a wide card it left half the width empty above three
+ * points that had already spread into it. Putting the text and the points side
+ * by side uses that width without stretching a single line: the reader gets the
+ * explanation on the left and the three things to know on the right, and the
+ * card is full because it has something in all of it.
+ *
+ * Below this width they stack, which is the right order to read them in when
+ * there is only one column to read.
+ */
+@media (min-width: 1280px) {
+  .briefcard > div {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1.05fr);
+    column-gap: var(--s4);
+    align-items: start;
+  }
+
+  .briefcard > div > h2 {
+    grid-column: 1;
+  }
+
+  .briefcard > div > p {
+    grid-column: 1;
+    max-width: none;
+  }
+
+  /*
+   * The points sit with the text, not with the heading above it.
+   *
+   * Spanning them from the first row floated them level with the small
+   * uppercase label while the prose began underneath, so the two halves of the
+   * card started at different heights and read as two unrelated blocks.
+   */
+  .briefcard .brief-points {
+    grid-column: 2;
+    grid-row: 2 / span 2;
+    margin-top: 0;
+    align-content: start;
+  }
+}
+
+/*
+ * The readings behind one card's line.
+ *
+ * Capped and scrolled: sixty-five years of a series would push the card taller
+ * than the screen and shove every neighbour out of view. The head stays put
+ * while the years move under it, so a reader deep in the eighties still knows
+ * which column is which.
+ */
+.card-table {
+  margin-top: 0.6rem;
+}
+
+.card-table .table-wrap {
+  max-height: 320px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.card-table .grid-table {
+  min-width: 0;
+  font-size: 0.76rem;
+}
+
+.card-table .grid-table thead th {
+  position: sticky;
+  top: 0;
+  z-index: var(--z-sticky);
+  background: var(--panel);
+}
+
+/* An expanded card takes the row: a table squeezed into a third of it is not one. */
+.card:has(.card-table) {
+  flex-basis: 100%;
+}
+
+/* The key beneath a composition ring: colour, name, and the share stated. */
+/* Chips ------------------------------------------------------------------- */
+
+/*
+ * Two hundred subjects cannot be a flat list of buttons, and a <select> hides
+ * the sizes that make the list worth reading. Chips carry the count beside the
+ * name, so choosing what to open is itself a reading of what the press covered.
+ */
+.chip-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  margin-top: var(--s2);
+}
+
+.chip-row-soft {
+  margin-top: var(--s1);
+  padding-top: var(--s2);
+  border-top: 1px solid var(--rule-soft);
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  border: 1px solid var(--rule-soft);
+  background: transparent;
+  color: var(--ink-soft);
+  font: inherit;
+  font-size: 0.8rem;
+  padding: 0.28rem 0.7rem;
+  border-radius: 999px;
+  cursor: pointer;
+  transition:
+    background 140ms ease,
+    color 140ms ease,
+    border-color 140ms ease;
+}
+
+.chip:hover {
+  color: var(--ink);
+  border-color: var(--official);
+}
+
+.chip-active,
+.chip-active:hover {
+  background: var(--official);
+  border-color: var(--official);
+  color: #fff;
+}
+
+/*
+ * `.chip-on` se declara arriba, junto a las pastillas del carril, y esta
+ * sección vuelve a declarar `.chip` con la misma especificidad y más abajo:
+ * su fondo, su borde y su tinta pisaban los de `.chip-on`, y ninguna pastilla
+ * elegida —tipo de gráfico, flujo, nivel de producto— se distinguía de las
+ * demás. Con la clase doble gana sin depender del orden.
+ */
+.chip.chip-on,
+.chip.chip-on:hover {
+  background: var(--ink);
+  border-color: var(--ink);
+  color: var(--paper);
+}
+
+.chip-count {
+  font-family: var(--mono);
+  font-size: 0.72rem;
+  font-variant-numeric: tabular-nums;
+  opacity: 0.75;
+}
+
+/* Sub-tabs ---------------------------------------------------------------- */
+
+/*
+ * Second-level navigation. Deliberately quieter than the tab strip above it:
+ * pills on a rail rather than an underline, one step smaller, so a reader can
+ * tell at a glance which of the two levels they are moving inside.
+ */
+.subtabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem;
+  padding: 0.25rem;
+  border: 1px solid var(--rule-soft);
+  /* Fixed, not 999px: at narrow widths this rail wraps to two or three
+     rows, and a radius that assumes a single-row pill turns the whole
+     rail into a lens/capsule around the stacked buttons (verified at
+     375px). A bounded radius still reads as a pill on one row and stays
+     a plain rounded rail once it wraps. */
+  border-radius: 1.25rem;
+  width: fit-content;
+  max-width: 100%;
+  margin-bottom: var(--s1);
+}
+
+.subtab {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  border: 0;
+  background: transparent;
+  color: var(--ink-soft);
+  font: inherit;
+  font-size: 0.84rem;
+  padding: 0.35rem 0.85rem;
+  border-radius: 999px;
+  cursor: pointer;
+  transition:
+    background 140ms ease,
+    color 140ms ease;
+}
+
+.subtab:hover {
+  color: var(--ink);
+  background: var(--rule-soft);
+}
+
+.subtab-active,
+.subtab-active:hover {
+  background: var(--official);
+  color: #fff;
+}
+
+.subtab:focus-visible {
+  outline: 2px solid var(--official);
+  outline-offset: 2px;
+}
+
+/* Note list --------------------------------------------------------------- */
+
+/*
+ * The readings a chart cannot hold: a figure whose base differs from its
+ * neighbours, or a group the model refuses to add up. Prose rather than bars,
+ * because the reason is the content.
+ */
+.note-list {
+  list-style: none;
+  margin: var(--s2) 0 0;
+  padding: 0;
+  display: grid;
+  gap: var(--s2);
+}
+
+.note-list li {
+  font-size: 0.86rem;
+  line-height: 1.5;
+  color: var(--ink-soft);
+  padding-left: var(--s2);
+  border-left: 3px solid var(--rule-soft);
+}
+
+.note-list strong {
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Heat grid --------------------------------------------------------------- */
+
+/*
+ * Coverage as a matrix. The ink is the count, and an empty cell is left empty
+ * rather than printed as a zero: a form of trade nobody measured is a hole in
+ * the register, and a zero would read as a measurement that came out empty.
+ */
+/*
+ * The labels never leave.
+ *
+ * A matrix of twenty-four families over seven years is taller than a phone and
+ * wider than one too, and both headings used to scroll away: the reader was
+ * left with a field of numbers and no way to tell which year a column was, or
+ * which family a row. The box scrolls in both directions now and the two
+ * headings are pinned to its edges, so a cell can always be read as what it is.
+ */
+.heat-scroll {
+  overflow: auto;
+  margin-top: var(--s2);
+  /* Only bites when the matrix is taller than the room it has. */
+  max-height: min(70vh, 34rem);
+  /* The pinned row would otherwise sit on the panel's own rounded corner. */
+  border-radius: 4px;
+}
+
+.heat-grid {
+  display: grid;
+  gap: 2px;
+  min-width: 32rem;
+  align-items: stretch;
+}
+
+.heat-head,
+.heat-row {
+  font-size: 0.72rem;
+  color: var(--ink-soft);
+  letter-spacing: 0.02em;
+  display: flex;
+  align-items: center;
+  /* Pinned, so the cells cannot show through from underneath. */
+  background: var(--panel);
+  position: sticky;
+}
+
+.heat-head {
+  justify-content: center;
+  text-align: center;
+  padding-bottom: 0.2rem;
+  top: 0;
+  z-index: var(--z-sticky-raised);
+}
+
+.heat-row {
+  padding-right: 0.5rem;
+  left: 0;
+  z-index: var(--z-sticky);
+}
+
+/* Where the two pinned edges cross, and so above both. */
+.heat-corner {
+  position: sticky;
+  top: 0;
+  left: 0;
+  z-index: var(--z-sticky-corner);
+  background: var(--panel);
+}
+
+/*
+ * Una celda de la retícula, sin borde.
+ *
+ * Lo que separa dos celdas es la rendija de 2 px del `gap` de la retícula, que
+ * es el fondo del panel: un borde alrededor de cada celda añade tinta con peso
+ * de dato que no es dato, y a esta densidad convierte la retícula en una reja.
+ * La celda vacía se dibuja con un relleno plano y pálido —no con un borde— para
+ * que «nadie midió aquí» se lea como un hueco y no como un cero.
+ */
+.heat-cell {
+  min-height: 1.9rem;
+  border-radius: 3px;
+  background: var(--rule-soft);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--mono);
+  font-size: 0.76rem;
+  font-variant-numeric: tabular-nums;
+  color: var(--ink-soft);
+}
+
+/*
+ * El número dentro de una celda pintada es la única excepción a «el texto nunca
+ * lleva el color del dato»: va en blanco o en tinta según lo oscuro que sea el
+ * relleno, que es lo que garantiza que siempre se lea. El componente elige cuál
+ * y lo dice con este atributo.
+ */
+.heat-cell-filled {
+  color: var(--ink);
+}
+
+.heat-cell-filled[data-ink='reverse'] {
+  color: #ffffff;
+}
+
+/*
+ * En oscuro la rampa se ancla al otro extremo —«mucho» es claro— así que la
+ * tinta invertida también se da la vuelta.
+ *
+ * Sin esto, las celdas más altas salían en blanco sobre un azul claro: el
+ * número que más importa de la retícula era justo el que no se leía. La regla
+ * no es «blanco sobre los pasos altos», es «lo contrario de lo oscuro que sea
+ * el relleno», y eso depende del modo.
+ */
+@media (prefers-color-scheme: dark) {
+  .heat-cell-filled[data-ink='reverse'] {
+    color: #0e1116;
+  }
+}
+
+/*
+ * La clave de una escala continua: de menos a más, con los extremos dichos.
+ *
+ * Una retícula de calor sin esto es tinta sin unidad — el lector ve que una
+ * celda es más oscura que otra y no sabe si eso son diez lecturas o diez mil.
+ */
+.heat-scale {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin-top: 0.5rem;
+  font-size: 0.72rem;
+  color: var(--ink-soft);
+}
+
+.heat-scale-steps {
+  display: flex;
+  gap: 2px;
+}
+
+.heat-scale-steps span {
+  width: 1.4rem;
+  height: 0.55rem;
+  border-radius: 2px;
+}
+
+/* Comercio exterior: mapa mundial y tipo de gráfico ------------------------ */
+
+/*
+ * La cabecera de un panel con selector: el título a la izquierda y los botones
+ * a la derecha, y en un teléfono los botones bajan debajo del título.
+ */
+.panel-head-kind {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--s1) var(--s2);
+}
+
+.panel-head-kind > div:first-child {
+  flex: 1 1 18rem;
+  min-width: 0;
+}
+
+.chart-kind {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem;
+  flex: none;
+}
+
+.chart-kind .chip {
+  font-size: 0.78rem;
+  padding: 0.26rem 0.65rem;
+}
+
+/* Los cuadrados: una rendija del color del panel entre uno y otro. */
+.square-rect {
+  stroke: var(--chart-surface, var(--panel));
+  stroke-width: 2;
+}
+
+.square-pick {
+  cursor: pointer;
+}
+
+.square-pick:hover .square-rect {
+  stroke: var(--ink-soft);
+}
+
+.square-on {
+  stroke: var(--parallel);
+  stroke-width: 3;
+}
+
+.square-name {
+  font-size: 12px;
+  font-weight: 600;
+  pointer-events: none;
+}
+
+.square-value {
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+  pointer-events: none;
+}
+
+.world-map {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s1);
+}
+
+.world-map-frame {
+  position: relative;
+  width: 100%;
+}
+
+.world-map .heat-scale {
+  flex-wrap: wrap;
+}
+
+.world-country path,
+.world-country circle {
+  stroke: var(--panel);
+  stroke-width: 0.6;
+  stroke-linejoin: round;
+  transition:
+    stroke var(--fast) var(--ease),
+    stroke-width var(--fast) var(--ease);
+}
+
+.world-country-data {
+  cursor: pointer;
+  outline: none;
+}
+
+.world-country-data:hover path,
+.world-country-data:hover circle,
+.world-country-data:focus-visible path,
+.world-country-data:focus-visible circle {
+  stroke: var(--ink);
+  stroke-width: 1.4;
+}
+
+/* El elegido lleva el mismo naranja que la marca de elección del resto del informe. */
+.world-country-on path,
+.world-country-on circle {
+  stroke: var(--parallel);
+  stroke-width: 2.2;
+}
+
+/* Bolivia es el origen, no un socio: se marca con el contorno de tinta. */
+.world-country-home path {
+  fill: var(--panel-tint) !important;
+  stroke: var(--ink);
+  stroke-width: 1.4;
+}
+
+.world-home-key {
+  background: var(--panel-tint);
+  outline: 1.5px solid var(--ink);
+  outline-offset: -1.5px;
+}
+
+.world-map-tip {
+  position: absolute;
+  transform: translate(12px, -110%);
+  pointer-events: none;
+  white-space: nowrap;
+  z-index: 2;
+}
+
+.country-card {
+  margin-top: var(--s2);
+  padding-top: var(--s2);
+  border-top: 1px solid var(--rule);
+  display: flex;
+  flex-direction: column;
+  gap: var(--s1);
+}
+
+.country-card h3 {
+  margin: 0;
+  font-size: 1rem;
+}
+
+.country-figures {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(11rem, 1fr));
+  gap: var(--s1) var(--s2);
+  margin: 0;
+}
+
+.country-figures dt {
+  font-size: 0.72rem;
+  color: var(--ink-soft);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.country-figures dd {
+  margin: 0.1rem 0 0;
+  font-size: 1.05rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.country-figures .country-aside {
+  font-size: 0.78rem;
+  font-weight: 400;
+  color: var(--ink-soft);
+}
+
+/* Donation --------------------------------------------------------------- */
+
+/*
+ * The ask sits in the masthead beside the timestamp, so it is on every section
+ * and shouts on none. It borrows the pill of the download controls rather than
+ * inventing a shape, and spends the only warm hue on the page — the parallel
+ * hue, which the charts already use for "market" — on its outline alone.
+ */
+
+.donate-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  appearance: none;
+  cursor: pointer;
+  font-family: var(--mono);
+  font-size: 0.75rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  padding: 0.35rem 0.85rem;
+  border: 1px solid var(--rule);
+  border-radius: 999px;
+  background: var(--panel);
+  color: var(--ink-soft);
+  transition:
+    border-color var(--fast) var(--ease),
+    color var(--fast) var(--ease),
+    transform var(--fast) var(--ease);
+}
+
+.donate-btn:hover {
+  border-color: var(--parallel);
+  color: var(--parallel);
+  transform: translateY(-1px);
+}
+
+.donate-btn:focus-visible {
+  outline: 2px solid var(--official);
+  outline-offset: 2px;
+}
+
+.donate-dialog {
+  width: min(24rem, calc(100vw - 2rem));
+  padding: 0;
+  border: 1px solid var(--rule);
+  border-radius: var(--radius);
+  background: var(--panel);
+  color: var(--ink);
+  box-shadow: var(--shadow);
+}
+
+.donate-dialog::backdrop {
+  background: rgb(16 24 40 / 0.42);
+}
+
+.donate-body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s2);
+  padding: var(--s3);
+}
+
+.donate-lead {
+  margin: 0;
+  font-size: 0.88rem;
+  color: var(--ink-soft);
+}
+
+/*
+ * A QR is read by a camera, not by a reader: it keeps its own white ground and
+ * quiet zone in both themes, because a code inverted for the dark palette is a
+ * code that does not scan.
+ */
+.donate-qr {
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--s1);
+  padding: var(--s2);
+  border: 1px solid var(--rule);
+  border-radius: var(--radius);
+  background: #ffffff;
+}
+
+.donate-qr img {
+  display: block;
+  width: 220px;
+  height: 220px;
+}
+
+.donate-test {
+  font-family: var(--mono);
+  font-size: 0.68rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+}
+
+.donate-note {
+  margin: 0;
+  font-size: 0.78rem;
+  color: var(--ink-soft);
+}
+
+.donate-close {
+  align-self: flex-end;
+  appearance: none;
+  cursor: pointer;
+  font: inherit;
+  font-size: 0.85rem;
+  padding: 0.4rem 1rem;
+  border: 1px solid var(--rule);
+  border-radius: 999px;
+  background: var(--panel-tint);
+  color: var(--ink-soft);
+  transition:
+    border-color var(--fast) var(--ease),
+    color var(--fast) var(--ease);
+}
+
+.donate-close:hover {
+  border-color: var(--ink-soft);
+  color: var(--ink);
+}
+
+/* Places map ------------------------------------------------------------- */
+
+/*
+ * The map is drawn, not tiled. There is no basemap to fetch, no key to keep and
+ * nothing to load from a third party at read time: the outline is a committed
+ * path and the marks are nine circles over it. It costs the page about thirty
+ * kilobytes once and works with the network unplugged.
+ */
+
+.map-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1.35fr) minmax(240px, 0.9fr);
+  gap: var(--s3);
+  align-items: start;
+}
+
+@media (max-width: 860px) {
+  .map-layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+/*
+ * The frame is the drawing, exactly.
+ *
+ * It used to be capped with `max-height`, which does not shorten an SVG: it
+ * letterboxes it. The box stayed as wide as its column while the country inside
+ * shrank to fit the height, and the hover card — placed as a percentage of the
+ * box — ended up as much as eighty pixels away from the mark it belonged to.
+ * Capping the width instead keeps box and drawing the same rectangle, so the
+ * card lands on its point at every size.
+ */
+.map-frame {
+  position: relative;
+  width: 100%;
+  max-width: calc(74vh * var(--map-aspect, 0.884));
+  margin-inline: auto;
+}
+
+.map-svg {
+  width: 100%;
+  height: 100%;
+  display: block;
+  overflow: visible;
+}
+
+/*
+ * El mapa del capítulo departamental, que es un selector y no un lienzo.
+ *
+ * El marco de `places` se dimensiona contra el alto de la ventana porque ahí el
+ * mapa **es** la figura y sus marcas tienen que poder distinguirse una de otra.
+ * Aquí el mapa comparte panel con la lista ordenada y con todo lo que se abre
+ * debajo, y ocupando tres cuartos de pantalla dejaba a su propia lista fuera de
+ * la vista.
+ */
+.map-frame-compact {
+  max-width: min(34rem, calc(52vh * var(--map-aspect, 0.884)));
+}
+
+.map-land path {
+  fill: var(--panel-tint);
+  stroke: var(--rule);
+  stroke-width: 1.6;
+  stroke-linejoin: round;
+}
+
+.map-mark {
+  cursor: pointer;
+  outline: none;
+}
+
+.map-hit {
+  fill: transparent;
+}
+
+.map-dot {
+  fill: var(--official);
+  fill-opacity: 0.72;
+  stroke: var(--panel);
+  stroke-width: 1.6;
+  transition:
+    fill-opacity var(--fast) var(--ease),
+    r var(--fast) var(--ease);
+}
+
+.map-mark:hover .map-dot,
+.map-mark-on .map-dot {
+  fill-opacity: 1;
+  stroke-width: 2.6;
+}
+
+/* Keyboard focus has to be visible on a shape with no border of its own. */
+.map-mark:focus-visible .map-dot {
+  stroke: var(--parallel);
+  stroke-width: 3.4;
+  fill-opacity: 1;
+}
+
+.map-tip {
+  position: absolute;
+  z-index: var(--z-sticky-corner);
+  width: max-content;
+  max-width: 19rem;
+  pointer-events: none;
+}
+
+.map-card-name {
+  display: block;
+  font-family: var(--serif);
+  font-size: 1rem;
+  margin-bottom: 0.3rem;
+}
+
+.map-card-list {
+  list-style: none;
+  margin: 0.4rem 0 0;
+  padding: 0.4rem 0 0;
+  border-top: 1px solid var(--rule-soft);
+  font-size: 0.76rem;
+  color: var(--ink-soft);
+}
+
+.map-card-list li {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.8rem;
+  padding: 0.1rem 0;
+}
+
+.map-card-list em {
+  font-style: normal;
+  font-variant-numeric: tabular-nums;
+  color: var(--ink);
+  white-space: nowrap;
+}
+
+.map-side-head {
+  margin: 0 0 var(--s1);
+  font-size: 0.68rem;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+  font-weight: 600;
+}
+
+.map-side-head + .map-list + .map-side-head {
+  margin-top: var(--s3);
+}
+
+.map-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.map-row {
+  display: grid;
+  grid-template-columns: 1fr auto auto;
+  gap: 0.6rem;
+  align-items: baseline;
+  width: 100%;
+  appearance: none;
+  cursor: pointer;
+  text-align: left;
+  font: inherit;
+  font-size: 0.84rem;
+  color: var(--ink-soft);
+  background: none;
+  border: 0;
+  border-bottom: 1px solid var(--rule-soft);
+  padding: 0.42rem 0.2rem;
+  transition: color var(--fast) var(--ease);
+}
+
+.map-row:hover {
+  color: var(--ink);
+}
+
+.map-row-on {
+  color: var(--ink);
+  font-weight: 600;
+}
+
+.map-row-kind {
+  font-size: 0.68rem;
+  color: var(--ink-soft);
+  font-weight: 400;
+}
+
+.map-row-count {
+  font-variant-numeric: tabular-nums;
+  color: var(--ink-soft);
+  font-weight: 400;
+}
+
+.map-note {
+  margin: var(--s2) 0 0;
+  font-size: 0.76rem;
+  line-height: 1.5;
+  color: var(--ink-soft);
+}
+
+/*
+ * The places chapter.
+ *
+ * A scatter of premises with no basemap under it: tiles would call a third
+ * party on every pan and hand it the reader's address, and several thousand
+ * shops already draw the avenues on their own.
+ *
+ * What the scatter needed was not a basemap but a way in. It zooms, it pans and
+ * it says how far a centimetre is, because a city drawn at municipal scale is
+ * one dark patch and nothing else.
+ */
+.places-map {
+  margin: 0;
+  background: var(--panel);
+  border: 1px solid var(--rule);
+  border-radius: var(--radius);
+  padding: var(--s2);
+}
+
+.places-map-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s1) var(--s2);
+  margin-bottom: var(--s2);
+}
+
+.places-map-keys {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.9rem;
+  font-size: 0.76rem;
+  color: var(--ink-soft);
+}
+
+.places-map-key {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.places-map-swatch {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--official);
+  opacity: 0.75;
+}
+
+.places-map-swatch-reg {
+  background: var(--parallel);
+  opacity: 0.9;
+}
+
+.places-map-zoom-read {
+  font-family: var(--mono);
+  font-size: 0.7rem;
+  letter-spacing: 0.04em;
+}
+
+.places-map-tools {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.places-map-sep {
+  width: 1px;
+  height: 1.1rem;
+  background: var(--rule);
+  margin: 0 0.25rem;
+}
+
+/* The zoom controls: the same pill as a download, doing a different job. */
+.map-tool {
+  font-family: var(--mono);
+  font-size: 0.78rem;
+  line-height: 1;
+  min-width: 1.9rem;
+  padding: 0.38rem 0.5rem;
+  border: 1px solid var(--rule);
+  border-radius: 999px;
+  background: var(--panel);
+  color: var(--ink-soft);
+  cursor: pointer;
+  transition:
+    border-color var(--fast) var(--ease),
+    color var(--fast) var(--ease),
+    background var(--fast) var(--ease);
+}
+
+.map-tool-wide {
+  min-width: 0;
+  padding: 0.38rem 0.75rem;
+  font-family: var(--sans);
+  font-size: 0.72rem;
+}
+
+.map-tool:hover {
+  border-color: var(--ink-soft);
+  color: var(--ink);
+}
+
+.map-tool-on {
+  background: var(--ink);
+  border-color: var(--ink);
+  color: var(--panel);
+}
+
+/* Al tope del zoom el boton se apaga, en vez de aceptar el clic y no hacer nada. */
+.map-tool:disabled,
+.map-tool:disabled:hover {
+  opacity: 0.4;
+  cursor: default;
+  border-color: var(--rule);
+  color: var(--ink-soft);
+}
+
+/*
+ * A map has to fit on the screen it is read on.
+ *
+ * Nothing here caps it, and that is deliberate. `max-height` on an SVG
+ * letterboxes rather than shortens — the box would stay wide while the drawing
+ * shrank inside it, and the scale bar, which is a percentage of this box, would
+ * start stating a distance it is not. The height is decided in the component
+ * instead: the frame is built to the shape of this box, measured.
+ */
+.places-map-plot {
+  position: relative;
+  /* Centred for the wide screens where the component caps its width. */
+  margin-inline: auto;
+}
+
+.places-map-svg {
+  width: 100%;
+  height: auto;
+  display: block;
+  background: var(--panel-tint);
+  border: 1px solid var(--rule);
+  border-radius: calc(var(--radius) - 4px);
+  overflow: hidden;
+  /* A map you drag has to say so before it is dragged. */
+  cursor: grab;
+  /*
+   * A finger moving down the screen scrolls the article, and does not pan.
+   *
+   * `touch-action: none` would give the map every gesture inside it, which on a
+   * phone means a reader who puts a thumb on a figure half the height of the
+   * screen cannot get past it. Sideways drags still pan, the buttons still
+   * frame, and the page keeps moving.
+   */
+  touch-action: pan-y pinch-zoom;
+}
+
+.places-map-svg:active {
+  cursor: grabbing;
+}
+
+/*
+ * Every dot of one kind in a single path.
+ *
+ * Semi-transparent on purpose: where two premises sit on the same block the
+ * overlap darkens, so density reads off the page without a heat map that would
+ * invent a surface the data does not have.
+ */
+/*
+ * The streets under the points.
+ *
+ * Raster squares from OpenStreetMap, which is what turns a scatter into a map:
+ * without them a reader who does not already carry the city in their head
+ * cannot tell a ring road from an edge of the data. They are dimmed a little
+ * so the premises stay the subject and the streets stay the reference.
+ */
+.places-map-tiles image {
+  opacity: 0.85;
+}
+
+@media (prefers-color-scheme: dark) {
+  /*
+   * There is no dark tile set to fetch, so the light one is turned over: the
+   * hue rotation puts the greens and blues back the right way round after the
+   * inversion, and the map sits on a dark page without glaring off it.
+   */
+  .places-map-tiles image {
+    filter: invert(1) hue-rotate(180deg) brightness(0.92) contrast(0.88) saturate(0.75);
+    opacity: 0.75;
+  }
+}
+
+/* The licence asks for the credit; it sits where it cannot cover a premise. */
+.places-map-credit {
+  position: absolute;
+  right: 0.35rem;
+  bottom: 0.35rem;
+  font-size: 0.62rem;
+  font-family: var(--sans);
+  color: var(--ink-soft);
+  text-decoration: none;
+  background: color-mix(in srgb, var(--panel) 78%, transparent);
+  border-radius: 3px;
+  padding: 0.05rem 0.3rem;
+}
+
+.places-map-credit:hover {
+  color: var(--ink);
+}
+
+.poi-layer {
+  fill: var(--official);
+  fill-opacity: 0.75;
+  /*
+   * A hairline of paper around each dot, so a cluster over a street stays
+   * legible.
+   *
+   * `vector-effect` is not decoration here. The drawing works in Mercator
+   * units, where a whole city is a fifth of a unit across, so a stroke width
+   * given in user units would be painted thousands of times wider than the map
+   * and cover it end to end. This keeps the line at six tenths of a screen
+   * pixel whatever the zoom.
+   */
+  stroke: var(--panel);
+  stroke-width: 0.6;
+  vector-effect: non-scaling-stroke;
+  paint-order: stroke fill;
+}
+
+.poi-layer-regulated {
+  fill: var(--parallel);
+  fill-opacity: 0.92;
+}
+
+/*
+ * La marca del punto senalado: un aro, no un tapon.
+ *
+ * Era un disco lleno de tinta sobre el punto, y funcionaba mientras el punto
+ * media tres pixeles siempre. Ahora crece al acercarse, y un disco de ese
+ * tamano tapa justo lo que la ficha esta describiendo, empezando por el color
+ * que dice si la actividad es regulada. El aro rodea el punto y lo deja verse.
+ */
+.poi-halo {
+  fill: var(--ink);
+  fill-opacity: 0.1;
+}
+
+.poi-core {
+  fill: none;
+  stroke: var(--ink);
+  stroke-opacity: 0.9;
+  /* En pixeles de pantalla, como el filo de los puntos: el dibujo trabaja en
+     unidades donde una ciudad mide mil, y un grosor en unidades seria una
+     mancha. */
+  stroke-width: 1.6;
+  vector-effect: non-scaling-stroke;
+}
+
+/*
+ * La ficha del lugar bajo el puntero.
+ *
+ * Misma caja que la del mapa de Bolivia —`.tooltip` dentro de `.map-tip`—
+ * porque son dos mapas del mismo tablero y una ficha que se lee distinta en
+ * cada uno es una ficha que hay que aprender dos veces. Lo unico propio es
+ * donde se cuelga: alli el punto es un boton del DOM y basta con posicionarse
+ * sobre el; aqui los lugares son un solo `path` y la posicion se calcula
+ * contra la ventana del dibujo.
+ *
+ * El pie del mapa dice una linea —nombre, familia, direccion— y esa linea
+ * esta lejos del punto y no le cabe el resto: la marca, la zona, con cuanta
+ * confianza esta medido, que registro boliviano lo confirmaria y en que
+ * coordenada se archivo.
+ *
+ * No recibe puntero: si lo recibiera taparia el punto que la abrio, el mapa
+ * perderia el hover debajo y la tarjeta parpadearia; ademas un arrastre que
+ * empezara encima de ella no llegaria al mapa.
+ */
+.places-map-tip {
+  /* Nunca mas ancha que el plano: el componente la sostiene dentro por los
+     lados, y no puede con una ficha que ya no cabe. */
+  max-width: min(19rem, 100%);
+}
+
+/*
+ * En un telefono la ficha no flota: va debajo del mapa, en lugar del pie de una
+ * linea. Sobre un plano de trescientos pixeles no hay lado del punto donde
+ * quepa sin tapar el terreno que describe.
+ */
+.places-map-docked .tooltip {
+  box-shadow: none;
+}
+
+.places-map-flag {
+  display: inline-block;
+  margin-bottom: 0.15rem;
+  font-size: 0.68rem;
+  color: var(--parallel);
+  border: 1px solid color-mix(in srgb, var(--parallel) 45%, transparent);
+  background: color-mix(in srgb, var(--parallel) 12%, transparent);
+  border-radius: 999px;
+  padding: 0.02rem 0.45rem;
+  white-space: nowrap;
+}
+
+/*
+ * Los campos, en dos columnas que cuadran entre filas.
+ *
+ * No sirve aqui el `.t-row` del resto de las fichas, que separa etiqueta y
+ * valor a los extremos: eso vale para una cifra corta y deja una direccion de
+ * cuarenta caracteres pegada al margen derecho y partida donde toque. La
+ * rejilla vive en la lista y cada fila se disuelve en ella con
+ * `display: contents`, que es lo que deja envolver cada par en su `div` sin
+ * romper el cuadre.
+ */
+.places-map-fields {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 0.16rem 0.7rem;
+  margin: 0.4rem 0 0;
+  padding-top: 0.4rem;
+  border-top: 1px solid var(--rule-soft);
+  font-size: 0.78rem;
+}
+
+.places-map-field {
+  display: contents;
+}
+
+.places-map-fields dt {
+  font-size: 0.72rem;
+  color: var(--ink-soft);
+  white-space: nowrap;
+}
+
+.places-map-fields dd {
+  margin: 0;
+  color: var(--ink);
+  overflow-wrap: anywhere;
+}
+
+/*
+ * The scale bar: a scatter with no distance on it cannot be read.
+ *
+ * It spans the plot edge to edge and carries no padding of its own, because the
+ * bar's width is a percentage of its parent and the parent has to be exactly as
+ * wide as the drawing. A bar sized against a padded box would be a scale bar
+ * that states a distance it is not.
+ */
+.places-map-scale {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0.7rem;
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  pointer-events: none;
+  font-size: 0.68rem;
+  font-family: var(--mono);
+  color: var(--ink-soft);
+}
+
+.places-map-scale-bar {
+  display: block;
+  height: 6px;
+  min-width: 10px;
+  margin-left: 0.85rem;
+  border: 1px solid var(--ink-soft);
+  border-top: 0;
+  background: color-mix(in srgb, var(--ink-soft) 22%, transparent);
+}
+
+.places-map-scale-text {
+  background: color-mix(in srgb, var(--panel) 82%, transparent);
+  border-radius: 999px;
+  padding: 0.05rem 0.4rem;
+}
+
+.places-map-foot {
+  margin-top: var(--s2);
+  color: var(--ink-soft);
+  font-size: 0.86rem;
+  min-height: 2.6em;
+  line-height: 1.5;
+}
+
+/*
+ * La coordenada, escrita como el sitio al que lleva.
+ *
+ * Mismo enlace en la ficha del mapa y en la tabla de abajo, porque son el mismo
+ * campo del mismo registro. En la ficha flotante no se puede pulsar —la tapa el
+ * `pointer-events: none` que le impide comerse el hover del punto— y aun asi va
+ * subrayado: una direccion que se puede leer y copiar vale, y en la ficha
+ * acoplada del telefono y en la tabla si se pulsa.
+ */
+.places-map-link {
+  color: var(--official);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  white-space: nowrap;
+}
+
+.places-map-link:hover {
+  color: var(--ink);
+}
+
+/* El registro completo, debajo del dibujo ---------------------------------- */
+
+/*
+ * Un mapa dice donde esta cada lugar y no dice cual es cada uno: cuatro mil
+ * puntos del mismo color no se leen de uno en uno, y la ficha del puntero
+ * ensena uno cada vez. La tabla es la misma seleccion en la forma que se
+ * ordena con la vista, se copia y se compara.
+ */
+.places-table {
+  margin-top: var(--s2);
+}
+
+.places-table .tile-title {
+  margin: 0;
+  font-family: var(--serif);
+  font-size: 1rem;
+}
+
+/*
+ * Confianza baja: un lugar que la fuente no confirma. Se ve en la fila, en su
+ * celda y en una nota sobre la tabla. El texto va en el color de tinta y el
+ * aviso en el borde y el fondo, porque el ámbar sobre fondo claro no llega al
+ * contraste de lectura.
+ */
+.place-flag-low {
+  display: inline-block;
+  margin-left: 0.35rem;
+  font-size: 0.66rem;
+  font-weight: 600;
+  color: var(--ink);
+  border: 1px solid var(--warning);
+  background: color-mix(in srgb, var(--warning) 22%, transparent);
+  border-radius: 999px;
+  padding: 0.02rem 0.45rem;
+  white-space: nowrap;
+}
+
+.place-row-low-confidence > td {
+  background: color-mix(in srgb, var(--warning) 8%, transparent);
+}
+
+.place-row-low-confidence > td:first-child {
+  box-shadow: inset 3px 0 0 var(--warning);
+}
+
+.places-low-confidence-note {
+  margin: 0.35rem 0 0.5rem;
+  font-size: 0.78rem;
+  color: var(--ink-soft);
+}
+
+.places-table-count {
+  margin-left: auto;
+  font-family: var(--mono);
+  font-size: 0.68rem;
+  color: var(--ink-soft);
+  font-variant-numeric: tabular-nums;
+}
+
+/*
+ * Nueve columnas no caben en una pantalla estrecha y no deben intentarlo: el
+ * suelo mantiene legible cada una y `.table-wrap` las desplaza por dentro, que
+ * es como se desplaza toda tabla ancha de este informe.
+ */
+.grid-table-places {
+  min-width: 1080px;
+}
+
+/* Dos lineas por celda —nombre y codigo— piden alinear por arriba. */
+.grid-table-places td {
+  vertical-align: top;
+}
+
+/* Mientras se arma el tablero --------------------------------------------- */
+
+/*
+ * La primera lectura despues de un despliegue tarda minutos por diseno, y hasta
+ * que existio `app/loading.tsx` eso era una pagina en blanco: sin titulo, sin
+ * explicacion y sin senal de que algo estuviera pasando, que se lee como un
+ * sitio caido y no como uno trabajando.
+ *
+ * Ninguna caja de estas lleva una cifra dentro. Un rectangulo gris con forma de
+ * numero se lee como un dato que ya cargo.
+ */
+
+.loading-note {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.7rem;
+  background: var(--panel-tint);
+  border: 1px solid var(--rule);
+  border-radius: var(--radius);
+  padding: var(--s2) var(--s3);
+  margin-bottom: var(--s2);
+}
+
+.loading-note b {
+  display: block;
+  font-size: 0.95rem;
+}
+
+.loading-note span {
+  color: var(--ink-soft);
+  font-size: 0.88rem;
+}
+
+.loading-note .loading-spin {
+  margin-top: 0.2rem;
+}
+
+/*
+ * Gira mientras haya espera. Bajo `prefers-reduced-motion` la regla global de
+ * mas arriba lo deja quieto, y entonces sigue siendo un anillo con un cuarto de
+ * otro color: quieto tambien dice «todavia no».
+ */
+.loading-spin {
+  flex: none;
+  width: 14px;
+  height: 14px;
+  border: 2px solid var(--rule);
+  border-top-color: var(--official);
+  border-radius: 50%;
+  animation: spin 850ms linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes sheen {
+  from {
+    background-position: -180% 0;
+  }
+  to {
+    background-position: 180% 0;
+  }
+}
+
+.skeleton {
+  border-radius: 8px;
+  background-color: var(--rule-soft);
+  background-image: linear-gradient(90deg, transparent 20%, var(--panel) 50%, transparent 80%);
+  background-size: 180% 100%;
+  animation: sheen 1.4s ease-in-out infinite;
+}
+
+.skeleton-head {
+  height: 18px;
+  width: 38%;
+  margin-bottom: var(--s2);
+}
+
+.skeleton-strip {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: var(--s2);
+}
+
+.skeleton-stat {
+  height: 66px;
+}
+
+/*
+ * El hueco de un grafico mide lo que va a medir el grafico.
+ *
+ * La cifra estaba fija cuando los marcos tambien lo estaban. Ahora el marco
+ * sigue a la pantalla, asi que un placeholder fijo se queda corto justo donde
+ * mas se nota — en un monitor grande abria 230 px y cerraba 475, y la pagina
+ * daba un salto al terminar de cargar. Es la misma regla que `.chart-frame`,
+ * y tiene que seguir siendola.
+ */
+.skeleton-chart {
+  height: clamp(300px, 33vh, 520px);
+}
+
+.skeleton-line {
+  height: 12px;
+  margin-top: 0.6rem;
+}
+
+.skeleton-line-short {
+  width: 62%;
+}
+
+/* La espera de una seleccion, dicha en la misma franja que lleva su recuento. */
+.strap-loading {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-family: var(--mono);
+  font-size: 0.7rem;
+  letter-spacing: 0.05em;
+  color: var(--ink-soft);
+}
+
+/* Rejilla de dos gráficos ------------------------------------------------ */
+
+/*
+ * Two charts to a row, and exactly two.
+ *
+ * `.grid-two` fits as many tracks as the width allows, which is right for cards
+ * of unknown number and wrong for a group of four charts: on a wide screen it
+ * takes three and leaves the fourth alone in a row with two thirds of it empty
+ * — the hole a reader points at and calls the page broken. Four charts want a
+ * two by two.
+ *
+ * `minmax(0, 1fr)` and not `1fr`: a grid track's default minimum is its
+ * content, and a chart's axis labels are content, so a plain `1fr` lets a long
+ * category name push its column past its share and out of the page.
+ */
+.grid-pair {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--s2);
+}
+
+@media (max-width: 1180px) {
+  .grid-pair {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Rejilla de tres gráficos ----------------------------------------------- */
+
+/*
+ * Tres gráficos por fila, y las filas siempre llenas.
+ *
+ * Energía, Recursos naturales y Medio ambiente iban de dos en dos, y a 1440 px
+ * cada gráfico anual de veinte años ocupaba media pantalla para decir lo que
+ * dice en un tercio: la lectura de un capítulo era un desplazamiento largo con
+ * mucho aire. A tres por fila el capítulo entero cabe en dos o tres pantallas
+ * y las filas siguen leyéndose como filas, que es lo que el lector pidió.
+ *
+ * Tres fijas y no `auto-fit`: la cuenta de columnas tiene que depender del
+ * ancho de la pantalla y no del de la columna que la sostiene, porque estos
+ * paneles viven a la derecha de la barra de filtros y con `auto-fit` a 1100 px
+ * salían dos. Por debajo de 1100 son dos, y en el móvil una. `minmax(0, 1fr)`
+ * por la misma razón que en `.grid-pair`: un rótulo largo del eje no ensancha
+ * su columna.
+ *
+ * La última fila no queda con un hueco. Nueve gráficos son tres filas justas,
+ * pero ocho o diez no, y un panel solo en su fila con dos tercios vacíos al
+ * lado es el agujero que se lee como «la página está rota». El que sobra se
+ * ensancha hasta el borde: uno solo ocupa la fila entera, y el segundo de dos
+ * se lleva las dos columnas que quedan. A dos columnas la regla es la misma con
+ * el impar; a una no hay nada que ensanchar, y se apaga —un `span` sobre una
+ * sola columna crearía columnas implícitas fuera de la página—.
+ */
+.grid-three {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--s2);
+}
+
+/*
+ * Las cifras de cabecera, de dos en dos dentro del panel.
+ *
+ * A un tercio de pantalla el panel mide unos 320 px, y con el mínimo de 158
+ * que la franja usa a ancho completo las cinco cifras de la electricidad se
+ * apilaban de a una: medio panel de números y el gráfico de al lado estirado
+ * hasta igualar ese alto. Con 120 caben dos por renglón y el alto se reparte.
+ */
+.grid-three .stat-strip {
+  grid-template-columns: repeat(auto-fit, minmax(min(120px, 100%), 1fr));
+}
+
+.grid-three > .panel:last-child:nth-child(3n + 1) {
+  grid-column: 1 / -1;
+}
+
+.grid-three > .panel:last-child:nth-child(3n + 2) {
+  grid-column: 2 / -1;
+}
+
+@media (max-width: 1099px) {
+  .grid-three {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .grid-three > .panel:last-child:nth-child(n) {
+    grid-column: auto;
+  }
+  .grid-three > .panel:last-child:nth-child(odd) {
+    grid-column: 1 / -1;
+  }
+}
+
+@media (max-width: 720px) {
+  .grid-three {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .grid-three > .panel:last-child:nth-child(n) {
+    grid-column: auto;
+  }
+}
+
+/*
+ * El gráfico se queda con el alto que sobra, en vez de dejarlo en blanco.
+ *
+ * Dos paneles de la misma fila miden lo mismo —la rejilla estira el más corto
+ * hasta el más alto—, pero lo que va dentro medía lo suyo y nada más: quince
+ * barras al lado de veinticuatro dejaban un tercio del panel izquierdo vacío,
+ * y el archivo mensual al lado de un ranking largo dejaba el doble. Ese hueco
+ * es el que se ve como «la página está rota»: un marco dibujado alrededor de
+ * nada.
+ *
+ * El panel pasa a ser una columna flexible y el gráfico crece dentro de ella,
+ * así que el alto sobrante se lo lleva el dibujo y el pie de figura queda
+ * apoyado en el borde de abajo. El `flex-basis: auto` conserva el alto que
+ * cada gráfico pide —sigue siendo el suelo, y en una sola columna no cambia
+ * nada—, y el `flex-shrink: 0` impide que una fila alta encoja el de al lado.
+ *
+ * Las barras no engordan al crecer el marco: `BAR_CAP` las tiene topadas en
+ * `charts.tsx`, así que lo que gana el gráfico es aire entre barras, que es
+ * exactamente lo que le faltaba.
+ *
+ * Vale igual para la rejilla de tres: son las mismas filas de paneles con la
+ * misma altura compartida, sólo que con uno más por fila.
+ */
+.grid-pair > .panel,
+.grid-three > .panel {
+  display: flex;
+  flex-direction: column;
+}
+
+.grid-pair > .panel > .chart-frame,
+.grid-pair > .panel > .chart-stack,
+.grid-pair > .panel > .chart-stack > .chart-frame,
+.grid-three > .panel > .chart-frame,
+.grid-three > .panel > .chart-stack,
+.grid-three > .panel > .chart-stack > .chart-frame {
+  flex: 1 0 auto;
+  min-height: 0;
+}
+
+/* Nube de temas ---------------------------------------------------------- */
+
+/*
+ * The watchlist as a cloud rather than as a ranking.
+ *
+ * Not a canvas and not a library: words are text, so they wrap with the column,
+ * survive a zoom, can be selected and read by a screen reader, and print. The
+ * layout is the browser's own line breaking — which is what makes the block
+ * reflow correctly at 400 px, where every scattered-layout cloud collapses into
+ * a pile.
+ *
+ * Size is the square root of the count and colour is the adverse share of that
+ * subject's own coverage; both are set inline by the component, because both
+ * are data and not style.
+ */
+
+.cloud {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: center;
+  gap: 0.1rem 0.55rem;
+  padding: var(--s2) 0 var(--s1);
+  line-height: 1.7;
+}
+
+.cloud-word {
+  font-family: var(--serif);
+  letter-spacing: -0.01em;
+  border: 1px solid transparent;
+  background: none;
+  padding: 0.05rem 0.3rem;
+  border-radius: 7px;
+  cursor: pointer;
+  transition:
+    background var(--fast) var(--ease),
+    border-color var(--fast) var(--ease),
+    transform var(--fast) var(--ease);
+}
+
+.cloud-word:hover {
+  background: var(--rule-soft);
+  border-color: var(--rule);
+  transform: translateY(-1px);
+}
+
+.cloud-word:focus-visible {
+  outline: 2px solid var(--official);
+  outline-offset: 1px;
+}
+
+/*
+ * The chosen word keeps its own colour and gains a frame.
+ *
+ * Repainting it would cost the one thing the colour is there to say — how
+ * adversely that subject is covered — so selection is carried by the box.
+ */
+.cloud-word-on {
+  background: var(--panel-tint);
+  border-color: currentColor;
+}
+
+/* Rail downloads --------------------------------------------------------- */
+
+/*
+ * The two buttons, on a 264-pixel rail.
+ *
+ * `.download` lays its label and buttons on one line, which is right beside a
+ * chart and impossible in the pane: the label wraps to two lines and shoves the
+ * CSV button off the edge. Here the label takes its own row and the two formats
+ * share the one under it.
+ */
+.rail-download {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.4rem;
+}
+
+.rail-download .download-btn {
+  text-align: center;
+}
+
+.rail-hint {
+  font-size: 0.72rem;
+  color: var(--ink-soft);
+  line-height: 1.4;
+  margin: 0.45rem 0 0;
+}
+
+/* Bolivia ante el mundo -------------------------------------------------- */
+
+/*
+ * The world, the region and Bolivia, one row each.
+ *
+ * Side by side is what the eye compares best, and it is how this started, but a
+ * world GDP in dollars and a region's name do not fit a third of a card: the
+ * figure broke across three lines and «América Latina y el Caribe» was cut to
+ * «América Latin». A row gives the name and the figure the width they need, and
+ * the values still line up down the right edge. The swatch beside each name is
+ * the colour of its line in the chart underneath.
+ */
+.world-unit {
+  margin: 0.15rem 0 0;
+  font-size: 0.74rem;
+  color: var(--ink-soft);
+}
+
+.world-figures {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  margin: 0.7rem 0 0.35rem;
+}
+
+.world-figure {
+  display: flex;
+  align-items: baseline;
+  gap: 0.6rem;
+  min-width: 0;
+}
+
+.world-figure dt {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  flex: 1 1 auto;
+  min-width: 0;
+  font-size: 0.74rem;
+  color: var(--ink-soft);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/*
+ * La clave imita la marca: estas tres series son líneas, así que la clave es un
+ * trazo y no un cuadrado —y la que el gráfico dibuja discontinua lleva su clave
+ * discontinua—. Un cuadrado obliga al lector a traducir de bloque a línea, y
+ * dejaba sin decir cuál de las tres era la de trazo partido.
+ */
+.world-figure dt i,
+.world-legend i {
+  width: 14px;
+  height: 0;
+  border-top: 2px solid currentColor;
+  flex: none;
+  display: inline-block;
+}
+
+.world-figure dt i.world-legend-dash,
+.world-legend i.world-legend-dash {
+  border-top-style: dashed;
+}
+
+.world-figure dd {
+  margin: 0;
+  flex: none;
+  font-family: var(--mono);
+  font-size: 0.84rem;
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.world-figure dd span {
+  margin-left: 0.45rem;
+  font-size: 0.66rem;
+  color: var(--ink-soft);
+}
+
+/* Said under a chart drawn as an index, so it is not read as the totals. */
+.world-index-note {
+  margin: 0.35rem 0 0;
+  font-size: 0.72rem;
+  color: var(--ink-soft);
+}
+
+.world-gap {
+  margin: 0.2rem 0 0.5rem;
+  font-size: 0.78rem;
+  color: var(--ink-soft);
+}
+
+.world-legend {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.35rem 0.9rem;
+  margin-left: auto;
+  font-size: 0.76rem;
+  color: var(--ink-soft);
+}
+
+.world-legend span {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+/* The region is the dashed line in every chart, so its swatch is a dash too. */
+.world-legend .world-legend-dash {
+  width: 14px;
+  height: 0;
+  border-radius: 0;
+  border-top: 2px dashed;
+  background: none;
+}
+
+/*
+ * En un telefono el titulo del registro ya ocupa dos lineas, y la cuenta
+ * empujada a la derecha con `margin-left: auto` se le encarama al lado. En su
+ * propia linea se lee, y el titulo recupera el ancho entero.
+ */
+@media (max-width: 640px) {
+  .places-table .tile-head {
+    flex-wrap: wrap;
+  }
+
+  .places-table-count {
+    flex-basis: 100%;
+    margin-left: 0;
+  }
+}
+
+/*
+ * El identificador de un lugar es un UUID, y entero mide tres lineas de la
+ * celda mas estrecha de la tabla: le gana el sitio al nombre, que es lo que se
+ * viene a leer. Se corta a lo que cabe y el `title` conserva el que se cita.
+ */
+.grid-table-places .cell-id {
+  display: block;
+  max-width: 16ch;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* «Santa Cruz de la Sierra» partido en tres renglones alarga cada fila sin
+   decir nada mas; la tabla ya se desplaza de lado. */
+.grid-table-places .cell-tight {
+  white-space: nowrap;
+}
+
+/* Macro: tabla de estadísticos y vista de análisis ----------------------- */
+
+/*
+ * La tabla macro pasó de ocho columnas a dieciséis.
+ *
+ * El suelo sube en consecuencia: con el de 660 px que usan las demás, las
+ * columnas de cifras se comprimían hasta partir «1.234,56» en dos renglones, y
+ * una tabla que existe para alinear dígitos deja de servir en cuanto los parte.
+ * A este ancho todas caben enteras y la caja se desplaza de lado, que es para
+ * lo que está.
+ */
+.grid-table-macro {
+  min-width: 1320px;
+}
+
+/*
+ * Encabezado en dos pisos, los dos pegados arriba.
+ *
+ * `position: sticky` mide el desplazamiento contra el borde de la caja, así que
+ * el segundo piso pegado en `top: 0` se dibujaría encima del primero. Se lo
+ * baja la altura del primero —dos líneas de 0,68rem más su relleno— y los dos
+ * quedan uno debajo del otro mientras las filas pasan por debajo.
+ */
+.grid-table-macro thead th {
+  top: 1.85rem;
+}
+
+.grid-table-macro .grid-table-group th {
+  top: 0;
+  text-align: center;
+  background: var(--panel-tint);
+  border-bottom: 1px solid var(--rule-soft);
+  color: var(--ink-soft);
+}
+
+.grid-table-macro .grid-table-group th[rowspan] {
+  text-align: left;
+  vertical-align: bottom;
+  border-bottom: 1px solid var(--rule);
+}
+
+/* Una separación tenue entre grupos, para que quince cifras no sean un muro. */
+.grid-table-macro .grid-table-group th + th {
+  border-left: 1px solid var(--rule);
+}
+
+/*
+ * La fila entera es el control que abre el análisis.
+ *
+ * Se marca con el cursor y con el realce al pasar por encima, no con un botón
+ * en una columna extra: la tabla ya tiene dieciséis columnas y una
+ * decimoséptima que solo dijera «ver» le quitaría sitio a una que dice algo.
+ */
+.grid-table-macro .row-openable {
+  cursor: pointer;
+}
+
+.grid-table-macro .row-openable:hover td,
+.grid-table-macro .row-openable:focus-visible td {
+  background: var(--panel-tint);
+}
+
+.grid-table-macro .row-openable:focus-visible {
+  outline: 2px solid var(--official);
+  outline-offset: -2px;
+}
+
+/* El año del extremo, bajo su cifra: el tooltip lo repite entero. */
+.cell-extreme .cell-year {
+  display: block;
+  font-size: 0.68rem;
+  font-weight: 500;
+  color: var(--ink-soft);
+}
+
+.cell-figure {
+  /*
+   * Un ancho que el reparto de la tabla no pueda comerse.
+   *
+   * `table-layout` es automático y reparte el sitio según lo que pide el
+   * contenido; un SVG al 100 % no pide nada, así que estas dos columnas se
+   * quedaban en cuarenta píxeles y sus figuras salían aplastadas mientras los
+   * nombres de los indicadores se llevaban el ancho. Las medidas van en el
+   * propio dibujo, en píxeles, y la celda no se parte.
+   */
+  width: 1px;
+  white-space: nowrap;
+  vertical-align: middle;
+  padding-top: 0.35rem;
+  padding-bottom: 0.35rem;
+}
+
+.cell-figure .spark {
+  display: block;
+  width: 96px;
+  height: 26px;
+}
+
+.cell-figure .strip {
+  display: block;
+  width: 110px;
+  height: 26px;
+}
+
+.spark-empty {
+  color: var(--ink-soft);
+  font-family: var(--mono);
+}
+
+/*
+ * La invitación a abrir, escondida hasta que el puntero llega a la fila.
+ *
+ * Escrita siempre repetiría «analizar» veinte veces por página, que es ruido
+ * en una tabla de cifras. El espacio se reserva igual —`visibility` y no
+ * `display`— para que la fila no cambie de alto al pasar por encima.
+ */
+.cell-figure-open .cell-open {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.2rem;
+  margin-top: 0.15rem;
+  font-size: 0.66rem;
+  letter-spacing: 0.04em;
+  color: var(--official);
+  visibility: hidden;
+}
+
+.grid-table-macro .row-openable:hover .cell-open,
+.grid-table-macro .row-openable:focus-visible .cell-open {
+  visibility: visible;
+}
+
+/* La vista de análisis --------------------------------------------------- */
+
+.analysis {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s3);
+}
+
+/*
+ * La barra que vuelve a la tabla, pegada arriba.
+ *
+ * La vista mide varias pantallas de alto; un control de volver solo al
+ * principio obliga a subir la página entera para salir de ella. Pegado, está
+ * siempre donde el lector lo busca, y con él va el botón que descarga el
+ * informe, que es la otra cosa que se hace desde cualquier punto de la vista.
+ */
+.analysis-bar {
+  position: sticky;
+  top: 0;
+  z-index: var(--z-sticky-corner);
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  padding: 0.55rem 0;
+  background: var(--paper);
+  border-bottom: 1px solid var(--rule);
+}
+
+.analysis-bar .download {
+  margin-left: auto;
+}
+
+.analysis-crumb {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  font-size: 0.72rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+}
+
+.analysis-head h2 {
+  font-family: var(--serif);
+  font-size: clamp(1.3rem, 2.6vw, 1.85rem);
+  line-height: 1.2;
+  margin: 0.2rem 0 0.3rem;
+}
+
+.analysis-sub {
+  margin: 0;
+  font-size: 0.8rem;
+  color: var(--ink-soft);
+  font-family: var(--mono);
+}
+
+.analysis-sub code {
+  background: none;
+  border: none;
+  padding: 0;
+  color: var(--ink-soft);
+}
+
+/*
+ * El párrafo que traduce la fila de estadísticos.
+ *
+ * Va en serif y con filete al costado porque es prosa dentro de una vista de
+ * cifras: el lector tiene que reconocer de un vistazo que esto se lee y no se
+ * consulta.
+ */
+.analysis-reading {
+  margin: 0.7rem 0 0;
+  padding-left: 0.8rem;
+  border-left: 3px solid var(--rule);
+  font-family: var(--serif);
+  font-size: 1.02rem;
+  line-height: 1.6;
+  color: var(--ink-soft);
+  max-width: 70ch;
+}
+
+.stat-block {
+  border: 1px solid var(--rule);
+  border-radius: var(--radius);
+  background: var(--panel);
+  box-shadow: var(--shadow);
+  overflow: hidden;
+}
+
+.stat-block-head {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.5rem 0.8rem;
+  background: var(--panel-tint);
+  border-bottom: 1px solid var(--rule);
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+}
+
+/*
+ * Las casillas se reparten el ancho que haya.
+ *
+ * `auto-fit` y no un número de columnas: los tres bloques tienen cuatro, seis y
+ * seis casillas, y fijar cuatro dejaría a los otros dos con una fila de dos
+ * sueltas al final. Con el suelo de 9rem la cifra más larga —once dígitos de
+ * reservas en dólares— entra sin partirse.
+ */
+.stat-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(9rem, 1fr));
+}
+
+.stat-tile {
+  padding: 0.6rem 0.8rem;
+  border-right: 1px solid var(--rule-soft);
+  border-bottom: 1px solid var(--rule-soft);
+}
+
+.stat-tile-label {
+  display: block;
+  font-size: 0.68rem;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+}
+
+.stat-tile-value {
+  display: block;
+  margin-top: 0.1rem;
+  font-family: var(--mono);
+  font-size: 1.12rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.01em;
+  color: var(--ink);
+}
+
+.stat-tile-hint {
+  display: block;
+  font-size: 0.7rem;
+  color: var(--ink-soft);
+}
+
+.analysis-figure {
+  /*
+   * Caja posicionada, porque la pestaña que no está elegida se aparta con
+   * posición absoluta y tiene que medirse contra esta caja y no contra la
+   * página: apartada contra la página tomaría el ancho de la ventana y
+   * dibujaría un gráfico del tamaño equivocado, que es justo el que acabaría
+   * en el PDF.
+   */
+  position: relative;
+  border: 1px solid var(--rule);
+  border-radius: var(--radius);
+  background: var(--panel);
+  box-shadow: var(--shadow);
+  padding: 0.7rem 0.8rem 0.9rem;
+}
+
+.analysis-figure .strap {
+  margin-bottom: 0.3rem;
+}
+
+/*
+ * La densidad y el violín, uno al lado del otro.
+ *
+ * Son la misma distribución leída de dos maneras y la comparación es el punto:
+ * si la curva marca dos jorobas, el violín tiene que estar a la vista para
+ * confirmarlas. Por debajo de 900 px se apilan, porque media pantalla de móvil
+ * no es un gráfico.
+ */
+.analysis-pair {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--s3);
+}
+
+@media (min-width: 900px) {
+  .analysis-pair {
+    grid-template-columns: 1.35fr 1fr;
+  }
+}
+
+.violin-frame {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.violin-frame svg {
+  width: 100%;
+  max-width: 340px;
+  height: clamp(240px, 30vh, 340px);
+}
+
+.analysis-empty {
+  margin: 0;
+  padding: 1.4rem 0;
+  text-align: center;
+  font-size: 0.85rem;
+  color: var(--ink-soft);
+}
+
+.chart-note {
+  margin: 0.45rem 0 0;
+  font-size: 0.76rem;
+  color: var(--ink-soft);
+}
+
+.chart-note b {
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+}
+
+.analysis-note {
+  margin: 0;
+}
+
+/*
+ * En pantalla angosta la vista sigue siendo la vista.
+ *
+ * Lo único que cambia es que la barra de volver deja de repartir a los costados
+ * —el botón de descarga se iría solo a un renglón vacío— y el violín deja de
+ * reservar su alto mínimo de escritorio.
+ */
+@media (max-width: 640px) {
+  .analysis-bar .download {
+    margin-left: 0;
+    width: 100%;
+  }
+
+  .violin-frame svg {
+    height: 260px;
+  }
+}
+
+/*
+ * La pestaña apartada: fuera de la vista, pero dibujada.
+ *
+ * No se usa `hidden` ni `display: none` a propósito. Las dos dejan la caja sin
+ * ancho, el contenedor elástico de la librería de gráficos no dibuja nada, y el
+ * informe —que copia el SVG que hay en pantalla— saldría con tres figuras
+ * vacías. Apartada así conserva su ancho real, su figura existe desde que se
+ * abre la vista, y ni el puntero ni el tabulador la alcanzan.
+ */
+.analysis-pane-off {
+  position: absolute;
+  top: 0;
+  left: -300vw;
+  width: 100%;
+  pointer-events: none;
+}
+
+/* === cuadro de mando «Hoy» === */
+/*
+ * El tablero de arriba, escrito para quien no conoce el país.
+ *
+ * Una sola regla de color: el veredicto se dice con un token ya validado de la
+ * paleta de series —`--up` para lo adverso, `--down` para lo favorable,
+ * `--series-4` para lo intermedio— en lugar de una terna verde/ámbar/rojo
+ * nueva. Así el mismo hecho no sale de un color aquí y de otro en el gráfico
+ * que hay tres centímetros más abajo, y ningún valor entra sin haber pasado por
+ * el comprobador de contraste.
+ *
+ * El color nunca va solo: cada tarjeta dice su veredicto con palabras («Vigilar»)
+ * además del punto, porque un semáforo que solo es color no se lee ni en
+ * escala de grises ni con daltonismo.
+ *
+ * DOS COLORES POR VEREDICTO, y no uno. `--board-tone` pinta la banda y el punto,
+ * que son formas; `--board-ink` escribe la palabra. Se separan porque el ámbar
+ * de la paleta de series (#a87c00) da 3,79:1 sobre el panel claro: correcto
+ * para una marca de 7 px, por debajo del piso para una palabra. El ámbar de
+ * texto se oscureció hasta 5,01:1 sin salirse del tono. Medido, no estimado:
+ * cualquier valor nuevo se vuelve a medir contra `--panel` en los dos modos.
+ */
+
+:root {
+  --verdict-ink-vigilar: #8f6900; /* 5,01:1 sobre #ffffff */
+}
+
+/* En oscuro el ámbar de la paleta ya pasa: 5,69:1 sobre #151a21. */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --verdict-ink-vigilar: var(--series-4);
+  }
+}
+
+.board {
+  margin-bottom: var(--s4);
+}
+
+.board-intro {
+  max-width: 68ch;
+  margin-bottom: var(--s3);
+  color: var(--ink-soft);
+  font-size: 0.86rem;
+  line-height: 1.55;
+}
+
+.board-grid {
+  display: grid;
+  gap: var(--s2);
+  grid-template-columns: repeat(auto-fit, minmax(min(330px, 100%), 1fr));
+}
+
+.board-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  padding: var(--s2) var(--s3) var(--s3);
+  background: var(--panel);
+  border: 1px solid var(--rule);
+  /* El veredicto se lee antes que el título: la banda es lo primero que entra. */
+  border-top: 3px solid var(--board-tone, var(--ink-faint));
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+}
+
+.board-favorable {
+  --board-tone: var(--down);
+  --board-ink: var(--down);
+}
+.board-vigilar {
+  --board-tone: var(--series-4);
+  --board-ink: var(--verdict-ink-vigilar);
+}
+.board-adverso {
+  --board-tone: var(--up);
+  --board-ink: var(--up);
+}
+.board-sin-lectura {
+  --board-tone: var(--ink-faint);
+  --board-ink: var(--ink-soft);
+}
+
+.board-card-head {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  margin-bottom: 0.15rem;
+}
+
+.board-card-head h3 {
+  font-size: 0.92rem;
+  font-weight: 620;
+  letter-spacing: -0.01em;
+}
+
+.board-card-icon {
+  display: inline-flex;
+  color: var(--ink-faint);
+}
+
+.board-verdict {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  margin-left: auto;
+  font-family: var(--mono);
+  font-size: 0.62rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  white-space: nowrap;
+  color: var(--board-ink, var(--ink-soft));
+}
+
+.board-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--board-tone);
+}
+
+.board-figure {
+  display: flex;
+  align-items: baseline;
+  gap: 0.4rem;
+  flex-wrap: wrap;
+}
+
+.board-value {
+  font-family: var(--mono);
+  font-size: 1.85rem;
+  font-weight: 600;
+  line-height: 1.05;
+  letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums;
+}
+
+.board-unit {
+  font-size: 0.72rem;
+  color: var(--ink-soft);
+}
+
+.board-measure {
+  font-size: 0.74rem;
+  color: var(--ink-soft);
+  line-height: 1.35;
+}
+
+.board-spark {
+  margin: 0.15rem 0 0.1rem;
+}
+
+.board-reading {
+  font-size: 0.82rem;
+  line-height: 1.5;
+  color: var(--ink-soft);
+}
+
+.board-facts {
+  display: grid;
+  gap: 0.3rem;
+  margin-top: 0.15rem;
+  padding-top: var(--s1);
+  border-top: 1px solid var(--rule-soft);
+}
+
+.board-fact {
+  display: flex;
+  align-items: baseline;
+  gap: 0.5rem;
+  font-size: 0.75rem;
+}
+
+.board-fact dt {
+  flex: 1 1 auto;
+  min-width: 0;
+  color: var(--ink-soft);
+}
+
+.board-fact dd {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  align-items: baseline;
+  gap: 0.35rem;
+  margin-left: auto;
+  text-align: right;
+}
+
+.board-fact dd b {
+  font-family: var(--mono);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.board-fact dd span {
+  color: var(--ink-soft);
+  font-size: 0.66rem;
+}
+
+.board-rule {
+  margin-top: 0.2rem;
+  font-size: 0.74rem;
+}
+
+.board-rule summary {
+  cursor: pointer;
+  color: var(--ink-soft);
+  padding: 0.2rem 0;
+}
+
+.board-rule summary:hover {
+  color: var(--ink);
+}
+
+.board-rule p {
+  margin-top: 0.3rem;
+  padding: var(--s1);
+  background: var(--panel-tint);
+  border-radius: 6px;
+  color: var(--ink-soft);
+  line-height: 1.5;
+}
+
+.board-source {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.25rem;
+  margin-top: auto;
+  padding-top: var(--s1);
+  font-family: var(--mono);
+  font-size: 0.63rem;
+  color: var(--ink-soft);
+}
+
+.board-asof {
+  font-weight: 600;
+}
+
+.board-goes {
+  width: 100%;
+  margin-top: 0.15rem;
+}
+
+.board-news {
+  margin-top: var(--s2);
+  padding: var(--s2) var(--s3) var(--s3);
+  background: var(--panel);
+  border: 1px solid var(--rule);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+}
+
+.board-news-head {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  margin-bottom: var(--s1);
+}
+
+.board-news-head h3 {
+  font-size: 0.92rem;
+  font-weight: 620;
+}
+
+.board-news-head .tile-hint {
+  margin-left: auto;
+  font-family: var(--mono);
+  font-size: 0.66rem;
+  color: var(--ink-soft);
+}
+
+.board-news-list {
+  display: grid;
+  gap: var(--s2);
+  grid-template-columns: repeat(auto-fit, minmax(min(270px, 100%), 1fr));
+  list-style: none;
+}
+
+.board-news-list li {
+  padding-top: var(--s1);
+  border-top: 1px solid var(--rule-soft);
+}
+
+.board-news-list a {
+  font-size: 0.85rem;
+  font-weight: 560;
+  line-height: 1.4;
+}
+
+.board-news-list p {
+  margin-top: 0.25rem;
+  font-size: 0.75rem;
+  line-height: 1.45;
+  color: var(--ink-soft);
+}
+
+.board-news-meta {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin-top: 0.3rem;
+  font-family: var(--mono);
+  font-size: 0.63rem;
+  color: var(--ink-soft);
+}
+
+.board-chip {
+  padding: 0.1rem 0.35rem;
+  background: var(--panel-tint);
+  border: 1px solid var(--rule);
+  border-radius: 4px;
+  letter-spacing: 0.04em;
+}
+
+/*
+ * En un teléfono las tarjetas van una debajo de otra y la cifra ya no compite
+ * con nada, así que no necesita el tamaño que necesitaba en una rejilla de
+ * cuatro columnas.
+ */
+@media (max-width: 640px) {
+  .board-card {
+    padding: var(--s2);
+  }
+
+  .board-value {
+    font-size: 1.6rem;
+  }
+}
+
+/* Cotización del dólar ---------------------------------------------------- */
+
+/*
+ * Lo primero de la portada: tres columnas en el escritorio, una fila por
+ * cotización en el teléfono (ver el bloque de 640 px).
+ */
+.board-head {
+  margin-bottom: var(--s2);
+}
+
+.quotes {
+  margin-bottom: var(--s3);
+  padding: var(--s2) var(--s3);
+  background: var(--panel);
+  border: 1px solid var(--rule);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+}
+
+.quotes-head {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: var(--s2);
+}
+
+.quotes-head h2 {
+  font-size: 1.05rem;
+}
+
+/* El mismo rótulo que el resto de cabeceras, que aquí no son `.tile-head`. */
+.quotes-head .tile-hint,
+.board-trends-head .tile-hint {
+  margin-left: auto;
+  font-family: var(--mono);
+  font-size: 0.68rem;
+  letter-spacing: 0.05em;
+  color: var(--ink-soft);
+  text-transform: uppercase;
+}
+
+.quotes-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--s2);
+}
+
+.quote {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  min-width: 0;
+  padding: var(--s2) var(--s2) var(--s1);
+  background: color-mix(in srgb, var(--quote-accent) 7%, var(--panel));
+  border: 1px solid color-mix(in srgb, var(--quote-accent) 45%, var(--rule));
+  border-top: 3px solid var(--quote-accent);
+  border-radius: var(--radius);
+}
+
+.quote-head {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  color: var(--quote-accent);
+}
+
+.quote-name {
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.quote-date {
+  margin-left: auto;
+  font-family: var(--mono);
+  font-size: 0.64rem;
+  color: var(--ink-soft);
+  white-space: nowrap;
+}
+
+.quote-detail {
+  font-size: 0.7rem;
+  line-height: 1.35;
+  color: var(--ink-soft);
+}
+
+.quote-figure {
+  display: flex;
+  align-items: baseline;
+  gap: 0.3rem;
+  margin-top: 0.2rem;
+}
+
+.quote-value {
+  font-family: var(--mono);
+  font-size: clamp(1.3rem, 0.9rem + 1.6vw, 2.3rem);
+  font-weight: 650;
+  line-height: 1.05;
+  letter-spacing: -0.03em;
+  font-variant-numeric: tabular-nums;
+  color: var(--ink);
+}
+
+.quote-unit {
+  font-size: 0.78rem;
+  color: var(--ink-soft);
+}
+
+.quote-change {
+  font-family: var(--mono);
+  font-size: 0.72rem;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.quote-change-pct {
+  margin-left: 0.25rem;
+  opacity: 0.85;
+}
+
+.quote-change-flat {
+  color: var(--ink-soft);
+}
+
+.quote-sides {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.1rem 0.9rem;
+  margin-top: 0.3rem;
+  padding-top: 0.35rem;
+  border-top: 1px solid var(--rule-soft);
+}
+
+.quote-sides div {
+  display: flex;
+  align-items: baseline;
+  gap: 0.3rem;
+}
+
+.quote-sides dt {
+  font-size: 0.66rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+}
+
+.quote-sides dd {
+  margin: 0;
+  font-family: var(--mono);
+  font-size: 0.8rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Al pie, para que las tres chispas queden a la misma altura. */
+.quote-spark {
+  margin-top: auto;
+}
+
+.quote-spark .sparkline {
+  height: 34px;
+  margin: 0.3rem -0.2rem 0;
+}
+
+.quote-venues {
+  font-family: var(--mono);
+  font-size: 0.62rem;
+  color: var(--ink-soft);
+}
+
+.quotes-foot {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem 1.1rem;
+  margin-top: var(--s2);
+  font-size: 0.74rem;
+  color: var(--ink-soft);
+}
+
+.quotes-foot b {
+  font-family: var(--mono);
+  font-variant-numeric: tabular-nums;
+}
+
+.quotes-stale {
+  color: var(--verdict-ink-vigilar);
+  font-weight: 600;
+}
+
+.board-trends-head {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  flex-wrap: wrap;
+  margin-bottom: 0.3rem;
+}
+
+.board-trends-head h3 {
+  font-family: var(--serif);
+  font-size: 1.02rem;
+  font-weight: 600;
+}
+
+.board-rule dl.board-facts {
+  margin: 0.4rem 0 0.1rem;
+}
+
+/* La lista no lleva viñetas, así que tampoco la sangría de las viñetas. */
+.board-news-list {
+  padding: 0;
+  margin: 0;
+}
+
+/*
+ * En el teléfono, una cotización por fila y la cifra en grande.
+ *
+ * La primera versión metía las tres en una fila de 375 px: cabían, pero a
+ * 1,3rem la cifra se leía como un dato más y no como la respuesta. Ahora cada
+ * cotización ocupa el ancho entero, con el precio a la derecha a tamaño de
+ * titular y, debajo, compra, venta y la chispa. Las tres siguen entrando en la
+ * primera pantalla después de la cabecera.
+ */
+@media (max-width: 640px) {
+  .quotes {
+    padding: var(--s2) 0.75rem 0.85rem;
+  }
+
+  .quotes-head {
+    margin-bottom: 0.75rem;
+  }
+
+  .quotes-head h2 {
+    font-size: 1.2rem;
+  }
+
+  /* Cada cifra ya lleva «Bs»; el rótulo solo partía el título en dos líneas. */
+  .quotes-head .tile-hint {
+    display: none;
+  }
+
+  .quotes-grid {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0.6rem;
+  }
+
+  .quote {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-areas:
+      'head   figure'
+      'detail change'
+      'sides  sides'
+      'spark  spark';
+    align-items: center;
+    column-gap: 0.75rem;
+    row-gap: 0.15rem;
+    padding: 0.75rem 0.95rem 0.6rem;
+    border-top-width: 1px;
+    border-left: 4px solid var(--quote-accent);
+  }
+
+  .quote-head {
+    grid-area: head;
+    align-self: end;
+    flex-wrap: wrap;
+    column-gap: 0.4rem;
+  }
+
+  .quote-name {
+    font-size: 1rem;
+  }
+
+  .quote-date {
+    margin-left: 0;
+    font-size: 0.7rem;
+  }
+
+  .quote-detail {
+    grid-area: detail;
+    align-self: start;
+    font-size: 0.74rem;
+  }
+
+  .quote-figure {
+    grid-area: figure;
+    justify-self: end;
+    align-self: end;
+    margin-top: 0;
+  }
+
+  .quote-value {
+    font-size: clamp(2.1rem, 9.5vw, 2.6rem);
+  }
+
+  .quote-unit {
+    font-size: 0.85rem;
+  }
+
+  .quote-change {
+    grid-area: change;
+    justify-self: end;
+    align-self: start;
+    font-size: 0.78rem;
+  }
+
+  .quote-sides {
+    grid-area: sides;
+    gap: 0 1.4rem;
+    margin-top: 0.35rem;
+    padding-top: 0.4rem;
+  }
+
+  .quote-sides dt {
+    font-size: 0.7rem;
+  }
+
+  .quote-sides dd {
+    font-size: 1rem;
+  }
+
+  .quote-spark {
+    grid-area: spark;
+  }
+
+  .quote-spark .sparkline {
+    height: 30px;
+  }
+
+  /* Las plazas ya las dice el pie; en la fila solo sumarían una línea. */
+  .quote-venues {
+    display: none;
+  }
+
+  .quotes-foot {
+    font-size: 0.8rem;
+  }
+
+  .quotes-foot > span:last-child {
+    font-size: 0.72rem;
+  }
+
+  /*
+   * Las tendencias también en grande: son lo segundo que el lector vino a
+   * mirar. La prosa de presentación se queda en el escritorio; en el teléfono
+   * la dice cada tarjeta con su regla.
+   */
+  .board-intro {
+    display: none;
+  }
+
+  .board-trends-head {
+    margin-bottom: 0.75rem;
+  }
+
+  .board-trends-head h3 {
+    font-size: 1.2rem;
+  }
+
+  .board-card {
+    gap: 0.4rem;
+    padding: 0.95rem 1rem 1rem;
+  }
+
+  .board-card-head h3 {
+    font-size: 1.02rem;
+  }
+
+  .board-verdict {
+    font-size: 0.7rem;
+  }
+
+  .board-value {
+    font-size: 2.2rem;
+  }
+
+  .board-unit {
+    font-size: 0.85rem;
+  }
+
+  .board-measure {
+    font-size: 0.82rem;
+  }
+
+  .board-spark .sparkline {
+    height: 44px;
+  }
+
+  .board-reading {
+    font-size: 0.92rem;
+    line-height: 1.5;
+    color: var(--ink);
+  }
+
+  .board-rule {
+    font-size: 0.82rem;
+  }
+
+  .board-news {
+    padding: var(--s2);
+  }
+
+  .board-news-head {
+    flex-wrap: wrap;
+  }
+
+  .board-news-head .tile-hint {
+    width: 100%;
+    margin-left: 0;
+  }
+
+  /* Dos cifras por fila: apiladas de a una eran una pantalla entera. */
+  .figures {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .figure {
+    padding: 0.8rem 0.85rem;
+  }
+
+  .figure .value {
+    font-size: 1.45rem;
+  }
+
+  .figure .unit {
+    font-size: 0.72rem;
+  }
+
+  .figure .sparkline {
+    height: 30px;
+  }
+}
+
+/* Los más angostos (320 px): la cifra cede un poco, la fila no se parte. */
+@media (max-width: 360px) {
+  .quote {
+    padding-inline: 0.75rem;
+  }
+
+  .quote-value {
+    font-size: 1.95rem;
+  }
+
+  .quote-unit {
+    display: none;
+  }
+}
+
+/* Selección múltiple ------------------------------------------------------ */
+
+/*
+ * El gesto que no se ve.
+ *
+ * Clic sobre una categoría filtra por ella y eso lo descubre cualquiera. Que
+ * Ctrl+clic sume una segunda no lo descubre nadie: es una tecla que hay que
+ * saber que existe, y un tablero que la esconde tiene una función que sólo usa
+ * quien leyó el código. Por eso se dice una vez, arriba del todo del panel de
+ * filtros, donde el lector ya está mirando antes de tocar nada — y no dentro de
+ * cada lista, que serían siete avisos repitiendo lo mismo.
+ *
+ * Va en el mismo gris de las notas al margen porque es una instrucción, no un
+ * dato: compite con las categorías lo justo para ser leída una vez.
+ */
+.rail-hint-top {
+  padding: 0.5rem 0.875rem 0;
+  margin: 0;
+  font-size: 0.68rem;
+  line-height: 1.35;
+  color: var(--ink-soft);
+  border-bottom: 1px solid var(--rule-soft);
+  padding-bottom: 0.5rem;
+}
+
+/*
+ * Lo mismo para las secciones que no tienen riel: el registro de redes y los
+ * paneles que filtran con pastillas en línea.
+ */
+.chips-hint {
+  margin: 0 0 var(--s1);
+  font-size: 0.68rem;
+  color: var(--ink-soft);
+}
+
+/*
+ * Cuántas van elegidas, cuando son más de una.
+ *
+ * Con una sola categoría encendida el propio resalte lo dice todo. Con cuatro
+ * repartidas por una lista larga, el lector que bajó a mirar la cuarta ya no ve
+ * las tres de arriba y no tiene forma de saber que siguen puestas: el recuento
+ * del encabezado es el único lugar donde eso cabe sin repetirse.
+ */
+.rail-head .rail-picked {
+  margin-left: auto;
+  font-family: var(--mono);
+  font-size: 0.64rem;
+  letter-spacing: 0;
+  text-transform: none;
+  color: var(--official);
+}
+
+/* Ranked lists ----------------------------------------------------------- */
+
+/*
+ * Un ránking corto se lee como lista y no como tabla.
+ *
+ * Diez filas con dos datos —puesto y nombre— en una tabla gastan una cabecera
+ * y tres reglas para decir lo que el orden ya dice. La lista numerada lo dice
+ * con el número, que además es el dato. El puesto va en monoespaciada y con
+ * ancho fijo para que los nombres queden alineados aunque el puesto pase de
+ * una cifra a dos.
+ */
+.rank-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  background: var(--rule);
+  border: 1px solid var(--rule);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+
+.rank-list li {
+  display: flex;
+  align-items: baseline;
+  gap: 0.6rem;
+  background: var(--panel);
+  padding: 0.4rem 0.75rem;
+  font-size: 0.87rem;
+}
+
+.rank-position {
+  font-family: var(--mono);
+  font-size: 0.78rem;
+  font-variant-numeric: tabular-nums;
+  color: var(--ink-soft);
+  min-width: 1.5rem;
+  text-align: right;
+}
+
+/* Desplegable de conclusiones plegado --------------------------------- */
+
+/*
+ * Toda lectura derivada llega cerrada, también en un teléfono, y ahí el único
+ * camino para abrirla es el botón de la esquina. El `.card-toggle` genérico
+ * mide unos 34 px de alto con el relleno de móvil, por debajo de los 40 px que
+ * un pulgar acierta sin repetir. Se le da esa área mínima solo dentro de
+ * `.analysis`, donde ya no compite con un rótulo largo a su izquierda, y se
+ * centra el icono para que el borde crezca alrededor sin moverlo de sitio.
+ */
+@media (max-width: 720px) {
+  .analysis .card-toggle {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 40px;
+    min-height: 40px;
+    top: -9px;
+    right: -9px;
+    padding: 0;
+  }
+}
+
+/* Departments choropleth ------------------------------------------------- */
+
+/*
+ * El mapa de «Departamentos» es el selector del capítulo y su primera figura:
+ * nueve contornos pintados con la rampa de magnitud, con la sigla y la cifra en
+ * el centro de cada uno. Cada contorno es un botón con foco de teclado; el foco
+ * y la elección se pintan sobre el propio trazo, porque una forma sin borde
+ * propio no tiene dónde más enseñarlos. El color de relleno y el de la tinta
+ * del rótulo los pone el componente, paso a paso, desde `--seq-*`.
+ *
+ * **El dibujo se quedó corto a propósito.** Llegaba a ocupar tres cuartos del
+ * alto de la ventana y empujaba su propia lista fuera de la pantalla, así que
+ * el panel entero era un mapa gigante con un hueco al lado. Un país de nueve
+ * piezas se reconoce a treinta y cuatro rem; lo que pedía altura eran los
+ * nombres completos escritos dentro, y esos ya no están.
+ */
+
+.choro-map {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s2);
+}
+
+.choro {
+  cursor: pointer;
+  outline: none;
+}
+
+/*
+ * El trazo es del color del panel y fino: separa dos departamentos vecinos sin
+ * dibujar una reja encima del dato. Lo que engorda es el estado —el puntero, la
+ * elección, el foco—, que es donde el grosor significa algo.
+ */
+.choro-shape {
+  stroke: var(--panel);
+  stroke-width: 1.6;
+  stroke-linejoin: round;
+  transition:
+    stroke var(--fast) var(--ease),
+    stroke-width var(--fast) var(--ease),
+    filter var(--fast) var(--ease);
+}
+
+.choro:hover .choro-shape {
+  stroke: var(--ink-soft);
+  stroke-width: 2.6;
+}
+
+/*
+ * El elegido se levanta del mapa. El trazo naranja es el mismo color con el que
+ * su línea se dibuja en todas las figuras de abajo, así que el mapa y las series
+ * hablan del mismo departamento con el mismo color; la sombra lo despega de sus
+ * vecinos sin mover un píxel del contorno.
+ */
+.choro-on .choro-shape {
+  stroke: var(--parallel);
+  stroke-width: 4.5;
+  filter: drop-shadow(0 2px 6px color-mix(in srgb, var(--parallel) 45%, transparent));
+}
+
+.choro:focus-visible .choro-shape {
+  stroke: var(--parallel);
+  stroke-width: 6;
+  filter: drop-shadow(0 0 5px color-mix(in srgb, var(--parallel) 70%, transparent));
+}
+
+.choro-initials,
+.choro-value {
+  pointer-events: none;
+  text-anchor: middle;
+  font-family: var(--sans);
+  font-variant-numeric: tabular-nums;
+}
+
+.choro-initials {
+  font-size: 40px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+}
+
+.choro-value {
+  font-family: var(--mono);
+  font-size: 27px;
+  font-weight: 500;
+}
+
+/* La clave del mapa departamental: cada extremo en una línea, y se parte entera. */
+.map-frame + .heat-scale {
+  flex-wrap: wrap;
+}
+
+.map-frame + .heat-scale > span {
+  white-space: nowrap;
+}
+
+/* Carreteras --------------------------------------------------------------- */
+
+.roads-map-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s2);
+}
+
+.roads-map-wrap {
+  margin: 0;
+}
+
+/* El escenario tiene la proporción del país: acercar cambia el viewBox y no
+   el tamaño de la caja, así que el mapa no salta de alto al elegir. */
+.roads-map-stage {
+  position: relative;
+}
+
+.roads-map {
+  display: block;
+  width: 100%;
+  height: auto;
+  aspect-ratio: 1000 / 1132;
+  max-height: 78vh;
+  background: var(--panel-tint);
+  border-radius: var(--radius);
+}
+
+.roads-map-departments path {
+  fill: var(--chart-surface);
+  stroke: var(--rule);
+  stroke-width: 1;
+}
+
+.roads-map-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem 1rem;
+  font-size: 0.76rem;
+  color: var(--ink-soft);
+}
+
+.roads-map-legend-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.roads-map-legend-item i {
+  display: inline-block;
+  width: 14px;
+  height: 3px;
+  border-radius: 2px;
+}
+
+.roads-map-legend-dash {
+  background-image: repeating-linear-gradient(
+    to right,
+    var(--ink-faint) 0,
+    var(--ink-faint) 4px,
+    transparent 4px,
+    transparent 7px
+  );
+}
+
+.roads-map-dept-names text {
+  fill: var(--ink-soft);
+  opacity: 0.85;
+  paint-order: stroke;
+  stroke: var(--panel-tint);
+  stroke-width: 3px;
+  stroke-linejoin: round;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-anchor: middle;
+  pointer-events: none;
+}
+
+.roads-map-hover {
+  stroke: var(--ink);
+  opacity: 0.35;
+  pointer-events: none;
+}
+
+/* La capa que recibe el puntero: ancha e invisible, porque un trazo de un
+   píxel no se puede apuntar. */
+.roads-map-hits path {
+  fill: none;
+  stroke: transparent;
+  stroke-width: 12px;
+  pointer-events: stroke;
+}
+
+.roads-map-capitals circle {
+  fill: var(--panel);
+  stroke: var(--ink);
+  stroke-width: 1.6px;
+  vector-effect: non-scaling-stroke;
+}
+
+.roads-map-capitals text {
+  fill: var(--ink);
+  font-weight: 600;
+  paint-order: stroke;
+  stroke: var(--panel-tint);
+  stroke-width: 3px;
+  stroke-linejoin: round;
+  pointer-events: none;
+}
+
+/* El escudo de ruta: placa azul la Fundamental, naranja la Departamental. */
+.roads-map-shield rect {
+  fill: var(--series-1);
+  stroke: var(--panel);
+  stroke-width: 1.2px;
+  vector-effect: non-scaling-stroke;
+}
+
+.roads-map-shield[data-network="DEPARTAMENTAL"] rect {
+  fill: var(--series-2);
+}
+
+.roads-map-shield text {
+  fill: #fff;
+  font-family: var(--mono);
+  font-weight: 700;
+  text-anchor: middle;
+  pointer-events: none;
+}
+
+.roads-map-shield-on rect {
+  stroke: var(--ink);
+  stroke-width: 2px;
+}
+
+.roads-map-tip {
+  max-width: min(20rem, 90%);
+}
+
+.roads-map-tip-name {
+  font-size: 0.78rem;
+  color: var(--ink-soft);
+  margin: -0.15rem 0 0.35rem;
+}
+
+.roads-map-legend-item em {
+  font-style: normal;
+  font-variant-numeric: tabular-nums;
+  color: var(--ink);
+}
+
+.roads-map-legend-dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--panel);
+  border: 1.6px solid var(--ink);
+}
+
+.roads-map-foot {
+  font-size: 0.76rem;
+  color: var(--ink-soft);
+}
+
+/* Ferrocarril y ríos: estaciones y puertos como rombos, para no confundirlos
+   con el círculo de las capitales. */
+.network-map-points rect {
+  fill: var(--panel);
+  stroke: var(--ink-soft);
+  stroke-width: 1.4px;
+  vector-effect: non-scaling-stroke;
+}
+
+.network-map-points rect:hover {
+  stroke: var(--ink);
+  stroke-width: 2.2px;
+}
+
+/* Un nombre de la tabla que además aísla su línea en el mapa. */
+.table-link {
+  all: unset;
+  cursor: pointer;
+  color: var(--ink);
+  text-decoration: underline dotted var(--ink-faint);
+  text-underline-offset: 3px;
+}
+
+.table-link:hover,
+.table-link[aria-pressed="true"] {
+  text-decoration-color: var(--ink);
+  font-weight: 600;
+}
+
+.table-link:focus-visible {
+  outline: 2px solid var(--official);
+  outline-offset: 2px;
+  border-radius: 2px;
+}
+
+.network-map-legend-point {
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  transform: rotate(45deg);
+  background: var(--panel);
+  border: 1.4px solid var(--ink-soft);
+}
+
+.roads-map-tools {
+  align-items: center;
+  margin-bottom: var(--s1);
+}
+
+.roads-map-tools-label {
+  font-size: 0.76rem;
+  color: var(--ink-soft);
+  margin-right: 0.2rem;
+}
+
+.roads-swatch {
+  flex: none;
+  width: 14px;
+  height: 4px;
+  border-radius: 2px;
+}
+
+/* La tabla de rutas: encabezados que ordenan, escudo por ruta. */
+.roads-table th .roads-sort {
+  all: unset;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.roads-table th .roads-sort:focus-visible {
+  outline: 2px solid var(--series-1);
+  outline-offset: 2px;
+}
+
+.roads-table th .roads-sort-on {
+  color: var(--ink);
+}
+
+.roads-table td {
+  vertical-align: top;
+}
+
+.roads-shield {
+  display: inline-block;
+  white-space: nowrap;
+  min-width: 3.2rem;
+  padding: 0.12rem 0.45rem;
+  border-radius: 4px;
+  border: 1px solid transparent;
+  background: var(--series-1);
+  color: #fff;
+  font-family: var(--mono);
+  font-size: 0.78rem;
+  font-weight: 700;
+  text-align: center;
+  cursor: pointer;
+}
+
+.roads-shield[data-network="DEPARTAMENTAL"] {
+  background: var(--series-2);
+}
+
+.roads-shield-on {
+  outline: 2px solid var(--ink);
+  outline-offset: 1px;
+}
+
+.roads-shield-none {
+  background: transparent;
+  color: var(--ink-soft);
+  border-color: var(--rule);
+  font-weight: 500;
+  cursor: default;
+}
+
+.roads-row-on td {
+  background: color-mix(in srgb, var(--series-1) 10%, var(--panel));
+}
+
+.roads-share {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.roads-share-bar {
+  display: inline-block;
+  width: 3rem;
+  height: 6px;
+  border-radius: 3px;
+  background: var(--rule-soft);
+  overflow: hidden;
+}
+
+.roads-share-bar i {
+  display: block;
+  height: 100%;
+  background: var(--series-1);
+}
+
+/* En un teléfono el pager, dentro del relleno del panel, no cabía: «Siguientes»
+   salía por el borde. Más apretado y con el rango en su propia línea. */
+@media (max-width: 640px) {
+  .roads-routes .pager {
+    flex-wrap: wrap;
+    justify-content: space-between;
+    padding: var(--s1);
+    gap: var(--s1);
+  }
+
+  .roads-routes .pager-where {
+    order: -1;
+    flex-basis: 100%;
+    text-align: center;
+  }
+}
+
+/* Reputación empresarial ------------------------------------------------- */
+
+/*
+ * La marca de una empresa, en una baldosa cuadrada con fondo propio.
+ *
+ * El fondo es blanco también en oscuro, y es a propósito: los logotipos están
+ * dibujados para papel blanco —texto negro, bordes oscuros— y sobre el panel
+ * oscuro la mitad desaparece. Una baldosa clara con borde es como se presenta
+ * una marca ajena en cualquier listado de empresas.
+ */
+.company-logo {
+  display: inline-grid;
+  place-items: center;
+  flex: none;
+  border-radius: 8px;
+  background: #ffffff;
+  border: 1px solid var(--rule);
+  overflow: hidden;
+}
+
+.company-logo img {
+  width: 84%;
+  height: 84%;
+  object-fit: contain;
+}
+
+.company-logo-initials {
+  background: var(--panel-tint);
+  color: var(--ink-soft);
+  font-family: var(--sans);
+  font-weight: 650;
+  letter-spacing: 0.02em;
+}
+
+.rep-podium {
+  list-style: none;
+  margin: var(--s3) 0 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--s2);
+}
+
+.rep-podium-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 0.45rem;
+  padding: var(--s3) var(--s2) var(--s2);
+  border: 1px solid var(--rule);
+  border-radius: var(--radius);
+  background: var(--panel-tint);
+}
+
+.rep-podium-1 {
+  border-color: color-mix(in srgb, var(--official) 55%, var(--panel));
+  background: color-mix(in srgb, var(--official) 7%, var(--panel));
+}
+
+.rep-podium-rank {
+  position: absolute;
+  top: 0.55rem;
+  left: 0.7rem;
+  font-family: var(--mono);
+  font-size: 1.5rem;
+  font-weight: 700;
+  line-height: 1;
+  color: var(--ink-faint);
+}
+
+.rep-podium-1 .rep-podium-rank {
+  color: var(--official);
+}
+
+.rep-podium-name {
+  font-weight: 650;
+  font-size: 0.98rem;
+  line-height: 1.25;
+  text-wrap: balance;
+}
+
+.rep-podium-meta {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.8rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.rep-podium-sector {
+  font-size: 0.72rem;
+  color: var(--ink-soft);
+}
+
+.rep-move {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.2rem;
+  flex: none;
+  min-width: 3.4rem;
+  justify-content: center;
+  padding: 0.12rem 0.45rem;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  border: 1px solid transparent;
+}
+
+/*
+ * Subir y bajar con la polaridad del informe: frío es «a favor», cálido «en
+ * contra». Nunca sólo el color —la flecha y la cifra van siempre—.
+ */
+.rep-move-up {
+  color: var(--down);
+  background: color-mix(in srgb, var(--down) 10%, var(--panel));
+}
+
+.rep-move-down {
+  color: var(--up);
+  background: color-mix(in srgb, var(--up) 10%, var(--panel));
+}
+
+.rep-move-same {
+  color: var(--ink-soft);
+  background: var(--panel-tint);
+}
+
+.rep-move-new {
+  color: var(--official);
+  border-color: color-mix(in srgb, var(--official) 45%, var(--panel));
+}
+
+.rep-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.rep-row {
+  display: grid;
+  grid-template-columns: 2.2rem 36px minmax(0, 1fr) minmax(140px, 0.55fr) 3.6rem 2rem;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.55rem 0.25rem;
+  border-bottom: 1px solid var(--rule-soft);
+}
+
+.rep-row:last-child {
+  border-bottom: none;
+}
+
+.rep-row:hover {
+  background: var(--panel-tint);
+}
+
+.rep-rank {
+  font-family: var(--mono);
+  font-size: 0.95rem;
+  font-weight: 650;
+  text-align: right;
+  color: var(--ink-soft);
+  font-variant-numeric: tabular-nums;
+}
+
+.rep-who {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  gap: 0.1rem;
+}
+
+.rep-name {
+  font-weight: 600;
+  line-height: 1.25;
+  overflow-wrap: break-word;
+}
+
+.rep-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem 0.6rem;
+  font-size: 0.74rem;
+  color: var(--ink-soft);
+}
+
+.rep-tag-export {
+  color: var(--series-6);
+  font-weight: 600;
+  font-size: 0.72rem;
+}
+
+.rep-score {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.rep-bar {
+  flex: 1 1 auto;
+  height: 8px;
+  border-radius: 999px;
+  background: var(--rule-soft);
+  overflow: hidden;
+}
+
+.rep-bar > span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--official);
+}
+
+.rep-score-n {
+  font-family: var(--mono);
+  font-size: 0.8rem;
+  width: 3.4rem;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.rep-follow {
+  display: inline-grid;
+  place-items: center;
+  width: 2rem;
+  height: 2rem;
+  border-radius: 8px;
+  border: 1px solid var(--rule);
+  background: var(--panel);
+  color: var(--ink-soft);
+  cursor: pointer;
+  transition:
+    background var(--fast) var(--ease),
+    color var(--fast) var(--ease);
+}
+
+.rep-follow:hover {
+  color: var(--ink);
+  border-color: var(--ink-faint);
+}
+
+.rep-follow-on {
+  background: var(--ink);
+  border-color: var(--ink);
+  color: var(--paper);
+}
+
+.rep-followed {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin-bottom: var(--s2);
+}
+
+.rep-followed .company-logo {
+  border-radius: 4px;
+}
+
+.rep-key {
+  width: 10px;
+  height: 10px;
+  border-radius: 2px;
+  flex: none;
+}
+
+.rep-toggle {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0 0.875rem;
+  font-size: 0.85rem;
+  cursor: pointer;
+}
+
+.rep-toggle span {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+/*
+ * Columnas y no rejilla: un sector trae una empresa y otro diecisiete, y en una
+ * rejilla cada fila se estira hasta la tarjeta más alta y deja huecos blancos
+ * del tamaño de un panel.
+ */
+.rep-sectors {
+  columns: 3 250px;
+  column-gap: var(--s2);
+}
+
+.rep-sector {
+  break-inside: avoid;
+  margin-bottom: var(--s2);
+  border: 1px solid var(--rule);
+  border-radius: var(--radius);
+  padding: var(--s2);
+  background: var(--panel);
+}
+
+.rep-sector h3 {
+  margin: 0 0 0.55rem;
+  font-size: 0.78rem;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+}
+
+.rep-sector ol {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.rep-sector li {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.86rem;
+}
+
+.rep-sector-rank {
+  width: 1.2rem;
+  text-align: right;
+  font-family: var(--mono);
+  color: var(--ink-faint);
+  font-variant-numeric: tabular-nums;
+  flex: none;
+}
+
+.rep-sector li:first-child .rep-sector-rank {
+  color: var(--official);
+  font-weight: 700;
+}
+
+.rep-sector-name {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.rep-cross {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(280px, 100%), 1fr));
+  gap: var(--s2);
+}
+
+.rep-cross-card {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: var(--s2);
+  border: 1px solid var(--rule);
+  border-radius: var(--radius);
+}
+
+.rep-cross-past {
+  background: var(--panel-tint);
+  border-style: dashed;
+}
+
+.rep-cross-body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  min-width: 0;
+}
+
+.rep-cross-figures {
+  display: flex;
+  flex-direction: column;
+  font-size: 0.78rem;
+  color: var(--ink-soft);
+  font-variant-numeric: tabular-nums;
+}
+
+.rep-cross-figures b {
+  color: var(--ink);
+}
+
+@media (max-width: 720px) {
+  .rep-podium {
+    grid-template-columns: 1fr;
+  }
+
+  .rep-podium-card {
+    flex-direction: row;
+    text-align: left;
+    padding: var(--s2);
+    padding-left: 2.6rem;
+  }
+
+  .rep-podium-card .company-logo {
+    width: 44px !important;
+    height: 44px !important;
+  }
+
+  .rep-podium-rank {
+    top: 50%;
+    transform: translateY(-50%);
+  }
+
+  .rep-podium-meta {
+    justify-content: flex-start;
+  }
+
+  .rep-podium-sector {
+    display: none;
+  }
+
+  /*
+   * En el teléfono la barra baja a su propia línea, debajo del nombre: las
+   * seis columnas juntas dejaban el nombre en dos letras por renglón.
+   */
+  .rep-row {
+    grid-template-columns: 1.6rem 32px minmax(0, 1fr) auto 2rem;
+    grid-template-areas:
+      'rank logo who who who'
+      '. score score move follow';
+    gap: 0.4rem 0.55rem;
+  }
+
+  .rep-hero .stat-strip {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .rep-row > .rep-rank {
+    grid-area: rank;
+  }
+
+  .rep-row > .company-logo {
+    grid-area: logo;
+    width: 32px !important;
+    height: 32px !important;
+  }
+
+  .rep-row > .rep-who {
+    grid-area: who;
+  }
+
+  .rep-row > .rep-score {
+    grid-area: score;
+  }
+
+  .rep-row > .rep-move {
+    grid-area: move;
+  }
+
+  .rep-row > .rep-follow {
+    grid-area: follow;
+  }
+}
+
+/*
+ * «Preguntale al Observatorio».
+ *
+ * Un botón fijo abajo a la derecha y un panel que no tapa el tablero en
+ * escritorio: el lector pregunta y mira la pestaña a la vez. En el teléfono no
+ * caben las dos cosas, así que el panel pasa a ocupar la pantalla y «Ir a…» lo
+ * cierra. Todo sale de los tokens, así que el modo oscuro no necesita reglas.
+ */
+.asistente-lanzador {
+  position: fixed;
+  right: 1.25rem;
+  bottom: 1.25rem;
+  z-index: var(--z-overlay);
+  display: inline-flex;
+  align-items: center;
+  gap: 0.55rem;
+  padding: 0.7rem 1.1rem;
+  border: 0;
+  border-radius: 999px;
+  background: var(--ink);
+  color: var(--paper);
+  font: inherit;
+  font-size: 0.9rem;
+  font-weight: 600;
+  box-shadow: var(--shadow), 0 10px 28px -10px rgb(16 24 40 / 0.45);
+  cursor: pointer;
+  transition: transform var(--fast) var(--ease);
+}
+
+.asistente-lanzador:hover {
+  transform: translateY(-2px);
+}
+
+.asistente-lanzador:focus-visible,
+.asistente-panel button:focus-visible,
+.asistente-form textarea:focus-visible {
+  outline: 2px solid var(--official);
+  outline-offset: 2px;
+}
+
+.asistente-panel {
+  position: fixed;
+  right: 1.25rem;
+  bottom: 1.25rem;
+  z-index: var(--z-overlay);
+  width: min(430px, calc(100vw - 2rem));
+  height: min(680px, calc(100dvh - 2.5rem));
+  display: flex;
+  flex-direction: column;
+  background: var(--panel);
+  color: var(--ink);
+  border: 1px solid var(--rule);
+  border-radius: 14px;
+  box-shadow: var(--shadow), 0 24px 60px -24px rgb(16 24 40 / 0.45);
+  overflow: hidden;
+  animation: asistente-entra var(--slow) var(--ease);
+}
+
+@keyframes asistente-entra {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+}
+
+.asistente-cabecera {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  padding: 0.85rem 0.9rem 0.85rem 1rem;
+  border-bottom: 1px solid var(--rule);
+}
+
+.asistente-cabecera > div {
+  flex: 1;
+  min-width: 0;
+}
+
+.asistente-cabecera h2 {
+  margin: 0;
+  font-size: 0.98rem;
+  line-height: 1.25;
+}
+
+.asistente-cabecera p {
+  margin: 0.1rem 0 0;
+  font-size: 0.76rem;
+  color: var(--ink-faint);
+}
+
+.asistente-marca {
+  width: 32px;
+  height: 32px;
+  flex: none;
+  border-radius: 9px;
+  background: var(--ink);
+  color: var(--paper);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.asistente-accion,
+.asistente-cerrar {
+  appearance: none;
+  border: 1px solid var(--rule);
+  background: var(--panel);
+  color: var(--ink-soft);
+  border-radius: 8px;
+  font: inherit;
+  cursor: pointer;
+}
+
+.asistente-accion {
+  font-size: 0.78rem;
+  padding: 0.3rem 0.6rem;
+}
+
+.asistente-cerrar {
+  width: 32px;
+  height: 32px;
+  font-size: 1.25rem;
+  line-height: 1;
+}
+
+.asistente-accion:hover,
+.asistente-cerrar:hover {
+  border-color: var(--ink-faint);
+  color: var(--ink);
+}
+
+.asistente-lista {
+  flex: 1;
+  overflow-y: auto;
+  padding: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.8rem;
+  background: var(--paper);
+}
+
+.asistente-vacio p {
+  margin: 0 0 0.85rem;
+  font-size: 0.88rem;
+  line-height: 1.5;
+  color: var(--ink-soft);
+}
+
+.asistente-sugerencias {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+}
+
+.asistente-sugerencias .chip {
+  text-align: left;
+}
+
+.asistente-turno {
+  max-width: 92%;
+  font-size: 0.88rem;
+  line-height: 1.55;
+  border-radius: 12px;
+  padding: 0.65rem 0.85rem;
+  overflow-wrap: anywhere;
+}
+
+.asistente-turno p {
+  margin: 0 0 0.5rem;
+}
+
+.asistente-turno p:last-child {
+  margin-bottom: 0;
+}
+
+.asistente-turno ul {
+  margin: 0.15rem 0 0.55rem;
+  padding-left: 1.1rem;
+}
+
+.asistente-turno li {
+  margin: 0.2rem 0;
+}
+
+.asistente-usuario {
+  align-self: flex-end;
+  background: var(--ink);
+  color: var(--paper);
+  border-bottom-right-radius: 4px;
+}
+
+.asistente-asistente {
+  align-self: flex-start;
+  background: var(--panel);
+  border: 1px solid var(--rule);
+  border-bottom-left-radius: 4px;
+}
+
+.asistente-asistente em {
+  color: var(--ink-soft);
+}
+
+.asistente-error {
+  border-color: var(--serious);
+  color: var(--ink-soft);
+}
+
+.asistente-ir {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin-top: 0.6rem;
+}
+
+.asistente-ir .chip {
+  font-size: 0.78rem;
+  padding: 0.25rem 0.65rem;
+  text-decoration: none;
+}
+
+/* Una respuesta con tablas usa todo el ancho: la vista previa necesita columnas. */
+.asistente-ancho {
+  max-width: 100%;
+  width: 100%;
+}
+
+.asistente-consultados {
+  margin-top: 0.75rem;
+  padding-top: 0.6rem;
+  border-top: 1px solid var(--rule-soft);
+}
+
+.asistente-rotulo {
+  font-size: 0.72rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+}
+
+.asistente-datos {
+  border: 1px solid var(--rule);
+  border-radius: 8px;
+  background: var(--panel-tint);
+  margin-top: 0.45rem;
+}
+
+.asistente-datos summary {
+  cursor: pointer;
+  padding: 0.45rem 0.65rem;
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+.asistente-datos summary em {
+  font-style: normal;
+  font-weight: 400;
+  font-family: var(--mono);
+  font-size: 0.7rem;
+  color: var(--ink-faint);
+  margin-left: 0.3rem;
+}
+
+.asistente-datos[open] summary {
+  border-bottom: 1px solid var(--rule);
+}
+
+.asistente-datos > .asistente-ir,
+.asistente-datos > .asistente-fuente {
+  margin: 0.5rem 0.65rem;
+}
+
+.asistente-datos > .asistente-ir {
+  margin-bottom: 0.6rem;
+}
+
+.asistente-tabla {
+  overflow-x: auto;
+  max-height: 16rem;
+  overflow-y: auto;
+  background: var(--panel);
+}
+
+.asistente-tabla:focus-visible {
+  outline: 2px solid var(--ink);
+  outline-offset: -2px;
+}
+
+.asistente-tabla table {
+  border-collapse: collapse;
+  font-size: 0.74rem;
+  line-height: 1.35;
+  min-width: 100%;
+}
+
+.asistente-tabla th,
+.asistente-tabla td {
+  padding: 0.3rem 0.55rem;
+  border-bottom: 1px solid var(--rule-soft);
+  text-align: left;
+  vertical-align: top;
+  max-width: 16rem;
+}
+
+.asistente-tabla th {
+  position: sticky;
+  top: 0;
+  background: var(--panel-tint);
+  color: var(--ink-soft);
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.asistente-tabla td:first-child {
+  white-space: nowrap;
+}
+
+.asistente-tabla td.num {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.asistente-fuente {
+  font-size: 0.72rem;
+  color: var(--ink-soft);
+}
+
+.asistente-leyendo {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.55rem;
+  color: var(--ink-soft);
+}
+
+.asistente-puntos {
+  display: inline-flex;
+  gap: 3px;
+}
+
+.asistente-puntos i {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--ink-faint);
+  animation: asistente-punto 1s var(--ease) infinite;
+}
+
+.asistente-puntos i:nth-child(2) {
+  animation-delay: 0.15s;
+}
+
+.asistente-puntos i:nth-child(3) {
+  animation-delay: 0.3s;
+}
+
+@keyframes asistente-punto {
+  50% {
+    opacity: 0.25;
+    transform: translateY(-2px);
+  }
+}
+
+.asistente-aviso {
+  margin: 0;
+  padding: 0.6rem 1rem;
+  font-size: 0.8rem;
+  color: var(--ink-soft);
+  background: var(--panel-tint);
+  border-top: 1px solid var(--rule);
+}
+
+.asistente-form {
+  display: flex;
+  gap: 0.5rem;
+  align-items: flex-end;
+  padding: 0.75rem 0.9rem 0.4rem;
+  border-top: 1px solid var(--rule);
+  background: var(--panel);
+}
+
+.asistente-form textarea {
+  flex: 1;
+  resize: none;
+  min-height: 2.6rem;
+  max-height: 8rem;
+  padding: 0.55rem 0.7rem;
+  border: 1px solid var(--rule);
+  border-radius: 10px;
+  background: var(--paper);
+  color: var(--ink);
+  font: inherit;
+  font-size: 0.9rem;
+  line-height: 1.4;
+}
+
+.asistente-enviar {
+  appearance: none;
+  border: 0;
+  border-radius: 10px;
+  padding: 0.62rem 0.95rem;
+  background: var(--ink);
+  color: var(--paper);
+  font: inherit;
+  font-size: 0.86rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.asistente-enviar:disabled,
+.asistente-sugerencias .chip:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.asistente-pie {
+  margin: 0;
+  padding: 0 0.9rem 0.7rem;
+  font-size: 0.7rem;
+  color: var(--ink-faint);
+  background: var(--panel);
+}
+
+.asistente-oculto {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+@media (max-width: 720px) {
+  .asistente-lanzador {
+    right: 1rem;
+    bottom: 1rem;
+    padding: 0.65rem 0.95rem;
+    font-size: 0.85rem;
+  }
+
+  .asistente-panel {
+    inset: 0;
+    width: 100%;
+    height: 100dvh;
+    border-radius: 0;
+    border: 0;
+  }
+
+  .asistente-turno {
+    max-width: 100%;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .asistente-panel,
+  .asistente-puntos i {
+    animation: none;
+  }
 }

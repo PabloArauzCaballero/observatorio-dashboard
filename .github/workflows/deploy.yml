@@ -1,0 +1,161 @@
+name: deploy-to-coolify
+
+# Coolify corre en un servidor casero que no esta publicado en internet, asi que
+# GitHub no puede alcanzarlo con un webhook normal. En vez de exponer su panel de
+# administracion, el runner entra a la tailnet y llama a la API por la direccion
+# privada del servidor. La red es la frontera: la API de Coolify nunca escucha
+# fuera de ella.
+#
+# Es el mismo mecanismo que despliega la API del observatorio; este repositorio
+# guarda sus propias copias de los tres secretos porque un secreto de repositorio
+# no cruza de un repositorio a otro.
+
+on:
+  # `dev` y no `main`: es la rama que el recurso de Coolify tiene configurada.
+  push:
+    branches: [dev]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+# Un despliegue a la vez, y sin cancelar el que ya empezo: interrumpir a medias
+# dejaria contenedores a medio recrear en el servidor.
+concurrency:
+  group: deploy-coolify-dashboard
+  cancel-in-progress: false
+
+env:
+  # El contenedor publica aqui, sobre la interfaz de Tailscale. Es tambien la
+  # unica via por la que este trabajo puede comprobar lo que desplego.
+  DASHBOARD_URL: http://100.101.207.88:3003/
+
+jobs:
+  deploy:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - name: Join the tailnet
+        uses: tailscale/github-action@v3
+        with:
+          # Tiene que ser una clave efimera: solo asi el `logout` del ultimo paso
+          # borra el nodo. Con una clave normal cada run deja una maquina muerta
+          # en la tailnet, y al llegar a mil Tailscale rechaza las nuevas con
+          # «node quota reached»: asi se corto la ingesta en septiembre de 2026.
+          # La limpieza de esos nodos vive en el nucleo (tailnet-janitor).
+          authkey: ${{ secrets.PABLO_H310_TAILSCALE_AUTHKEY }}
+          args: --ssh=false
+
+      - name: Wait for the server to answer
+        run: |
+          for attempt in $(seq 1 10); do
+            if tailscale ping --c 1 --timeout 5s 100.101.207.88 >/dev/null 2>&1; then
+              echo "servidor alcanzable"
+              exit 0
+            fi
+            echo "intento $attempt: aun sin ruta, reintentando"
+            sleep 3
+          done
+          # El paso anterior sale en verde aunque `tailscale up` falle.
+          echo "::error::no hay ruta al servidor por la tailnet. Si el paso 'Join the tailnet' dice «node quota reached», la tailnet esta llena de nodos de CI: correr tailnet-janitor en EcomicDataCenter."
+          exit 1
+
+      - name: Note the moment before deploying
+        id: before
+        run: |
+          # Un despliegue que no cambia ninguna pagina produce un HTML identico,
+          # asi que nada en la respuesta distingue el contenedor nuevo del que
+          # reemplazo. Lo que si los distingue es que el proceso rearranca: una
+          # hora de arranque posterior a este instante solo puede pertenecer al
+          # contenedor que este despliegue creo. Preguntarle a Coolify seria mas
+          # directo, pero exige un token con permiso de lectura y el que hay aqui
+          # solo puede disparar webhooks.
+          echo "t0=$(date -u +%s)" >> "$GITHUB_OUTPUT"
+
+      - name: Trigger the deployment
+        env:
+          WEBHOOK: ${{ secrets.PABLO_H310_COOLIFY_WEBHOOK }}
+          TOKEN: ${{ secrets.PABLO_H310_COOLIFY_TOKEN }}
+        run: |
+          if [ -z "$WEBHOOK" ] || [ -z "$TOKEN" ]; then
+            echo "faltan PABLO_H310_COOLIFY_WEBHOOK o PABLO_H310_COOLIFY_TOKEN" >&2
+            exit 1
+          fi
+          # POST, no GET: Coolify movio este endpoint y responde 405 a un GET.
+          # --fail-with-body para que un rechazo suyo se vea en el log en vez de
+          # morir con un codigo de salida mudo.
+          curl --fail-with-body --silent --show-error --max-time 60                --request POST                --header "Authorization: Bearer $TOKEN"                --header "Accept: application/json"                --header "Content-Length: 0"                "$WEBHOOK"
+          echo
+          echo "despliegue solicitado a Coolify"
+
+      - name: Wait for the new container to serve, and to read the database
+        env:
+          T0: ${{ steps.before.outputs.t0 }}
+        run: |
+          # Veinte minutos de margen: Coolify construye la imagen de Next en el
+          # servidor, y la primera peticion despues arma la tabulacion completa
+          # del corpus, que es lenta una vez por diseno.
+          deadline=$(( $(date +%s) + 1200 ))
+          arrived=""
+
+          while [ "$(date +%s)" -lt "$deadline" ]; do
+            started=$(curl --silent --max-time 30 "${DASHBOARD_URL}api/version"                       | jq -r '.startedAt // empty' 2>/dev/null || true)
+
+            if [ -z "$started" ]; then
+              # Hasta que este despliegue llegue, `/api/version` puede no existir:
+              # el contenedor en pie fue construido antes de que la ruta existiera.
+              echo "el tablero no reporta su arranque todavia"
+            else
+              startedEpoch=$(date -u -d "$started" +%s 2>/dev/null || echo 0)
+              if [ "$startedEpoch" -gt "$T0" ]; then
+                arrived="si"
+                echo "contenedor nuevo en servicio (arranco $started)"
+                break
+              fi
+              echo "sigue en pie el contenedor anterior (arranco $started)"
+            fi
+            sleep 15
+          done
+
+          if [ -z "$arrived" ]; then
+            echo "el contenedor nuevo no llego a servir en veinte minutos." >&2
+            echo "Revisa el log del despliegue en Coolify." >&2
+            exit 1
+          fi
+
+          # Un contenedor que arranca no es un tablero que funciona: el recurso ha
+          # estado «running» y verde sirviendo la pagina de error de lectura.
+          body=$(curl --silent --max-time 150 "$DASHBOARD_URL" || true)
+          if [ -z "$body" ]; then
+            echo "la portada no respondio" >&2
+            exit 1
+          fi
+          if printf '%s' "$body" | grep -q 'No fue posible leer la base de datos'; then
+            echo "el tablero responde pero no pudo leer la base." >&2
+            echo "Revisa DASHBOARD_DATABASE_URL en el recurso de Coolify y que" >&2
+            echo "'Connect To Predefined Network' este activado." >&2
+            exit 1
+          fi
+
+          # Leer no es leer lo correcto. El `postgres` de este mismo servidor
+          # guarda una copia vieja del esquema del observatorio, con cifras
+          # dentro, asi que un tablero apuntado ahi responde, pinta y pasa
+          # todas las comprobaciones de arriba mientras sirve numeros que nadie
+          # actualiza. El propio tablero corrige ya ese nombre al abrir la
+          # conexion; si aun asi dice que no es la base esperada, es que el
+          # servidor de la cadena no es el del observatorio, y eso no lo
+          # arregla el codigo.
+          verdict=$(curl --silent --max-time 30 "${DASHBOARD_URL}api/version" | jq -r '.database // empty' 2>/dev/null || true)
+          if [ "$verdict" != "ok" ]; then
+            base=$(curl --silent --max-time 30 "${DASHBOARD_URL}api/version" | jq -r '.base // "?"' 2>/dev/null || echo "?")
+            echo "el tablero leyo la base «$base», que no es la del observatorio (veredicto: ${verdict:-sin respuesta})." >&2
+            echo "Pide el detalle a ${DASHBOARD_URL}api/version: el campo «queHacer» dice que cambiar." >&2
+            exit 1
+          fi
+
+          echo "el tablero desplegado responde y leyo la base del observatorio"
+
+      # Con una clave efimera esto borra el nodo en el acto.
+      - name: Leave the tailnet
+        if: always()
+        run: sudo tailscale logout || true

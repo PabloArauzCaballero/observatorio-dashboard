@@ -1,0 +1,57 @@
+'use client';
+
+import { OnOpenNotice, useOnOpen } from './on-open';
+import { RailExplorer } from './rail-explorer';
+import { RoadsSection } from './roads-section';
+import { SubTabs } from './tabs';
+import { WaterwaysExplorer } from './waterways-explorer';
+import type { RailBoard, WaterBoard } from '@/lib/transport-board';
+
+/**
+ * El capítulo de transporte: carreteras, ferrocarriles y ríos, tres páginas.
+ *
+ * Cada página pide su tablero al abrirse y no antes, como hacía «Carreteras»
+ * sola: `SubTabs` monta sólo la página activa, así que abrir el capítulo no
+ * trae la red fluvial de nadie que no la mire.
+ */
+export function TransportSection() {
+  return (
+    <SubTabs
+      labels={['Carreteras', 'Ferrocarriles', 'Ríos y puertos']}
+      icons={['camion', 'linea', 'gota']}
+      enlace
+    >
+      <RoadsSection />
+      <RailSection />
+      <WaterwaysSection />
+    </SubTabs>
+  );
+}
+
+function RailSection() {
+  const { payload, failed } = useOnOpen<{ board: RailBoard }>('/api/ferrocarriles');
+  if (!payload) return <OnOpenNotice what="la red ferroviaria" failed={failed} />;
+  if (!payload.board.lines.length) {
+    return (
+      <div className="callout">
+        Todavía no hay vías férreas cargadas. La página se llena cuando el núcleo haya sembrado la
+        red ferroviaria (catálogo «bolivia-transport-network»).
+      </div>
+    );
+  }
+  return <RailExplorer board={payload.board} />;
+}
+
+function WaterwaysSection() {
+  const { payload, failed } = useOnOpen<{ board: WaterBoard }>('/api/rios');
+  if (!payload) return <OnOpenNotice what="la red fluvial" failed={failed} />;
+  if (!payload.board.waterways.length) {
+    return (
+      <div className="callout">
+        Todavía no hay ríos cargados. La página se llena cuando el núcleo haya sembrado la red
+        fluvial (catálogo «bolivia-transport-network»).
+      </div>
+    );
+  }
+  return <WaterwaysExplorer board={payload.board} />;
+}

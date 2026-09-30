@@ -1,8 +1,38 @@
 import 'server-only';
 import { pool } from './db';
+import { held } from './hold';
+import { wdiSector } from './wdi-sectors';
+
+/**
+ * Corpus-wide aggregates, computed once and held for a while.
+ *
+ * The cross-tabulation and the pulse describe the whole archive and do not
+ * depend on who is asking, but they are read from a view that reassembles every
+ * claim from its evidence — at thirty-eight thousand articles that is seconds
+ * of work, repeated on every page load, and it pushed the landing page past the
+ * statement timeout.
+ *
+ * The corpus only changes when the collectors run and the seeds are loaded, so
+ * a few minutes of staleness costs nothing and the figures stay exact. The
+ * promise itself is cached rather than its result, so ten simultaneous readers
+ * wait on one query instead of starting ten.
+ */
+/*
+ * `held` vive ahora en `./hold`, porque no es sólo de este módulo: las familias
+ * de lugares se leen en `places.ts` y la portada sostiene ahí sus dos páginas de
+ * prensa. El comentario que explicaba por qué se guarda la promesa y no el
+ * resultado está en ese fichero, junto a la función.
+ */
 
 /**
  * Reads the observatory's daily series and shapes them for reporting.
+ *
+ * The press panels read `press_article_snapshot` rather than the view it
+ * copies. The view is the definition — the thing to read to know how a note was
+ * filed — but it reassembles every claim from its evidence and applies the
+ * whole lexicon on each query, which at thirty-eight thousand notes is nine
+ * seconds. The snapshot is that same output, indexed, rebuilt when a collection
+ * or a seed load ends. See ADR 0020.
  *
  * Every figure the dashboard shows comes from `read_models`, the contract the
  * core publishes for analysis. Nothing is recomputed here that the database
@@ -76,7 +106,24 @@ function preferObserved(points: DailyPoint[]): DailyPoint[] {
   return [...byDate.values()].sort((left, right) => left.date.localeCompare(right.date));
 }
 
-export async function readObservatory(): Promise<Observatory> {
+/**
+ * The daily series, held in memory for five minutes.
+ *
+ * These two reads — this one and the gap — are the only ones the front page
+ * does not forgive, and both are stacked views over the raw evidence: a
+ * percentile over an explosion of a million and a half observations, and the
+ * gap over that. Read from the database on every visit, a hundred visitors in
+ * a minute are two hundred of those sorts at once, and on 2026-09-09 far fewer
+ * than that put the server at load 95 on six cores.
+ *
+ * Five minutes of staleness costs nothing: the collector publishes three times
+ * a day. A failed read is not held, so an outage never becomes the answer.
+ */
+export function readObservatory(): Promise<Observatory> {
+  return held('observatory', buildObservatory);
+}
+
+async function buildObservatory(): Promise<Observatory> {
   const { rows } = await pool().query<DailyRow>(
     `SELECT indicator_code, price_side, aggregation, event_date::text AS event_date,
             value_median::text AS value_median, value_spread::text AS value_spread,
@@ -136,7 +183,81 @@ interface GapRow {
 }
 
 /** The gap the core computes, read rather than recalculated. */
-export async function readGap(): Promise<GapPoint[]> {
+/** The gap series, held in memory for five minutes for the same reason as above. */
+export function readGap(): Promise<GapPoint[]> {
+  return held('gap', buildGap);
+}
+
+/**
+ * La brecha, de la vista si la vista responde y derivada si no.
+ *
+ * La vista sigue siendo la definición y se pide primero: la brecha la publica
+ * el núcleo para que dos lectores no puedan discrepar sobre cuál fue la de un
+ * día, y recalcularla por gusto rompería eso.
+ *
+ * Pero en el servidor chico deja de responder. `exchange_rate_gap` filtra
+ * `economic_indicator_daily` por `indicator_code`, y ese filtro sobre una vista
+ * con funciones de ventana le da al planificador un plan que no termina dentro
+ * del `statement_timeout` — mientras que leer la **misma** vista entera, que es
+ * lo que hace `readObservatory`, sí entra. Medido el 2026-09-21 en Contabo:
+ * `observatory` bien, `gap` y `markets` cancelados con 57014; en pablo-h310, con
+ * la misma migración y los mismos datos, los quince lectores bien.
+ *
+ * Así que cuando la vista agota el plazo, la brecha se deriva de las series que
+ * ya están en memoria, con **la misma precedencia** que aplica la vista —tasa
+ * publicada, luego el lado vendedor— y el mismo punto medio. No es otra
+ * definición: es la misma cuenta sobre las mismas filas, hecha donde sí caben.
+ * Queda dicho en el registro del servidor para que nadie lo descubra por el
+ * número.
+ */
+async function buildGap(): Promise<GapPoint[]> {
+  try {
+    return await readGapFromView();
+  } catch (error) {
+    if (!isUnaffordableRead(error)) throw error;
+    console.warn('[observatorio] exchange_rate_gap agotó su plazo; la brecha se deriva del diario');
+    return deriveGap(await readObservatory());
+  }
+}
+
+/**
+ * La brecha derivada, sin volver a la base.
+ *
+ * `officialSeries` ya resuelve el lado oficial con la precedencia de la vista, y
+ * las dos puntas del paralelo ya vienen con la lectura observada preferida sobre
+ * la promediada, que es la otra cosa que la vista hace.
+ */
+function deriveGap(observatory: Observatory): GapPoint[] {
+  const official = new Map(officialSeries(observatory).map((point) => [point.date, point]));
+  const buy = observatory.series.get('FX_PARALLEL_USD_BOB:BUY') ?? [];
+  const sell = new Map(
+    (observatory.series.get('FX_PARALLEL_USD_BOB:SELL') ?? []).map((point) => [point.date, point]),
+  );
+
+  const out: GapPoint[] = [];
+  for (const low of buy) {
+    const high = sell.get(low.date);
+    const rate = official.get(low.date);
+    if (!high || !rate || rate.value === 0) continue;
+    const mid = (low.value + high.value) / 2;
+    out.push({
+      date: low.date,
+      official: rate.value,
+      parallelMid: mid,
+      gapPercent: (mid / rate.value - 1) * 100,
+      officialAggregation: rate.aggregation,
+      // Un día cubierto por los dos estadísticos se declara promediado, que es
+      // la lectura prudente y la que hace la vista con su `min(aggregation)`.
+      parallelAggregation:
+        low.aggregation === 'DAILY_AVERAGE' || high.aggregation === 'DAILY_AVERAGE'
+          ? 'DAILY_AVERAGE'
+          : 'POINT_IN_TIME',
+    });
+  }
+  return out.sort((left, right) => left.date.localeCompare(right.date));
+}
+
+async function readGapFromView(): Promise<GapPoint[]> {
   const { rows } = await pool().query<GapRow>(
     `SELECT event_date::text AS event_date, official_rate::text AS official_rate,
             parallel_mid::text AS parallel_mid, gap_mid_percent::text AS gap_mid_percent,
@@ -161,36 +282,103 @@ export interface SourceNote {
   publisher: string;
   sourceUrl: string;
   indicator: string;
+  /** What the series measures, as its publisher names it. */
+  name: string | null;
+  unit: string | null;
+  frequency: string | null;
   readings: number;
+  /** How many distinct documents this series was read from. */
+  documents: number;
   firstDay: string;
   lastDay: string;
 }
 
-/** Where each series comes from, so a reader can go and check it. */
-export async function readSources(): Promise<SourceNote[]> {
-  const { rows } = await pool().query<{
-    publisher: string;
-    source_url: string;
-    indicator_code: string;
-    readings: string;
-    first_day: string;
-    last_day: string;
-  }>(
-    `SELECT publisher, source_url, indicator_code,
+/**
+ * Where each series comes from, so a reader can go and check it.
+ *
+ * One row per series and publisher, not per document. Grouping by the address
+ * as well listed the official rate three times — once per capture the collector
+ * made — which reads as three different series rather than as one series with
+ * three receipts. The receipt count is kept as its own column, because how many
+ * documents a series was assembled from is a fact about how much it can be
+ * trusted, and the row still links to one of them.
+ */
+interface SourceRow {
+  publisher: string;
+  source_url: string;
+  indicator_code: string;
+  indicator_name: string | null;
+  unit: string | null;
+  frequency: string | null;
+  readings: string;
+  documents: string;
+  first_day: string;
+  last_day: string;
+}
+
+const SOURCE_COLUMNS = `publisher, indicator_code, indicator_name, unit, frequency,
+       readings::text AS readings, documents::text AS documents, source_url,
+       first_day::text AS first_day, last_day::text AS last_day`;
+
+/**
+ * The register is grouped in the database now, not here.
+ *
+ * The GROUP BY below used to be this file's, sent over the whole reading view on
+ * every page load. Migration 0072 made it `read_models.indicator_source_note`,
+ * for the reason every other figure lives there: a model that exists only as a
+ * query inside one reader cannot be snapshotted, indexed or granted, and two
+ * consumers must not be able to disagree about how many readings a publisher
+ * has. It stays here as the last resort, for the window in which this report is
+ * deployed and the migration has not landed yet.
+ */
+async function readSourcesFromReadings(): Promise<SourceRow[]> {
+  const { rows } = await pool().query<SourceRow>(
+    `SELECT publisher, indicator_code,
+            max(indicator_name) AS indicator_name,
+            max(unit) AS unit,
+            max(frequency) AS frequency,
             count(*)::text AS readings,
+            count(DISTINCT source_url)::text AS documents,
+            min(source_url) AS source_url,
             min(event_date)::text AS first_day,
             max(event_date)::text AS last_day
      FROM read_models.economic_indicator_reading
      WHERE status = 'PUBLISHED' AND NOT superseded
-     GROUP BY publisher, source_url, indicator_code
+     GROUP BY publisher, indicator_code
      ORDER BY indicator_code, publisher`,
   );
+  return rows;
+}
+
+async function readSourcesFrom(relation: string): Promise<SourceRow[]> {
+  const { rows } = await pool().query<SourceRow>(
+    `SELECT ${SOURCE_COLUMNS}
+     FROM ${relation}
+     ORDER BY indicator_code, publisher`,
+  );
+  return rows;
+}
+
+export function readSources(): Promise<SourceNote[]> {
+  return held('sources', buildSources);
+}
+
+async function buildSources(): Promise<SourceNote[]> {
+  const rows = await firstThatAnswers([
+    () => readSourcesFrom('read_models.indicator_source_note_snapshot'),
+    () => readSourcesFrom('read_models.indicator_source_note'),
+    readSourcesFromReadings,
+  ]);
 
   return rows.map((row) => ({
     publisher: row.publisher,
     sourceUrl: row.source_url,
     indicator: row.indicator_code,
+    name: row.indicator_name,
+    unit: row.unit,
+    frequency: row.frequency,
     readings: Number(row.readings),
+    documents: Number(row.documents),
     firstDay: row.first_day,
     lastDay: row.last_day,
   }));
@@ -243,25 +431,39 @@ export interface MacroPoint {
  * figure and a quoted price are different frequencies, and the database keeps
  * them apart so no consumer has to remember to.
  */
-export async function readMacroAnnual(): Promise<MacroPoint[]> {
-  const { rows } = await pool().query<{
-    indicator_code: string;
-    indicator_name: string | null;
-    sector: string;
-    period: string;
-    unit: string;
-    value: string;
-    previous_value: string | null;
-    change_percent: string | null;
-    publisher: string | null;
-    source_url: string | null;
-  }>(
+interface MacroRow {
+  indicator_code: string;
+  indicator_name: string | null;
+  sector: string;
+  period: string;
+  unit: string;
+  value: string;
+  previous_value: string | null;
+  change_percent: string | null;
+  publisher: string | null;
+  source_url: string | null;
+}
+
+async function readMacroAnnualFrom(relation: string): Promise<MacroRow[]> {
+  const { rows } = await pool().query<MacroRow>(
     `SELECT indicator_code, indicator_name, sector, period, unit,
             value::text AS value, previous_value::text AS previous_value,
             change_percent::text AS change_percent, publisher, source_url
-     FROM read_models.macro_indicator_annual
+     FROM ${relation}
      ORDER BY indicator_code, period`,
   );
+  return rows;
+}
+
+export function readMacroAnnual(): Promise<MacroPoint[]> {
+  return held('macroAnnual', buildMacroAnnual);
+}
+
+async function buildMacroAnnual(): Promise<MacroPoint[]> {
+  const rows = await firstThatAnswers([
+    () => readMacroAnnualFrom('read_models.macro_indicator_annual_snapshot'),
+    () => readMacroAnnualFrom('read_models.macro_indicator_annual'),
+  ]);
 
   return rows.map((row) => ({
     indicatorCode: row.indicator_code,
@@ -277,17 +479,157 @@ export async function readMacroAnnual(): Promise<MacroPoint[]> {
   }));
 }
 
+/**
+ * El catálogo entero del Banco Mundial, leído solo para Bolivia.
+ *
+ * Son las mismas mil quinientas series que `world_panel_reading` guarda para
+ * las treinta economías del panel, recortadas a la fila que tiene `BOL` en la
+ * columna de país. Ese recorte es el punto: hasta la migración 0077 estas
+ * series entraban en el panel macro sin él —la vista anual no tiene columna de
+ * país y las promediaba con las otras veintinueve y con el agregado mundial—,
+ * así que la población de Bolivia salía en quinientos millones. Aquí el país
+ * está en el `WHERE`, no promediado.
+ *
+ * Se devuelven como `MacroPoint` porque son exactamente eso: un indicador, un
+ * año, un valor y de dónde sale. El rubro no viene de la base —el Banco
+ * Mundial no publica ninguno— sino del prefijo del código, que es la única
+ * clasificación que el publicador entrega; `wdi-sectors.ts` explica el reparto.
+ *
+ * El valor anterior y la variación se calculan aquí y no en SQL. Para las
+ * series medidas los calcula la vista, porque allí hay una copia almacenada que
+ * los guarda; aquí no hay copia que llenar y son treinta mil filas ya ordenadas
+ * por indicador y periodo, sobre las que la resta es un solo recorrido.
+ */
+export function readBoliviaPanel(): Promise<MacroPoint[]> {
+  return held('boliviaPanel', buildBoliviaPanel);
+}
+
+async function buildBoliviaPanel(): Promise<MacroPoint[]> {
+  const { rows } = await pool().query<{
+    indicator_code: string;
+    indicator_name: string | null;
+    period: string;
+    value: string;
+    publisher: string | null;
+    source_url: string | null;
+  }>(
+    `SELECT indicator_code,
+            max(indicator_name) AS indicator_name,
+            period::text        AS period,
+            avg(value)::text    AS value,
+            max(publisher)      AS publisher,
+            max(source_url)     AS source_url
+     FROM read_models.world_panel_reading
+     WHERE country = 'BOL'
+       AND status = 'PUBLISHED'
+       AND NOT superseded
+       AND value IS NOT NULL
+     GROUP BY indicator_code, period
+     ORDER BY indicator_code, period`,
+  );
+
+  const points: MacroPoint[] = [];
+  let previousCode: string | null = null;
+  let previousValue: number | null = null;
+
+  for (const row of rows) {
+    const value = Number(row.value);
+    // El anterior de la primera lectura de una serie no es la última de la
+    // serie de arriba: al cambiar de indicador el arrastre se corta.
+    const previous = row.indicator_code === previousCode ? previousValue : null;
+    points.push({
+      indicatorCode: row.indicator_code,
+      name: row.indicator_name,
+      sector: wdiSector(row.indicator_code),
+      period: row.period,
+      // El publicador da cada serie en la unidad que quiere —una razón, un
+      // recuento, un total en dólares constantes— y no publica cuál. Decir
+      // `NATIVE` es decir eso mismo, que es lo único honesto que se puede
+      // decir sin inventar una conversión.
+      unit: 'NATIVE',
+      value,
+      previousValue: previous,
+      changePercent:
+        previous === null || previous === 0
+          ? null
+          : Number((((value - previous) / Math.abs(previous)) * 100).toFixed(4)),
+      publisher: row.publisher,
+      sourceUrl: row.source_url,
+    });
+    previousCode = row.indicator_code;
+    previousValue = value;
+  }
+
+  return points;
+}
+
 export interface CompanyFiling {
   factClaimId: string;
   eventDate: string;
   publishedAt: string | null;
   filer: string;
+  /** Short code the exchange assigns the issuer. */
+  filerCode: string | null;
+  /** Industry derived from the issuer's registered name, not published by the exchange. */
+  sector: string;
+  /**
+   * What the filing is about, read from its subject line.
+   *
+   * The exchange lets each issuer word its own subject, so the register holds
+   * four thousand distinct ones. Migration 0061 files them into eleven
+   * categories and a residual.
+   */
+  category: string;
   subject: string;
   statedInstant: string | null;
   instantStatedInDocument: boolean | null;
   sourceUrl: string | null;
   evidenceSha256: string | null;
   excerpt: string | null;
+  /** The filing in prose, pulled out of whatever shape the evidence has. */
+  summary: string | null;
+  /** Whether that prose is the filing's own page or the register's summary. */
+  summaryIsComplete: boolean;
+}
+
+/**
+ * The readable sentence inside a filing's evidence.
+ *
+ * Evidence is kept verbatim so a figure can be checked against its source, and
+ * for the register that verbatim form is a JSON record — which is correct as
+ * evidence and unreadable as copy. The prose lives in its `abstract`; entities
+ * survive the round trip through the exchange's own encoder, so they are
+ * decoded here rather than shown as `&nbsp;`.
+ *
+ * Filings captured from their own page carry prose already and pass through.
+ */
+function isDocumentProse(text: string | null): boolean {
+  return Boolean(text && !text.trim().startsWith('{'));
+}
+
+function filingSummary(excerpt: string | null): string | null {
+  if (!excerpt) return null;
+  const trimmed = excerpt.trim();
+  if (!trimmed.startsWith('{')) return trimmed || null;
+  try {
+    const record: unknown = JSON.parse(trimmed);
+    const abstract =
+      typeof record === 'object' && record !== null && 'abstract' in record
+        ? (record as { abstract?: unknown }).abstract
+        : null;
+    if (typeof abstract !== 'string' || !abstract.trim()) return null;
+    return abstract
+      .replace(/&nbsp;/gu, ' ')
+      .replace(/&amp;/gu, '&')
+      .replace(/&quot;/gu, '"')
+      .replace(/&#0?39;/gu, "'")
+      .replace(/&lt;/gu, '<')
+      .replace(/&gt;/gu, '>')
+      .replace(/\s+/gu, ' ')
+      .trim();
+  } catch {
+    return null;
+  }
 }
 
 /**
@@ -296,22 +638,125 @@ export interface CompanyFiling {
  * Read from their own model: a filing has no value, no unit and no series, so
  * it never belonged with the indicators even though it shares their provenance.
  */
-export async function readCompanyFilings(limit = 60): Promise<CompanyFiling[]> {
+interface FilingRow {
+  fact_claim_id: string;
+  event_date: string;
+  published_at: Date | null;
+  filer: string;
+  filer_code: string | null;
+  sector: string;
+  category: string;
+  document_text: string | null;
+  subject: string;
+  stated_instant: string | null;
+  instant_stated_in_document: boolean | null;
+  source_url: string | null;
+  evidence_sha256: string | null;
+  excerpt: string | null;
+}
+
+async function readFilingsFrom(relation: string, limit: number): Promise<FilingRow[]> {
+  const { rows } = await pool().query<FilingRow>(
+    `SELECT fact_claim_id, event_date::text AS event_date, published_at, filer, filer_code,
+            sector, category, subject, stated_instant, instant_stated_in_document, source_url,
+            evidence_sha256, excerpt, document_text
+     FROM ${relation}
+     WHERE status = 'PUBLISHED' AND NOT superseded
+     ORDER BY published_at DESC NULLS LAST, event_date DESC
+     LIMIT $1`,
+    [limit],
+  );
+  return rows;
+}
+
+export function readCompanyFilings(limit = 1_000): Promise<CompanyFiling[]> {
+  return held(`filings:${limit}`, () => buildCompanyFilings(limit));
+}
+
+async function buildCompanyFilings(limit: number): Promise<CompanyFiling[]> {
+  const rows = await firstThatAnswers([
+    () => readFilingsFrom('read_models.company_filing_snapshot', limit),
+    () => readFilingsFrom('read_models.company_filing', limit),
+  ]);
+
+  return rows.map((row) => ({
+    factClaimId: row.fact_claim_id,
+    eventDate: row.event_date,
+    publishedAt: row.published_at?.toISOString() ?? null,
+    filer: row.filer,
+    filerCode: row.filer_code,
+    sector: row.sector,
+    category: row.category,
+    subject: row.subject,
+    statedInstant: row.stated_instant,
+    instantStatedInDocument: row.instant_stated_in_document,
+    sourceUrl: row.source_url,
+    evidenceSha256: row.evidence_sha256,
+    excerpt: row.excerpt,
+    // The filing's own page when it was captured; the register's summary when
+    // it was not. Never both concatenated, and never the raw evidence record.
+    //
+    // The model returns the longest evidence on the claim, which falls back to
+    // the register record when no page was captured — so the text only counts
+    // as complete when it is prose rather than that record.
+    summary: filingSummary(row.document_text) ?? filingSummary(row.excerpt),
+    summaryIsComplete: isDocumentProse(row.document_text),
+  }));
+}
+
+export interface PressArticle {
+  factClaimId: string;
+  eventDate: string;
+  publishedAt: string | null;
+  outlet: string;
+  domain: string;
+  section: string;
+  headline: string;
+  summary: string | null;
+  url: string;
+  /** Derived from the headline and standfirst, not published by the outlet. */
+  topic: string;
+  /** Lexicon category the headline matched: alarm, conflict, direction, doubt. */
+  tone: string;
+  /** Department the story names, or NACIONAL when it names none. */
+  region: string;
+  /** SYNDICATED_FEED or RENDERED_SECTION: how the listing was obtained. */
+  retrievalMethod: string | null;
+  evidenceSha256: string | null;
+}
+
+/**
+ * Press coverage of the economy.
+ *
+ * Read from its own model, never joined to a series. An outlet reporting that
+ * the dollar moved is not a reading of the dollar, and the report keeps the two
+ * apart so a reader always knows which they are looking at.
+ */
+export function readPressArticles(limit = 1_000): Promise<PressArticle[]> {
+  return held(`pressArticles:${limit}`, () => buildPressArticles(limit));
+}
+
+async function buildPressArticles(limit: number): Promise<PressArticle[]> {
   const { rows } = await pool().query<{
     fact_claim_id: string;
     event_date: string;
     published_at: Date | null;
-    filer: string;
-    subject: string;
-    stated_instant: string | null;
-    instant_stated_in_document: boolean | null;
-    source_url: string | null;
+    outlet: string;
+    domain: string;
+    section: string;
+    headline: string;
+    summary: string | null;
+    article_url: string;
+    topic: string;
+    tone: string;
+    region: string;
+    retrieval_method: string | null;
     evidence_sha256: string | null;
-    excerpt: string | null;
   }>(
-    `SELECT fact_claim_id, event_date::text AS event_date, published_at, filer, subject,
-            stated_instant, instant_stated_in_document, source_url, evidence_sha256, excerpt
-     FROM read_models.company_filing
+    `SELECT fact_claim_id, event_date::text AS event_date, published_at, outlet, domain,
+            section, headline, summary, article_url, topic, tone, region,
+            retrieval_method, evidence_sha256
+     FROM read_models.press_article_snapshot
      WHERE status = 'PUBLISHED' AND NOT superseded
      ORDER BY published_at DESC NULLS LAST, event_date DESC
      LIMIT $1`,
@@ -322,12 +767,1563 @@ export async function readCompanyFilings(limit = 60): Promise<CompanyFiling[]> {
     factClaimId: row.fact_claim_id,
     eventDate: row.event_date,
     publishedAt: row.published_at?.toISOString() ?? null,
-    filer: row.filer,
-    subject: row.subject,
-    statedInstant: row.stated_instant,
-    instantStatedInDocument: row.instant_stated_in_document,
-    sourceUrl: row.source_url,
+    outlet: row.outlet,
+    domain: row.domain,
+    section: row.section,
+    headline: row.headline,
+    summary: row.summary,
+    url: row.article_url,
+    topic: row.topic,
+    tone: row.tone,
+    region: row.region,
+    retrievalMethod: row.retrieval_method,
     evidenceSha256: row.evidence_sha256,
-    excerpt: row.excerpt,
   }));
+}
+
+export interface MarketPoint {
+  date: string;
+  value: number;
+}
+
+export interface MarketSeries {
+  code: string;
+  name: string;
+  unit: string;
+  latest: number;
+  latestDate: string;
+  changePercent: number | null;
+  /** Change over the whole window held, which is what a two-year series is for. */
+  windowPercent: number | null;
+  points: MarketPoint[];
+}
+
+const MARKET_NAMES: Record<string, string> = {
+  BTC_USD: 'Bitcoin',
+  USDT_USD: 'Estables USDT/USDC',
+  XAU_USD: 'Oro (PAX Gold)',
+};
+
+/**
+ * The markets that bear on the Bolivian dollar.
+ *
+ * Read separately from the Bolivian series because they are quoted elsewhere in
+ * another currency: putting a dollar price of gold on the same axis as
+ * bolivianos per dollar would be a category error, however tempting the shared
+ * word "price" makes it.
+ */
+/**
+ * La unidad de cada mercado, para cuando la fila no viaja con ella.
+ *
+ * Los tres se cotizan en dólares. Se escribe aquí porque el camino de respaldo
+ * lee las series del diario ya cargado, que guarda el valor y no la unidad, y
+ * un precio sin unidad no es reportable.
+ */
+const MARKET_UNITS: Record<string, string> = {
+  BTC_USD: 'USD',
+  USDT_USD: 'USD',
+  XAU_USD: 'USD',
+};
+
+/**
+ * Los mercados, de la vista si responde y del diario ya leído si no.
+ *
+ * Mismo problema y mismo remedio que la brecha: esta consulta filtra
+ * `economic_indicator_daily` por `indicator_code` y en el servidor chico ese
+ * filtro agota el plazo, mientras que la lectura entera de la misma vista entra.
+ * Aquí no hay siquiera una cuenta que rehacer —son las mismas filas, elegidas
+ * por su código— así que el respaldo no cambia ninguna cifra.
+ */
+export function readMarkets(): Promise<MarketSeries[]> {
+  return held('markets', buildMarkets);
+}
+
+async function buildMarkets(): Promise<MarketSeries[]> {
+  try {
+    return await readMarketsFromView();
+  } catch (error) {
+    if (!isUnaffordableRead(error)) throw error;
+    console.warn('[observatorio] los mercados agotaron su plazo; se leen del diario en memoria');
+    const observatory = await readObservatory();
+    return shapeMarkets(
+      Object.keys(MARKET_UNITS).flatMap((code) =>
+        (observatory.series.get(code) ?? []).map((point) => ({
+          code,
+          unit: MARKET_UNITS[code] ?? 'USD',
+          date: point.date,
+          value: point.value,
+        })),
+      ),
+    );
+  }
+}
+
+async function readMarketsFromView(): Promise<MarketSeries[]> {
+  const { rows } = await pool().query<{
+    indicator_code: string;
+    event_date: string;
+    value_median: string;
+    unit: string;
+  }>(
+    `SELECT indicator_code, event_date::text AS event_date, value_median::text, unit
+     FROM read_models.economic_indicator_daily
+     WHERE indicator_code IN ('BTC_USD', 'USDT_USD', 'XAU_USD')
+     ORDER BY indicator_code, event_date`,
+  );
+
+  return shapeMarkets(
+    rows.map((row) => ({
+      code: row.indicator_code,
+      unit: row.unit,
+      date: row.event_date,
+      value: Number(row.value_median),
+    })),
+  );
+}
+
+/**
+ * Las lecturas sueltas, agrupadas en la serie que la tarjeta dibuja.
+ *
+ * Compartida por los dos caminos a propósito: una tarjeta cuya variación se
+ * calculara distinto según de dónde vinieran las filas sería un error imposible
+ * de ver, porque las dos cifras son plausibles.
+ */
+function shapeMarkets(
+  readings: ReadonlyArray<{ code: string; unit: string; date: string; value: number }>,
+): MarketSeries[] {
+  const grouped = new Map<string, { unit: string; points: MarketPoint[] }>();
+  for (const reading of [...readings].sort(
+    (left, right) => left.code.localeCompare(right.code) || left.date.localeCompare(right.date),
+  )) {
+    const entry = grouped.get(reading.code) ?? { unit: reading.unit, points: [] };
+    entry.points.push({ date: reading.date, value: reading.value });
+    grouped.set(reading.code, entry);
+  }
+
+  return [...grouped.entries()].map(([code, entry]) => {
+    const last = entry.points.at(-1);
+    const previous = entry.points.at(-2);
+    const first = entry.points.at(0);
+    return {
+      code,
+      name: MARKET_NAMES[code] ?? code,
+      unit: entry.unit,
+      latest: last?.value ?? 0,
+      latestDate: last?.date ?? '',
+      changePercent:
+        last && previous && previous.value !== 0
+          ? ((last.value - previous.value) / previous.value) * 100
+          : null,
+      windowPercent:
+        last && first && first.value !== 0
+          ? ((last.value - first.value) / first.value) * 100
+          : null,
+      points: entry.points,
+    };
+  });
+}
+
+export interface TermMention {
+  term: string;
+  label: string;
+  family: string;
+  mentions: number;
+  outlets: number;
+  /** Share of the watched vocabulary this term accounts for. */
+  share: number;
+}
+
+/**
+ * How often each watched term is being said, and by how many mastheads.
+ *
+ * A watchlist rather than a word count: ranking every word surfaces "gobierno"
+ * and tells a reader nothing. The outlet count matters as much as the total —
+ * a term one paper repeats is that paper's campaign, a term six papers use is
+ * the country's conversation.
+ */
+export function readPressTerms(): Promise<TermMention[]> {
+  return held('pressTerms', buildPressTerms);
+}
+
+async function buildPressTerms(): Promise<TermMention[]> {
+  const { rows } = await pool().query<{
+    term: string;
+    label: string;
+    family: string;
+    mentions: string;
+    outlets: string;
+  }>(
+    `SELECT term, label, family, count(*)::text AS mentions,
+            count(DISTINCT outlet)::text AS outlets
+     FROM read_models.press_term_mention_snapshot
+     GROUP BY term, label, family
+     ORDER BY count(*) DESC`,
+  );
+
+  const total = rows.reduce((sum, row) => sum + Number(row.mentions), 0) || 1;
+  return rows.map((row) => ({
+    term: row.term,
+    label: row.label,
+    family: row.family,
+    mentions: Number(row.mentions),
+    outlets: Number(row.outlets),
+    share: Number(row.mentions) / total,
+  }));
+}
+
+export interface ToneYear {
+  year: string;
+  tone: string;
+  articles: number;
+}
+
+export interface RegionCount {
+  region: string;
+  articles: number;
+}
+
+export interface PressPulseData {
+  total: number;
+  outlets: number;
+  firstDay: string | null;
+  lastDay: string | null;
+  toneByYear: ToneYear[];
+  regions: RegionCount[];
+  /**
+   * What share of coverage the tone lexicon leaves unmarked, split by how much
+   * text it had to read. An archived row carries only the headline recovered
+   * from its address; a live one carries the standfirst too. The difference is
+   * the honest explanation of the unmarked share, and it is measured rather
+   * than asserted so it cannot drift away from the corpus.
+   */
+  unmarked: { archive: number; live: number; archiveLength: number; liveLength: number };
+}
+
+/**
+ * The shape of the whole corpus, counted where it lives.
+ *
+ * Twenty thousand articles do not travel to a browser to be tallied there: the
+ * database groups them and the page receives the counts. The register below
+ * still shows individual stories, but a page of them rather than all of them,
+ * because nobody reads twenty thousand cards and sending them costs seconds.
+ */
+export function readPressPulse(): Promise<PressPulseData> {
+  return held('pulse', buildPressPulse);
+}
+
+async function buildPressPulse(): Promise<PressPulseData> {
+  const [summary, tones, regions, marks] = await Promise.all([
+    pool().query<{ total: string; outlets: string; first_day: string; last_day: string }>(
+      `SELECT count(*)::text AS total, count(DISTINCT outlet)::text AS outlets,
+              min(event_date)::text AS first_day, max(event_date)::text AS last_day
+       FROM read_models.press_article_snapshot
+       WHERE status = 'PUBLISHED' AND NOT superseded`,
+    ),
+    pool().query<{ year: string; tone: string; articles: string }>(
+      `SELECT left(event_date::text, 4) AS year, tone, count(*)::text AS articles
+       FROM read_models.press_article_snapshot
+       WHERE status = 'PUBLISHED' AND NOT superseded
+       GROUP BY 1, 2
+       ORDER BY 1, 3 DESC`,
+    ),
+    pool().query<{ region: string; articles: string }>(
+      `SELECT region, count(*)::text AS articles
+       FROM read_models.press_article_snapshot
+       WHERE status = 'PUBLISHED' AND NOT superseded
+       GROUP BY 1
+       ORDER BY 2 DESC`,
+    ),
+    pool().query<{ archived: boolean; unmarked: string; letters: string }>(
+      `SELECT coalesce(retrieval_method, 'WEB_ARCHIVE') = 'WEB_ARCHIVE' AS archived,
+              round(100.0 * count(*) FILTER (WHERE tone = 'NEUTRO') / count(*), 0)::text
+                AS unmarked,
+              round(avg(length(coalesce(headline, '') || coalesce(summary, ''))))::text
+                AS letters
+       FROM read_models.press_article_snapshot
+       WHERE status = 'PUBLISHED' AND NOT superseded
+       GROUP BY 1`,
+    ),
+  ]);
+
+  const archived = marks.rows.find((row) => row.archived);
+  const live = marks.rows.find((row) => !row.archived);
+
+  const head = summary.rows[0];
+  return {
+    total: Number(head?.total ?? 0),
+    outlets: Number(head?.outlets ?? 0),
+    firstDay: head?.first_day ?? null,
+    lastDay: head?.last_day ?? null,
+    toneByYear: tones.rows.map((row) => ({
+      year: row.year,
+      tone: row.tone,
+      articles: Number(row.articles),
+    })),
+    regions: regions.rows.map((row) => ({
+      region: row.region,
+      articles: Number(row.articles),
+    })),
+    unmarked: {
+      archive: Number(archived?.unmarked ?? 0),
+      live: Number(live?.unmarked ?? 0),
+      archiveLength: Number(archived?.letters ?? 0),
+      liveLength: Number(live?.letters ?? 0),
+    },
+  };
+}
+
+export interface PressCube {
+  /** Dictionaries: every cell holds indices into these, never the strings. */
+  years: string[];
+  tones: string[];
+  topics: string[];
+  regions: string[];
+  outlets: string[];
+  terms: Array<{ term: string; label: string; family: string }>;
+  /** [year, tone, topic, region, outlet, articles] over the whole corpus. */
+  cells: number[][];
+  /** [term, year, tone, topic, region, outlet, articles]; one row per article per term. */
+  termCells: number[][];
+}
+
+/**
+ * The whole press corpus, small enough to filter in the browser.
+ *
+ * Cross-filtering — click a bar and every other visual narrows to it — cannot
+ * be done from counts already summed over everything, and doing it from the
+ * articles themselves would mean shipping twenty-two thousand rows. So what
+ * travels is the cross-tabulation: one row per distinct combination of year,
+ * tone, subject, department and masthead. There are about fourteen hundred of
+ * them, and any figure any visual needs is a sum over the rows that match the
+ * selections belonging to the OTHER visuals.
+ *
+ * The counts are therefore corpus-wide and exact, not counts of the page of
+ * articles that happens to be on screen — which is what a reader assumes a
+ * filter's number means.
+ */
+export function readPressCube(search?: string): Promise<PressCube> {
+  const term = search?.trim() ?? '';
+  return term ? buildPressCube(search) : held('cube', () => buildPressCube(undefined));
+}
+
+async function buildPressCube(search?: string): Promise<PressCube> {
+  /*
+   * A free-text search cannot be answered from the cross-tabulation — there is
+   * no text in it — so when there is one the cube is rebuilt under it. Leaving
+   * the search out would leave every count on the panel speaking for the whole
+   * corpus while the stories underneath spoke for the search: the figures would
+   * simply be wrong, which is worse than being slow.
+   *
+   * It is done in two scans and never as a join. Joining the vocabulary view to
+   * the article view makes the planner materialise both and pair twenty-two
+   * thousand rows against eight thousand — that query ran for over ten minutes
+   * before it was cancelled. Scanning the articles once yields both the counts
+   * and the ids that matched, and the vocabulary is then read for those ids
+   * alone, which for a real search is a few hundred of them.
+   */
+  const term = search?.trim() ? `%${search.trim()}%` : null;
+
+  const facts = await pool().query<{
+    fact_claim_id: string;
+    year: string;
+    tone: string;
+    topic: string;
+    region: string;
+    outlet: string;
+  }>(
+    `SELECT fact_claim_id, left(event_date::text, 4) AS year, tone, topic, region, outlet
+     FROM read_models.press_article_snapshot
+     WHERE status = 'PUBLISHED' AND NOT superseded
+     ${term ? `AND (headline ILIKE $1 OR coalesce(summary, '') ILIKE $1)` : ''}`,
+    term ? [term] : [],
+  );
+
+  const mentions = await pool().query<{
+    term: string;
+    label: string;
+    family: string;
+    year: string;
+    tone: string;
+    topic: string;
+    region: string;
+    outlet: string;
+    articles: string;
+  }>(
+    `SELECT term, label, family, left(event_date::text, 4) AS year, tone, topic, region, outlet,
+            count(*)::text AS articles
+     FROM read_models.press_term_mention_snapshot
+     ${term ? 'WHERE fact_claim_id = ANY($1::uuid[])' : ''}
+     GROUP BY 1, 2, 3, 4, 5, 6, 7, 8`,
+    term ? [facts.rows.map((row) => row.fact_claim_id)] : [],
+  );
+
+  /** Assigns each distinct value an index, in first-seen order. */
+  const dictionary = (): { of: (value: string) => number; values: string[] } => {
+    const index = new Map<string, number>();
+    const values: string[] = [];
+    return {
+      of(value: string): number {
+        const held = index.get(value);
+        if (held !== undefined) return held;
+        index.set(value, values.length);
+        values.push(value);
+        return values.length - 1;
+      },
+      values,
+    };
+  };
+
+  const years = dictionary();
+  const tones = dictionary();
+  const topics = dictionary();
+  const regions = dictionary();
+  const outlets = dictionary();
+  const termIndex = new Map<string, number>();
+  const terms: Array<{ term: string; label: string; family: string }> = [];
+
+  /** One cell per distinct combination, tallied from the rows just read. */
+  const tally = new Map<string, number[]>();
+  for (const row of facts.rows) {
+    const cell = [
+      years.of(row.year),
+      tones.of(row.tone),
+      topics.of(row.topic),
+      regions.of(row.region),
+      outlets.of(row.outlet),
+    ];
+    const key = cell.join(':');
+    const held = tally.get(key);
+    if (held) held[5] = (held[5] ?? 0) + 1;
+    else tally.set(key, [...cell, 1]);
+  }
+  const cells = [...tally.values()];
+
+  const termCells = mentions.rows.map((row) => {
+    let index = termIndex.get(row.term);
+    if (index === undefined) {
+      index = terms.length;
+      termIndex.set(row.term, index);
+      terms.push({ term: row.term, label: row.label, family: row.family });
+    }
+    return [
+      index,
+      years.of(row.year),
+      tones.of(row.tone),
+      topics.of(row.topic),
+      regions.of(row.region),
+      outlets.of(row.outlet),
+      Number(row.articles),
+    ];
+  });
+
+  return {
+    years: years.values,
+    tones: tones.values,
+    topics: topics.values,
+    regions: regions.values,
+    outlets: outlets.values,
+    terms,
+    cells,
+    termCells,
+  };
+}
+
+/**
+ * El recorte que pide una página del registro.
+ *
+ * Cada dimensión lleva una lista y no un valor: el tablero dejó de filtrar por
+ * una categoría por dimensión y filtra por las que el lector haya sumado con
+ * Ctrl+clic. Una lista vacía o ausente quiere decir «todas», que es lo que
+ * quería decir el viejo `TODOS`.
+ */
+export interface PressQuery {
+  year?: readonly string[] | undefined;
+  tone?: readonly string[] | undefined;
+  topic?: readonly string[] | undefined;
+  region?: readonly string[] | undefined;
+  outlet?: readonly string[] | undefined;
+  term?: readonly string[] | undefined;
+  search?: string | undefined;
+}
+
+/**
+ * The page of articles a selection points at, chosen in the database.
+ *
+ * The cube says how many; this says which. Both read the same view under the
+ * same predicate, so the number on a filter and the stories under it can never
+ * disagree — which they would the moment the page filtered a cached first
+ * thousand while the counts spoke for the whole corpus.
+ */
+export function readPressPage(
+  query: PressQuery,
+  limit = 60,
+  offset = 0,
+): Promise<{ articles: PressArticle[]; total: number }> {
+  /*
+   * Las dos páginas con que se entra al archivo se sostienen; las demás no.
+   *
+   * La portada pide la primera página sin filtro para el cuadro de mando, y el
+   * capítulo de prensa la primera de los temas económicos. Las dos son las
+   * mismas para cualquier lector, y la de la portada estaba en el camino
+   * crítico de cada visita. Una página filtrada por el lector no: sus
+   * combinaciones no tienen fin, y sostenerlas sería llenar la memoria del
+   * proceso —y el reloj que la renueva— de consultas que nadie repetirá.
+   *
+   * El tope de 200 excluye a propósito la descarga de `/api/export`, que pide
+   * hasta 60.000 filas sin filtro: esa ruta documenta que corre el predicado en
+   * el momento para que el fichero nunca pueda discrepar de lo que el panel
+   * cuenta, y sostenerla cinco minutos —aunque fuera la misma consulta— es tocar
+   * una garantía que no es de esta tarea.
+   */
+  const entry = offset === 0 && limit <= 200 ? landingPage(query) : null;
+  if (entry !== null) {
+    return held(`pressPage:${entry}:${limit}`, () => buildPressPage(query, limit, offset));
+  }
+  return buildPressPage(query, limit, offset);
+}
+
+/** El nombre de una página de entrada al archivo, o `null` si no lo es. */
+function landingPage(query: PressQuery): string | null {
+  const used = Object.entries(query).filter(
+    ([, value]) => value !== undefined && (typeof value === 'string' || value.length > 0),
+  );
+  if (used.length === 0) return 'todo';
+  const [field, value] = used[0] ?? [];
+  if (used.length === 1 && field === 'topic' && Array.isArray(value)) {
+    if (value.length === 1 && value[0] === 'ECONOMICOS') return 'economicos';
+  }
+  return null;
+}
+
+async function buildPressPage(
+  query: PressQuery,
+  limit: number,
+  offset: number,
+): Promise<{ articles: PressArticle[]; total: number }> {
+  const where: string[] = [`status = 'PUBLISHED'`, 'NOT superseded'];
+  const values: unknown[] = [];
+  const bind = (value: unknown): string => {
+    values.push(value);
+    return `$${values.length}`;
+  };
+
+  /** Una dimensión con valores se vuelve una disyunción; sin ellos no recorta. */
+  const anyOf = (column: string, values: readonly string[] | undefined): void => {
+    if (values && values.length) where.push(`${column} = ANY(${bind([...values])})`);
+  };
+
+  anyOf(`left(event_date::text, 4)`, query.year);
+  anyOf('tone', query.tone);
+  anyOf('region', query.region);
+  anyOf('outlet', query.outlet);
+
+  /*
+   * «ECONOMICOS» no es un tema sino el complemento del residuo, así que se
+   * traduce a su propia condición y no a una pertenencia. Elegirlo junto a
+   * «OTROS» —que es lo que deja Ctrl+clic sobre el residuo— vuelve a ser el
+   * archivo entero, y entonces la condición sobra.
+   */
+  const topics = query.topic ?? [];
+  if (topics.length) {
+    const everythingButResidual = topics.includes('ECONOMICOS');
+    const named = topics.filter((topic) => topic !== 'ECONOMICOS');
+    if (everythingButResidual && named.includes('OTROS')) {
+      // Sin condición: el residuo y su complemento son el archivo completo.
+    } else if (everythingButResidual) {
+      where.push(`topic <> 'OTROS'`);
+    } else if (named.length) {
+      where.push(`topic = ANY(${bind(named)})`);
+    }
+  }
+
+  /*
+   * Los términos se cruzan contra la nota, no contra la mención: una nota que
+   * nombra dos de los términos elegidos entra una sola vez. Es la diferencia
+   * con el cubo del navegador, que no lleva identificadores y sólo puede dar
+   * un techo.
+   */
+  if (query.term && query.term.length) {
+    where.push(
+      `fact_claim_id IN (SELECT fact_claim_id FROM read_models.press_term_mention_snapshot
+                          WHERE term = ANY(${bind([...query.term])}))`,
+    );
+  }
+  if (query.search) {
+    const pattern = bind(`%${query.search}%`);
+    where.push(`(headline ILIKE ${pattern} OR coalesce(summary, '') ILIKE ${pattern})`);
+  }
+
+  /*
+   * The page, and nothing but the page.
+   *
+   * It used to carry `count(*) OVER ()` so the panel could say how many the
+   * selection held. That window function is computed before LIMIT, which means
+   * counting every matching claim out of a view that reassembles each one from
+   * its evidence: two seconds on every request once the corpus reached
+   * thirty-eight thousand. The panel already knows the total — it sums it from
+   * the cross-tabulation it holds — so asking the database for it again was
+   * paying twice for an answer already in hand.
+   */
+  const predicate = where.join(' AND ');
+  const page = await pool().query<{
+    fact_claim_id: string;
+    event_date: string;
+    published_at: Date | null;
+    outlet: string;
+    domain: string;
+    section: string;
+    headline: string;
+    summary: string | null;
+    article_url: string;
+    topic: string;
+    tone: string;
+    region: string;
+    retrieval_method: string | null;
+    evidence_sha256: string | null;
+  }>(
+    `SELECT fact_claim_id, event_date::text AS event_date, published_at, outlet, domain,
+            section, headline, summary, article_url, topic, tone, region,
+            retrieval_method, evidence_sha256
+     FROM read_models.press_article_snapshot
+     WHERE ${predicate}
+     ORDER BY event_date DESC, published_at DESC NULLS LAST, fact_claim_id
+     LIMIT ${bind(limit)} OFFSET ${bind(offset)}`,
+    values,
+  );
+
+  return {
+    articles: page.rows.map((row) => ({
+      factClaimId: row.fact_claim_id,
+      eventDate: row.event_date,
+      publishedAt: row.published_at?.toISOString() ?? null,
+      outlet: row.outlet,
+      domain: row.domain,
+      section: row.section,
+      headline: row.headline,
+      summary: row.summary,
+      url: row.article_url,
+      topic: row.topic,
+      tone: row.tone,
+      region: row.region,
+      retrievalMethod: row.retrieval_method,
+      evidenceSha256: row.evidence_sha256,
+    })),
+    // The panel counts the selection from its cross-tabulation; this is only
+    // a floor for the callers that have none.
+    total: page.rows.length,
+  };
+}
+
+export interface SocialReading {
+  metric: string;
+  platform: string;
+  subject: string;
+  label: string;
+  value: number;
+  unit: string;
+  referencePeriod: string;
+  eventDate: string;
+  publisher: string;
+  publication: string;
+  method: string;
+  evidenceGrade: string;
+  emotionalRegister: string;
+  officialCounterpart: string;
+  statement: string | null;
+  url: string;
+}
+
+export interface SocialAudience {
+  platform: string;
+  metric: string;
+  label: string;
+  value: number;
+  unit: string;
+  internetUsers: number | null;
+  exceedsInternetUsers: boolean;
+}
+
+/**
+ * What third parties published about the social platforms.
+ *
+ * Read from its own model and never mixed into a series. Every other figure on
+ * this report is a measurement or a report of one; these are readings of what a
+ * country expects and feels, compiled by people who sell the compilation. The
+ * evidence grade travels with each row so the panel can show what it rests on
+ * instead of averaging a household panel and a platform's ad planner into one
+ * voice.
+ */
+export function readSocialReadings(): Promise<SocialReading[]> {
+  return held('socialReadings', buildSocialReadings);
+}
+
+async function buildSocialReadings(): Promise<SocialReading[]> {
+  const { rows } = await pool().query<{
+    metric: string;
+    platform: string;
+    subject: string;
+    label: string;
+    value: string;
+    unit: string;
+    reference_period: string;
+    event_date: string;
+    publisher: string;
+    publication: string;
+    method: string;
+    evidence_grade: string;
+    emotional_register: string;
+    official_counterpart: string;
+    statement: string | null;
+    reading_url: string;
+  }>(
+    `SELECT metric, platform, subject, label, value::text AS value, unit,
+            reference_period, to_char(event_date, 'YYYY-MM-DD') AS event_date,
+            publisher, publication, method, evidence_grade,
+            emotional_register, official_counterpart, statement, reading_url
+     FROM read_models.social_reading_snapshot
+     ORDER BY subject, platform, metric`,
+  );
+
+  return rows.map((row) => ({
+    metric: row.metric,
+    platform: row.platform,
+    subject: row.subject,
+    label: row.label,
+    value: Number(row.value),
+    unit: row.unit,
+    referencePeriod: row.reference_period,
+    eventDate: row.event_date,
+    publisher: row.publisher,
+    publication: row.publication,
+    method: row.method,
+    evidenceGrade: row.evidence_grade,
+    emotionalRegister: row.emotional_register,
+    officialCounterpart: row.official_counterpart,
+    statement: row.statement,
+    url: row.reading_url,
+  }));
+}
+
+/**
+ * The platform audiences, with the ceiling they have to be read against.
+ *
+ * `exceedsInternetUsers` is computed in the database rather than here, so a
+ * platform added to the catalogue tomorrow inherits the check. It is the whole
+ * reason this table is not a ranking: TikTok declares more reachable adults
+ * than Bolivia has people online.
+ */
+export function readSocialAudience(): Promise<SocialAudience[]> {
+  return held('socialAudience', buildSocialAudience);
+}
+
+async function buildSocialAudience(): Promise<SocialAudience[]> {
+  const { rows } = await pool().query<{
+    platform: string;
+    metric: string;
+    label: string;
+    value: string;
+    unit: string;
+    internet_users: string | null;
+    reach_exceeds_internet_users: boolean;
+  }>(
+    // The sort is qualified on purpose. `value` is also the name of the text
+    // alias above, and an unqualified ORDER BY binds to the output column
+    // first — which sorts the reaches as strings and puts 494.000 above
+    // 3.950.000. Qualifying it makes the sort read the numeric column.
+    `SELECT platform, metric, label, audience.value::text AS value, unit,
+            internet_users::text AS internet_users, reach_exceeds_internet_users
+     FROM read_models.social_platform_audience AS audience
+     WHERE metric = 'AD_REACH'
+     ORDER BY audience.value DESC`,
+  );
+
+  return rows.map((row) => ({
+    platform: row.platform,
+    metric: row.metric,
+    label: row.label,
+    value: Number(row.value),
+    unit: row.unit,
+    internetUsers: row.internet_users === null ? null : Number(row.internet_users),
+    exceedsInternetUsers: row.reach_exceeds_internet_users,
+  }));
+}
+
+export interface TradeCoverage {
+  businessForm: string;
+  marketRegime: string;
+  readings: number;
+  highGrade: number;
+  lowGrade: number;
+  compilers: number;
+  territories: number;
+  settlementsRead: number;
+  latestPeriod: string | null;
+  unread: boolean;
+}
+
+export interface ChannelMix {
+  goodsClass: string;
+  territory: string;
+  referencePeriod: string;
+  readings: number;
+  formsRead: number;
+  oneReadingPerForm: boolean;
+  penetrationSum: number | null;
+  channelsPerHousehold: number | null;
+  informalPenetration: number | null;
+  mixedPenetration: number | null;
+  formalPenetration: number | null;
+  informalShareOfVisits: number | null;
+  forms: string[];
+}
+
+export interface TradeReading {
+  metric: string;
+  label: string;
+  value: number;
+  unit: string;
+  referencePeriod: string;
+  platform: string;
+  businessForm: string;
+  marketRegime: string;
+  tradeSide: string;
+  settlementMeans: string;
+  goodsClass: string;
+  measureKind: string;
+  populationScope: string;
+  territory: string;
+  publisher: string;
+  evidenceGrade: string;
+  url: string;
+}
+
+export interface TradeGap {
+  label: string;
+  socialValue: number;
+  referencePeriod: string;
+  businessForm: string;
+  territory: string;
+  socialPublisher: string;
+  evidenceGrade: string;
+  indicatorCode: string;
+  measuredValue: number | null;
+  measuredPublisher: string | null;
+  distancePoints: number | null;
+}
+
+/**
+ * The read models this report opens, so a check can name them.
+ *
+ * Exported for `/api/version`, which reports which of them the deployed
+ * container can actually read. A section that comes back empty is either an
+ * empty section or an unreadable model, and from the page alone the two look
+ * identical — this is how they are told apart without shell access to a
+ * machine that lives behind a tailnet.
+ */
+/**
+ * True when the server was willing to read the section and did not finish it.
+ *
+ * The other way a section is lost, and the one this report only met once it
+ * started reading the database the core actually writes instead of the small
+ * frozen copy it had been served for weeks. `57014` is the statement ceiling
+ * cancelling a view that reassembles every claim from its evidence; `53100` and
+ * `53200` are that same view spilling more sort than a shared server has room
+ * for, which four of them at once can reach; `53400` is a configured limit
+ * saying so in advance.
+ *
+ * Deliberately NOT swallowed inside the readers, the way an absent model is.
+ * An absent model is a fact about the schema and every caller wants the same
+ * empty answer; a read the server would not finish is a fact about this
+ * machine, and `/api/readers` exists precisely to name it. So the readers keep
+ * throwing and the page decides — which is where «no puede caerse el informe
+ * entero» belongs anyway.
+ */
+/**
+ * True when a relation cannot serve this read and another one might.
+ *
+ * `42P01` is the stored copy not existing — the report deploys from a different
+ * repository than the one that migrates, so between the two deploys it is
+ * simply absent. `55000` is it existing and never having been filled, which is
+ * exactly how migration 0072 leaves it: created empty on purpose, so a deploy
+ * is never held behind minutes of sorting. `42501` is it existing and this role
+ * never having been granted it.
+ *
+ * All three say «ask the view instead», and none of them says «this section is
+ * lost»: the view is still there and still correct, only slower.
+ */
+function relationUnusable(error: unknown): boolean {
+  if (typeof error !== 'object' || error === null) return false;
+  const code = (error as { code?: string }).code;
+  return code === '42P01' || code === '55000' || code === '42501';
+}
+
+/**
+ * The first reading that answers, from the cheapest source to the truest one.
+ *
+ * The stored copy first, then the view it copies. Only «that relation cannot
+ * serve this» falls through — a timeout does not, because a view that just
+ * exceeded its ceiling will not do better on a second try and the reader is
+ * owed the error rather than another minute of waiting.
+ *
+ * The last attempt is never guarded: whatever it throws is what the caller
+ * sees, so a section that is genuinely lost is reported as lost and not as an
+ * empty one.
+ */
+async function firstThatAnswers<T>(attempts: ReadonlyArray<() => Promise<T>>): Promise<T> {
+  for (let index = 0; index < attempts.length - 1; index += 1) {
+    const attempt = attempts[index];
+    if (attempt === undefined) continue;
+    try {
+      return await attempt();
+    } catch (error) {
+      if (!relationUnusable(error)) throw error;
+    }
+  }
+  const last = attempts[attempts.length - 1];
+  if (last === undefined) throw new Error('firstThatAnswers necesita al menos una lectura');
+  return last();
+}
+
+export function isUnaffordableRead(error: unknown): boolean {
+  if (typeof error !== 'object' || error === null) return false;
+  const code = (error as { code?: string }).code;
+  return code === '57014' || code === '53100' || code === '53200' || code === '53400';
+}
+
+export const READ_MODELS = [
+  'read_models.informal_trade_coverage',
+  'read_models.informal_trade_channel_mix',
+  'read_models.social_commerce',
+  'read_models.informal_trade_gap',
+  'read_models.press_term_month',
+  'read_models.world_panel_catalogue',
+  'read_models.world_panel_reading',
+] as const;
+
+/**
+ * True when the model is there in the schema but not readable from here.
+ *
+ * Three SQLSTATEs, one situation. `42P01` is the model not existing yet: this
+ * report is deployed from a different repository than the one that migrates, so
+ * between the two deploys the views are simply absent. `42501` is the model
+ * existing while this role was never granted it, which is what a restore taken
+ * as the wrong user leaves behind. `42703` is a column the migration renamed
+ * under a reader that has not been redeployed.
+ *
+ * All three mean the same thing to a reader: it cannot report that section. And
+ * none of them may take the briefing down — every tab, not only its own —
+ * which is what happens when one reader throws inside the page's `Promise.all`.
+ */
+function isUnreadableModel(error: unknown): boolean {
+  if (typeof error !== 'object' || error === null) return false;
+  const code = (error as { code?: string }).code;
+  return code === '42P01' || code === '42501' || code === '42703';
+}
+
+/**
+ * An unreadable section, named in the server log and silent on the page.
+ *
+ * The log gets the model and the SQLSTATE because that is what a fix needs. The
+ * page gets nothing: it is public, and a database error can carry the host, the
+ * role and the port.
+ */
+function unreadable<T>(model: string, error: unknown): T[] {
+  console.warn(`[observatorio] modelo ilegible: ${model} (${(error as { code?: string }).code})`);
+  return [];
+}
+
+/** What the register can and cannot say about each form of doing business. */
+export function readTradeCoverage(): Promise<TradeCoverage[]> {
+  return held('tradeCoverage', buildTradeCoverage);
+}
+
+async function buildTradeCoverage(): Promise<TradeCoverage[]> {
+  try {
+    const { rows } = await pool().query<{
+      business_form: string;
+      market_regime: string;
+      readings: string;
+      high_grade: string;
+      low_grade: string;
+      compilers: string;
+      territories: string;
+      settlements_read: string;
+      latest_period: string | null;
+      unread: boolean;
+    }>(
+      `SELECT business_form, market_regime, readings::text, high_grade::text, low_grade::text,
+              compilers::text, territories::text, settlements_read::text, latest_period, unread
+       FROM read_models.informal_trade_coverage
+       ORDER BY readings DESC, business_form`,
+    );
+
+    return rows.map((row) => ({
+      businessForm: row.business_form,
+      marketRegime: row.market_regime,
+      readings: Number(row.readings),
+      highGrade: Number(row.high_grade),
+      lowGrade: Number(row.low_grade),
+      compilers: Number(row.compilers),
+      territories: Number(row.territories),
+      settlementsRead: Number(row.settlements_read),
+      latestPeriod: row.latest_period,
+      unread: row.unread,
+    }));
+  } catch (error) {
+    if (isUnreadableModel(error))
+      return unreadable<TradeCoverage>('read_models.informal_trade_coverage', error);
+    throw error;
+  }
+}
+
+/**
+ * How many channels a household buys through, and how much of that is informal.
+ *
+ * The quotients arrive null whenever the group holds several readings of one
+ * channel, because there is no mix to compute there. The panel keeps the row
+ * with its counts rather than dropping it: a group that cannot be summed is
+ * still a group somebody measured.
+ */
+export function readChannelMix(): Promise<ChannelMix[]> {
+  return held('channelMix', buildChannelMix);
+}
+
+async function buildChannelMix(): Promise<ChannelMix[]> {
+  try {
+    const { rows } = await pool().query<{
+      goods_class: string;
+      territory: string;
+      reference_period: string;
+      readings: string;
+      forms_read: string;
+      one_reading_per_form: boolean;
+      penetration_sum: string | null;
+      channels_per_household: string | null;
+      informal_penetration: string | null;
+      mixed_penetration: string | null;
+      formal_penetration: string | null;
+      informal_share_of_visits: string | null;
+      forms: string[];
+    }>(
+      `SELECT goods_class, territory, reference_period, readings::text, forms_read::text,
+              one_reading_per_form, penetration_sum::text, channels_per_household::text,
+              informal_penetration::text, mixed_penetration::text, formal_penetration::text,
+              informal_share_of_visits::text, forms
+       FROM read_models.informal_trade_channel_mix
+       ORDER BY reference_period DESC, goods_class, territory`,
+    );
+
+    return rows.map((row) => ({
+      goodsClass: row.goods_class,
+      territory: row.territory,
+      referencePeriod: row.reference_period,
+      readings: Number(row.readings),
+      formsRead: Number(row.forms_read),
+      oneReadingPerForm: row.one_reading_per_form,
+      penetrationSum: row.penetration_sum === null ? null : Number(row.penetration_sum),
+      channelsPerHousehold:
+        row.channels_per_household === null ? null : Number(row.channels_per_household),
+      informalPenetration:
+        row.informal_penetration === null ? null : Number(row.informal_penetration),
+      mixedPenetration: row.mixed_penetration === null ? null : Number(row.mixed_penetration),
+      formalPenetration: row.formal_penetration === null ? null : Number(row.formal_penetration),
+      informalShareOfVisits:
+        row.informal_share_of_visits === null ? null : Number(row.informal_share_of_visits),
+      forms: row.forms,
+    }));
+  } catch (error) {
+    if (isUnreadableModel(error))
+      return unreadable<ChannelMix>('read_models.informal_trade_channel_mix', error);
+    throw error;
+  }
+}
+
+/** Every commerce reading, filed by the way the trade is actually done. */
+export function readTradeReadings(): Promise<TradeReading[]> {
+  return held('tradeReadings', buildTradeReadings);
+}
+
+async function buildTradeReadings(): Promise<TradeReading[]> {
+  try {
+    const { rows } = await pool().query<{
+      metric: string;
+      label: string;
+      value: string;
+      unit: string;
+      reference_period: string;
+      platform: string;
+      business_form: string;
+      market_regime: string;
+      trade_side: string;
+      settlement_means: string;
+      goods_class: string;
+      measure_kind: string;
+      population_scope: string;
+      territory: string;
+      publisher: string;
+      evidence_grade: string;
+      reading_url: string;
+    }>(
+      `SELECT metric, label, commerce.value::text AS value, unit, reference_period, platform,
+              business_form, market_regime, trade_side, settlement_means, goods_class,
+              measure_kind, population_scope, territory, publisher, evidence_grade, reading_url
+       FROM read_models.social_commerce AS commerce
+       WHERE status = 'PUBLISHED' AND NOT superseded
+       ORDER BY business_form, reference_period DESC, label`,
+    );
+
+    return rows.map((row) => ({
+      metric: row.metric,
+      label: row.label,
+      value: Number(row.value),
+      unit: row.unit,
+      referencePeriod: row.reference_period,
+      platform: row.platform,
+      businessForm: row.business_form,
+      marketRegime: row.market_regime,
+      tradeSide: row.trade_side,
+      settlementMeans: row.settlement_means,
+      goodsClass: row.goods_class,
+      measureKind: row.measure_kind,
+      populationScope: row.population_scope,
+      territory: row.territory,
+      publisher: row.publisher,
+      evidenceGrade: row.evidence_grade,
+      url: row.reading_url,
+    }));
+  } catch (error) {
+    if (isUnreadableModel(error))
+      return unreadable<TradeReading>('read_models.social_commerce', error);
+    throw error;
+  }
+}
+
+/**
+ * The distance between a social reading and the measured series for its year.
+ *
+ * Two measurements of one economy by different houses with different methods.
+ * The distance is never an error term, and the panel that draws it says so.
+ */
+export function readTradeGap(): Promise<TradeGap[]> {
+  return held('tradeGap', buildTradeGap);
+}
+
+async function buildTradeGap(): Promise<TradeGap[]> {
+  try {
+    const { rows } = await pool().query<{
+      label: string;
+      social_value: string;
+      reference_period: string;
+      business_form: string;
+      territory: string;
+      social_publisher: string;
+      evidence_grade: string;
+      indicator_code: string;
+      measured_value: string | null;
+      measured_publisher: string | null;
+      distance_points: string | null;
+    }>(
+      `SELECT label, social_value::text AS social_value, reference_period, business_form,
+              territory, social_publisher, evidence_grade, indicator_code,
+              round(measured_value, 2)::text AS measured_value, measured_publisher,
+              distance_points::text
+       FROM read_models.informal_trade_gap
+       WHERE measured_value IS NOT NULL
+       ORDER BY reference_period DESC, label`,
+    );
+
+    return rows.map((row) => ({
+      label: row.label,
+      socialValue: Number(row.social_value),
+      referencePeriod: row.reference_period,
+      businessForm: row.business_form,
+      territory: row.territory,
+      socialPublisher: row.social_publisher,
+      evidenceGrade: row.evidence_grade,
+      indicatorCode: row.indicator_code,
+      measuredValue: row.measured_value === null ? null : Number(row.measured_value),
+      measuredPublisher: row.measured_publisher,
+      distancePoints: row.distance_points === null ? null : Number(row.distance_points),
+    }));
+  } catch (error) {
+    if (isUnreadableModel(error))
+      return unreadable<TradeGap>('read_models.informal_trade_gap', error);
+    throw error;
+  }
+}
+
+export interface TermMonth {
+  term: string;
+  label: string;
+  family: string;
+  month: string;
+  mentions: number;
+  outlets: number;
+  alarma: number;
+  deterioro: number;
+  conflicto: number;
+  incertidumbre: number;
+  mejora: number;
+  medida: number;
+  neutro: number;
+  adverseShare: number | null;
+}
+
+export interface TermTotal {
+  term: string;
+  label: string;
+  family: string;
+  mentions: number;
+  months: number;
+  outlets: number;
+  firstMonth: string;
+  lastMonth: string;
+  peakMonth: string;
+  peakMentions: number;
+  adverseShare: number | null;
+}
+
+/**
+ * Every watched subject, month by month, since the corpus begins.
+ *
+ * The whole series is read in one query rather than one per subject. Two
+ * hundred subjects across eighty months is a few thousand rows — smaller than
+ * one page of articles — and a reader who clicks between subjects expects the
+ * next chart immediately, not a round trip. The panel slices what it needs.
+ *
+ * An absent model is reported as an empty section: the report is deployed from
+ * a different repository than the one that migrates, and between the two
+ * deploys this view does not exist. Throwing would take every tab down, because
+ * the page loads its sections in one `Promise.all`.
+ */
+export function readTermMonths(): Promise<TermMonth[]> {
+  return held('termMonths', buildTermMonths);
+}
+
+async function buildTermMonths(): Promise<TermMonth[]> {
+  try {
+    const { rows } = await pool().query<{
+      term: string;
+      label: string;
+      family: string;
+      month: string;
+      mentions: string;
+      outlets: string;
+      alarma: string;
+      deterioro: string;
+      conflicto: string;
+      incertidumbre: string;
+      mejora: string;
+      medida: string;
+      neutro: string;
+      adverse_share: string | null;
+    }>(
+      `SELECT term, label, family, month, mentions::text, outlets::text,
+              alarma::text, deterioro::text, conflicto::text, incertidumbre::text,
+              mejora::text, medida::text, neutro::text, adverse_share::text
+       FROM read_models.press_term_month
+       ORDER BY term, month`,
+    );
+
+    return rows.map((row) => ({
+      term: row.term,
+      label: row.label,
+      family: row.family,
+      month: row.month,
+      mentions: Number(row.mentions),
+      outlets: Number(row.outlets),
+      alarma: Number(row.alarma),
+      deterioro: Number(row.deterioro),
+      conflicto: Number(row.conflicto),
+      incertidumbre: Number(row.incertidumbre),
+      mejora: Number(row.mejora),
+      medida: Number(row.medida),
+      neutro: Number(row.neutro),
+      adverseShare: row.adverse_share === null ? null : Number(row.adverse_share),
+    }));
+  } catch (error) {
+    if (isUnreadableModel(error))
+      return unreadable<TermMonth>('read_models.press_term_month', error);
+    throw error;
+  }
+}
+
+/**
+ * The same subjects as one row each, with the month each one peaked in.
+ *
+ * Computed in the database rather than folded from the monthly rows in the
+ * browser: the peak needs an ordering over every month of every subject, and
+ * doing that client-side on each render is work the database already did once.
+ */
+export function readTermTotals(): Promise<TermTotal[]> {
+  return held('termTotals', buildTermTotals);
+}
+
+async function buildTermTotals(): Promise<TermTotal[]> {
+  try {
+    const { rows } = await pool().query<{
+      term: string;
+      label: string;
+      family: string;
+      mentions: string;
+      months: string;
+      outlets: string;
+      first_month: string;
+      last_month: string;
+      peak_month: string;
+      peak_mentions: string;
+      adverse_share: string | null;
+    }>(
+      `WITH ranked AS (
+         SELECT term, month, mentions,
+                row_number() OVER (PARTITION BY term ORDER BY mentions DESC, month DESC) AS place
+         FROM read_models.press_term_month
+       )
+       SELECT month.term,
+              max(month.label)                    AS label,
+              max(month.family)                   AS family,
+              sum(month.mentions)::text           AS mentions,
+              count(*)::text                      AS months,
+              max(month.outlets)::text            AS outlets,
+              min(month.month)                    AS first_month,
+              max(month.month)                    AS last_month,
+              max(ranked.month) FILTER (WHERE ranked.place = 1)    AS peak_month,
+              max(ranked.mentions) FILTER (WHERE ranked.place = 1)::text AS peak_mentions,
+              round(
+                100.0 * sum(month.alarma + month.deterioro + month.conflicto + month.incertidumbre)
+                  / nullif(sum(month.mentions), 0), 1)::text       AS adverse_share
+       FROM read_models.press_term_month AS month
+       JOIN ranked ON ranked.term = month.term AND ranked.month = month.month
+       GROUP BY month.term
+       ORDER BY sum(month.mentions) DESC`,
+    );
+
+    return rows.map((row) => ({
+      term: row.term,
+      label: row.label,
+      family: row.family,
+      mentions: Number(row.mentions),
+      months: Number(row.months),
+      outlets: Number(row.outlets),
+      firstMonth: row.first_month,
+      lastMonth: row.last_month,
+      peakMonth: row.peak_month,
+      peakMentions: Number(row.peak_mentions),
+      adverseShare: row.adverse_share === null ? null : Number(row.adverse_share),
+    }));
+  } catch (error) {
+    if (isUnreadableModel(error))
+      return unreadable<TermTotal>('read_models.press_term_month', error);
+    throw error;
+  }
+}
+
+export interface WorldPoint {
+  /** The World Bank's code for the place: `WLD`, a region, or `BOL`. */
+  place: string;
+  indicatorCode: string;
+  year: number;
+  value: number;
+}
+
+/**
+ * Every year of the world board's indicators, for the world, each region and
+ * Bolivia.
+ *
+ * One query for the whole board rather than one per card. Twenty-six
+ * indicators across nine places and sixty-five years is at most fifteen
+ * thousand rows, and both filters land on the partial indexes migration 0067
+ * built on exactly these two fields of the panel.
+ *
+ * Asked for when the board is opened, never with the page. The briefing
+ * already waits on a dozen reads on a server that has been short of breath,
+ * and a tab most visitors never open should not add a thirteenth to every
+ * visit.
+ *
+ * Bolivia's rows come from the panel the core has always loaded; the world and
+ * the regions from the file the core collects for this board alone. Until that
+ * file has been loaded the query simply returns Bolivia, and the board says so.
+ */
+export function readWorldBoard(
+  indicatorCodes: readonly string[],
+  places: readonly string[],
+): Promise<WorldPoint[]> {
+  /*
+   * La clave lleva los códigos pedidos porque hay dos tableros sobre esta
+   * misma consulta —el mundial y la matriz energética— y piden listas
+   * distintas. Sostener «el tablero mundial» sin más le daría a uno la
+   * respuesta del otro.
+   */
+  const key = `worldBoard:${indicatorCodes.join(',')}|${places.join(',')}`;
+  return held(key, () => buildWorldBoard(indicatorCodes, places));
+}
+
+async function buildWorldBoard(
+  indicatorCodes: readonly string[],
+  places: readonly string[],
+): Promise<WorldPoint[]> {
+  try {
+    const { rows } = await pool().query<{
+      place: string;
+      indicator_code: string;
+      period: string;
+      value: string;
+    }>(
+      `SELECT country AS place, indicator_code, period::text, value::text
+       FROM read_models.world_panel_reading
+       WHERE indicator_code = ANY($1::text[])
+         AND country = ANY($2::text[])
+         AND status = 'PUBLISHED' AND NOT superseded
+       ORDER BY indicator_code, country, period`,
+      [indicatorCodes.map((code) => code.slice(0, 60)), places.map((place) => place.slice(0, 3))],
+    );
+
+    return rows.map((row) => ({
+      place: row.place,
+      indicatorCode: row.indicator_code,
+      year: Number(row.period),
+      value: Number(row.value),
+    }));
+  } catch (error) {
+    if (isUnreadableModel(error)) {
+      return unreadable<WorldPoint>('read_models.world_panel_reading', error);
+    }
+    throw error;
+  }
+}
+
+export interface StablecoinPoint {
+  date: string;
+  /** Mid-point across the venues quoting this token, in bolivianos per dollar. */
+  mid: number;
+  /** What the market buys a dollar for, only where the source resolves sides. */
+  bid: number | null;
+  /** What it sells one for, on the same condition. */
+  ask: number | null;
+  venues: number;
+  /** Spread between the highest and lowest venue mid-point that day. */
+  venueSpread: number | null;
+  changePercent: number | null;
+}
+
+export interface StablecoinSeries {
+  /** The token itself — USDT, USDC — not the pair. */
+  token: string;
+  /** False where every source for the day labels its sides unreliably. */
+  sidesResolved: boolean;
+  points: StablecoinPoint[];
+}
+
+/**
+ * The parallel rate split by the token actually traded.
+ *
+ * Read from its own model rather than derived here, for the reason the gap is:
+ * the pooling this needs is not a mean. A venue quoting three times a day must
+ * weigh once, the cross-venue figure has to be a median of venue mid-points,
+ * and the sides may only come from the source that resolves them. Recomputing
+ * that in the report would let two readers disagree about what a dollar cost.
+ *
+ * The series is short by construction and the panel says so: the historical
+ * backfill recorded no instrument, so this begins where the collector began
+ * naming the pair. It is additive — `readObservatory` and `readGap` are
+ * untouched, and a deployment where the model does not exist yet loses this
+ * panel and nothing else.
+ */
+/**
+ * El día a partir del cual puede existir una lectura por ficha.
+ *
+ * Anterior al primer instrumento anotado, con margen: sirve para no recorrer los
+ * dos años de archivo agregado que no tienen ficha, no para decidir dónde
+ * empieza la serie. Quien decide eso son los datos.
+ */
+const STABLECOIN_SERIES_FLOOR = '2026-08-01';
+
+export function readStablecoins(): Promise<StablecoinSeries[]> {
+  return held('stablecoins', buildStablecoins);
+}
+
+/**
+ * Held for five minutes like the observatory and the gap, and for a harder
+ * reason than either.
+ *
+ * This model medians three times over — per venue and side, then per venue,
+ * then across venues — on top of a view that already expands every observation's
+ * measures with a lateral join. Served fresh on every visit it is the most
+ * expensive read on the page, and it does not need to be fresh: the collector
+ * publishes a few times a day.
+ *
+ * Going through `held` also **deduplicates concurrent calls**, which matters
+ * more than the caching here. The exchange-rate section asks for this series and
+ * for the snapshot that also contains it, in the same `Promise.all`; without the
+ * hold those are two of this query running at once, every load. On the smaller
+ * of the two servers that contention was enough to push the gap read past its
+ * statement timeout and blank the chart.
+ */
+async function buildStablecoins(): Promise<StablecoinSeries[]> {
+  try {
+    const { rows } = await pool().query<{
+      token: string;
+      event_date: string;
+      mid_median: string;
+      bid_median: string | null;
+      ask_median: string | null;
+      venue_count: string;
+      mid_spread: string | null;
+      sides_resolved: boolean;
+      change_percent: string | null;
+    }>(
+      `SELECT token, event_date::text AS event_date, mid_median::text,
+              bid_median::text, ask_median::text, venue_count::text,
+              mid_spread::text, sides_resolved, change_percent::text
+       FROM read_models.stablecoin_parallel_daily
+       WHERE aggregation = 'POINT_IN_TIME'
+         /*
+          * Un piso fijo, no una ventana móvil.
+          *
+          * El archivo no registró instrumento, así que antes de esta fecha no
+          * hay ni una fila por ficha y pedirlas solo obliga a recorrerlo. Eso
+          * justifica un límite inferior, pero no uno que avance con el
+          * calendario: current_date menos 400 días habría empezado a comerse el
+          * principio de la serie por ficha a finales de 2027, sin aviso y justo
+          * en el gráfico cuyo asunto es que la serie es corta. Un piso fijo
+          * ahorra el mismo recorrido del archivo y nunca recorta nada.
+          */
+         AND event_date >= DATE '${STABLECOIN_SERIES_FLOOR}'
+       ORDER BY token, event_date`,
+    );
+
+    const grouped = new Map<string, StablecoinSeries>();
+    for (const row of rows) {
+      const entry = grouped.get(row.token) ?? {
+        token: row.token,
+        sidesResolved: false,
+        points: [],
+      };
+      entry.sidesResolved = entry.sidesResolved || row.sides_resolved;
+      entry.points.push({
+        date: row.event_date,
+        mid: Number(row.mid_median),
+        bid: numberOrNull(row.bid_median),
+        ask: numberOrNull(row.ask_median),
+        venues: Number(row.venue_count),
+        venueSpread: numberOrNull(row.mid_spread),
+        changePercent: numberOrNull(row.change_percent),
+      });
+      grouped.set(row.token, entry);
+    }
+
+    /*
+     * USD last. It is the residue — a venue that reported a dollar without
+     * saying which one — so it belongs after the tokens that named themselves
+     * rather than mixed in among them by alphabet.
+     */
+    return [...grouped.values()].sort((left, right) =>
+      left.token === 'USD' ? 1 : right.token === 'USD' ? -1 : left.token.localeCompare(right.token),
+    );
+  } catch (error) {
+    if (isUnreadableModel(error)) {
+      return unreadable<StablecoinSeries>('read_models.stablecoin_parallel_daily', error);
+    }
+    throw error;
+  }
 }

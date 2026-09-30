@@ -1,4 +1,24 @@
-import { readCompanyFilings, readMacroAnnual, readObservatory } from '@/lib/series';
+import { randomUUID } from 'node:crypto';
+import { reportExport } from '@/lib/admin/telemetry';
+import { readPlacesForExport } from '@/lib/places';
+import {
+  readBoliviaPanel,
+  readCompanyFilings,
+  readMacroAnnual,
+  readObservatory,
+  readPressPage,
+  readTermMonths,
+  readWorldBoard,
+} from '@/lib/series';
+import {
+  BOLIVIA,
+  PLACE_LABEL,
+  THEME_LABEL,
+  WORLD,
+  WORLD_INDICATORS,
+  WORLD_PLACES,
+  WORLD_PLACE_CODES,
+} from '@/lib/world-board';
 
 /**
  * Every dataset the report draws, in either format.
@@ -11,9 +31,32 @@ import { readCompanyFilings, readMacroAnnual, readObservatory } from '@/lib/seri
 
 export const dynamic = 'force-dynamic';
 
+/**
+ * The ceiling each dataset is read under, and therefore the row count at which
+ * the file has to declare itself incomplete.
+ *
+ * A truncated file that does not say so is worse than no file: an analyst who
+ * counts five thousand filings and concludes there are five thousand has been
+ * misled by a limit nobody told them about. Datasets with no ceiling are absent
+ * from this table and are never reported as truncated.
+ */
+const ROW_CEILING: Partial<Record<Dataset, number>> = {
+  filings: 5_000,
+  prensa: 60_000,
+};
+
 type Row = Record<string, string | number | boolean | null>;
 
-const DATASETS = ['series', 'macro', 'filings'] as const;
+const DATASETS = [
+  'series',
+  'macro',
+  'panel',
+  'filings',
+  'prensa',
+  'temas',
+  'lugares',
+  'mundo',
+] as const;
 type Dataset = (typeof DATASETS)[number];
 
 const UNITS: Record<string, string> = {
@@ -30,47 +73,253 @@ const UNITS: Record<string, string> = {
  * was showing.
  */
 interface Selection {
-  sector?: string | undefined;
-  from?: number | undefined;
+  sector?: readonly string[] | undefined;
+  topic?: readonly string[] | undefined;
+  outlet?: readonly string[] | undefined;
+  tone?: readonly string[] | undefined;
+  region?: readonly string[] | undefined;
+  /** Filings only: the issuer and the kind of filing the panel was slicing by. */
+  filer?: readonly string[] | undefined;
+  category?: readonly string[] | undefined;
+  /**
+   * The calendar year the panel was slicing by, on press and on subjects.
+   *
+   * A single year is the filter a reader reaches for — "what was said in 2024" —
+   * and a «desde» alone cannot express it: that gives everything from 2024
+   * onwards. It stays its own field so the file and the panel agree exactly.
+   */
+  year?: readonly string[] | undefined;
+  term?: readonly string[] | undefined;
+  /** Subjects only: the families of watched terms the panel was slicing by. */
+  family?: readonly string[] | undefined;
+  /** Places only: the cities the map was showing. The family is `family` above. */
+  city?: readonly string[] | undefined;
+  /** A year on the macro panel, a calendar date on the exchange-rate one. */
+  from?: string | undefined;
+  /** The far end of the same range, inclusive, where the panel offers one. */
+  until?: string | undefined;
   search?: string | undefined;
 }
 
+/**
+ * Si un valor sobrevive al recorte de una dimension.
+ *
+ * Cada dimension llega como lista porque el tablero deja sumar categorias con
+ * Ctrl+clic; una lista vacia o ausente no recorta, que es lo que antes decia
+ * el valor sin poner.
+ */
+const inAny = (chosen: readonly string[] | undefined, value: string): boolean =>
+  !chosen || chosen.length === 0 || chosen.includes(value);
+
+/**
+ * Las dos lecturas anuales tienen la misma forma y la misma descarga.
+ *
+ * `macro` son las series que el observatorio mide para Bolivia; `panel` es el
+ * catálogo del Banco Mundial recortado a Bolivia. Un `MacroPoint` describe a
+ * las dos —indicador, año, valor, unidad, de dónde sale—, así que el recorte y
+ * las columnas del archivo se escriben una vez. Lo único que cambia es de qué
+ * lectura salen las filas.
+ */
+async function annualRows(
+  read: () => Promise<Awaited<ReturnType<typeof readMacroAnnual>>>,
+  selection: Selection,
+): Promise<Row[]> {
+  const term = selection.search?.trim().toLocaleLowerCase('es');
+  return (await read())
+    .filter(
+      (point) =>
+        inAny(selection.sector, point.sector) &&
+        (selection.from === undefined || Number(point.period) >= Number(selection.from)) &&
+        (!term ||
+          (point.name ?? '').toLocaleLowerCase('es').includes(term) ||
+          point.indicatorCode.toLocaleLowerCase('es').includes(term)),
+    )
+    .map((point) => ({
+      rubro: point.sector,
+      indicador: point.indicatorCode,
+      nombre: point.name,
+      periodo: point.period,
+      valor: point.value,
+      unidad: point.unit,
+      valor_anterior: point.previousValue,
+      variacion_pct: point.changePercent,
+      editor: point.publisher,
+      fuente: point.sourceUrl,
+    }));
+}
+
 async function collect(dataset: Dataset, selection: Selection): Promise<Row[]> {
-  if (dataset === 'macro') {
+  if (dataset === 'macro') return annualRows(readMacroAnnual, selection);
+  if (dataset === 'panel') return annualRows(readBoliviaPanel, selection);
+
+  if (dataset === 'lugares') {
+    // The map draws at most four thousand premises because past that a drawing
+    // is a blot; the file has no such reason to stop, so it carries the whole
+    // selection. The panel says which of the two the reader is looking at.
+    if (!selection.city || selection.city.length === 0) return [];
+    return (await readPlacesForExport(selection.city, selection.family ?? [])).map((place) => ({
+      ciudad: place.city,
+      nombre: place.name,
+      grupo: place.entityGroup,
+      familia: place.entityFamily,
+      barrio: place.zone,
+      direccion: place.address,
+      marca: place.brand,
+      latitud: place.latitude,
+      longitud: place.longitude,
+      actividad_regulada: place.isRegulated,
+      registro_que_lo_confirmaria: place.officialValidationSource,
+      confianza: place.confidence,
+      grado_de_calidad: place.qualityGrade,
+      metodo_de_ubicacion: place.positionMethod,
+      id_de_lugar: place.placeId,
+    }));
+  }
+
+  if (dataset === 'mundo') {
+    // The world board's figures, carrying the selection the board was showing:
+    // its theme, the region it was comparing against, the first year it drew
+    // and the search. A region outside the board's own list is ignored rather
+    // than passed to the database, and the file then carries every region.
     const term = selection.search?.trim().toLocaleLowerCase('es');
-    return (await readMacroAnnual())
+    const wanted = WORLD_INDICATORS.filter(
+      (indicator) =>
+        inAny(selection.topic, indicator.theme) &&
+        (!term ||
+          indicator.label.toLocaleLowerCase('es').includes(term) ||
+          indicator.code.toLocaleLowerCase('es').includes(term)),
+    );
+    const byCode = new Map(wanted.map((indicator) => [indicator.code, indicator]));
+    const regions = WORLD_PLACES.filter(
+      (place) => selection.region?.includes(place.code) ?? false,
+    ).map((place) => place.code);
+    const places = regions.length ? [...new Set([WORLD, ...regions, BOLIVIA])] : WORLD_PLACE_CODES;
+    const since = selection.from === undefined ? undefined : Number(selection.from.slice(0, 4));
+    if (byCode.size === 0) return [];
+    return (await readWorldBoard([...byCode.keys()], places)).flatMap((point) => {
+      const indicator = byCode.get(point.indicatorCode);
+      if (!indicator || (since !== undefined && point.year < since)) return [];
+      return [
+        {
+          indicador: indicator.code,
+          nombre: indicator.label,
+          tema: THEME_LABEL[indicator.theme],
+          unidad: indicator.unit,
+          lugar: point.place,
+          nombre_del_lugar: PLACE_LABEL[point.place] ?? point.place,
+          anio: point.year,
+          valor: point.value,
+          fuente: 'Banco Mundial, World Development Indicators',
+        },
+      ];
+    });
+  }
+
+  if (dataset === 'temas') {
+    // The dated table the subjects panel draws every one of its charts from:
+    // one row per watched subject per month, with the tone counts that make up
+    // the adverse share. Taking the same selection the panel was showing means
+    // the file and the chart above it cannot disagree.
+    const search = selection.search?.trim().toLocaleLowerCase('es');
+    // A year is a legal «desde» here and a month is what the rows are dated by.
+    const since = selection.from?.slice(0, 7);
+    // «hasta» includes the month it names, so a bare year has to be widened to
+    // its December: «hasta=2024» means all of 2024, and '2024-07' <= '2024' is
+    // false.
+    const until =
+      selection.until === undefined
+        ? undefined
+        : selection.until.length === 4
+          ? `${selection.until}-12`
+          : selection.until.slice(0, 7);
+    return (await readTermMonths())
       .filter(
-        (point) =>
-          (!selection.sector || point.sector === selection.sector) &&
-          (selection.from === undefined || Number(point.period) >= selection.from) &&
-          (!term ||
-            (point.name ?? '').toLocaleLowerCase('es').includes(term) ||
-            point.indicatorCode.toLocaleLowerCase('es').includes(term)),
+        (row) =>
+          inAny(selection.family, row.family) &&
+          inAny(selection.term, row.term) &&
+          inAny(selection.year, row.month.slice(0, 4)) &&
+          (since === undefined || row.month >= since) &&
+          (until === undefined || row.month <= until) &&
+          (!search ||
+            row.label.toLocaleLowerCase('es').includes(search) ||
+            row.term.toLocaleLowerCase('es').includes(search)),
       )
-      .map((point) => ({
-        rubro: point.sector,
-        indicador: point.indicatorCode,
-        nombre: point.name,
-        periodo: point.period,
-        valor: point.value,
-        unidad: point.unit,
-        valor_anterior: point.previousValue,
-        variacion_pct: point.changePercent,
-        editor: point.publisher,
-        fuente: point.sourceUrl,
+      .map((row) => ({
+        tema: row.term,
+        nombre: row.label,
+        familia: row.family,
+        mes: row.month,
+        menciones: row.mentions,
+        medios: row.outlets,
+        alarma: row.alarma,
+        deterioro: row.deterioro,
+        conflicto: row.conflicto,
+        incertidumbre: row.incertidumbre,
+        mejora: row.mejora,
+        medida: row.medida,
+        sin_marca: row.neutro,
+        cobertura_adversa_pct: row.adverseShare,
+      }));
+  }
+
+  if (dataset === 'prensa') {
+    // The same predicate the panel counts with, run in the database. Filtering a
+    // cached corpus here instead would let the file and the figure on screen
+    // disagree, which is the one thing a download must never do.
+    const { articles } = await readPressPage(
+      {
+        year: selection.year,
+        tone: selection.tone,
+        topic: selection.topic,
+        region: selection.region,
+        outlet: selection.outlet,
+        term: selection.term,
+        search: selection.search?.trim(),
+      },
+      60_000,
+    );
+    return articles
+      .filter((article) => selection.from === undefined || article.eventDate >= selection.from)
+      .map((article) => ({
+        fecha: article.eventDate,
+        medio: article.outlet,
+        seccion: article.section,
+        tema: article.topic,
+        tono: article.tone,
+        region: article.region,
+        titular: article.headline,
+        entradilla: article.summary,
+        enlace: article.url,
+        obtencion: article.retrievalMethod,
+        evidencia_sha256: article.evidenceSha256,
       }));
   }
 
   if (dataset === 'filings') {
-    return (await readCompanyFilings(500)).map((filing) => ({
-      fecha: filing.eventDate,
-      sello: filing.statedInstant,
-      emisor: filing.filer,
-      asunto: filing.subject,
-      fecha_verificada_por_ficha: filing.instantStatedInDocument,
-      fuente: filing.sourceUrl,
-      evidencia_sha256: filing.evidenceSha256,
-    }));
+    const term = selection.search?.trim().toLocaleLowerCase('es');
+    return (await readCompanyFilings(5_000))
+      .filter(
+        (filing) =>
+          inAny(selection.sector, filing.sector) &&
+          inAny(selection.category, filing.category) &&
+          inAny(selection.filer, filing.filer) &&
+          (selection.from === undefined || filing.eventDate >= selection.from) &&
+          (!term ||
+            filing.subject.toLocaleLowerCase('es').includes(term) ||
+            filing.filer.toLocaleLowerCase('es').includes(term)),
+      )
+      .map((filing) => ({
+        fecha: filing.eventDate,
+        sello: filing.statedInstant,
+        rubro: filing.sector,
+        tipo_de_hecho: filing.category,
+        codigo_emisor: filing.filerCode,
+        emisor: filing.filer,
+        asunto: filing.subject,
+        fecha_verificada_por_ficha: filing.instantStatedInDocument,
+        fuente: filing.sourceUrl,
+        evidencia_sha256: filing.evidenceSha256,
+      }));
   }
 
   const observatory = await readObservatory();
@@ -78,6 +327,7 @@ async function collect(dataset: Dataset, selection: Selection): Promise<Row[]> {
   for (const [key, points] of observatory.series) {
     const [indicator = key, side = ''] = key.split(':');
     for (const point of points) {
+      if (selection.from !== undefined && point.date < selection.from) continue;
       rows.push({
         fecha: point.date,
         indicador: indicator,
@@ -92,6 +342,23 @@ async function collect(dataset: Dataset, selection: Selection): Promise<Row[]> {
     }
   }
   return rows.sort((left, right) => String(left['fecha']).localeCompare(String(right['fecha'])));
+}
+
+/**
+ * Las categorias de una dimension, tal como vienen en la direccion.
+ *
+ * Separadas por coma porque el tablero deja sumar varias con Ctrl+clic. Los
+ * centinelas de las direcciones viejas -TODOS, TODAS- siguen queriendo decir
+ * "sin recorte", de modo que un enlace guardado hace un ano sigue bajando el
+ * mismo archivo.
+ */
+function manyOf(raw: string | null): string[] | undefined {
+  if (!raw) return undefined;
+  const values = raw
+    .split(',')
+    .map((one) => one.trim().slice(0, 120))
+    .filter((one) => one.length > 0 && one !== 'TODOS' && one !== 'TODAS');
+  return values.length ? values.slice(0, 200) : undefined;
 }
 
 /** Quotes a field only when it needs it, so the file stays readable. */
@@ -111,29 +378,132 @@ function toCsv(rows: Row[]): string {
   return `${lines.join('\n')}\n`;
 }
 
+/**
+ * The filters that travelled with the request, without the free-text search.
+ *
+ * The register records what the file was sliced by so an operator can reproduce
+ * it. `buscar` is deliberately excluded: it is a reader typing, and a reader's
+ * words do not belong in an operational register.
+ */
+function recordedFilters(parameters: URLSearchParams): Record<string, string> {
+  const recorded: Record<string, string> = {};
+  for (const name of [
+    'sector',
+    'tema',
+    'medio',
+    'tono',
+    'region',
+    'emisor',
+    'categoria',
+    'anio',
+    'termino',
+    'familia',
+    'ciudad',
+    'desde',
+    'hasta',
+  ]) {
+    const value = parameters.get(name);
+    if (value) recorded[name] = value.slice(0, 120);
+  }
+  return recorded;
+}
+
 export async function GET(request: Request): Promise<Response> {
   const url = new URL(request.url);
   const dataset = (url.searchParams.get('dataset') ?? 'series') as Dataset;
   const format = url.searchParams.get('format') === 'json' ? 'json' : 'csv';
+  /*
+   * One identifier for both stages of this export.
+   *
+   * It travels back on the response header, so a reader who reports that their
+   * file was empty hands over the exact identifier of the request that produced
+   * it, and the register can be asked what happened instead of guessed at.
+   */
+  const requestId = randomUUID();
+  const filters = recordedFilters(url.searchParams);
+  const startedAt = Date.now();
 
   if (!DATASETS.includes(dataset)) {
     return new Response(`Conjunto desconocido. Disponibles: ${DATASETS.join(', ')}.\n`, {
       status: 400,
-      headers: { 'Content-Type': 'text/plain; charset=utf-8' },
+      headers: { 'Content-Type': 'text/plain; charset=utf-8', 'X-Export-Request': requestId },
     });
   }
 
+  /*
+   * Sent before the work starts, and kept alive until it lands.
+   *
+   * The call begins here rather than after the file is built, so an export that
+   * hangs is visible as a request with no generation instead of as nothing at
+   * all. It is handed to `after` rather than left floating because a promise
+   * nobody holds is not guaranteed to finish: the request scope ends when the
+   * reader has their bytes, and a report still in flight at that moment is
+   * dropped. A register that loses stages under load is worse than no register,
+   * because the gaps read as exports nobody ever asked for.
+   */
+  await reportExport({ requestId, datasetCode: dataset, format, status: 'REQUESTED', filters });
+
   try {
-    const from = Number(url.searchParams.get('desde'));
+    // A month is a legal end of a range: the subjects panel is dated by month,
+    // and refusing «2024-07» would silently widen the file to the whole year.
+    const dated = /^\d{4}(-\d{2}(-\d{2})?)?$/u;
+    const from = url.searchParams.get('desde')?.trim();
+    const until = url.searchParams.get('hasta')?.trim();
+    const many = (name: string): string[] | undefined => manyOf(url.searchParams.get(name));
     const rows = await collect(dataset, {
-      sector: url.searchParams.get('sector') ?? undefined,
-      from: Number.isFinite(from) && from > 0 ? from : undefined,
+      sector: many('sector'),
+      topic: many('tema'),
+      outlet: many('medio'),
+      tone: many('tono'),
+      region: many('region'),
+      filer: many('emisor'),
+      category: many('categoria'),
+      year: many('anio'),
+      term: many('termino'),
+      family: many('familia'),
+      city: many('ciudad'),
+      from: from && dated.test(from) ? from : undefined,
+      until: until && dated.test(until) ? until : undefined,
       search: url.searchParams.get('buscar') ?? undefined,
     });
+    const ceiling = ROW_CEILING[dataset];
+    const truncated = ceiling !== undefined && rows.length >= ceiling;
     const body =
       format === 'json'
-        ? `${JSON.stringify({ dataset, generado: new Date().toISOString(), filas: rows.length, datos: rows }, null, 2)}\n`
+        ? `${JSON.stringify(
+            {
+              dataset,
+              generado: new Date().toISOString(),
+              filas: rows.length,
+              // Stated in the file itself and not only in the register: whoever
+              // opens it later may never see the register.
+              truncado: truncated,
+              ...(truncated ? { techo: ceiling } : {}),
+              datos: rows,
+            },
+            null,
+            2,
+          )}\n`
         : toCsv(rows);
+
+    /*
+     * Generated, which is not the same as delivered.
+     *
+     * What this records is that the server built the file and how big it was.
+     * Nothing in this deployment observes the last byte reaching the reader, so
+     * no status here claims that it did.
+     */
+    await reportExport({
+      requestId,
+      datasetCode: dataset,
+      format,
+      status: 'GENERATED',
+      filters,
+      rowCount: rows.length,
+      byteCount: Buffer.byteLength(body, 'utf8'),
+      durationMs: Date.now() - startedAt,
+      truncated,
+    });
 
     return new Response(body, {
       headers: {
@@ -141,14 +511,26 @@ export async function GET(request: Request): Promise<Response> {
           format === 'json' ? 'application/json; charset=utf-8' : 'text/csv; charset=utf-8',
         'Content-Disposition': `attachment; filename="observatorio-${dataset}.${format}"`,
         'Cache-Control': 'no-store',
+        'X-Export-Request': requestId,
+        'X-Export-Rows': String(rows.length),
+        'X-Export-Truncated': truncated ? 'true' : 'false',
       },
     });
   } catch (error) {
     // The detail belongs in the log: a connection message can carry the host.
     console.error('[observatorio] exportación fallida', error);
+    await reportExport({
+      requestId,
+      datasetCode: dataset,
+      format,
+      status: 'FAILED',
+      filters,
+      durationMs: Date.now() - startedAt,
+      errorCode: 'READ_FAILED',
+    });
     return new Response('No fue posible leer los datos.\n', {
       status: 503,
-      headers: { 'Content-Type': 'text/plain; charset=utf-8' },
+      headers: { 'Content-Type': 'text/plain; charset=utf-8', 'X-Export-Request': requestId },
     });
   }
 }
