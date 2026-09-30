@@ -44,6 +44,7 @@ export const MAX_SELECTED = 4;
 
 export const FAMILY_LABEL: Record<string, string> = {
   'activos-virtuales': 'Activos virtuales (BCB)',
+  'operaciones-de-mercado-abierto': 'Subastas del BCB',
   'sector-externo': 'Sector externo',
   'sector-monetario': 'Dinero y bancos',
   'sistema-de-pagos': 'Sistema de pagos',
