@@ -3,22 +3,22 @@
 import { Icon } from './icons';
 import { OnOpenNotice } from './on-open';
 import { useBankBoard } from './bank-board';
-import { amount, sayLong } from './bank-format';
+import { amount, price, sayLong } from './bank-format';
 import type { BankProduct } from '@/lib/bank-assets-board';
 
 /**
  * El detalle de cada banco que ofrece dólar digital, al final de «Tipo de
  * cambio».
  *
- * El gráfico de cuántos son está en la fila de los otros gráficos y las
- * tarjetas están en la portada; esta tabla es lo que ninguno de los dos cabe:
- * la fuente de cada fecha, cómo consta y los límites que declara cada página.
+ * El gráfico de la cotización está en la fila de los otros gráficos y las
+ * tarjetas están al final de la portada; esta tabla es lo que ninguno de los
+ * dos cabe: la fuente de cada fecha, cómo consta y los límites que declara cada
+ * página.
  */
 
 const BASIS_LABEL: Record<BankProduct['sinceBasis'], string> = {
   ANNOUNCEMENT: 'anunciado',
   FIRST_PUBLIC_DOCUMENT: 'a más tardar (primer documento oficial)',
-  OFFICIAL_PAGE: 'primera lectura de su página',
 };
 
 function State({ bank }: { bank: BankProduct }) {
@@ -57,6 +57,7 @@ export function BankAssetsTable() {
               <th>Ficha</th>
               <th>Desde</th>
               <th>Hoy</th>
+              <th>Cotización anotada</th>
               <th>Límites que declara su página</th>
             </tr>
           </thead>
@@ -80,6 +81,17 @@ export function BankAssetsTable() {
                 </td>
                 <td>
                   <State bank={bank} />
+                </td>
+                <td>
+                  {bank.quote ? (
+                    <>
+                      Paga <b>{price(bank.quote.clientBuys)}</b> · recibe{' '}
+                      <b>{price(bank.quote.clientSells)}</b> Bs
+                      <span className="stat-hint"> · {sayLong(bank.quote.date)}</span>
+                    </>
+                  ) : (
+                    'solo dentro de su app'
+                  )}
                 </td>
                 <td>
                   {bank.limits.length

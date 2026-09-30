@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 
-import { BankAdoptionPanel } from './bank-adoption-panel';
+import { BankQuotesPanel } from './bank-quotes-panel';
 import { DatedLines } from './charts';
 import type { DatedBand, DatedLinePoint, DatedLineSeries } from './charts';
 import { Icon } from './icons';
@@ -309,8 +309,8 @@ export function FxMacroPanels({
        * de las dos empieza a la misma altura y la comparación se hace con los
        * ojos. Desde que se sumó el de los bancos son tres, en `grid-three`: dos
        * columnas por debajo de 1100 px y una en el móvil. El de los bancos es
-       * el tercero y no va debajo porque cuenta lo mismo que los otros dos en
-       * el mismo calendario: cuándo se abrió cada puerta para comprar dólares.
+       * el tercero y no va debajo porque es el mismo dibujo que los otros dos
+       * —bolivianos por dólar contra el calendario— y se lee contra ellos.
        */}
       <div className="grid-three">
         <div className="panel">
@@ -428,7 +428,7 @@ export function FxMacroPanels({
             <StablecoinTable readings={snapshot.stablecoins} />
           )}
         </div>
-        <BankAdoptionPanel />
+        <BankQuotesPanel />
       </div>
     </>
   );

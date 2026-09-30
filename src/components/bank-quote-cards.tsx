@@ -2,7 +2,7 @@
 
 import { Icon } from './icons';
 import { useBankBoard } from './bank-board';
-import { amount, sayLong, sayShort } from './bank-format';
+import { amount, price, sayLong, sayShort } from './bank-format';
 import type { BankProduct } from '@/lib/bank-assets-board';
 
 /**
@@ -53,14 +53,29 @@ function BankCard({ bank }: { bank: BankProduct }) {
       </div>
       <p className="quote-detail">{bank.product}</p>
       <div className="quote-figure">
-        <span className="quote-value">{bank.asset}</span>
-        <span className="quote-unit">ficha</span>
+        <span className="quote-value">
+          {bank.quote?.clientBuys != null ? price(bank.quote.clientBuys) : bank.asset}
+        </span>
+        <span className="quote-unit">
+          {bank.quote?.clientBuys != null ? `Bs por ${bank.asset}` : 'ficha'}
+        </span>
       </div>
       <span className="quote-change quote-change-flat">
         {state(bank)}
-        {bank.sinceBasis === 'FIRST_PUBLIC_DOCUMENT' ? ' · fecha a más tardar' : ''}
+        {bank.quote ? ` · cotización del ${sayShort(bank.quote.date)}` : ''}
       </span>
-      {daily && minimum ? (
+      {bank.quote ? (
+        <dl className="quote-sides">
+          <div>
+            <dt>Pagas</dt>
+            <dd>{price(bank.quote.clientBuys)}</dd>
+          </div>
+          <div>
+            <dt>Recibes</dt>
+            <dd>{price(bank.quote.clientSells)}</dd>
+          </div>
+        </dl>
+      ) : daily && minimum ? (
         <dl className="quote-sides">
           <div>
             <dt>Mínimo</dt>
