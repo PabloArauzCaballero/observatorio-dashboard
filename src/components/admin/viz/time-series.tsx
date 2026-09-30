@@ -30,13 +30,16 @@ const LONG_HOUR = new Intl.DateTimeFormat('es-BO', {
   timeStyle: 'short',
 });
 
-/** Techo «redondo» para que las marcas del eje caigan en cifras que se leen. */
-function niceCeiling(value: number): number {
-  if (value <= 0) return 1;
-  const magnitude = 10 ** Math.floor(Math.log10(value));
-  const fraction = value / magnitude;
+/**
+ * Un paso «redondo» (1, 2, 5 × 10ⁿ) para que las marcas del eje caigan en cifras
+ * que se leen: 0, 10, 20, 30, 40 y no 0, 13, 25, 38, 50.
+ */
+function niceStep(top: number): number {
+  const rough = Math.max(top, 1) / 4;
+  const magnitude = 10 ** Math.floor(Math.log10(rough));
+  const fraction = rough / magnitude;
   const step = fraction <= 1 ? 1 : fraction <= 2 ? 2 : fraction <= 5 ? 5 : 10;
-  return step * magnitude;
+  return Math.max(step * magnitude, 1);
 }
 
 /**
@@ -96,10 +99,11 @@ export function TimeSeries({
       kind === 'stacked'
         ? Math.max(...values.map((row) => row.reduce((sum, value) => sum + value, 0)), 0)
         : Math.max(...values.flat(), 0);
-    return { xs, values, max: niceCeiling(top) };
+    const step = niceStep(top);
+    return { xs, values, step, max: Math.max(Math.ceil(top / step) * step, step) };
   }, [series, kind]);
 
-  const { xs, values, max } = model;
+  const { xs, values, step: tickStep, max } = model;
   const plotWidth = Math.max(width - MARGIN.left - MARGIN.right, 80);
   const plotHeight = height - MARGIN.top - MARGIN.bottom;
   const count = xs.length;
@@ -115,7 +119,10 @@ export function TimeSeries({
   const long = (x: string): string =>
     granularity === 'day' ? LONG_DAY.format(new Date(x)) : LONG_HOUR.format(new Date(x));
 
-  const ticks = [0, 0.25, 0.5, 0.75, 1].map((fraction) => max * fraction);
+  const ticks = Array.from(
+    { length: Math.round(max / tickStep) + 1 },
+    (_, index) => index * tickStep,
+  );
   const labelEvery = Math.max(1, Math.ceil(count / Math.max(Math.floor(plotWidth / 70), 2)));
 
   const onMove = (event: React.PointerEvent<SVGRectElement>): void => {
@@ -185,7 +192,19 @@ export function TimeSeries({
           y2={yOf(0)}
         />
 
-        {kind === 'line'
+        {kind === 'line' && count === 1
+          ? series.map((entry, seriesIndex) => (
+              <circle
+                key={entry.key}
+                cx={xOf(0)}
+                cy={yOf(values[0]?.[seriesIndex] ?? 0)}
+                r={5}
+                strokeWidth={2}
+                style={{ fill: entry.color, stroke: 'var(--chart-surface)' }}
+              />
+            ))
+          : null}
+        {kind === 'line' && count > 1
           ? series.map((entry, seriesIndex) => {
               const path = values
                 .map(
@@ -205,7 +224,9 @@ export function TimeSeries({
                 />
               );
             })
-          : values.map((row, index) => {
+          : null}
+        {kind === 'stacked'
+          ? values.map((row, index) => {
               const barWidth = Math.min(bandWidth * 0.68, 30);
               let base = 0;
               return (
@@ -230,7 +251,8 @@ export function TimeSeries({
                   })}
                 </g>
               );
-            })}
+            })
+          : null}
 
         {hover !== null && xs[hover] !== undefined ? (
           <g pointerEvents="none">
