@@ -1,17 +1,16 @@
 import 'server-only';
 import { pool } from './db';
-import { held } from './hold';
-import { PAGE, familyLabel } from './bcb-board';
-import type { BcbCatalogPage, BcbFamily, BcbSeriesData, BcbSeriesInfo } from './bcb-board';
+import { PAGE, familyLabel, isOpaqueTitle, tidyName, workbookTitle } from './bcb-board';
+import type { BcbCatalogPage, BcbFacet, BcbSeriesData, BcbSeriesInfo } from './bcb-board';
 
 /**
  * Las estadísticas del Banco Central, leídas de `read_models.bcb_statistic_catalog`
  * (una fila chica por serie) y `read_models.bcb_statistic_data` (los puntos, que solo se
  * desempaquetan de la serie pedida).
  *
- * Las búsquedas van a la base con parámetros y no se sostienen en memoria —la
- * combinación de filtros es casi infinita—; lo único que se guarda es la lista de
- * familias, que es una consulta sobre doce mil filas y no cambia entre lecturas.
+ * Cada filtro se cuenta con los demás aplicados y sin el suyo, que es lo que hace que los
+ * filtros se recorten entre sí como en las otras pestañas: al elegir un informe, las
+ * frecuencias y las hojas que quedan son las suyas.
  */
 
 interface CatalogRow {
@@ -19,6 +18,7 @@ interface CatalogRow {
   name: string;
   family: string;
   workbook: string;
+  source_url: string | null;
   sheet: string;
   unit: string | null;
   frequency: string;
@@ -29,9 +29,10 @@ interface CatalogRow {
 
 const toInfo = (row: CatalogRow): BcbSeriesInfo => ({
   code: row.indicator_code,
-  name: row.name,
+  name: tidyName(row.name),
   family: row.family,
   workbook: row.workbook,
+  workbookTitle: workbookTitle(row.source_url, row.workbook),
   sheet: row.sheet,
   unit: row.unit,
   frequency: row.frequency,
@@ -40,7 +41,15 @@ const toInfo = (row: CatalogRow): BcbSeriesInfo => ({
   pointCount: row.point_count,
 });
 
-const SELECT = `SELECT indicator_code, name, family, workbook, sheet, unit, frequency,
+/**
+ * Las columnas que el lector del cuaderno tomó por series y son el eje: «Mes», «Fecha»,
+ * «Año»… No son indicadores, y dibujadas dan una rampa o un pico sin sentido. Se excluyen
+ * aquí y no solo en la semilla porque las ya sembradas no se borran.
+ */
+const NOT_AN_INDICATOR =
+  "name !~* '^(mes|meses|fecha|fechas|a[nñ]o|a[nñ]os|per[ií]odo|trimestre|semana|d[ií]a|gesti[oó]n|n|no|n[°º]|[ií]tem|c[oó]digo|columna [a-z]{1,2})( \\(\\d+\\))?$'";
+
+const SELECT = `SELECT indicator_code, name, family, workbook, source_url, sheet, unit, frequency,
   to_char(first_period, 'YYYY-MM-DD') AS first_period,
   to_char(last_period, 'YYYY-MM-DD') AS last_period, point_count`;
 
@@ -55,67 +64,125 @@ function emptyOrThrow<T>(error: unknown, empty: T): T {
   throw error;
 }
 
-export function readBcbFamilies(): Promise<BcbFamily[]> {
-  return held('bcb-families', async () => {
-    try {
-      const { rows } = await pool().query<{ family: string; series: string }>(
-        `SELECT family, count(*)::text AS series
-         FROM read_models.bcb_statistic_catalog GROUP BY family ORDER BY count(*) DESC`,
-      );
-      return rows.map((row) => ({
-        family: row.family,
-        label: familyLabel(row.family),
-        series: Number(row.series),
-      }));
-    } catch (error) {
-      return emptyOrThrow(error, []);
-    }
-  });
-}
-
 /** `%` y `_` del texto buscado son texto, no comodines. */
 const literal = (text: string): string => text.replace(/[\\%_]/gu, (char) => `\\${char}`);
 
-export async function searchBcb(params: {
+export interface BcbQuery {
   family: string;
+  workbook: string;
+  sheet: string;
   frequency: string;
   text: string;
   offset: number;
-}): Promise<BcbCatalogPage> {
-  const families = await readBcbFamilies();
-  const words = params.text.trim().split(/\s+/u).filter(Boolean).slice(0, 5);
-  const conditions: string[] = [];
+}
+
+type Dimension = 'family' | 'workbook' | 'sheet' | 'frequency';
+
+function filters(
+  query: BcbQuery,
+  skip: readonly Dimension[] = [],
+): { where: string; values: unknown[] } {
+  const conditions: string[] = [NOT_AN_INDICATOR];
   const values: unknown[] = [];
-  if (params.family) {
-    values.push(params.family);
-    conditions.push(`family = $${values.length}`);
-  }
-  if (params.frequency) {
-    values.push(params.frequency);
-    conditions.push(`frequency = $${values.length}`);
-  }
+  const add = (column: string, value: string, dimension: Dimension) => {
+    if (!value || skip.includes(dimension)) return;
+    values.push(value);
+    conditions.push(`${column} = $${values.length}`);
+  };
+  add('family', query.family, 'family');
+  add('workbook', query.workbook, 'workbook');
+  add('sheet', query.sheet, 'sheet');
+  add('frequency', query.frequency, 'frequency');
   // Cada palabra tiene que aparecer en el nombre, la hoja o el informe: «reservas oro»
   // encuentra lo que dice las dos, en cualquier orden.
-  for (const word of words) {
+  for (const word of query.text.trim().split(/\s+/u).filter(Boolean).slice(0, 5)) {
     values.push(`%${literal(word)}%`);
     const at = values.length;
     conditions.push(`(name ILIKE $${at} OR sheet ILIKE $${at} OR workbook ILIKE $${at})`);
   }
-  const where = conditions.length ? `WHERE ${conditions.join(' AND ')}` : '';
+  return { where: `WHERE ${conditions.join(' AND ')}`, values };
+}
+
+async function facet(
+  query: BcbQuery,
+  dimension: Dimension,
+  label: (key: string, url: string | null, sheet: string) => string,
+  limit: number,
+): Promise<BcbFacet[]> {
+  // Las familias se cuentan sin el informe ni la hoja: son la entrada a la pestaña y no
+  // deben encogerse al elegir un informe, como los grupos de las otras pestañas.
+  const { where, values } = filters(
+    query,
+    dimension === 'family' ? ['family', 'workbook', 'sheet'] : [dimension],
+  );
+  const { rows } = await pool().query<{
+    key: string;
+    url: string | null;
+    sheet: string;
+    n: string;
+  }>(
+    `SELECT ${dimension} AS key, min(source_url) AS url, min(sheet) AS sheet, count(*)::text AS n
+     FROM read_models.bcb_statistic_catalog ${where}
+     GROUP BY ${dimension} ORDER BY count(*) DESC, ${dimension} LIMIT ${limit}`,
+    values,
+  );
+  return rows.map((row) => ({
+    key: row.key,
+    label: label(row.key, row.url, row.sheet),
+    count: Number(row.n),
+  }));
+}
+
+export async function searchBcb(query: BcbQuery): Promise<BcbCatalogPage> {
+  const empty: BcbCatalogPage = {
+    families: [],
+    workbooks: [],
+    sheets: [],
+    frequencies: [],
+    results: [],
+    total: 0,
+    latest: null,
+  };
   try {
-    const counted = await pool().query<{ total: string }>(
-      `SELECT count(*)::text AS total FROM read_models.bcb_statistic_catalog ${where}`,
-      values,
-    );
-    const { rows } = await pool().query<CatalogRow>(
-      `${SELECT} FROM read_models.bcb_statistic_catalog ${where}
-       ORDER BY family, workbook, sheet, name
-       LIMIT ${PAGE} OFFSET ${Math.max(0, Math.floor(params.offset))}`,
-      values,
-    );
-    return { families, results: rows.map(toInfo), total: Number(counted.rows[0]?.total ?? 0) };
+    const { where, values } = filters(query);
+    const [families, workbooks, sheets, frequencies, totals, listed] = await Promise.all([
+      facet(query, 'family', (key) => familyLabel(key), 40),
+      facet(
+        query,
+        'workbook',
+        (key, url, first) => {
+          const title = workbookTitle(url, key);
+          return isOpaqueTitle(title) && first.toLowerCase() !== title.toLowerCase()
+            ? `${title} · ${first}`
+            : title;
+        },
+        400,
+      ),
+      query.workbook ? facet(query, 'sheet', (key) => key, 200) : Promise.resolve([]),
+      facet(query, 'frequency', (key) => key, 10),
+      pool().query<{ total: string; latest: string | null }>(
+        `SELECT count(*)::text AS total, to_char(max(last_period), 'YYYY-MM-DD') AS latest
+         FROM read_models.bcb_statistic_catalog ${where}`,
+        values,
+      ),
+      pool().query<CatalogRow>(
+        `${SELECT} FROM read_models.bcb_statistic_catalog ${where}
+         ORDER BY family, workbook, sheet, point_count DESC, name
+         LIMIT ${PAGE} OFFSET ${Math.max(0, Math.floor(query.offset))}`,
+        values,
+      ),
+    ]);
+    return {
+      families,
+      workbooks: workbooks.sort((a, b) => a.label.localeCompare(b.label, 'es')),
+      sheets,
+      frequencies,
+      results: listed.rows.map(toInfo),
+      total: Number(totals.rows[0]?.total ?? 0),
+      latest: totals.rows[0]?.latest ?? null,
+    };
   } catch (error) {
-    return emptyOrThrow(error, { families, results: [], total: 0 });
+    return emptyOrThrow(error, empty);
   }
 }
 
@@ -126,15 +193,14 @@ export async function readBcbSeries(codes: readonly string[]): Promise<BcbSeries
     const { rows } = await pool().query<
       CatalogRow & {
         locator: Record<string, string | number> | null;
-        source_url: string | null;
         evidence_sha256: string | null;
         points: Array<[string, string]>;
       }
     >(
-      `SELECT c.indicator_code, c.name, c.family, c.workbook, c.sheet, c.unit, c.frequency,
-              to_char(c.first_period, 'YYYY-MM-DD') AS first_period,
+      `SELECT c.indicator_code, c.name, c.family, c.workbook, d.source_url, c.sheet, c.unit,
+              c.frequency, to_char(c.first_period, 'YYYY-MM-DD') AS first_period,
               to_char(c.last_period, 'YYYY-MM-DD') AS last_period, c.point_count,
-              c.locator, d.source_url, d.evidence_sha256, d.points
+              c.locator, d.evidence_sha256, d.points
        FROM read_models.bcb_statistic_catalog c
        JOIN read_models.bcb_statistic_data d USING (indicator_code)
        WHERE c.indicator_code = ANY($1::text[])`,

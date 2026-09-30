@@ -6,39 +6,46 @@ import type { DatedLineSeries } from './charts';
 import type { BcbSeriesData } from '@/lib/bcb-board';
 
 /**
- * El mercado boliviano de USDT, según el propio Banco Central.
+ * El mercado boliviano de USDT, según el propio Banco Central, como tercer gráfico de la
+ * fila de «Tipo de cambio».
  *
  * Son las dos cifras que el BCB publica en los gráficos de su libro del bicentenario y de
  * su Memoria: cuánto se comerció y cuántas operaciones hubo, por mes, desde enero de 2024
  * —el mes anterior a que la R.D. 082/2024 levantara la prohibición— hasta mayo de 2025,
- * que es lo último que publicó. Vienen de la plataforma Binance y son compras de USDT;
- * no son las de los bancos, que no publican nada, pero dicen qué tan grande es el mercado
- * que los bancos empezaron a atender.
+ * que es lo último que publicó. Vienen de la plataforma Binance y son compras de USDT; no
+ * son las de los bancos, que no publican nada, pero dicen qué tan grande es el mercado que
+ * los bancos empezaron a atender.
+ *
+ * Un solo panel con un selector y no dos gráficos: la fila tiene tres lugares y las dos
+ * medidas son la misma historia contada con otra unidad, que no comparten eje.
  */
 
-const CODES = ['BCB_ACTIVOS_VIRTUALES_MONTOS_USDT', 'BCB_ACTIVOS_VIRTUALES_OPERACIONES_USDT'];
-
-const SERIES: Record<string, { title: string; label: string; unit: string; decimals: number }> = {
-  BCB_ACTIVOS_VIRTUALES_MONTOS_USDT: {
-    title: 'Montos comerciados con USDT en Bolivia (millones de dólares)',
+const MEASURES = [
+  {
+    code: 'BCB_ACTIVOS_VIRTUALES_MONTOS_USDT',
+    chip: 'Montos',
+    title: 'Mercado de USDT en Bolivia: montos (millones de dólares)',
     label: 'Montos comerciados',
     unit: 'millones de US$',
     decimals: 1,
   },
-  BCB_ACTIVOS_VIRTUALES_OPERACIONES_USDT: {
-    title: 'Operaciones de compra de USDT en Bolivia (miles)',
+  {
+    code: 'BCB_ACTIVOS_VIRTUALES_OPERACIONES_USDT',
+    chip: 'Operaciones',
+    title: 'Mercado de USDT en Bolivia: operaciones (miles)',
     label: 'Operaciones',
     unit: 'miles de operaciones',
     decimals: 0,
   },
-};
+] as const;
 
 export function BcbUsdtMarket() {
   const [series, setSeries] = useState<BcbSeriesData[] | null>(null);
+  const [which, setWhich] = useState<(typeof MEASURES)[number]['code']>(MEASURES[0].code);
 
   useEffect(() => {
     let alive = true;
-    fetch(`/api/bcb/serie?codigos=${CODES.join(',')}`)
+    fetch(`/api/bcb/serie?codigos=${MEASURES.map((one) => one.code).join(',')}`)
       .then((response) => (response.ok ? response.json() : Promise.reject(new Error('bcb'))))
       .then((body: { series: BcbSeriesData[] }) => alive && setSeries(body.series))
       .catch(() => alive && setSeries([]));
@@ -47,37 +54,50 @@ export function BcbUsdtMarket() {
     };
   }, []);
 
-  if (!series?.length) return null;
+  const measure = MEASURES.find((one) => one.code === which) ?? MEASURES[0];
+  const one = series?.find((entry) => entry.code === measure.code);
+  // Sin la serie (el núcleo todavía no la sembró, o no se pudo leer) el panel no ocupa
+  // un lugar de la fila con un aviso: la fila se reparte entre los que sí tienen datos.
+  if (series !== null && !series.length) return null;
 
+  const lines: DatedLineSeries[] = [
+    { key: 'value', label: measure.label, tone: seriesTone(3), emphasis: true },
+  ];
   return (
-    <div className="grid-pair">
-      {CODES.map((code, index) => {
-        const one = series.find((entry) => entry.code === code);
-        const meta = SERIES[code];
-        if (!one || !meta) return null;
-        const lines: DatedLineSeries[] = [
-          { key: 'value', label: meta.label, tone: seriesTone(index), emphasis: true },
-        ];
-        return (
-          <div className="panel" key={code}>
-            <div className="panel-head">
-              <h2>{meta.title}</h2>
-              <p className="panel-sub">
-                Según el Banco Central, con información de Binance: compras de USDT hechas desde
-                Bolivia, por mes. El BCB la publica hasta mayo de 2025.
-              </p>
-            </div>
-            <DatedLines
-              data={one.points.map(([date, value]) => ({ date, value }))}
-              series={lines}
-              unit={meta.unit}
-              decimals={meta.decimals}
-              monthly
-              domain={[0, Math.max(...one.points.map(([, value]) => value)) * 1.08]}
-            />
-          </div>
-        );
-      })}
+    <div className="panel">
+      <div className="panel-head">
+        <h2>{measure.title}</h2>
+        <p className="panel-sub">
+          Según el Banco Central, con información de Binance: compras de USDT hechas desde Bolivia,
+          por mes. Es el mercado que los bancos empezaron a atender; el BCB lo publica hasta mayo de
+          2025.
+        </p>
+        <div className="chips" role="group" aria-label="Medida">
+          {MEASURES.map((option) => (
+            <button
+              key={option.code}
+              type="button"
+              className={option.code === which ? 'chip chip-on' : 'chip'}
+              aria-pressed={option.code === which}
+              onClick={() => setWhich(option.code)}
+            >
+              {option.chip}
+            </button>
+          ))}
+        </div>
+      </div>
+      {one ? (
+        <DatedLines
+          data={one.points.map(([date, value]) => ({ date, value }))}
+          series={lines}
+          unit={measure.unit}
+          decimals={measure.decimals}
+          monthly
+          domain={[0, Math.max(...one.points.map(([, value]) => value)) * 1.08]}
+        />
+      ) : (
+        <div className="callout">Leyendo las cifras del Banco Central…</div>
+      )}
     </div>
   );
 }
