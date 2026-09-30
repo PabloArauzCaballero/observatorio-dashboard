@@ -4,6 +4,7 @@ import { Fragment, useCallback, useEffect, useId, useRef, useState } from 'react
 import type { MouseEvent, ReactNode } from 'react';
 
 import { aCsv, aMarkdown, celdaLegible, decimalesPorColumna, nombreDeArchivo, type Tabla } from '@/lib/asistente/tabla';
+import { reportDownloadIntent } from '@/lib/analytics';
 import { navegar, type Destino } from '@/lib/enlace-tablero';
 
 /**
@@ -121,6 +122,7 @@ function Texto({ texto }: { texto: string }) {
 
 /** Baja un archivo armado en el navegador, sin volver a pedirle nada al servidor. */
 function bajar(nombre: string, contenido: string, tipo: string): void {
+  reportDownloadIntent(`asistente-${nombre.split('.').pop() ?? 'archivo'}`);
   const url = URL.createObjectURL(new Blob([contenido], { type: tipo }));
   const a = document.createElement('a');
   a.href = url;

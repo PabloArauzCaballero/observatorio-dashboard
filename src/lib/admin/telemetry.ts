@@ -86,7 +86,8 @@ export async function reportTraffic(
   const result = await callCore<{ accepted: number; duplicates: number }>(
     '/api/v1/admin/analytics/traffic',
     siteIdentity(),
-    { method: 'POST', body: { events } },
+    // Sin plazo, un núcleo colgado deja suelta la petición de la visita para siempre.
+    { method: 'POST', body: { events }, timeoutMs: 5_000 },
   );
   return result.ok ? result.body.data : null;
 }

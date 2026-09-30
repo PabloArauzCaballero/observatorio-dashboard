@@ -1,6 +1,6 @@
 'use client';
 
-import { describeVisit, report } from '@/lib/analytics';
+import { reportDownloadIntent } from '@/lib/analytics';
 
 /**
  * The same two buttons everywhere.
@@ -17,10 +17,7 @@ import { describeVisit, report } from '@/lib/analytics';
  * link keeps working whether or not the report is sent.
  */
 export function Download({ dataset, label }: { dataset: string; label: string }) {
-  const announce = (): void => {
-    const visit = describeVisit('DOWNLOAD_INTENT');
-    if (visit) report({ ...visit, route: `/descarga/${dataset}` });
-  };
+  const announce = (): void => reportDownloadIntent(dataset);
 
   return (
     <div className="download">

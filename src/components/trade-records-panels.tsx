@@ -5,6 +5,7 @@ import { ShareBars } from './charts';
 import { Icon } from './icons';
 import type { Choice } from '@/lib/choice';
 import type { TradeItem, TradeView } from '@/lib/trade-records';
+import { reportDownloadIntent } from '@/lib/analytics';
 
 /**
  * Las piezas que dibujan una vista de la base aduanera.
@@ -243,6 +244,7 @@ export function DownloadViews({
         );
       }
     }
+    reportDownloadIntent('comercio-ine-csv');
     const blob = new Blob([`﻿${lines.join('\n')}\n`], { type: 'text/csv;charset=utf-8' });
     const link = document.createElement('a');
     link.href = URL.createObjectURL(blob);

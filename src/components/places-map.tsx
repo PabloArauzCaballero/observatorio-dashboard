@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { Icon } from './icons';
 import type { Place } from '@/lib/places';
+import { reportDownloadIntent } from '@/lib/analytics';
 import {
   APPROXIMATE_POSITION_NOTE,
   LOW_CONFIDENCE_NOTE,
@@ -960,6 +961,7 @@ export function PlacesMap({
 
     canvas.toBlob((blob) => {
       if (!blob) return;
+      reportDownloadIntent('mapa-png');
       const url = URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = url;

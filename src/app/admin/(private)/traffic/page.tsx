@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { count, instant } from '@/components/admin/format';
+import { count, day, instant } from '@/components/admin/format';
 import { EmptyNote, Panel, ProblemNote } from '@/components/admin/panel';
 import { StateBadge } from '@/components/admin/state-badge';
 import type { TrafficReport } from '@/lib/admin/contracts';
@@ -44,7 +44,9 @@ export default async function TrafficPage({
   if (!session) return null;
   const parameters = await searchParams;
   const granularity = parameters.granularity === 'hour' ? 'hour' : 'day';
-  const search = new URLSearchParams({ granularity });
+  // Los baldes se cortan en la zona de quien los lee: en UTC, las visitas de
+  // la noche de La Paz aparecían bajo la fecha de mañana.
+  const search = new URLSearchParams({ granularity, timeZone: 'America/La_Paz' });
   const result = await callCore<TrafficReport>('/api/v1/admin/analytics/traffic', session, {
     search,
   });
@@ -150,7 +152,7 @@ export default async function TrafficPage({
                   <tbody>
                     {result.body.data.buckets.map((bucket, index) => (
                       <tr key={`${bucket.bucket}-${bucket.route}-${index}`}>
-                        <td>{instant(bucket.bucket)}</td>
+                        <td>{granularity === 'day' ? day(bucket.bucket) : instant(bucket.bucket)}</td>
                         <td className="admin-mono wrap">{bucket.route}</td>
                         <td>{bucket.kind === 'PAGE_VIEW' ? 'Vista' : 'Intención de descarga'}</td>
                         <td>{DEVICE_LABEL[bucket.device] ?? bucket.device}</td>
