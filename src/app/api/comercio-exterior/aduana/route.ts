@@ -18,6 +18,8 @@ import type { Dimension } from '@/lib/trade-records-query';
 export const dynamic = 'force-dynamic';
 
 const MAX_VIEWS = 6;
+/** Todos los países caben: el mapa los pide de una vez, y no hay más de ~260 códigos. */
+const MAX_ROWS = 300;
 
 function viewsOf(raw: string | null): ViewSpec[] {
   const specs: ViewSpec[] = [];
@@ -28,7 +30,7 @@ function viewsOf(raw: string | null): ViewSpec[] {
     specs.push({
       name,
       by: by as Dimension,
-      limit: Number.isInteger(top) && top > 0 && top <= 60 ? top : 25,
+      limit: Number.isInteger(top) && top > 0 && top <= MAX_ROWS ? top : 25,
     });
   }
   return specs.slice(0, MAX_VIEWS);

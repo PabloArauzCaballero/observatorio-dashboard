@@ -28,7 +28,7 @@ export const say = (value: number, decimals = 1): string => formatter(decimals).
  * todo el ancho: las barras quedan en cero píxeles. El nombre entero sigue en
  * el emergente y en la tabla.
  */
-function useLabelRoom(): number {
+export function useLabelRoom(): number {
   const [room, setRoom] = useState(58);
   useEffect(() => {
     const narrow = window.matchMedia('(max-width: 640px)');
