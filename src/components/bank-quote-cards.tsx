@@ -10,9 +10,9 @@ import type { BankProduct } from '@/lib/bank-assets-board';
  *
  * Usan el mismo esqueleto que las cotizaciones de arriba y el color de la
  * ficha que ofrecen —USDT naranja, USDC rosa—, así que se lee de un vistazo
- * qué banco vende cuál. No hay precio en ellas porque ningún banco lo
- * publica fuera de su aplicación: lo que dicen es desde cuándo, si sigue
- * anunciado hoy y con qué límite.
+ * qué banco vende cuál. Con precio solo salen los bancos que lo publican (BISA,
+ * en un archivo de su sitio) o cuyo precio alguien anotó de su aplicación; en los
+ * demás lo que dicen es desde cuándo, si sigue anunciado hoy y con qué límite.
  */
 
 const ACCENT: Record<string, string> = {
@@ -33,6 +33,19 @@ const SHORT_NAME: Record<string, string> = {
 function state(bank: BankProduct): string {
   if (bank.offeredNow === null) return 'sin lectura diaria';
   return bank.offeredNow ? 'lo ofrece hoy' : 'ya no lo anuncia';
+}
+
+/** Qué decir del precio: quién lo publica y de quién hay que fiarse de su aplicación. */
+function footNote(banks: readonly BankProduct[]): string {
+  const published = banks.filter((bank) => bank.quote?.basis === 'OFFICIAL_FEED');
+  const noted = banks.filter((bank) => bank.quote?.basis === 'USER_CAPTURE');
+  const rest = banks.length - published.length - noted.length;
+  const names = (list: readonly BankProduct[]): string =>
+    list.map((bank) => SHORT_NAME[bank.bank] ?? bank.bankName).join(', ');
+  if (!published.length && !noted.length) return 'Ningún banco publica su cotización fuera de su aplicación';
+  const parts = [`${names(published.length ? published : noted)} ${published.length ? 'publica' : 'anotada de su app'} su cotización`];
+  if (rest > 0) parts.push(`los otros ${rest} solo la muestran dentro de su aplicación`);
+  return parts.join('; ');
 }
 
 function BankCard({ bank }: { bank: BankProduct }) {
@@ -62,7 +75,9 @@ function BankCard({ bank }: { bank: BankProduct }) {
       </div>
       <span className="quote-change quote-change-flat">
         {state(bank)}
-        {bank.quote ? ` · cotización del ${sayShort(bank.quote.date)}` : ''}
+        {bank.quote
+          ? ` · ${bank.quote.basis === 'OFFICIAL_FEED' ? 'publicado por el banco' : 'anotado de su app'} el ${sayShort(bank.quote.date)}`
+          : ''}
       </span>
       {bank.quote ? (
         <dl className="quote-sides">
@@ -111,7 +126,7 @@ export function BankQuoteCards() {
         ))}
       </div>
       <p className="quotes-foot">
-        <span>Ningún banco publica su cotización fuera de su aplicación</span>
+        <span>{footNote(board.banks)}</span>
         {board.latestRead ? <span>Última lectura: {sayLong(board.latestRead)}</span> : null}
         <span>Detalle en «Tipo de cambio»</span>
       </p>

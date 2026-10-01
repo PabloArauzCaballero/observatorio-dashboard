@@ -57,7 +57,7 @@ export function BankAssetsTable() {
               <th>Ficha</th>
               <th>Desde</th>
               <th>Hoy</th>
-              <th>Cotización anotada</th>
+              <th>Cotización (Bs por ficha)</th>
               <th>Límites que declara su página</th>
             </tr>
           </thead>
@@ -87,7 +87,11 @@ export function BankAssetsTable() {
                     <>
                       Paga <b>{price(bank.quote.clientBuys)}</b> · recibe{' '}
                       <b>{price(bank.quote.clientSells)}</b> Bs
-                      <span className="stat-hint"> · {sayLong(bank.quote.date)}</span>
+                      <span className="stat-hint">
+                        {' '}
+                        · {sayLong(bank.quote.date)} ·{' '}
+                        {bank.quote.basis === 'OFFICIAL_FEED' ? 'la publica el banco' : 'anotada de su app'}
+                      </span>
                     </>
                   ) : (
                     'solo dentro de su app'
