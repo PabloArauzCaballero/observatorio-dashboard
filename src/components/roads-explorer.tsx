@@ -170,6 +170,8 @@ export function RoadsExplorer({ board }: { board: RoadBoard }) {
   const [network, setNetwork] = useState<Choice>(ANY);
   const [surface, setSurface] = useState<Choice>(ANY);
   const [route, setRoute] = useState<string | null>(null);
+  /* De dónde vino la ruta elegida: un clic en el mapa no debe mover la cámara que el lector acaba de acomodar. */
+  const [routeFrom, setRouteFrom] = useState<'mapa' | 'tabla'>('tabla');
   const [search, setSearch] = useState('');
   const [colorBy, setColorBy] = useState<RoadColorBy>('red');
   const [sort, setSort] = useState<{ key: SortKey; down: boolean }>({ key: 'totalKm', down: true });
@@ -262,7 +264,10 @@ export function RoadsExplorer({ board }: { board: RoadBoard }) {
   const annual = (onlyDepartment ? board.annualByGeography[onlyDepartment] : undefined) ?? board.annual;
   const annualWhere = onlyDepartment ? departmentName(onlyDepartment) : 'todo el país';
   const filtered = department.size + network.size + surface.size > 0 || Boolean(query);
-  const zoomTo = department.size > 0 || liveRoute !== null;
+  const framesRoute = liveRoute !== null && routeFrom === 'tabla';
+  const zoomTo = department.size > 0 || framesRoute;
+  /* Cambia con todo lo que pide un encuadre nuevo; sin él, la cámara del lector se queda donde está. */
+  const frameKey = `${[...department].join(',')}|${[...network].join(',')}|${[...surface].join(',')}|${query}|${framesRoute ? liveRoute : ''}`;
 
   const clearAll = (): void => {
     setDepartment(ANY);
@@ -272,7 +277,10 @@ export function RoadsExplorer({ board }: { board: RoadBoard }) {
     setSearch('');
   };
 
-  const pickRoute = (next: string): void => setRoute((current) => (current === next ? null : next));
+  const pickRoute = (next: string, from: 'mapa' | 'tabla'): void => {
+    setRouteFrom(from);
+    setRoute((current) => (current === next ? null : next));
+  };
 
   const where = describe(department, departmentName, 'todo el país');
 
@@ -496,8 +504,10 @@ export function RoadsExplorer({ board }: { board: RoadBoard }) {
               route={liveRoute}
               colorBy={colorBy}
               zoomTo={zoomTo}
-              onPickRoute={pickRoute}
+              frameKey={frameKey}
+              onPickRoute={(next) => pickRoute(next, 'mapa')}
             />
+            {liveRoute ? <RouteSections route={liveRoute} sections={inCut} /> : null}
           </div>
 
           <RoutesTable
@@ -511,7 +521,7 @@ export function RoadsExplorer({ board }: { board: RoadBoard }) {
                 current.key === key ? { key, down: !current.down } : { key, down: key !== 'route' && key !== 'network' },
               )
             }
-            onPick={pickRoute}
+            onPick={(next) => pickRoute(next, 'tabla')}
           />
         </div>
       </div>
@@ -553,6 +563,58 @@ export function RoadsExplorer({ board }: { board: RoadBoard }) {
         </div>
       ) : null}
     </>
+  );
+}
+
+/**
+ * Los tramos de la ruta aislada, uno por fila.
+ *
+ * Es el grano más fino que tiene el dato: un tramo es el pedazo de la ruta que
+ * comparte departamento, rodadura y estado, así que una troncal de 380 km
+ * pavimentada de punta a punta es un solo tramo. Verlos en fila deja ver dónde
+ * cambia la rodadura o el departamento y cuánto pesa cada pedazo, sin tener que
+ * adivinarlo pasando el cursor por el mapa.
+ */
+function RouteSections({ route, sections }: { route: string; sections: readonly RoadSection[] }) {
+  const mine = sections
+    .filter((section) => section.route === route)
+    .sort((left, right) => right.lengthKm - left.lengthKm);
+  if (!mine.length) return null;
+  const total = mine.reduce((sum, section) => sum + section.lengthKm, 0);
+  return (
+    <div className="roads-sections">
+      <h3 className="roads-sections-title">
+        Tramos de la ruta {route} ({number(mine.length)} {mine.length === 1 ? 'tramo' : 'tramos'} · {number(total, 1)} km)
+      </h3>
+      <div className="table-wrap">
+        <table className="grid-table roads-table">
+          <thead>
+            <tr>
+              <th>Departamento</th>
+              <th>Rodadura</th>
+              <th>Estado</th>
+              <th>Clase</th>
+              <th>Nombre en OpenStreetMap</th>
+              <th className="num">Km</th>
+              <th className="num">% de la ruta</th>
+            </tr>
+          </thead>
+          <tbody>
+            {mine.map((section) => (
+              <tr key={section.sectionId}>
+                <td>{departmentName(section.department)}</td>
+                <td>{SURFACE_GROUPS.find((one) => one.group === SURFACE_GROUP[section.surface])?.label}</td>
+                <td>{section.status === 'EN_CONSTRUCCION' ? 'En construcción' : 'En servicio'}</td>
+                <td>{section.highwayClass}</td>
+                <td>{section.name ?? '—'}</td>
+                <td className="num">{number(section.lengthKm, 1)}</td>
+                <td className="num">{total > 0 ? number((section.lengthKm / total) * 100, 1) : '—'} %</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
   );
 }
 

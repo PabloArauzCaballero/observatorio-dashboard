@@ -6910,8 +6910,21 @@ button.download-btn {
 
 /* El escenario tiene la proporción del país: acercar cambia el viewBox y no
    el tamaño de la caja, así que el mapa no salta de alto al elegir. */
+/* La caja mide exactamente la proporción del mapa (sin bandas): así un píxel
+   de pantalla vale lo mismo en los dos ejes y el arrastre y la rueda no
+   corrigen nada. */
 .roads-map-stage {
   position: relative;
+  width: min(100%, calc(78vh * 1000 / 1132));
+  margin-inline: auto;
+  border-radius: var(--radius);
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.roads-map-stage:focus-visible {
+  outline: 2px solid var(--official);
+  outline-offset: 2px;
 }
 
 .roads-map {
@@ -6919,15 +6932,82 @@ button.download-btn {
   width: 100%;
   height: auto;
   aspect-ratio: 1000 / 1132;
-  max-height: 78vh;
   background: var(--panel-tint);
   border-radius: var(--radius);
+  touch-action: pan-y;
+}
+
+/* Botones de acercamiento, encima del mapa y no sobre él: no tapan el país. */
+.roads-map-zoombar {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.25rem 0.35rem;
+  border: 1px solid var(--rule);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--panel) 88%, transparent);
+  backdrop-filter: blur(4px);
+}
+
+.roads-map-zoombar .places-map-zoom-read {
+  color: var(--ink-soft);
+  padding: 0 0.3rem;
+  min-width: 4.2rem;
+  text-align: right;
+}
+
+.roads-map-zoombar .map-tool:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.roads-map-scale {
+  position: absolute;
+  left: 10px;
+  bottom: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-family: var(--mono);
+  font-size: 0.68rem;
+  color: var(--ink-soft);
+  pointer-events: none;
+}
+
+.roads-map-scale i {
+  display: block;
+  height: 5px;
+  border: 1.5px solid var(--ink-soft);
+  border-top: 0;
+}
+
+.roads-map-names text {
+  fill: var(--ink-soft);
+  font-style: italic;
+  paint-order: stroke;
+  stroke: var(--panel-tint);
+  stroke-width: calc(3px * var(--ppx, 1));
+  stroke-linejoin: round;
+  text-anchor: middle;
+  pointer-events: none;
+}
+
+.roads-sections {
+  margin-top: var(--s2);
+}
+
+.roads-sections-title {
+  font-size: 0.82rem;
+  margin: 0 0 var(--s1);
 }
 
 .roads-map-departments path {
   fill: var(--chart-surface);
   stroke: var(--rule);
-  stroke-width: 1;
+  stroke-width: calc(1px * var(--ppx, 1));
 }
 
 .roads-map-legend {
@@ -6966,7 +7046,7 @@ button.download-btn {
   opacity: 0.85;
   paint-order: stroke;
   stroke: var(--panel-tint);
-  stroke-width: 3px;
+  stroke-width: calc(3px * var(--ppx, 1));
   stroke-linejoin: round;
   font-weight: 600;
   letter-spacing: 0.12em;
@@ -6985,15 +7065,22 @@ button.download-btn {
 .roads-map-hits path {
   fill: none;
   stroke: transparent;
-  stroke-width: 12px;
+  stroke-width: calc(12px * var(--ppx, 1));
+  stroke-linecap: round;
+  stroke-linejoin: round;
   pointer-events: stroke;
+}
+
+@media (pointer: coarse) {
+  .roads-map-hits path {
+    stroke-width: calc(20px * var(--ppx, 1));
+  }
 }
 
 .roads-map-capitals circle {
   fill: var(--panel);
   stroke: var(--ink);
-  stroke-width: 1.6px;
-  vector-effect: non-scaling-stroke;
+  stroke-width: calc(1.6px * var(--ppx, 1));
 }
 
 .roads-map-capitals text {
@@ -7001,7 +7088,7 @@ button.download-btn {
   font-weight: 600;
   paint-order: stroke;
   stroke: var(--panel-tint);
-  stroke-width: 3px;
+  stroke-width: calc(3px * var(--ppx, 1));
   stroke-linejoin: round;
   pointer-events: none;
 }
