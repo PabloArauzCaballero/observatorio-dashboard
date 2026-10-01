@@ -2068,6 +2068,17 @@ span.rail-twist {
   .rail {
     order: 2;
   }
+  /*
+   * Excepcion: «Variables exogenas» y «Series del BCB». Alli los filtros SON
+   * el control —sin elegir informe o producto no hay nada con sentido que
+   * leer—, y debajo del informe quedaban a 2.500–4.300px de scroll: el lector
+   * entraba, no veia ningun control y concluia que no existian. Suben primero,
+   * con tope de alto (el carril se desplaza por dentro) para no tapar el informe.
+   */
+  .workspace-filters-first > .rail {
+    order: 0;
+    max-height: 60vh;
+  }
   .barlist-row .barlist-name {
     width: 120px;
   }

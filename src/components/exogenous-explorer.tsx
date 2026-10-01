@@ -181,13 +181,9 @@ export function ExogenousExplorer({ board }: { board: ExogenousBoard }) {
           })}
         </div>
         {lead ? <p className="panel-sub">{lead.lead}</p> : null}
-        <a className="jump-to-filters" href="#exogenas-filtros">
-          <Icon name="filtro" size={14} />
-          Ir a los filtros
-        </a>
       </div>
 
-      <div className="workspace">
+      <div className="workspace workspace-filters-first">
         <aside className="rail" id="exogenas-filtros">
           <div className="rail-top">
             <Icon name="filtro" size={15} />

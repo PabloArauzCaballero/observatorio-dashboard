@@ -340,7 +340,7 @@ export function BcbSection() {
         </div>
       </div>
 
-      <div className="workspace">
+      <div className="workspace workspace-filters-first">
         <aside className="rail" id="bcb-filtros">
           <div className="rail-top">
             <Icon name="filtro" size={15} />
