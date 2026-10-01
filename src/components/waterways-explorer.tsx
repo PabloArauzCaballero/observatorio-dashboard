@@ -316,6 +316,7 @@ export function WaterwaysExplorer({ board }: { board: WaterBoard }) {
               matches={matches}
               picked={liveRiver}
               zoomTo={department.size > 0 || liveRiver !== null}
+              frameKey={`${[...department].join(',')}|${[...category].join(',')}|${query}|${liveRiver ?? ''}`}
               onPick={pickRiver}
               legend={WATERWAY_CATEGORIES.filter((one) => accepts(category, one.category)).map(
                 (one) => ({

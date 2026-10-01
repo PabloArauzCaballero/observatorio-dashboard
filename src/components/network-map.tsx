@@ -1,8 +1,10 @@
 'use client';
 
-import { useMemo, useRef, useState } from 'react';
+import { useMemo, useState } from 'react';
 import type { PointerEvent as ReactPointerEvent } from 'react';
 import { DEPARTMENTS, MAP_BOX, PLACE_POINTS, projectRoadPoint } from '@/lib/bolivia-map';
+import { FULL, MapTools, fitBox, useMapCamera } from './map-camera';
+import type { Box } from './map-camera';
 
 /**
  * Una red de líneas y puntos sobre el contorno departamental: el ferrocarril
@@ -59,36 +61,6 @@ const CAPITALS: readonly { name: string; at: [number, number] }[] = [
   { name: 'Cobija', at: [-68.769, -11.0267] },
 ];
 
-interface Box {
-  x: number;
-  y: number;
-  width: number;
-  height: number;
-}
-
-const FULL: Box = { x: 0, y: 0, width: MAP_BOX.width, height: MAP_BOX.height };
-
-function boxOf(lines: readonly [number, number][][][]): Box {
-  let minX = Infinity;
-  let minY = Infinity;
-  let maxX = -Infinity;
-  let maxY = -Infinity;
-  for (const polylines of lines) {
-    for (const line of polylines) {
-      for (const [x, y] of line) {
-        minX = Math.min(minX, x);
-        minY = Math.min(minY, y);
-        maxX = Math.max(maxX, x);
-        maxY = Math.max(maxY, y);
-      }
-    }
-  }
-  if (!Number.isFinite(minX)) return FULL;
-  const width = Math.max(160, maxX - minX) * 1.16;
-  const height = Math.max(160, maxY - minY) * 1.16;
-  return { x: (minX + maxX) / 2 - width / 2, y: (minY + maxY) / 2 - height / 2, width, height };
-}
-
 const inside = (box: Box, [x, y]: [number, number]): boolean =>
   x >= box.x && x <= box.x + box.width && y >= box.y && y <= box.y + box.height;
 
@@ -98,6 +70,7 @@ export function NetworkMap({
   matches,
   picked,
   zoomTo,
+  frameKey,
   onPick,
   legend,
   pointLabel,
@@ -110,6 +83,8 @@ export function NetworkMap({
   matches: (line: MapLine) => boolean;
   picked: string | null;
   zoomTo: boolean;
+  /** Lo que identifica el encuadre: al cambiar, la cámara del lector se suelta. */
+  frameKey: string;
   onPick: (key: string) => void;
   legend: readonly MapLegendItem[];
   /** Qué son los puntos, para la leyenda («Estación», «Puerto o terminal»). */
@@ -117,13 +92,13 @@ export function NetworkMap({
   ariaLabel: string;
   foot: string;
 }) {
-  const wrapRef = useRef<HTMLDivElement>(null);
   const [hover, setHover] = useState<{
     kind: 'line' | 'point';
     id: string;
     x: number;
     y: number;
     width: number;
+    height: number;
   } | null>(null);
 
   const drawn = useMemo(
@@ -145,12 +120,28 @@ export function NetworkMap({
   const on = useMemo(() => drawn.filter((one) => matches(one.line)), [drawn, matches]);
   const onIds = useMemo(() => new Set(on.map((one) => one.line.id)), [on]);
   const filtering = on.length !== drawn.length;
-  const view = useMemo<Box>(
-    () => (zoomTo && on.length ? boxOf(on.map((one) => one.projected)) : FULL),
-    [zoomTo, on],
-  );
+  const home = useMemo<Box>(() => {
+    if (!zoomTo || !on.length) return FULL;
+    let minX = Infinity;
+    let minY = Infinity;
+    let maxX = -Infinity;
+    let maxY = -Infinity;
+    for (const one of on) {
+      for (const part of one.projected) {
+        for (const [x, y] of part) {
+          if (x < minX) minX = x;
+          if (y < minY) minY = y;
+          if (x > maxX) maxX = x;
+          if (y > maxY) maxY = y;
+        }
+      }
+    }
+    return Number.isFinite(minX) ? fitBox(minX, minY, maxX, maxY) : FULL;
+  }, [zoomTo, on]);
+  const camera = useMapCamera(home, frameKey);
+  const { view, zoom } = camera;
   const unit = Math.max(view.width / MAP_BOX.width, view.height / MAP_BOX.height);
-  const zoomed = view !== FULL;
+  const zoomed = zoom > 1.6;
 
   const placed = useMemo(
     () => points.map((point) => ({ point, at: projectRoadPoint([point.lon, point.lat]) })),
@@ -162,7 +153,7 @@ export function NetworkMap({
     kind: 'line' | 'point',
     id: string,
   ): void => {
-    const box = wrapRef.current?.getBoundingClientRect();
+    const box = event.currentTarget.ownerSVGElement?.getBoundingClientRect();
     if (!box) return;
     setHover({
       kind,
@@ -170,6 +161,7 @@ export function NetworkMap({
       x: event.clientX - box.left,
       y: event.clientY - box.top,
       width: box.width,
+      height: box.height,
     });
   };
 
@@ -180,12 +172,24 @@ export function NetworkMap({
 
   return (
     <figure className="roads-map-wrap">
-      <div className="roads-map-stage" ref={wrapRef} onPointerLeave={() => setHover(null)}>
+      <div
+        className="roads-map-stage"
+        role="group"
+        onPointerLeave={() => setHover(null)}
+        aria-label={`${ariaLabel}. Teclas más y menos para acercar, flechas para moverse, cero para volver.`}
+        {...camera.stageProps}
+      >
         <svg
-          viewBox={`${view.x.toFixed(1)} ${view.y.toFixed(1)} ${view.width.toFixed(1)} ${view.height.toFixed(1)}`}
+          ref={camera.svgRef}
+          viewBox={`${view.x.toFixed(2)} ${view.y.toFixed(2)} ${view.width.toFixed(2)} ${view.height.toFixed(2)}`}
           role="img"
           aria-label={ariaLabel}
           className="roads-map"
+          {...camera.svgProps}
+          onPointerDown={(event) => {
+            if (!(event.target as Element).closest('.roads-map-hits, .network-map-points')) setHover(null);
+            camera.svgProps.onPointerDown(event);
+          }}
         >
           <g className="roads-map-departments">
             {DEPARTMENTS.map((one) => (
@@ -227,6 +231,7 @@ export function NetworkMap({
                 onPointerMove={(event) => track(event, 'line', line.id)}
                 onPointerDown={(event) => track(event, 'line', line.id)}
                 onClick={() => {
+                  if (camera.consumeDrag()) return;
                   if (line.pick) onPick(line.pick);
                 }}
                 style={{ cursor: line.pick ? 'pointer' : 'default' }}
@@ -277,13 +282,16 @@ export function NetworkMap({
           </g>
         </svg>
 
-        {hover && (hoveredLine || hoveredPoint) ? (
+        <MapTools camera={camera} homeLabel={zoomTo && home !== FULL ? 'Encuadre' : 'Todo el país'} />
+
+        {hover && !camera.panning && (hoveredLine || hoveredPoint) ? (
           <div
             className="map-tip roads-map-tip"
             style={{
               left: hover.x > hover.width * 0.6 ? undefined : hover.x + 14,
               right: hover.x > hover.width * 0.6 ? hover.width - hover.x + 14 : undefined,
-              top: hover.y + 14,
+              top: hover.y < hover.height * 0.55 ? hover.y + 14 : undefined,
+              bottom: hover.y < hover.height * 0.55 ? undefined : hover.height - hover.y + 14,
             }}
             role="status"
             aria-live="polite"

@@ -379,6 +379,7 @@ export function RailExplorer({ board }: { board: RailBoard }) {
               matches={matches}
               picked={liveLine}
               zoomTo={department.size > 0 || liveLine !== null}
+              frameKey={`${[...department].join(',')}|${[...network].join(',')}|${[...status].join(',')}|${query}|${liveLine ?? ''}`}
               onPick={pickLine}
               legend={[
                 ...RAIL_NETWORKS.map((one) => ({
