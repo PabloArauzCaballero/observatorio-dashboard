@@ -1,13 +1,16 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { MacroChart } from './charts';
 import { Icon } from './icons';
 import { ANY, choiceOf, list, toggle, without } from '@/lib/choice';
+import { titled } from '@/lib/trade-text';
 import type { Choice } from '@/lib/choice';
 import type { TradeCodes, TradeView } from '@/lib/trade-records';
 import type { Dimension, FilterKey } from '@/lib/trade-records-query';
 import { TradeRail } from './trade-records-rail';
+import { useTradeViews } from './trade-records-fetch';
+import { TradeWorld } from './trade-records-world';
 import {
   DownloadViews,
   Headlines,
@@ -26,10 +29,20 @@ import {
  * arriba. Tocar una barra la pone en el filtro (Ctrl/⌘ suma) y cada ránking se
  * sigue contando sin su propio filtro, para que la alternativa quede a la
  * vista. En producto, tocar un capítulo baja un nivel: capítulo → partida →
- * subpartida → NANDINA.
+ * subpartida → NANDINA. El mapa del mundo de arriba pinta a qué países va (o de
+ * cuáles viene) lo que quedó filtrado, y tocar un país abre su ficha.
  */
 
 export type Filters = Record<FilterKey, Choice>;
+
+/**
+ * Los filtros que significan lo mismo en las dos direcciones del comercio: al
+ * pasar de exportaciones a importaciones —con el mapa o con el carril— el país,
+ * el departamento y el producto siguen elegidos. La actividad, el grupo
+ * tradicional y el tipo de flujo son de las exportaciones; el uso económico, de
+ * las importaciones: esos no tienen equivalente y se sueltan.
+ */
+const SHARED_FILTERS: readonly FilterKey[] = ['product', 'section', 'country', 'department'];
 
 export const NO_FILTERS: Filters = {
   product: ANY,
@@ -141,6 +154,8 @@ export function TradeRecordsExplorer({ catalogue }: { catalogue: TradeCodes }) {
   const [geo, setGeo] = useState<Dimension>('country');
   const [classBy, setClassBy] = useState<Dimension>('traditionalGroup');
   const [seriesBy, setSeriesBy] = useState<Dimension>('year');
+  /** El último país tocado, para la ficha del mapa; sólo cuenta mientras siga en el filtro. */
+  const [lastCountry, setLastCountry] = useState<string | null>(null);
   const [measure, setMeasure] = useState<'usd' | 'kg' | 'unit'>('usd');
   const shownClass = CLASSES[flow].some((option) => option.by === classBy)
     ? classBy
@@ -151,7 +166,9 @@ export function TradeRecordsExplorer({ catalogue }: { catalogue: TradeCodes }) {
       flow,
       from: String(from),
       to: String(to),
-      views: `serie:${seriesBy},productos:${level}:30,geo:${geo}:30,deptos:department:12,clase:${shownClass}:25`,
+      views:
+        `serie:${seriesBy},productos:${level}:30,geo:${geo}:${geo === 'country' ? 300 : 30},` +
+        `deptos:department:12,clase:${shownClass}:25${geo === 'country' ? '' : ',mapa:country:300'}`,
     });
     if (sameMonths && lastMonth < 12) params.set('months', `1-${lastMonth}`);
     for (const [key, choice] of Object.entries(filters)) {
@@ -160,26 +177,7 @@ export function TradeRecordsExplorer({ catalogue }: { catalogue: TradeCodes }) {
     return `/api/comercio-exterior/aduana?${params.toString()}`;
   }, [flow, from, to, seriesBy, level, geo, shownClass, sameMonths, lastMonth, filters]);
 
-  const [views, setViews] = useState<Record<string, TradeView> | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [failed, setFailed] = useState(false);
-  useEffect(() => {
-    const control = new AbortController();
-    setLoading(true);
-    fetch(url, { signal: control.signal })
-      .then((response) => (response.ok ? response.json() : Promise.reject(new Error(url))))
-      .then((body: { views: Record<string, TradeView> }) => {
-        setViews(body.views);
-        setFailed(false);
-      })
-      .catch((error: unknown) => {
-        if ((error as { name?: string }).name !== 'AbortError') setFailed(true);
-      })
-      .finally(() => {
-        if (!control.signal.aborted) setLoading(false);
-      });
-    return () => control.abort();
-  }, [url]);
+  const { views, loading, failed } = useTradeViews(url);
 
   const pickInto = (key: FilterKey, values: readonly string[], add: boolean, label?: string) => {
     setFilters((current) => {
@@ -204,7 +202,31 @@ export function TradeRecordsExplorer({ catalogue }: { catalogue: TradeCodes }) {
   };
   const pickGeo = (code: string, add: boolean) => {
     if (geo === 'zone') pickInto('country', membersOf(catalogue.codes, 'COUNTRY', code), add);
-    else pickInto('country', [code], add);
+    else pickCountry([code], add);
+  };
+  /** Del mapa, del ránking o del carril: un país tocado es el de la ficha. */
+  const pickCountry = (codes: readonly string[], add: boolean, label?: string) => {
+    pickInto('country', codes, add, label);
+    if (codes.length) setLastCountry(codes[0]!);
+  };
+  const countryName = (code: string): string =>
+    names[`country:${code}`] ??
+    titled((catalogue.codes.COUNTRY ?? []).find((entry) => entry.code === code)?.name ?? code);
+  const focus =
+    lastCountry && filters.country.has(lastCountry)
+      ? lastCountry
+      : ([...filters.country].sort()[0] ?? null);
+  /** Pasa de exportaciones a importaciones sin perder lo que significa lo mismo en las dos. */
+  const changeFlow = (next: 'X' | 'M') => {
+    if (next === flow) return;
+    setFlow(next);
+    setFilters((current) => ({
+      ...NO_FILTERS,
+      ...Object.fromEntries(SHARED_FILTERS.map((key) => [key, current[key]])),
+    }));
+    setLevel('chapter');
+    setYearFrom(null);
+    setYearTo(null);
   };
   const pickClass = (code: string, add: boolean) => {
     if (shownClass === 'activityGroup')
@@ -237,8 +259,11 @@ export function TradeRecordsExplorer({ catalogue }: { catalogue: TradeCodes }) {
   const total = [...byYear.values()].reduce((sum, entry) => sum + entry.usd, 0);
   const current = byYear.get(to);
   const prior = byYear.get(to - 1);
-  const topGeo = views?.geo?.items[0];
-  const geoTotal = (views?.geo?.items ?? []).reduce((sum, item) => sum + item.usd, 0);
+  /** La vista por país trae todos; el ránking dibuja los treinta primeros. */
+  const geoView = views?.geo ? { ...views.geo, items: views.geo.items.slice(0, 30) } : undefined;
+  const mapView = geo === 'country' ? views?.geo : views?.mapa;
+  const topGeo = geoView?.items[0];
+  const geoTotal = (geoView?.items ?? []).reduce((sum, item) => sum + item.usd, 0);
   const topProduct = views?.productos?.items[0];
   const productTotal = (views?.productos?.items ?? []).reduce((sum, item) => sum + item.usd, 0);
   const growth = change(current?.usd ?? null, prior?.usd ?? null);
@@ -279,7 +304,9 @@ export function TradeRecordsExplorer({ catalogue }: { catalogue: TradeCodes }) {
             {coverage('M_DETAIL')?.first ?? 2010} por partida y país de origen cada año, y por uso
             económico, capítulo y departamento cada mes (valor CIF en frontera). Los totales cuadran
             al centavo con los cuadros oficiales del INE; los años más recientes son preliminares y
-            el INE los revisa.
+            el INE los revisa. El mapa del mundo pinta a qué países va, o de cuáles viene, lo que
+            los filtros dejan, y tocar un país abre su ficha con los productos y los
+            departamentos.
           </p>
         </div>
         <div
@@ -296,6 +323,7 @@ export function TradeRecordsExplorer({ catalogue }: { catalogue: TradeCodes }) {
               serie: 'Serie',
               productos: 'Productos',
               geo: 'Países',
+              mapa: 'Países (todos)',
               deptos: 'Departamentos',
               clase: 'Clasificación',
             }}
@@ -308,13 +336,7 @@ export function TradeRecordsExplorer({ catalogue }: { catalogue: TradeCodes }) {
         <TradeRail
           catalogue={catalogue}
           flow={flow}
-          onFlow={(next) => {
-            setFlow(next);
-            setFilters(NO_FILTERS);
-            setLevel('chapter');
-            setYearFrom(null);
-            setYearTo(null);
-          }}
+          onFlow={changeFlow}
           bounds={{ first, last, lastMonth }}
           from={from}
           to={to}
@@ -326,7 +348,11 @@ export function TradeRecordsExplorer({ catalogue }: { catalogue: TradeCodes }) {
           onSameMonths={setSameMonths}
           filters={filters}
           names={names}
-          onPick={pickInto}
+          onPick={(key, values, add, label) =>
+            key === 'country' && values.length === 1
+              ? pickCountry(values, add, label)
+              : pickInto(key, values, add, label)
+          }
           onRemove={(key, code) =>
             setFilters((current) => ({ ...current, [key]: without(current[key], code) }))
           }
@@ -394,6 +420,19 @@ export function TradeRecordsExplorer({ catalogue }: { catalogue: TradeCodes }) {
             ]}
           />
 
+          <TradeWorld
+            flow={flow}
+            onFlow={changeFlow}
+            view={mapView}
+            from={from}
+            to={to}
+            period={period}
+            country={filters.country}
+            focus={focus}
+            nameOf={countryName}
+            onPick={(members, add, label) => pickCountry(members, add, label)}
+          />
+
           <div className="panel">
             <div className="panel-head panel-head-kind">
               <div>
@@ -452,7 +491,7 @@ export function TradeRecordsExplorer({ catalogue }: { catalogue: TradeCodes }) {
             <RankingPanel
               title={`${flow === 'X' ? 'A quién le vende' : 'A quién le compra'} Bolivia (millones de USD, ${from}-${to})`}
               sub={`Por ${geo === 'zone' ? 'zona económica' : `país de ${who}`}, con todos los filtros menos el de país. Toca uno para filtrar.`}
-              view={views?.geo}
+              view={geoView}
               chosen={filters.country}
               onPick={pickGeo}
               flow={flow}

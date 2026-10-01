@@ -817,8 +817,10 @@ function CountryCard({
         />
       ) : null}
       <p className="chart-note">
-        Qué productos van a {name} no está publicado: Comtrade da, para Bolivia, el comercio por
-        país y por capítulo como dos recortes separados que no se cruzan.
+        Qué productos van a {name} no está publicado aquí: Comtrade da, para Bolivia, el comercio
+        por país y por capítulo como dos recortes separados que no se cruzan. La base aduanera del
+        INE sí los cruza: en «Detalle aduanero (INE)» el mismo mapa, con todos los países, abre una
+        ficha con los productos y los departamentos de cada uno.
       </p>
     </div>
   );
@@ -951,8 +953,8 @@ export function ForeignTradeExplorer({
         <div className="callout">
           <strong>Bolivia declara su comercio exterior en dólares estadounidenses (USD).</strong>{' '}
           Lo que hay: producto, país y año, con fuentes oficiales; el detalle por partida NANDINA,
-          país, departamento y mes —cruzados entre sí— está en la pestaña «Detalle aduanero
-          (INE)». Lo que no hay y no va a haber: el valor en dólares que exporta cada empresa —es
+          país, departamento y mes —cruzados entre sí, con el mismo mapa del mundo para todos los
+          países— está en la pestaña «Detalle aduanero (INE)». Lo que no hay y no va a haber: el valor en dólares que exporta cada empresa —es
           secreto por ley, así que el ránking de más abajo sólo publica orden y cuota—.
         </div>
         <DerivedReading

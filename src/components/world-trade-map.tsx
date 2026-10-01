@@ -18,7 +18,9 @@ import { WORLD_BOX, WORLD_POINTS, WORLD_SHAPES } from '@/lib/world-map';
  *
  * **Gris no es cero.** Comtrade publica, para Bolivia, sólo los veinte socios
  * principales de cada flujo. Un país en gris puede comprar algo; no está entre
- * los veinte, y la clave lo dice así en vez de «sin comercio».
+ * los veinte, y la clave lo dice así en vez de «sin comercio». La base aduanera
+ * del INE trae todos los países: ahí el gris sí es «sin comercio declarado con
+ * estos filtros», y quien dibuja el mapa lo dice con `absent` y `absentKey`.
  *
  * **Cada país con dato es un botón**, con su nombre y su cifra en `aria-label`:
  * tocarlo lo pone en el filtro de país del carril —el mismo estado, no una
@@ -32,6 +34,11 @@ export interface MapTrade {
   iso3: string;
   label: string;
   value: number;
+  /**
+   * Todos los tokens que pintan este contorno, cuando son varios (la base del
+   * INE tiene dos códigos para Curazao). Sin él, el contorno es sólo `token`.
+   */
+  members?: readonly string[];
 }
 
 const STEPS = [
@@ -53,6 +60,10 @@ export function WorldTradeMap({
   label,
   picked,
   onPick,
+  absent = 'fuera de los 20 socios que publica Comtrade',
+  absentKey = 'fuera de los 20 principales',
+  format = (value) => say(value, 0),
+  exact = (value) => say(value, 1),
 }: {
   rows: readonly MapTrade[];
   unit: string;
@@ -60,6 +71,14 @@ export function WorldTradeMap({
   label: string;
   picked: ReadonlySet<string>;
   onPick: (token: string, additive: boolean) => void;
+  /** Qué dice el emergente de un país sin dato. */
+  absent?: string;
+  /** Qué dice la clave del gris. */
+  absentKey?: string;
+  /** Cómo se escribe una cifra en los extremos de la clave. */
+  format?: (value: number) => string;
+  /** Cómo se escribe la cifra de un país en el emergente. */
+  exact?: (value: number) => string;
 }) {
   const [hover, setHover] = useState<{ name: string; said: string; x: number; y: number } | null>(null);
   const byIso = new Map(rows.filter((row) => row.value > 0).map((row) => [row.iso3, row]));
@@ -76,7 +95,7 @@ export function WorldTradeMap({
   };
 
   const handlers = (row: MapTrade | undefined, name: string) => {
-    const said = row ? `${say(row.value, 1)} ${unit}` : 'fuera de los 20 socios que publica Comtrade';
+    const said = row ? `${exact(row.value)} ${unit}` : absent;
     const move = (event: React.MouseEvent) => {
       const frame = event.currentTarget.closest('.world-map-frame');
       if (!frame) return;
@@ -90,7 +109,7 @@ export function WorldTradeMap({
         ? {
             role: 'button',
             tabIndex: 0,
-            'aria-pressed': picked.has(row.token),
+            'aria-pressed': isPicked(row),
             'aria-label': `${row.label}: ${said}`,
             onClick: (event: React.MouseEvent) => onPick(row.token, additive(event)),
             onKeyDown: (event: React.KeyboardEvent) => {
@@ -104,11 +123,14 @@ export function WorldTradeMap({
     };
   };
 
+  const isPicked = (row: MapTrade): boolean =>
+    (row.members ?? [row.token]).some((token) => picked.has(token));
+
   const classOf = (row: MapTrade | undefined, iso3: string) =>
     [
       'world-country',
       row ? 'world-country-data' : '',
-      row && picked.has(row.token) ? 'world-country-on' : '',
+      row && isPicked(row) ? 'world-country-on' : '',
       iso3 === 'BOL' ? 'world-country-home' : '',
     ]
       .filter(Boolean)
@@ -155,7 +177,7 @@ export function WorldTradeMap({
       </div>
       <div className="heat-scale">
         <span>
-          {say(low, 0)} {unit}
+          {format(low)} {unit}
         </span>
         <span className="heat-scale-steps">
           {STEPS.map((step) => (
@@ -163,12 +185,12 @@ export function WorldTradeMap({
           ))}
         </span>
         <span>
-          {say(high, 0)} {unit} (escala logarítmica)
+          {format(high)} {unit} (escala logarítmica)
         </span>
         <span className="heat-scale-steps" style={{ marginLeft: '0.6rem' }}>
           <span style={{ background: NONE }} />
         </span>
-        <span>fuera de los 20 principales</span>
+        <span>{absentKey}</span>
         <span className="heat-scale-steps" style={{ marginLeft: '0.6rem' }}>
           <span className="world-home-key" />
         </span>

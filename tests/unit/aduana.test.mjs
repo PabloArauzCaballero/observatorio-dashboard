@@ -10,6 +10,8 @@ import { test } from 'node:test';
 
 import { grainFor, parseQuery, withoutOwn } from '../../src/lib/trade-records-query.ts';
 import { aggregateSql } from '../../src/lib/trade-records-sql.ts';
+import { COUNTRY_ISO3, countryMap, sameOutline } from '../../src/lib/trade-countries.ts';
+import { WORLD_POINTS, WORLD_SHAPES } from '../../src/lib/world-map.ts';
 
 const query = (text) => parseQuery(new URLSearchParams(text));
 
@@ -53,4 +55,38 @@ test('la entrada del lector nunca entra al texto del SQL', () => {
 test('un ránking de un solo año lee también el anterior, para la variación', () => {
   const sql = aggregateSql(query('flow=X&from=2025&to=2025'), 'country', 'X_DETAIL', 25);
   assert.ok(sql.values.includes(2024));
+});
+
+test('cada país del INE apunta a un contorno que el mapa sí dibuja', () => {
+  const drawn = new Set([...WORLD_SHAPES, ...WORLD_POINTS].map((shape) => shape.iso3));
+  const missing = Object.entries(COUNTRY_ISO3).filter(([, iso3]) => !drawn.has(iso3));
+  assert.deepEqual(missing, []);
+});
+
+test('el mapa suma los códigos que comparten contorno y no pierde lo que no dibuja', () => {
+  const item = (key, label, usd, kg = 0) => ({ key, label, usd, kg });
+  const { rows, unplaced } = countryMap(
+    [
+      item('47', 'Antillas Holandesas', 60_000_000),
+      item('570', 'Curazao', 5_000_000),
+      item('190', 'Corea (Sur), República de', 9_000_000_000),
+      item('990', 'Zona Franca de Bolivia', 184_000_000),
+      item('215', 'Sin valor', 0),
+    ],
+    'usd',
+  );
+  const curacao = rows.find((row) => row.iso3 === 'CUW');
+  assert.deepEqual(curacao?.members.sort(), ['47', '570']);
+  assert.equal(curacao?.token, '47');
+  assert.equal(curacao?.value, 65);
+  assert.equal(rows.find((row) => row.iso3 === 'KOR')?.value, 9000);
+  assert.deepEqual(unplaced.map((row) => row.label), ['Zona Franca de Bolivia']);
+  assert.ok(!rows.some((row) => row.members.includes('215')));
+  assert.deepEqual(sameOutline('570').sort(), ['47', '570']);
+  assert.deepEqual(sameOutline('999'), ['999']);
+});
+
+test('el mapa en peso usa miles de toneladas', () => {
+  const { rows } = countryMap([{ key: '190', label: 'Corea', usd: 1, kg: 2_500_000 }], 'kg');
+  assert.equal(rows[0]?.value, 2.5);
 });
