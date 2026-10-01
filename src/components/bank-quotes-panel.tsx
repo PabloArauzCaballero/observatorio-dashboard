@@ -12,9 +12,9 @@ import { sayLong } from './bank-format';
  * Va al lado del índice real y del precio por ficha porque es el mismo dibujo
  * —bolivianos por dólar contra el calendario— y al lado se lee contra el
  * mercado que los bancos compiten por alcanzar. La línea es lo que el cliente
- * PAGA por cada ficha. Ningún banco publica esa cifra fuera de su aplicación:
- * cada punto es una captura que alguien anotó, y el gráfico no dibuja nada que
- * nadie haya visto.
+ * PAGA por cada ficha. BISA publica esa cifra en un archivo de su sitio y se lee
+ * cada día; de los demás bancos solo hay un punto si alguien la anotó de su
+ * aplicación, y el gráfico no dibuja nada que nadie haya visto.
  */
 
 export function BankQuotesPanel() {
@@ -38,9 +38,10 @@ export function BankQuotesPanel() {
       <div className="panel-head">
         <h2>Cotización de cada banco (Bs por ficha)</h2>
         <p className="panel-sub">
-          Lo que el cliente paga por cada USDT o USDC en cada banco. Ningún banco publica esa cifra
-          fuera de su aplicación, así que cada punto es una captura anotada a mano
-          {latest ? ` (la última, del ${sayLong(latest)})` : ''}.
+          Lo que el cliente paga por cada USDT o USDC en cada banco. BISA publica esa cifra en su sitio
+          y se lee cada día; los demás bancos la muestran solo dentro de su aplicación, así que su
+          línea aparece cuando alguien la anota
+          {latest ? ` (última cifra, del ${sayLong(latest)})` : ''}.
         </p>
       </div>
       <DatedLines data={quotes} series={series} unit="Bs" decimals={2} yearTicks />

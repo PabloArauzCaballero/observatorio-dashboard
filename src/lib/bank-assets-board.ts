@@ -1,11 +1,12 @@
 /**
  * Los bancos que ofrecen dólar digital, armados para dibujarse.
  *
- * Ningún banco publica su cotización fuera de la aplicación: lo que se lee solo
- * es si el servicio existe, desde cuándo y con qué límites. La cotización —lo
- * que el banco cobra y paga por cada ficha— llega a mano, de una captura de la
- * aplicación, y viaja aparte (`quotes`) para que el gráfico no dibuje nada que
- * nadie haya visto. Este módulo no toca la base; recibe las filas de la vista y
+ * Casi ningún banco publica su cotización fuera de la aplicación: de esos solo
+ * se lee si el servicio existe, desde cuándo y con qué límites. Banco BISA sí la
+ * publica en un archivo de su sitio y se lee cada día (`OFFICIAL_FEED`); la de
+ * los demás llega a mano, de una captura de la aplicación (`USER_CAPTURE`). La
+ * cotización —lo que el banco cobra y paga por cada ficha— viaja aparte
+ * (`quotes`) para que el gráfico no dibuje nada que nadie haya visto. Este módulo no toca la base; recibe las filas de la vista y
  * las ordena.
  */
 
@@ -22,7 +23,7 @@ export interface BankAssetRow {
   note: string;
   reading_date: string;
   value: string;
-  basis: 'ANNOUNCEMENT' | 'FIRST_PUBLIC_DOCUMENT' | 'OFFICIAL_PAGE' | 'USER_CAPTURE';
+  basis: 'ANNOUNCEMENT' | 'FIRST_PUBLIC_DOCUMENT' | 'OFFICIAL_PAGE' | 'OFFICIAL_FEED' | 'USER_CAPTURE';
   source_url: string | null;
 }
 
@@ -39,6 +40,8 @@ export interface BankQuote {
   /** Bolivianos que el cliente recibe por cada ficha. */
   clientSells: number | null;
   date: string;
+  /** De dónde salió: el archivo público del propio banco, o una captura de su aplicación. */
+  basis: 'OFFICIAL_FEED' | 'USER_CAPTURE';
 }
 
 export interface BankProduct {
@@ -49,7 +52,7 @@ export interface BankProduct {
   /** El día desde el que el servicio consta. */
   since: string;
   /** Cómo consta: anunciado, o solo por el primer documento oficial. */
-  sinceBasis: Exclude<BankAssetRow['basis'], 'USER_CAPTURE' | 'OFFICIAL_PAGE'>;
+  sinceBasis: Exclude<BankAssetRow['basis'], 'USER_CAPTURE' | 'OFFICIAL_PAGE' | 'OFFICIAL_FEED'>;
   sinceSource: string | null;
   /** `null` si el banco no tiene lectura diaria de su página. */
   offeredNow: boolean | null;
@@ -96,10 +99,15 @@ function latestQuote(rows: readonly BankAssetRow[]): BankQuote | null {
     .at(-1);
   const dates = [buys?.reading_date, sells?.reading_date].filter((d): d is string => !!d);
   if (!dates.length) return null;
+  const newest = [buys, sells]
+    .filter((row): row is BankAssetRow => !!row)
+    .sort(byDate)
+    .at(-1);
   return {
     clientBuys: buys ? Number(buys.value) : null,
     clientSells: sells ? Number(sells.value) : null,
     date: dates.sort().at(-1) ?? '',
+    basis: newest?.basis === 'OFFICIAL_FEED' ? 'OFFICIAL_FEED' : 'USER_CAPTURE',
   };
 }
 
@@ -113,7 +121,14 @@ export function buildBankBoard(rows: readonly BankAssetRow[]): BankAssetsBoard {
   for (const code of codes) {
     const own = service.filter((row) => row.indicator_code === code).sort(byDate);
     const first = own[0];
-    if (!first || first.basis === 'USER_CAPTURE' || first.basis === 'OFFICIAL_PAGE') continue;
+    if (
+      !first ||
+      first.basis === 'USER_CAPTURE' ||
+      first.basis === 'OFFICIAL_PAGE' ||
+      first.basis === 'OFFICIAL_FEED'
+    ) {
+      continue;
+    }
     const lastPage = own.filter((row) => row.basis === 'OFFICIAL_PAGE').at(-1);
     const ownLimits: BankLimit[] = [];
     for (const key of Object.keys(LIMIT_LABEL)) {
