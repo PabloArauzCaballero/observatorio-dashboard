@@ -1,4 +1,6 @@
+import { Suspense } from 'react';
 import { BankAssetsTable } from './bank-assets-section';
+import { CurrenciesSection } from './currencies-section';
 import { FxExplorer } from './fx-explorer';
 import { FxMacroPanels } from './fx-macro-panels';
 import type { SidedPoint } from './fx-macro-panels';
@@ -92,6 +94,9 @@ export async function FxSection() {
         official={asObservations(official)}
         readingCount={observatory.readingCount}
       />
+      <Suspense fallback={<div className="callout">Cargando las otras monedas…</div>}>
+        <CurrenciesSection />
+      </Suspense>
       <BankAssetsTable />
     </>
   );
