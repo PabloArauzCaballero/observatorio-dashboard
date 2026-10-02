@@ -123,6 +123,12 @@ function whereOf(locator: Record<string, string | number> | null): string {
   if (locator.orientation === 'rows') {
     return `fila ${locator.row}, columnas ${locator.firstColumn} a ${locator.lastColumn}`;
   }
+  if (locator.orientation === 'matrix') {
+    return `matriz día × mes, columnas ${locator.firstColumn} a ${locator.lastColumn}, filas ${locator.firstRow} a ${locator.lastRow}`;
+  }
+  if (locator.cuadros) {
+    return `«${locator.entidad}», columna «${locator.columna}»; ${locator.cuadros} cuadros publicados, del ${locator.primer_cuadro} al ${locator.ultimo_cuadro}`;
+  }
   return `${locator.chart ?? 'gráfico'}${locator.page ? `, página ${locator.page}` : ''}`;
 }
 

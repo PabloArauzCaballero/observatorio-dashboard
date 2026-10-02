@@ -59,6 +59,8 @@ export const FAMILY_LABEL: Record<string, string> = {
   'sistema-de-pagos': 'Sistema de pagos',
   semanales: 'Estadísticas semanales',
   'tasas-de-interes': 'Tasas de interés',
+  'tasas-por-entidad': 'Tasas por entidad',
+  'tasas-historicas': 'Tasas históricas por tipo de entidad',
   precios: 'Precios',
   'tipo-de-cambio': 'Tipo de cambio',
   publicaciones: 'Publicaciones del BCB',
