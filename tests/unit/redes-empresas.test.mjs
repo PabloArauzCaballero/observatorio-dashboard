@@ -92,3 +92,86 @@ test('los términos viajan recortados por empresa, ámbito y clase', () => {
   assert.equal(board.terms.length, 25);
   assert.deepEqual(board.terms[0], ['ENTEL', 'COMPANY', 'WORD', 'palabra0', 100]);
 });
+
+import { parseQuery, queryPosts } from '../../src/lib/company-social-posts-view.ts';
+
+const post = (overrides) => ({
+  slug: 'ENTEL',
+  platform: 'youtube',
+  url: `https://example.test/${Math.random()}`,
+  date: '2026-08-10',
+  text: 'Un video de la campaña',
+  likes: null,
+  comments: null,
+  shares: null,
+  views: 100,
+  interactions: null,
+  format: 'VIDEO',
+  sentiment: null,
+  ...overrides,
+});
+
+test('«Posts a fondo» filtra por empresa, red, fecha y texto sin acentos', () => {
+  const all = [
+    post({ url: 'a', date: '2026-07-01', text: 'Campaña de verano' }),
+    post({ url: 'b', date: '2026-08-15', text: 'Nueva campana' }),
+    post({ url: 'c', slug: 'TIGO', date: '2026-08-16' }),
+    post({ url: 'd', platform: 'facebook', date: '2026-08-17', format: 'TEXT' }),
+    post({ url: 'e', date: null }),
+  ];
+  const page = queryPosts(all, parseQuery({ slugs: ['ENTEL'], platforms: ['youtube'], from: '2026-08-01', text: 'CAMPANA' }));
+  assert.deepEqual(page.rows.map((row) => row.url), ['b']);
+  assert.equal(page.total, 1);
+});
+
+test('«Posts a fondo» suma por mes sólo los posts con fecha y no cuenta lo no declarado como cero', () => {
+  const all = [
+    post({ url: 'a', date: '2026-07-01', interactions: 10, views: 100 }),
+    post({ url: 'b', date: '2026-07-20', interactions: null, views: 50 }),
+    post({ url: 'c', date: '2026-08-02', interactions: 5, views: null }),
+    post({ url: 'd', date: null, interactions: 99 }),
+  ];
+  const { series, total } = queryPosts(all, parseQuery({}));
+  assert.equal(total, 4);
+  assert.deepEqual(series, [
+    { month: '2026-07', posts: 2, interactions: 10, views: 150 },
+    { month: '2026-08', posts: 1, interactions: 5, views: 0 },
+  ]);
+});
+
+test('«Posts a fondo» ordena, pagina y deja el reparto por formato sin recortar por formato', () => {
+  const all = [
+    post({ url: 'a', interactions: 1, format: 'VIDEO' }),
+    post({ url: 'b', interactions: 9, format: 'TEXT' }),
+    post({ url: 'c', interactions: 5, format: 'VIDEO' }),
+    post({ url: 'd', interactions: null, format: 'VIDEO' }),
+  ];
+  const first = queryPosts(all, parseQuery({ sort: 'interactions', limit: 2 }));
+  assert.deepEqual(first.rows.map((row) => row.url), ['b', 'c']);
+  const next = queryPosts(all, parseQuery({ sort: 'interactions', limit: 2, offset: 2 }));
+  assert.deepEqual(next.rows.map((row) => row.url), ['a', 'd']);
+  const videos = queryPosts(all, parseQuery({ format: 'VIDEO' }));
+  assert.equal(videos.total, 3);
+  assert.deepEqual(videos.formats, [{ format: 'VIDEO', posts: 3 }, { format: 'TEXT', posts: 1 }]);
+});
+
+test('«Posts a fondo» no se fía de lo que llega en la petición', () => {
+  const query = parseQuery({
+    slugs: ['OK_1', "'; DROP TABLE x;--", 7],
+    platforms: 'facebook',
+    from: 'ayer',
+    format: 'video',
+    text: 'x'.repeat(500),
+    sort: 'inventado',
+    offset: -5,
+    limit: 100_000,
+  });
+  assert.deepEqual(query.slugs, ['OK_1']);
+  assert.deepEqual(query.platforms, []);
+  assert.equal(query.from, null);
+  assert.equal(query.format, null);
+  assert.equal(query.text.length, 80);
+  assert.equal(query.sort, 'interactions');
+  assert.equal(query.offset, 0);
+  assert.equal(query.limit, 60);
+});

@@ -3,6 +3,7 @@
 import { useMemo, useState } from 'react';
 import { DivergingBars, ShareBars, sayDate } from './charts';
 import { CompanySocialMix } from './company-social-mix';
+import { CompanySocialPosts } from './company-social-posts';
 import { CompanySocialTable } from './company-social-table';
 import { FilterHint, PickedCount } from './filters';
 import { Icon } from './icons';
@@ -435,6 +436,12 @@ export function CompanySocialExplorer({ board }: { board: CompanySocialBoard }) 
               <div className="callout">Sin posts leídos para las empresas y redes elegidas.</div>
             )}
           </div>
+
+          <CompanySocialPosts
+            slugs={chosen.length === board.companies.length ? [] : chosen.map((company) => company.slug)}
+            platforms={[...platforms]}
+            companies={board.companies}
+          />
         </div>
       </div>
     </>
