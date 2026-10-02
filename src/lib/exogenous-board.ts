@@ -7,7 +7,13 @@
  */
 
 export type ExogenousGroup =
-  'ENERGY' | 'MINERALS' | 'AGRICULTURE' | 'LIVESTOCK' | 'INDUSTRY' | 'CONSTRUCTION';
+  | 'ENERGY'
+  | 'MINERALS'
+  | 'AGRICULTURE'
+  | 'LIVESTOCK'
+  | 'INDUSTRY'
+  | 'CONSTRUCTION'
+  | 'FREIGHT';
 
 export type ExogenousScope =
   'WORLD' | 'REGIONAL' | 'US_PRODUCER_INDEX' | 'BOLIVIA_MARKET' | 'BOLIVIA_CUSTOMS';
@@ -72,6 +78,11 @@ export const GROUPS: ReadonlyArray<{
     label: 'Construcción',
     lead: 'Cemento, fierro de construcción, alambre y viguetas pretensadas, hormigón, ladrillo y madera.',
   },
+  {
+    key: 'FREIGHT',
+    label: 'Fletes',
+    lead: 'Lo que cuesta mover la carga: el contenedor y el flete aéreo por tonelada, el flete que Bolivia paga en su aduana y las tarifas del transporte pesado entre ciudades.',
+  },
 ];
 
 export const SCOPES: ReadonlyArray<{ key: ExogenousScope; label: string; hint: string }> = [
@@ -86,7 +97,7 @@ export const SCOPES: ReadonlyArray<{ key: ExogenousScope; label: string; hint: s
   {
     key: 'BOLIVIA_CUSTOMS',
     label: 'Bolivia, aduana',
-    hint: 'Valor unitario anual de lo que Bolivia exportó o importó.',
+    hint: 'Valor unitario de lo que Bolivia exportó o importó, anual; o el flete implícito de sus importaciones, mensual.',
   },
 ];
 
@@ -118,6 +129,12 @@ export const MISSING: Record<ExogenousGroup, readonly string[]> = {
   CONSTRUCTION: [
     'No hay cotización abierta de la vigueta pretensada: se muestra el índice de hormigón pretensado de EE. UU. y el alambre de acero que Bolivia importa para fabricarla.',
   ],
+  FREIGHT: [
+    'El índice de contenedores de Freightos (FBX) trae dos rutas hacia Sudamérica, pero sólo en el sentido de ida desde Europa (a Santos y Buenos Aires, y a San Antonio y el Callao). La vuelta, que es la del exportador boliviano, no se publica abierta, ni tampoco hacia Arica.',
+    'La historia abierta de Freightos es de trece semanas: el colector guarda cada semana desde que se instaló y el gráfico crece solo. Los índices de productor de EE. UU. dan la historia larga (desde 2000), pero son índices, no dólares.',
+    'El flete implícito de aduana es el cociente entre el valor CIF y el FOB de lo que Bolivia importó, por tonelada. Incluye flete y seguro hasta la frontera, no sólo el tramo marítimo, y mezcla productos: es un valor unitario, no una tarifa.',
+    'El flete entre ciudades de Bolivia no tiene serie oficial: el INE publica las toneladas transportadas, no lo que se cobra. Abajo se citan las tarifas que el transporte pesado y la prensa han dado, con su fuente y su fecha.',
+  ],
 };
 
 /**
@@ -144,6 +161,7 @@ export const UNSOURCED: Record<ExogenousGroup, ReadonlyArray<{ label: string; wh
   LIVESTOCK: [],
   INDUSTRY: [],
   CONSTRUCTION: [],
+  FREIGHT: [],
 };
 
 /**
@@ -200,6 +218,11 @@ export const PRODUCT_ORDER: readonly string[] = [
   'CONCRETE',
   'BRICK',
   'LUMBER',
+  'CONTAINER',
+  'AIR_FREIGHT',
+  'SEA_FREIGHT',
+  'FREIGHT_BO',
+  'LOGISTICS',
 ];
 
 export type Measure = 'LEVEL' | 'INDEX' | 'YOY';

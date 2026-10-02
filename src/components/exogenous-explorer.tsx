@@ -24,6 +24,7 @@ import type {
 import { DatedLines, WorldLines, seriesTone } from './charts';
 import type { DatedLinePoint, WorldLinePoint } from './charts';
 import { ExogenousTable } from './exogenous-table';
+import { FreightReferences } from './freight-references';
 import { FilterHint, PickedCount } from './filters';
 import { Icon } from './icons';
 import type { IconName } from './icons';
@@ -50,6 +51,7 @@ const GROUP_ICON: Record<ExogenousGroup, IconName> = {
   LIVESTOCK: 'tienda',
   INDUSTRY: 'fabrica',
   CONSTRUCTION: 'edificio',
+  FREIGHT: 'camion',
 };
 
 const MEASURES: ReadonlyArray<{ key: Measure; label: string; hint: string }> = [
@@ -410,6 +412,7 @@ export function ExogenousExplorer({ board }: { board: ExogenousBoard }) {
           <MonthlyCharts series={monthly} measure={measure} from={from} to={to} />
           <AnnualChart series={annual} measure={measure} from={from} to={to} />
           <ExogenousTable series={listed} />
+          {group === 'FREIGHT' ? <FreightReferences /> : null}
           {UNSOURCED[group].length ? (
             <div className="callout">
               <b>Sin fuente disponible.</b>
@@ -434,7 +437,8 @@ export function ExogenousExplorer({ board }: { board: ExogenousBoard }) {
             <Icon name="info" size={12} /> Fuentes: Banco Mundial (hoja rosa de materias primas),
             FRED del Banco de la Reserva Federal de San Luis (EIA y Oficina de Estadísticas
             Laborales de EE. UU.), FAO/GIEWS (con datos del INE y del Ministerio de Desarrollo
-            Productivo de Bolivia) y Naciones Unidas (Comtrade). Cada cifra guarda la celda o la
+            Productivo de Bolivia), Naciones Unidas (Comtrade), Freightos (contenedor y flete aéreo)
+            y la base aduanera del INE (flete implícito). Cada cifra guarda la celda o la
             fila de la que salió.
           </p>
         </div>

@@ -1,6 +1,7 @@
 import 'server-only';
 import { pool } from './db';
 import { held } from './hold';
+import { readImpliedFreight } from './exogenous-freight';
 import type { ExogenousBoard, ExogenousSeries } from './exogenous-board';
 
 /**
@@ -11,6 +12,10 @@ import type { ExogenousBoard, ExogenousSeries } from './exogenous-board';
  * reciente de cada mes—. Se sostiene en memoria diez minutos como el resto de
  * los capítulos que se piden al abrirse; los publicadores actualizan una vez al
  * mes.
+ *
+ * El flete que Bolivia paga en su aduana no está en esa vista: se calcula de la base
+ * aduanera del INE al armar el tablero (`exogenous-freight.ts`). Las monedas, que
+ * sí están, se leen aparte en el capítulo de tipo de cambio.
  *
  * Los puntos viajan como pares `[periodo, valor]` y no como objetos: el tablero
  * entero son veinticinco mil, y el nombre de dos campos repetido en cada uno
@@ -46,6 +51,7 @@ async function buildExogenousBoard(): Promise<ExogenousBoard> {
       `SELECT indicator_code, exogenous_group, product, product_label, name, scope, market,
               unit, kind, frequency, publisher, note, source_url, period, value::text
        FROM read_models.exogenous_price
+       WHERE exogenous_group <> 'CURRENCY'
        ORDER BY indicator_code, period`,
     ));
   } catch (error) {
@@ -92,5 +98,6 @@ async function buildExogenousBoard(): Promise<ExogenousBoard> {
       latestMonth = row.period;
     }
   }
-  return { series: [...bySeries.values()], latestMonth };
+  const implied = await readImpliedFreight();
+  return { series: [...bySeries.values(), ...implied], latestMonth };
 }
