@@ -49,8 +49,8 @@ export const GUIA: readonly EntradaGuia[] = [
   },
   {
     pestana: 'Empresas',
-    que: 'Tres páginas: «Bolsa de valores (BBV)» con los hechos relevantes que publican los emisores, «Comercio exterior» (socios, productos y exportaciones por departamento, más las principales exportadoras) y «Reputación empresarial» (las ediciones del monitor Merco).',
-    como: 'En la Bolsa podés filtrar por empresa, sector y categoría y bajar la selección en CSV o JSON.',
+    que: 'Cinco páginas: «Bolsa de valores (BBV)» con los hechos relevantes que publican los emisores, «Comercio exterior» (socios, productos y exportaciones por departamento, más las principales exportadoras), «Detalle aduanero (INE)», «Reputación empresarial» (las ediciones del monitor Merco) y «Redes sociales» (seguidores, interacción, sentimiento de los comentarios y palabras más repetidas de las cuentas oficiales de esas empresas).',
+    como: 'En la Bolsa podés filtrar por empresa, sector y categoría y bajar la selección en CSV o JSON. En «Redes sociales» filtrás por red, sector, tono y empresa; tocar una empresa de la tabla la aísla en los gráficos.',
   },
   {
     pestana: 'Ciudades',
