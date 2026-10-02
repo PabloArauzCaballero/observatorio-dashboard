@@ -81,8 +81,8 @@ export function AccountsNorms() {
               arancelario bajó cinco puntos (DS 5646). La escala llega ahora a 35 %.
             </p>
           </div>
-          <div className="table-wrap">
-            <table className="grid-table">
+          <div className="table-wrap" style={{ maxHeight: "none" }}>
+            <table className="grid-table accounts-table">
               <thead>
                 <tr>
                   <th scope="col">Antes</th>
@@ -176,7 +176,7 @@ export function AccountsNorms() {
           </label>
         </div>
         <div className="table-wrap">
-          <table className="grid-table">
+          <table className="grid-table accounts-table">
             <thead>
               <tr>
                 <th scope="col">Impuesto</th>

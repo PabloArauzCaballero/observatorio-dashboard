@@ -44,7 +44,7 @@ export const GUIA: readonly EntradaGuia[] = [
   },
   {
     pestana: 'Macroeconomía',
-    que: 'Cuatro páginas: «Series de Bolivia» (indicadores anuales por rubro, con los rubros invitados «Departamentos», «Energía», «Recursos naturales» y «Medio ambiente»), «Social Info» (el catálogo del Banco Mundial para Bolivia, con el invitado «Instituciones»), «Bolivia ante el mundo» (comparación con vecinos y el mundo) y «Variables exógenas» (precios internacionales de petróleo, metales, granos y fertilizantes).',
+    que: 'Cuatro páginas: «Series de Bolivia» (indicadores anuales por rubro, con los rubros invitados «Departamentos», «Cuentas públicas» —qué cobra, gasta y debe el Estado, qué dicen las normas de cada impuesto y cuánto de un precio es impuesto—, «Energía», «Recursos naturales» y «Medio ambiente»), «Social Info» (el catálogo del Banco Mundial para Bolivia, con el invitado «Instituciones»), «Bolivia ante el mundo» (comparación con vecinos y el mundo) y «Variables exógenas» (precios internacionales de petróleo, metales, granos y fertilizantes).',
     como: 'Elegí la página arriba y después el rubro o el indicador. El control «Desde» recorta los años. Cada serie tiene «Descargar análisis (PDF)» con su distribución y atípicos, y las tablas se bajan en CSV o JSON.',
   },
   {
