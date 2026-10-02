@@ -1,0 +1,140 @@
+/*
+ * Lo poco que las tres páginas del tejido empresarial necesitan y el resto del
+ * tablero no tiene. Todo lo demás —paneles, carril, chips, tablas— es el
+ * lenguaje común de `globals.css`, a propósito: estas páginas tienen que
+ * leerse como el resto de «Empresas», no como otro producto.
+ */
+
+.subhead {
+  font-size: 0.95rem;
+  font-weight: 600;
+  margin: var(--s2) 0 var(--s1);
+  color: var(--ink);
+}
+
+.foot {
+  color: var(--ink-soft);
+  font-size: 0.8rem;
+  margin: 0.35rem 0 0;
+}
+
+.pair {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.4rem;
+}
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  font-size: 0.72rem;
+  font-weight: 600;
+  padding: 0.1rem 0.45rem;
+  border-radius: 999px;
+  border: 1px solid var(--rule);
+  color: var(--ink-soft);
+  white-space: nowrap;
+}
+
+.estimate {
+  border-color: var(--parallel);
+  color: var(--parallel);
+}
+
+.sheet {
+  border-top: 1px solid var(--rule-soft);
+  margin-top: var(--s2);
+  padding-top: var(--s2);
+}
+
+.figures {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(9.5rem, 1fr));
+  gap: var(--s1);
+  margin: var(--s1) 0 var(--s2);
+}
+
+.figure {
+  border: 1px solid var(--rule-soft);
+  border-radius: 10px;
+  padding: 0.55rem 0.7rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+}
+
+.figure b {
+  font-size: 1.05rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.figure span {
+  color: var(--ink-soft);
+  font-size: 0.75rem;
+}
+
+.links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+
+.chain {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: grid;
+  gap: 0.35rem;
+}
+
+.chain li {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  gap: var(--s1);
+  align-items: baseline;
+  font-size: 0.85rem;
+  border-bottom: 1px dashed var(--rule-soft);
+  padding-bottom: 0.3rem;
+}
+
+.chain small {
+  color: var(--ink-soft);
+}
+
+.num {
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+@media (max-width: 640px) {
+  .pair {
+    grid-template-columns: 1fr;
+  }
+
+  .chain li {
+    grid-template-columns: 1fr;
+  }
+}
+
+/*
+ * El ranking de empresarios reutiliza la fila de la reputación, que tiene seis
+ * columnas (puesto, logo, nombre, barra, cifra, seguir). Aquí hay tres: sin
+ * esto el nombre cae en la columna de 36 px del logo y se parte letra a letra.
+ */
+.rankRow:global(.rep-row) {
+  grid-template-columns: 2rem minmax(0, 1fr) minmax(10rem, 0.9fr);
+}
+
+.rankRow :global(.rep-score-n) {
+  width: auto;
+  min-width: 6.5rem;
+  white-space: nowrap;
+}
+
+/* La cifra de «Bs 3.586,1 M» no cabe en los 3,4 rem de la reputación y se partía en tres renglones. */
+.rankFigure :global(.rep-score-n) {
+  width: auto;
+  min-width: 6.5rem;
+  white-space: nowrap;
+}

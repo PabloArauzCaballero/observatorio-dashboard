@@ -450,11 +450,21 @@ async function readMacroAnnualFrom(relation: string): Promise<MacroRow[]> {
             value::text AS value, previous_value::text AS previous_value,
             change_percent::text AS change_percent, publisher, source_url
      FROM ${relation}
+     WHERE sector NOT IN ('TEJIDO_EMPRESARIAL', 'RANKING_EMPRESARIAL', 'FORTUNAS')
      ORDER BY indicator_code, period`,
   );
   return rows;
 }
 
+/**
+ * La lectura anual sostenida en memoria, sin el tejido empresarial.
+ *
+ * Las cuarenta mil lecturas del registro de comercio, los ránkings y las
+ * fortunas (migración 0096 del núcleo) son más que todo lo demás junto y sólo
+ * las piden sus tres páginas de «Empresas», que las leen aparte con
+ * `readBusinessAnnual`. Traerlas aquí las haría viajar en cada lectura de
+ * «Macroeconomía» y del asistente.
+ */
 export function readMacroAnnual(): Promise<MacroPoint[]> {
   return held('macroAnnual', buildMacroAnnual);
 }

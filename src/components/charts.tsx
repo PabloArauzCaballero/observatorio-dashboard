@@ -2964,3 +2964,142 @@ export function RankLines({
     </div>
   );
 }
+
+export interface StackPart {
+  key: string;
+  label: string;
+}
+
+export interface YearStackRow {
+  year: string;
+  [part: string]: string | number;
+}
+
+/**
+ * Una composición año a año: cuántas son de cada clase, apiladas.
+ *
+ * Es la pregunta del registro de comercio —cuántas empresas hay y de qué
+ * tipo— y la del padrón de Impuestos. Apilado y no en líneas porque el total
+ * es parte de la lectura: la columna entera es el país y cada tramo es una
+ * parte de él. En modo `share` cada columna suma cien y lo que se lee es el
+ * peso de cada clase, que es lo que el apilado absoluto esconde cuando una
+ * clase es cien veces mayor que las otras.
+ *
+ * Las casillas de color son las de `SERIES`, en orden, y no se ciclan: la
+ * séptima clase y las siguientes se pliegan en «Otros», que es el gris del
+ * resto. El que llama decide el orden; el primero es el de abajo.
+ */
+export function YearStackBars({
+  data,
+  parts,
+  mode = 'count',
+  unit = 'empresas',
+  height = 240,
+  marks,
+}: {
+  data: YearStackRow[];
+  parts: readonly StackPart[];
+  mode?: 'count' | 'share';
+  unit?: string;
+  height?: number;
+  /** Años con una nota: un quiebre de la serie, un corte parcial. */
+  marks?: ReadonlyArray<{ year: string; label: string }>;
+}) {
+  const shown = parts.slice(0, SERIES.length);
+  const folded = parts.slice(SERIES.length);
+  const keys = [...shown.map((part) => part.key), ...(folded.length ? ['__rest'] : [])];
+  const labels = new Map<string, string>([
+    ...shown.map((part) => [part.key, part.label] as const),
+    ['__rest', `Otros (${folded.length})`],
+  ]);
+  const rows = data.map((row) => {
+    const out: YearStackRow = { year: row.year };
+    let total = 0;
+    for (const part of parts) total += typeof row[part.key] === 'number' ? (row[part.key] as number) : 0;
+    for (const part of shown) {
+      const value = typeof row[part.key] === 'number' ? (row[part.key] as number) : 0;
+      out[part.key] = mode === 'share' && total ? (value / total) * 100 : value;
+    }
+    if (folded.length) {
+      const rest = folded.reduce(
+        (sum, part) => sum + (typeof row[part.key] === 'number' ? (row[part.key] as number) : 0),
+        0,
+      );
+      out.__rest = mode === 'share' && total ? (rest / total) * 100 : rest;
+    }
+    out.__total = total;
+    return out;
+  });
+  const say = (value: number): string =>
+    mode === 'share' ? `${number(value, 1)} %` : `${number(value, 0)} ${unit}`;
+  const renderTooltip = ({ active, payload, label }: TooltipRender) => {
+    if (!active || !payload?.length) return null;
+    const point = payload[0]?.payload as YearStackRow | undefined;
+    if (!point) return null;
+    const lines = [...keys]
+      .reverse()
+      .map((key, index) => ({
+        name: labels.get(key) ?? key,
+        value: say(typeof point[key] === 'number' ? (point[key] as number) : 0),
+        color: key === '__rest' ? 'var(--series-rest)' : seriesTone(keys.length - 1 - index),
+      }));
+    const mark = marks?.find((one) => one.year === String(label));
+    return (
+      <TooltipShell
+        label={`${String(label)} · ${number(Number(point.__total ?? 0), 0)} ${unit} en total`}
+        rows={lines}
+        {...(mark ? { note: mark.label } : {})}
+      />
+    );
+  };
+  return (
+    <div className="chart-stack">
+      <div className="chart-frame" style={{ height: framed(height) }}>
+        <ResponsiveContainer width="100%" height="100%">
+          <BarChart data={rows} margin={{ top: 14, right: 8, bottom: 0, left: 0 }}>
+            <CartesianGrid {...GRID} />
+            <XAxis dataKey="year" minTickGap={10} {...AXIS} />
+            <YAxis
+              width={mode === 'share' ? 40 : 58}
+              tickFormatter={(value: number) =>
+                mode === 'share' ? `${value} %` : value >= 1000 ? `${number(value / 1000, 0)} mil` : number(value, 0)
+              }
+              {...(mode === 'share' ? { domain: [0, 100] as [number, number] } : {})}
+              {...AXIS}
+            />
+            <Tooltip content={renderTooltip} cursor={{ fill: 'var(--rule-soft)' }} />
+            {marks?.map((mark) => (
+              <ReferenceLine
+                key={mark.year}
+                x={mark.year}
+                stroke="var(--rule)"
+                strokeDasharray="3 3"
+                label={{ value: '◆', position: 'top', fill: 'var(--ink-faint)', fontSize: 10 }}
+              />
+            ))}
+            {keys.map((key, index) => (
+              <Bar
+                key={key}
+                dataKey={key}
+                name={labels.get(key) ?? key}
+                stackId="anio"
+                fill={key === '__rest' ? 'var(--series-rest)' : seriesTone(index)}
+                maxBarSize={BAR_CAP * 2}
+                {...STACK_GAP}
+                {...(index === keys.length - 1 ? { radius: [4, 4, 0, 0] as [number, number, number, number] } : {})}
+                animationDuration={index === 0 ? MOTION.duration : 0}
+                animationEasing={MOTION.easing}
+              />
+            ))}
+          </BarChart>
+        </ResponsiveContainer>
+      </div>
+      <ChartLegend
+        items={keys.map((key, index) => ({
+          color: key === '__rest' ? 'var(--series-rest)' : seriesTone(index),
+          label: labels.get(key) ?? key,
+        }))}
+      />
+    </div>
+  );
+}
