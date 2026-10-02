@@ -39,10 +39,11 @@ const DRAG_SLOP = 4;
 const clamp = (value: number, low: number, high: number): number => Math.min(Math.max(value, low), high);
 
 /** Un rectángulo con la proporción del mapa, centrado donde el dado y que lo contiene. */
-export function fitBox(minX: number, minY: number, maxX: number, maxY: number, pad = 0.08): Box {
+export function fitBox(minX: number, minY: number, maxX: number, maxY: number, pad = 0.08, minSpan = 120): Box {
   // Un mínimo de 120 unidades: una ruta corta encuadrada al milímetro no deja ver dónde está.
-  const spanX = Math.max(120, (maxX - minX) * (1 + pad * 2));
-  const spanY = Math.max(120, (maxY - minY) * (1 + pad * 2));
+  // Una calle de ciudad pide menos: 12 unidades son unos 16 km, una ciudad entera.
+  const spanX = Math.max(minSpan, (maxX - minX) * (1 + pad * 2));
+  const spanY = Math.max(minSpan, (maxY - minY) * (1 + pad * 2));
   const width = Math.min(Math.max(spanX, spanY / RATIO), FULL.width);
   const height = width * RATIO;
   const cx = (minX + maxX) / 2;

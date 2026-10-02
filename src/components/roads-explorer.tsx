@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ANY, accepts, additive, describe, multiTitle, picked, toggle } from '@/lib/choice';
 import type { Choice } from '@/lib/choice';
 import { MacroChart } from './charts';
@@ -9,10 +9,12 @@ import { FilterHint, PickedCount } from './filters';
 import { Icon } from './icons';
 import type { IconName } from './icons';
 import { splitStreetType, streetKey } from '@/lib/street-names';
+import { useStreetIndex } from './use-street-index';
 import { Pager } from './pager';
 import { RoadsMap } from './roads-map';
 import type { RoadColorBy } from './roads-map';
 import type { RoadSection } from '@/lib/roads';
+import type { LonLatBox, StreetIndexEntry } from '@/lib/street-types';
 import { NETWORKS, SURFACE_GROUP, SURFACE_GROUPS, departmentName } from '@/lib/roads-board';
 import type { RoadBoard, SurfaceGroup } from '@/lib/roads-board';
 
@@ -167,6 +169,8 @@ function rowsOf(sections: readonly RoadSection[]): RouteRow[] {
 }
 
 interface StreetRow {
+  /** Identifica la fila: la clave del nombre, y `clave@ciudad` en las calles de ciudad. */
+  id: string;
   /** La clave de búsqueda del nombre: agrupa «Av. Panamericana» y «AVENIDA PANAMERICANA». */
   key: string;
   name: string;
@@ -175,7 +179,45 @@ interface StreetRow {
   routes: string[];
   km: number;
   paved: number;
+  /** Tramos del mapa nacional, o vías sueltas si es una calle de ciudad. */
   sections: number;
+  /** La ciudad, si la fila sale del índice de calles urbanas. */
+  city: string | null;
+  /** La caja que limita la calle en esa ciudad; en las filas nacionales, null. */
+  bounds: LonLatBox | null;
+}
+
+/** Lo que se elige: una calle por su nombre, y en una ciudad concreta por la caja que la limita. */
+interface StreetPick {
+  key: string;
+  label: string;
+  bounds: LonLatBox | null;
+  /** Si viene de las calles de ciudad: aunque ningún tramo nacional la lleve, sigue elegida. */
+  urban: boolean;
+}
+
+/** Una calle de ciudad del índice, como fila de la tabla. */
+function urbanRow(entry: StreetIndexEntry): StreetRow {
+  return {
+    id: `${entry.key}@${entry.city}`,
+    key: entry.key,
+    name: entry.name,
+    type: splitStreetType(entry.name).type,
+    departments: entry.department ? [entry.department] : [],
+    routes: [],
+    km: entry.km,
+    paved: entry.paved,
+    sections: entry.ways,
+    city: entry.city,
+    bounds: entry.bounds,
+  };
+}
+
+/** Si algún vértice del tramo cae dentro de la caja: lo bastante para decir «es de esa ciudad». */
+function touchesBox(section: RoadSection, box: LonLatBox): boolean {
+  return section.geometry.some((line) =>
+    line.some(([lon, lat]) => lon >= box[0] && lon <= box[2] && lat >= box[1] && lat <= box[3]),
+  );
 }
 
 /**
@@ -192,6 +234,7 @@ function streetsOf(sections: readonly RoadSection[]): StreetRow[] {
     const key = streetKey(section.name);
     if (!key || !section.name) continue;
     const row = rows.get(key) ?? {
+      id: key,
       key,
       name: section.name,
       type: splitStreetType(section.name).type,
@@ -200,6 +243,8 @@ function streetsOf(sections: readonly RoadSection[]): StreetRow[] {
       km: 0,
       paved: 0,
       sections: 0,
+      city: null,
+      bounds: null,
     };
     row.km += section.lengthKm;
     row.sections += 1;
@@ -219,9 +264,11 @@ export function RoadsExplorer({ board }: { board: RoadBoard }) {
   /* De dónde vino la ruta elegida: un clic en el mapa no debe mover la cámara que el lector acaba de acomodar. */
   const [routeFrom, setRouteFrom] = useState<'mapa' | 'tabla'>('tabla');
   /* La calle aislada (clave de búsqueda) y de dónde vino, igual que la ruta. */
-  const [street, setStreet] = useState<string | null>(null);
+  const [street, setStreet] = useState<StreetPick | null>(null);
   const [streetFrom, setStreetFrom] = useState<'mapa' | 'tabla'>('tabla');
   const [search, setSearch] = useState('');
+  /* El índice de calles de ciudad pesa ~3,4 MB: se pide cuando la tabla entra en pantalla o se busca. */
+  const [tableSeen, setTableSeen] = useState(false);
   const [colorBy, setColorBy] = useState<RoadColorBy>('red');
   const [sort, setSort] = useState<{ key: SortKey; down: boolean }>({ key: 'totalKm', down: true });
 
@@ -294,29 +341,43 @@ export function RoadsExplorer({ board }: { board: RoadBoard }) {
   const liveRoute = route && allRows.some((row) => row.route === route) ? route : null;
 
   const allStreets = useMemo(() => streetsOf(inCut), [inCut]);
-  const streetRows = useMemo(
-    () => (query ? allStreets.filter((row) => squash(row.name).includes(query)) : allStreets),
-    [allStreets, query],
-  );
+  const { entries: cityStreets, failed: indexFailed } = useStreetIndex(tableSeen || Boolean(query));
+  /*
+   * Las calles de ciudad se suman a las del mapa nacional. Siguen los filtros de departamento y
+   * de red (son «sin referencia»); no la rodadura, que el índice no desglosa.
+   */
+  const urbanRows = useMemo(() => {
+    if (!cityStreets) return [];
+    if (network.size && !network.has('SIN_REFERENCIA')) return [];
+    return cityStreets
+      .filter((entry) => !department.size || (entry.department !== null && department.has(entry.department)))
+      .map(urbanRow);
+  }, [cityStreets, department, network]);
+  const streetRows = useMemo(() => {
+    const all = [...allStreets, ...urbanRows];
+    return query ? all.filter((row) => squash(`${row.name} ${row.city ?? ''}`).includes(query)) : all;
+  }, [allStreets, urbanRows, query]);
   /* Lo que el mapa traza y OpenStreetMap no nombra: se dice, no se esconde. */
   const unnamedKm = useMemo(
     () => inCut.filter((section) => !section.name).reduce((sum, section) => sum + section.lengthKm, 0),
     [inCut],
   );
   /* Una calle que el nuevo recorte ya no tiene deja de estar elegida. */
-  const liveStreet = street && allStreets.some((row) => row.key === street) ? street : null;
+  const liveStreet = street && (street.urban || allStreets.some((row) => row.key === street.key)) ? street : null;
 
   const matches = useCallback(
     (section: RoadSection): boolean =>
       passes(section) &&
       (!liveRoute || section.route === liveRoute) &&
-      (!liveStreet || streetKey(section.name) === liveStreet),
+      (!liveStreet ||
+        (streetKey(section.name) === liveStreet.key &&
+          (!liveStreet.bounds || touchesBox(section, liveStreet.bounds)))),
     [passes, liveRoute, liveStreet],
   );
 
   const figures = useMemo(() => {
     const scope = liveStreet
-      ? inCut.filter((section) => streetKey(section.name) === liveStreet)
+      ? inCut.filter((section) => streetKey(section.name) === liveStreet.key)
       : liveRoute
         ? inCut.filter((section) => section.route === liveRoute)
         : inCut;
@@ -337,7 +398,7 @@ export function RoadsExplorer({ board }: { board: RoadBoard }) {
   const framesStreet = liveStreet !== null && streetFrom === 'tabla';
   const zoomTo = department.size > 0 || framesRoute || framesStreet;
   /* Cambia con todo lo que pide un encuadre nuevo; sin él, la cámara del lector se queda donde está. */
-  const frameKey = `${[...department].join(',')}|${[...network].join(',')}|${[...surface].join(',')}|${query}|${framesRoute ? liveRoute : ''}|${framesStreet ? liveStreet : ''}`;
+  const frameKey = `${[...department].join(',')}|${[...network].join(',')}|${[...surface].join(',')}|${query}|${framesRoute ? liveRoute : ''}|${framesStreet ? `${liveStreet?.key}@${liveStreet?.bounds?.join(',') ?? ''}` : ''}`;
 
   const clearAll = (): void => {
     setDepartment(ANY);
@@ -352,9 +413,11 @@ export function RoadsExplorer({ board }: { board: RoadBoard }) {
     setRouteFrom(from);
     setRoute((current) => (current === next ? null : next));
   };
-  const pickStreet = (next: string, from: 'mapa' | 'tabla'): void => {
+  const pickStreet = (next: StreetPick, from: 'mapa' | 'tabla'): void => {
     setStreetFrom(from);
-    setStreet((current) => (current === next ? null : next));
+    setStreet((current) =>
+      current && current.key === next.key && current.bounds?.join() === next.bounds?.join() ? null : next,
+    );
   };
 
   const where = describe(department, departmentName, 'todo el país');
@@ -574,7 +637,7 @@ export function RoadsExplorer({ board }: { board: RoadBoard }) {
               ) : null}
               {liveStreet ? (
                 <button type="button" className="chip chip-on" onClick={() => setStreet(null)}>
-                  {allStreets.find((row) => row.key === liveStreet)?.name ?? 'Calle'} ×
+                  {liveStreet.label} ×
                 </button>
               ) : null}
             </div>
@@ -585,9 +648,21 @@ export function RoadsExplorer({ board }: { board: RoadBoard }) {
               colorBy={colorBy}
               zoomTo={zoomTo}
               frameKey={frameKey}
-              street={liveStreet}
+              street={liveStreet?.key ?? null}
+              streetBounds={liveStreet?.bounds ?? null}
+              focus={liveStreet?.bounds ?? null}
               onPickRoute={(next) => pickRoute(next, 'mapa')}
-              onPickStreet={(next) => pickStreet(next, 'mapa')}
+              onPickStreet={(next) =>
+                pickStreet(
+                  {
+                    key: next,
+                    label: allStreets.find((row) => row.key === next)?.name ?? cityStreets?.find((one) => one.key === next)?.name ?? 'Calle',
+                    bounds: null,
+                    urban: true,
+                  },
+                  'mapa',
+                )
+              }
             />
             {liveRoute ? <RouteSections route={liveRoute} sections={inCut} /> : null}
           </div>
@@ -612,7 +687,11 @@ export function RoadsExplorer({ board }: { board: RoadBoard }) {
             street={liveStreet}
             where={where}
             unnamedKm={unnamedKm}
-            onPick={(next) => pickStreet(next, 'tabla')}
+            indexFailed={indexFailed}
+            onSeen={() => setTableSeen(true)}
+            onPick={(row) =>
+              pickStreet({ key: row.key, label: row.city ? `${row.name} (${row.city})` : row.name, bounds: row.bounds, urban: row.city !== null }, 'tabla')
+            }
           />
         </div>
       </div>
@@ -951,15 +1030,36 @@ function StreetsTable({
   street,
   where,
   unnamedKm,
+  indexFailed,
+  onSeen,
   onPick,
 }: {
   rows: StreetRow[];
-  street: string | null;
+  street: StreetPick | null;
   where: string;
   unnamedKm: number;
-  onPick: (street: string) => void;
+  indexFailed: boolean;
+  /** Se avisa una vez, cuando la tabla entra en pantalla. */
+  onSeen: () => void;
+  onPick: (row: StreetRow) => void;
 }) {
   const [offset, setOffset] = useState(0);
+  const sectionRef = useRef<HTMLElement>(null);
+  useEffect(() => {
+    const node = sectionRef.current;
+    if (!node || typeof IntersectionObserver === 'undefined') return;
+    const watcher = new IntersectionObserver(
+      (entries) => {
+        if (entries.some((entry) => entry.isIntersecting)) {
+          onSeen();
+          watcher.disconnect();
+        }
+      },
+      { rootMargin: '300px' },
+    );
+    watcher.observe(node);
+    return () => watcher.disconnect();
+  }, [onSeen]);
   const [sort, setSort] = useState<{ key: StreetSort; down: boolean }>({ key: 'km', down: true });
 
   const sorted = useMemo(() => {
@@ -1010,7 +1110,7 @@ function StreetsTable({
   };
 
   return (
-    <section className="panel places-table roads-routes">
+    <section className="panel places-table roads-routes" ref={sectionRef}>
       <div className="tile-head">
         <Icon name="mapa" size={14} />
         <h3 className="tile-title">Calles y vías con nombre ({where})</h3>
@@ -1020,8 +1120,10 @@ function StreetsTable({
       </div>
       <p className="panel-sub">
         Una fila por nombre: suma todas las vías que lo llevan dentro del recorte. Toca un nombre para
-        aislarlo en el mapa. OpenStreetMap no da nombre a {number(unnamedKm)} km de lo trazado en este
-        recorte; esas vías se dibujan pero no pueden aparecer aquí.
+        aislarlo en el mapa y acercarlo. Incluye las calles de las ciudades que OpenStreetMap nombra
+        (sólo una de cada cuatro tiene nombre). OpenStreetMap no da nombre a {number(unnamedKm)} km de
+        lo trazado en la red nacional de este recorte; esas vías se dibujan pero no pueden aparecer aquí.
+        {indexFailed ? ' No se pudieron leer las calles de las ciudades.' : ''}
       </p>
 
       <Pager
@@ -1047,24 +1149,25 @@ function StreetsTable({
                 <th>Departamentos</th>
                 {head('km', 'Km')}
                 {head('pavedShare', '% pavim.')}
-                {head('sections', 'Tramos')}
+                {head('sections', 'Tramos o vías')}
               </tr>
             </thead>
             <tbody>
               {shown.map((row) => {
-                const on = row.key === street;
+                const on = street !== null && row.key === street.key && (row.bounds?.join() ?? '') === (street.bounds?.join() ?? '');
                 return (
-                  <tr key={row.key} className={on ? 'roads-row-on' : undefined}>
+                  <tr key={row.id} className={on ? 'roads-row-on' : undefined}>
                     <td>
                       <button
                         type="button"
                         className="table-link"
                         aria-pressed={on}
                         title={`${on ? 'Quitar del mapa' : 'Ver en el mapa'} ${row.name}`}
-                        onClick={() => onPick(row.key)}
+                        onClick={() => onPick(row)}
                       >
                         {row.name}
                       </button>
+                      {row.city ? <span className="stat-hint"> · {row.city}</span> : null}
                       {row.routes.length ? (
                         <span className="stat-hint"> · ruta {row.routes.slice(0, 3).join(', ')}</span>
                       ) : null}
