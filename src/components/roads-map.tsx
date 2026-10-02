@@ -6,8 +6,12 @@ import { DEPARTMENTS, MAP_BOX, PLACE_POINTS, projectRoadPoint } from '@/lib/boli
 import type { RoadSection } from '@/lib/roads';
 import { NETWORKS, SURFACE_GROUP, SURFACE_GROUPS, departmentName } from '@/lib/roads-board';
 import { streetKey } from '@/lib/street-names';
+import { STREET_CLASS_LABEL, STREET_SURFACE_LABEL } from '@/lib/street-types';
+import type { LonLatBox } from '@/lib/street-types';
 import { FULL, MapTools, fitBox, useMapCamera } from './map-camera';
 import type { Box } from './map-camera';
+import { StreetsCanvas, nearestWay, useStreetCells } from './streets-layer';
+import type { UrbanWay } from './streets-layer';
 
 /**
  * La red vial, dibujada sobre el contorno departamental.
@@ -363,6 +367,8 @@ export function RoadsMap({
   zoomTo,
   frameKey,
   street,
+  streetBounds,
+  focus,
   onPickRoute,
   onPickStreet,
 }: {
@@ -380,11 +386,23 @@ export function RoadsMap({
   frameKey: string;
   /** La calle aislada (su clave de búsqueda), o null. */
   street: string | null;
+  /** Si la calle la eligió una ciudad concreta, la caja que la limita; si no, null. */
+  streetBounds: LonLatBox | null;
+  /** Una caja a la que acercar el mapa cuando lo elegido no está en los tramos nacionales. */
+  focus: LonLatBox | null;
   onPickRoute: (route: string) => void;
   onPickStreet: (street: string) => void;
 }) {
   const [hover, setHover] = useState<{
     id: string;
+    x: number;
+    y: number;
+    width: number;
+    height: number;
+  } | null>(null);
+
+  const [urbanHover, setUrbanHover] = useState<{
+    item: UrbanWay;
     x: number;
     y: number;
     width: number;
@@ -424,6 +442,11 @@ export function RoadsMap({
 
   /* El encuadre que pide lo elegido; la cámara del lector lo reemplaza al moverla. */
   const home = useMemo<Box>(() => {
+    if (zoomTo && focus) {
+      const [x0, y0] = projectRoadPoint([focus[0], focus[3]]);
+      const [x1, y1] = projectRoadPoint([focus[2], focus[1]]);
+      return fitBox(Math.min(x0, x1), Math.min(y0, y1), Math.max(x0, x1), Math.max(y0, y1), 0.12, 12);
+    }
     if (!zoomTo || !on.length) return FULL;
     let minX = Infinity;
     let minY = Infinity;
@@ -436,9 +459,10 @@ export function RoadsMap({
       if (by > maxY) maxY = by;
     }
     return Number.isFinite(minX) ? fitBox(minX, minY, maxX, maxY) : FULL;
-  }, [zoomTo, on]);
+  }, [zoomTo, on, focus]);
 
   const camera = useMapCamera(home, frameKey);
+  const urban = useStreetCells(camera.view, true);
   const { view, zoom } = camera;
   /* Cuántas unidades del plano mide un píxel «de diseño»: lo que mantiene
      rótulos y escudos del mismo tamaño en pantalla al acercar. */
@@ -553,6 +577,22 @@ export function RoadsMap({
       if (anchor.length < width * 1.05) continue;
       candidates.push({ key: one.section.sectionId, text, run: anchor.run, length: anchor.length, rank });
     }
+    // Las calles de las ciudades, sólo las nombradas y las más largas: son miles y caben decenas.
+    const nearest = urban.ways
+      .filter((item) => item.way.name && touches(labelView, item.box))
+      .sort((left, right) => right.way.km - left.way.km)
+      .slice(0, 300);
+    for (const item of nearest) {
+      const text = item.way.name;
+      if (!text) continue;
+      const line: [number, number][] = [];
+      for (let index = 0; index < item.points.length; index += 2) {
+        line.push([item.points[index]!, item.points[index + 1]!]);
+      }
+      const anchor = anchorOf([line], labelView);
+      if (!anchor || anchor.length < text.length * 5.7 * unit_ * 1.05) continue;
+      candidates.push({ key: `u${item.way.id}`, text, run: anchor.run, length: anchor.length, rank: 3 });
+    }
     candidates.sort((left, right) => left.rank - right.rank || right.length - left.length);
     const seenText = new Map<string, number>();
     for (const candidate of candidates) {
@@ -588,9 +628,23 @@ export function RoadsMap({
       });
     }
     return { shields, names };
-  }, [on, labelView, labelUnit, labelZoom, routeTotals, route]);
+  }, [on, labelView, labelUnit, labelZoom, routeTotals, route, urban.ways]);
 
   const hovered = hover && !camera.panning ? byId.get(hover.id) : undefined;
+  const urbanStyle = useMemo(
+    () => ({
+      colorBy,
+      neutral: NETWORK_COLOR.SIN_REFERENCIA,
+      groups: {
+        PAVIMENTADA: GROUP_COLOR.PAVIMENTADA!,
+        RIPIO: GROUP_COLOR.RIPIO!,
+        TIERRA: GROUP_COLOR.TIERRA!,
+        SIN_DATO: GROUP_COLOR.SIN_DATO!,
+      },
+      ink: 'var(--ink)',
+    }),
+    [colorBy],
+  );
 
   const onTrack = useCallback((event: ReactPointerEvent<SVGPathElement>, id: string): void => {
     const box = event.currentTarget.ownerSVGElement?.getBoundingClientRect();
@@ -631,7 +685,10 @@ export function RoadsMap({
       <div
         className="roads-map-stage"
         role="group"
-        onPointerLeave={() => setHover(null)}
+        onPointerLeave={() => {
+          setHover(null);
+          setUrbanHover(null);
+        }}
         aria-label="Mapa de la red vial. Teclas más y menos para acercar, flechas para moverse, cero para volver."
         {...camera.stageProps}
       >
@@ -645,8 +702,45 @@ export function RoadsMap({
           style={{ ...camera.svgProps.style, '--ppx': perPixel, '--lw': lineScale } as CSSProperties}
           onPointerDown={(event) => {
             // Un toque fuera de las vías cierra la ficha: con el dedo no hay «sacar el cursor».
-            if (!(event.target as Element).closest('.roads-map-hits')) setHover(null);
+            if (!(event.target as Element).closest('.roads-map-hits')) {
+              setHover(null);
+              setUrbanHover(null);
+            }
             camera.svgProps.onPointerDown(event);
+          }}
+          onPointerMove={(event) => {
+            camera.svgProps.onPointerMove(event);
+            // Con un botón apretado es un arrastre: buscar la calle bajo el cursor frena cada fotograma.
+            if (!urban.ways.length || event.buttons !== 0) return;
+            // Sobre una vía nacional manda su ficha; la urbana sólo habla donde no hay otra.
+            if ((event.target as Element).closest('.roads-map-hits')) {
+              if (urbanHover) setUrbanHover(null);
+              return;
+            }
+            const rect = event.currentTarget.getBoundingClientRect();
+            const perPixel = view.width / rect.width;
+            const found = nearestWay(
+              urban.ways,
+              view.x + (event.clientX - rect.left) * perPixel,
+              view.y + (event.clientY - rect.top) * perPixel,
+              9 * perPixel,
+            );
+            if (!found) {
+              if (urbanHover) setUrbanHover(null);
+              return;
+            }
+            setUrbanHover({
+              item: found,
+              x: event.clientX - rect.left,
+              y: event.clientY - rect.top,
+              width: rect.width,
+              height: rect.height,
+            });
+          }}
+          onClick={() => {
+            if (camera.consumeDrag()) return;
+            const key = urbanHover?.item.key;
+            if (key) onPickStreet(key);
           }}
         >
           <g className="roads-map-departments">
@@ -740,7 +834,43 @@ export function RoadsMap({
           </g>
         </svg>
 
+        <StreetsCanvas
+          ways={urban.ways}
+          view={view}
+          style={urbanStyle}
+          highlight={street ? { key: street, bounds: streetBounds } : null}
+          scale={Math.min(lineScale, 1.3)}
+        />
+
+        {urban.active ? (
+          <div className="roads-map-urban-note" role="status" aria-live="polite">
+            {urban.failed
+              ? 'No se pudieron leer las calles'
+              : urban.loading && !urban.ways.length
+                ? 'Leyendo las calles…'
+                : urban.ways.length
+                  ? `${urban.ways.length.toLocaleString('es-BO')} calles a la vista${urban.truncated ? ' (acerca más para ver todas)' : ''}`
+                  : 'Sin calles de ciudad en esta vista'}
+          </div>
+        ) : null}
+
         <MapTools camera={camera} homeLabel={zoomTo && home !== FULL ? 'Encuadre' : 'Todo el país'} />
+
+        {urbanHover && !hovered && !camera.panning ? (
+          <div
+            className="map-tip roads-map-tip"
+            style={{
+              left: urbanHover.x > urbanHover.width * 0.6 ? undefined : urbanHover.x + 14,
+              right: urbanHover.x > urbanHover.width * 0.6 ? urbanHover.width - urbanHover.x + 14 : undefined,
+              top: urbanHover.y < urbanHover.height * 0.55 ? urbanHover.y + 14 : undefined,
+              bottom: urbanHover.y < urbanHover.height * 0.55 ? undefined : urbanHover.height - urbanHover.y + 14,
+            }}
+            role="status"
+            aria-live="polite"
+          >
+            <UrbanCard item={urbanHover.item} />
+          </div>
+        ) : null}
 
         {hovered && hover ? (
           <div
@@ -776,6 +906,10 @@ export function RoadsMap({
           En construcción
         </span>
         <span className="roads-map-legend-item">
+          <i style={{ background: NETWORK_COLOR.SIN_REFERENCIA, height: 1 }} />
+          Calles de las ciudades (desde ×25)
+        </span>
+        <span className="roads-map-legend-item">
           <b className="roads-map-legend-dot" />
           Capital de departamento
         </span>
@@ -783,8 +917,8 @@ export function RoadsMap({
 
       <figcaption className="roads-map-foot">
         Rueda del ratón, pellizco o doble clic para acercar; arrastra para moverte. Pasa el cursor por
-        una vía para ver qué es y haz clic para aislar su ruta. Elegir un departamento o una ruta en la
-        lista acerca el mapa. Geometría © OpenStreetMap.
+        una vía para ver qué es y haz clic para aislar su ruta o su calle. Al acercarte a una ciudad
+        aparecen sus calles; OpenStreetMap nombra sólo una de cada cuatro. Geometría © OpenStreetMap.
       </figcaption>
     </figure>
   );
@@ -856,6 +990,40 @@ function RoadCard({
       {!section.route && !section.name ? (
         <div className="t-note">OpenStreetMap no le da nombre a esta vía.</div>
       ) : null}
+    </div>
+  );
+}
+
+/** Lo que dice la ficha de una calle de ciudad: su nombre, su clase, su rodadura y su largo. */
+function UrbanCard({ item }: { item: UrbanWay }) {
+  const way = item.way;
+  return (
+    <div className="tooltip">
+      <div className="t-date">Calle de la ciudad</div>
+      <b className="map-card-name">{way.name ?? 'Vía sin nombre en OpenStreetMap'}</b>
+      <div className="t-row">
+        <span>Clase en OpenStreetMap</span>
+        <strong>{STREET_CLASS_LABEL[way.class]}</strong>
+      </div>
+      <div className="t-row">
+        <span>Rodadura</span>
+        <strong>{STREET_SURFACE_LABEL[way.surface]}</strong>
+      </div>
+      <div className="t-row">
+        <span>Esta vía</span>
+        <strong>{Math.round(way.km * 1000).toLocaleString('es-BO')} m</strong>
+      </div>
+      {item.department ? (
+        <div className="t-row">
+          <span>Departamento</span>
+          <strong>{departmentName(item.department)}</strong>
+        </div>
+      ) : null}
+      {way.name ? (
+        <div className="t-note">Clic para aislar esta calle.</div>
+      ) : (
+        <div className="t-note">OpenStreetMap no le da nombre a esta vía.</div>
+      )}
     </div>
   );
 }

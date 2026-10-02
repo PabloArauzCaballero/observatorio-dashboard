@@ -6984,6 +6984,30 @@ button.download-btn {
   border-top: 0;
 }
 
+/* Las calles de las ciudades: un lienzo sobre el mapa, que no recibe el puntero. */
+.roads-map-streets {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  border-radius: var(--radius);
+  pointer-events: none;
+}
+
+.roads-map-urban-note {
+  position: absolute;
+  right: 10px;
+  bottom: 10px;
+  max-width: 70%;
+  padding: 0.2rem 0.55rem;
+  border: 1px solid var(--rule);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--panel) 88%, transparent);
+  font-size: 0.7rem;
+  color: var(--ink-soft);
+  pointer-events: none;
+}
+
 .roads-map-names text {
   fill: var(--ink-soft);
   font-style: italic;
