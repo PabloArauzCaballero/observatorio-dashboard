@@ -1,5 +1,6 @@
 'use client';
 
+import { CompanySocialSection } from './company-social-explorer';
 import { ReputationSection } from './exporters-section';
 import { FilingExplorer } from './filing-explorer';
 import { ForeignTradeSection } from './foreign-trade-section';
@@ -31,6 +32,12 @@ import type { CompanyFiling } from '@/lib/series';
  * distinto —se filtra y se desglosa, no se recorre— y porque pide su dato a
  * cada cambio de filtro, que no tiene por qué pagar quien sólo abre la otra.
  *
+ * «Redes sociales» son las cuentas oficiales de esas mismas empresas del
+ * ránking Merco: seguidores, interacción, sentimiento de los comentarios y
+ * palabras más repetidas, leídos de sus perfiles públicos (ADR 0027 del
+ * núcleo). Va junto a la reputación porque mira a las mismas empresas, y
+ * aparte porque mide otra cosa: lo que declara una red, no una encuesta.
+ *
  * `SubTabs` monta sólo la página activa, así que abrir «Empresas» sigue pidiendo
  * únicamente los hechos relevantes; las otras dos esperan a que alguien las
  * elija, y «Comercio exterior» y «Reputación empresarial» leen la misma
@@ -45,13 +52,15 @@ export function FilingsSection() {
         'Comercio exterior',
         'Detalle aduanero (INE)',
         'Reputación empresarial',
+        'Redes sociales',
       ]}
-      icons={['velas', 'globo', 'cajas', 'escudo']}
+      icons={['velas', 'globo', 'cajas', 'escudo', 'personas']}
     >
       <FilingsPage />
       <ForeignTradeSection />
       <TradeRecordsSection />
       <ReputationSection />
+      <CompanySocialSection />
     </SubTabs>
   );
 }

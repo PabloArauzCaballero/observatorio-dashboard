@@ -1545,11 +1545,14 @@ export function ShareBars({
   unit = '%',
   height = 220,
   onPick,
+  decimals: fixedDecimals,
 }: {
   data: ShareSlice[];
   tone?: string;
   unit?: string;
   height?: number;
+  /** Decimales fijos, para conteos: «13 menciones», no «13,0». */
+  decimals?: number;
   /**
    * Qué hacer cuando el lector toca una barra que lleva `pick`.
    *
@@ -1571,8 +1574,8 @@ export function ShareBars({
    * atajo sobre el dibujo, nunca la única puerta.
    */
   const clickable = Boolean(onPick) && rows.some((row) => row.pick);
-  /** Un decimal donde cambia algo, ninguno donde la cifra son miles. */
-  const decimals = peak >= 100 ? 0 : 1;
+  /** Un decimal donde cambia algo, ninguno donde la cifra son miles (o lo que pida quien cuenta). */
+  const decimals = fixedDecimals ?? (peak >= 100 ? 0 : 1);
   const say = (value: number): string =>
     unit === '%' ? `${number(value, decimals)} %` : number(value, decimals);
 
