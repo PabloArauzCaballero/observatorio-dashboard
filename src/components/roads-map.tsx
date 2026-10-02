@@ -5,6 +5,7 @@ import type { CSSProperties, PointerEvent as ReactPointerEvent } from 'react';
 import { DEPARTMENTS, MAP_BOX, PLACE_POINTS, projectRoadPoint } from '@/lib/bolivia-map';
 import type { RoadSection } from '@/lib/roads';
 import { NETWORKS, SURFACE_GROUP, SURFACE_GROUPS, departmentName } from '@/lib/roads-board';
+import { streetKey } from '@/lib/street-names';
 import { FULL, MapTools, fitBox, useMapCamera } from './map-camera';
 import type { Box } from './map-camera';
 
@@ -87,6 +88,21 @@ const CAPITALS: readonly { name: string; at: [number, number] }[] = [
   { name: 'Cobija', at: [-68.769, -11.0267] },
 ];
 
+/** Cuánto pesa una clase para rotularla: 0 primero (se rotula desde más lejos), 3 última. */
+const LABEL_RANK: Record<string, number> = {
+  motorway: 0,
+  trunk: 0,
+  primary: 0,
+  secondary: 1,
+  tertiary: 2,
+  unclassified: 3,
+  residential: 3,
+  living_street: 3,
+  service: 3,
+  track: 3,
+  road: 3,
+};
+
 /** Las clases de OpenStreetMap en castellano, para la ficha. */
 const CLASS_LABEL: Record<string, string> = {
   motorway: 'autopista',
@@ -109,6 +125,8 @@ interface Drawn {
   section: RoadSection;
   d: string;
   points: [number, number][][];
+  /** La clave de búsqueda de su nombre («avenida circunvalacion»), o null si no tiene. */
+  street: string | null;
   /** `[minX, minY, maxX, maxY]` en el plano: para descartar de un vistazo lo que cae fuera de la vista. */
   bounds: [number, number, number, number];
 }
@@ -118,6 +136,44 @@ const inside = (box: Box, [x, y]: [number, number]): boolean =>
 
 const touches = (box: Box, [minX, minY, maxX, maxY]: [number, number, number, number]): boolean =>
   maxX >= box.x && minX <= box.x + box.width && maxY >= box.y && minY <= box.y + box.height;
+
+/** Recorta un segmento contra la vista: los extremos recortados y si cada uno era el original. */
+function clipSegment(
+  a: [number, number],
+  b: [number, number],
+  box: Box,
+): [[number, number], [number, number], boolean, boolean] | null {
+  const dx = b[0] - a[0];
+  const dy = b[1] - a[1];
+  let t0 = 0;
+  let t1 = 1;
+  const edges: [number, number][] = [
+    [-dx, a[0] - box.x],
+    [dx, box.x + box.width - a[0]],
+    [-dy, a[1] - box.y],
+    [dy, box.y + box.height - a[1]],
+  ];
+  for (const [p, q] of edges) {
+    if (p === 0) {
+      if (q < 0) return null;
+      continue;
+    }
+    const r = q / p;
+    if (p < 0) {
+      if (r > t1) return null;
+      if (r > t0) t0 = r;
+    } else {
+      if (r < t0) return null;
+      if (r < t1) t1 = r;
+    }
+  }
+  return [
+    [a[0] + dx * t0, a[1] + dy * t0],
+    [a[0] + dx * t1, a[1] + dy * t1],
+    t0 === 0,
+    t1 === 1,
+  ];
+}
 
 /**
  * El punto medio, a lo largo, de la línea más larga del tramo: donde va el escudo.
@@ -129,7 +185,7 @@ const touches = (box: Box, [minX, minY, maxX, maxY]: [number, number, number, nu
 function anchorOf(
   points: readonly [number, number][][],
   view?: Box,
-): { at: [number, number]; length: number } | null {
+): { at: [number, number]; length: number; run: [number, number][] } | null {
   let best: [number, number][] = [];
   let bestLength = -1;
   for (const line of points) {
@@ -143,14 +199,30 @@ function anchorOf(
       run = [];
       length = 0;
     };
-    for (const point of line) {
-      if (view && !inside(view, point)) {
+    for (let index = 0; index < line.length; index += 1) {
+      const point = line[index]!;
+      if (!view) {
+        const last = run[run.length - 1];
+        if (last) length += Math.hypot(point[0] - last[0], point[1] - last[1]);
+        run.push(point);
+        continue;
+      }
+      // Con vista, cada segmento se recorta contra ella: una vía simplificada tiene
+      // vértices a cientos de metros, y a ×20 sus extremos caen fuera aunque el
+      // segmento cruce la pantalla entera.
+      const previous = line[index - 1];
+      if (!previous) continue;
+      const clipped = clipSegment(previous, point, view);
+      if (!clipped) {
         close();
         continue;
       }
-      const last = run[run.length - 1];
-      if (last) length += Math.hypot(point[0] - last[0], point[1] - last[1]);
-      run.push(point);
+      const [from, to, startsInside, endsInside] = clipped;
+      if (!startsInside) close();
+      if (!run.length) run.push(from);
+      length += Math.hypot(to[0] - run[run.length - 1]![0], to[1] - run[run.length - 1]![1]);
+      run.push(to);
+      if (!endsInside) close();
     }
     close();
   }
@@ -162,11 +234,42 @@ function anchorOf(
     const step = Math.hypot(bx - ax, by - ay);
     if (walked + step >= bestLength / 2) {
       const t = step ? (bestLength / 2 - walked) / step : 0;
-      return { at: [ax + (bx - ax) * t, ay + (by - ay) * t], length: bestLength };
+      return { at: [ax + (bx - ax) * t, ay + (by - ay) * t], length: bestLength, run: best };
     }
     walked += step;
   }
-  return { at: best[0] ?? [0, 0], length: Math.max(0, bestLength) };
+  return { at: best[0] ?? [0, 0], length: Math.max(0, bestLength), run: best };
+}
+
+/**
+ * El pedazo de una corrida que mide `span`, centrado en su punto medio: es el
+ * camino sobre el que se escribe el nombre, y su caja la que ocupa en el plano.
+ * Va de izquierda a derecha para que el texto no salga boca abajo.
+ */
+function windowOf(run: readonly [number, number][], span: number): [number, number][] {
+  let total = 0;
+  for (let index = 1; index < run.length; index += 1) {
+    total += Math.hypot(run[index]![0] - run[index - 1]![0], run[index]![1] - run[index - 1]![1]);
+  }
+  const from = Math.max(0, total / 2 - span / 2);
+  const to = Math.min(total, total / 2 + span / 2);
+  const out: [number, number][] = [];
+  let walked = 0;
+  for (let index = 1; index < run.length; index += 1) {
+    const [ax, ay] = run[index - 1]!;
+    const [bx, by] = run[index]!;
+    const step = Math.hypot(bx - ax, by - ay);
+    const start = walked;
+    const end = walked + step;
+    walked = end;
+    if (end < from || start > to || step === 0) continue;
+    const t0 = Math.max(0, (from - start) / step);
+    const t1 = Math.min(1, (to - start) / step);
+    if (!out.length) out.push([ax + (bx - ax) * t0, ay + (by - ay) * t0]);
+    out.push([ax + (bx - ax) * t1, ay + (by - ay) * t1]);
+  }
+  if (out.length >= 2 && out[0]![0] > out[out.length - 1]![0]) out.reverse();
+  return out;
 }
 
 interface Slot {
@@ -189,19 +292,21 @@ const RoadLines = memo(function RoadLines({
   onIds,
   filtering,
   route,
+  street,
   colorBy,
 }: {
   drawn: readonly Drawn[];
   onIds: ReadonlySet<string>;
   filtering: boolean;
   route: string | null;
+  street: string | null;
   colorBy: RoadColorBy;
 }) {
   return (
     <>
-      {drawn.map(({ section, d }) => {
+      {drawn.map(({ section, d, street: own }) => {
         const lit = onIds.has(section.sectionId);
-        const chosen = route !== null && section.route === route;
+        const chosen = (route !== null && section.route === route) || (street !== null && own === street);
         const width = chosen ? WIDTH[section.network] + 1.6 : WIDTH[section.network];
         return (
           <path
@@ -257,7 +362,9 @@ export function RoadsMap({
   colorBy,
   zoomTo,
   frameKey,
+  street,
   onPickRoute,
+  onPickStreet,
 }: {
   sections: readonly RoadSection[];
   /** Si el tramo entra en la selección del lector; el resto se atenúa. */
@@ -271,7 +378,10 @@ export function RoadsMap({
    * movió a mano se suelta y el mapa vuelve a encuadrar lo elegido.
    */
   frameKey: string;
+  /** La calle aislada (su clave de búsqueda), o null. */
+  street: string | null;
   onPickRoute: (route: string) => void;
+  onPickStreet: (street: string) => void;
 }) {
   const [hover, setHover] = useState<{
     id: string;
@@ -302,7 +412,7 @@ export function RoadsMap({
               if (y > maxY) maxY = y;
             }
           }
-          return { section, d, points, bounds: [minX, minY, maxX, maxY] as [number, number, number, number] };
+          return { section, d, points, street: streetKey(section.name), bounds: [minX, minY, maxX, maxY] as [number, number, number, number] };
         }),
     [sections],
   );
@@ -350,6 +460,20 @@ export function RoadsMap({
       if (one.section.surface === 'PAVIMENTO') entry.paved += one.section.lengthKm;
       entry.departments.add(one.section.department);
       totals.set(key, entry);
+    }
+    return totals;
+  }, [on]);
+
+  /** Por calle (clave de búsqueda), lo que la selección tiene de ella: la cifra de la ficha. */
+  const streetTotals = useMemo(() => {
+    const totals = new Map<string, { km: number; paved: number; ways: number }>();
+    for (const one of on) {
+      if (!one.street) continue;
+      const entry = totals.get(one.street) ?? { km: 0, paved: 0, ways: 0 };
+      entry.km += one.section.lengthKm;
+      entry.ways += 1;
+      if (one.section.surface === 'PAVIMENTO') entry.paved += one.section.lengthKm;
+      totals.set(one.street, entry);
     }
     return totals;
   }, [on]);
@@ -408,37 +532,60 @@ export function RoadsMap({
       taken.push(slot);
     }
 
-    /* Con la lupa puesta, el nombre de cada vía: es lo que deja leer una ruta tramo a tramo. */
-    const names: { key: string; text: string; at: [number, number] }[] = [];
-    if (labelZoom >= 4) {
-      const candidates: { key: string; text: string; at: [number, number]; length: number }[] = [];
-      const done = new Set<string>();
-      for (const one of seen) {
-        const text = one.section.name;
-        if (!text || done.has(text)) continue;
-        const anchor = anchorOf(one.points, labelView);
-        if (!anchor || anchor.length < 70 * unit_) continue;
-        done.add(text);
-        candidates.push({
-          key: one.section.sectionId,
-          text: text.length > 30 ? `${text.slice(0, 29)}…` : text,
-          at: anchor.at,
-          length: anchor.length,
-        });
+    /*
+     * El nombre de cada vía, escrito a lo largo de ella y sin pisar nada. Aparece según la clase:
+     * las troncales y primarias desde ×2,5, las secundarias y las rutas con código desde ×4 y
+     * las calles menores desde ×7, cuando ya caben. Una vía corta no lleva su nombre si éste
+     * no entra en ella: un rótulo desbordado se lee peor que ninguno.
+     */
+    const names: { key: string; text: string; d: string; size: number }[] = [];
+    const fontSize = 11 * unit_;
+    const candidates: { key: string; text: string; run: [number, number][]; length: number; rank: number }[] = [];
+    for (const one of seen) {
+      const text = one.section.name;
+      if (!text) continue;
+      const rank = LABEL_RANK[one.section.highwayClass] ?? 3;
+      const needs = rank === 0 ? 2.5 : rank === 1 ? 4 : rank === 2 ? 7 : 12;
+      if (labelZoom < needs) continue;
+      const anchor = anchorOf(one.points, labelView);
+      if (!anchor) continue;
+      const width = text.length * 5.7 * unit_;
+      if (anchor.length < width * 1.05) continue;
+      candidates.push({ key: one.section.sectionId, text, run: anchor.run, length: anchor.length, rank });
+    }
+    candidates.sort((left, right) => left.rank - right.rank || right.length - left.length);
+    const seenText = new Map<string, number>();
+    for (const candidate of candidates) {
+      if (names.length >= 90) break;
+      // La misma calle dos veces a la vista basta; diez, no.
+      if ((seenText.get(candidate.text) ?? 0) >= 2) continue;
+      const piece = windowOf(candidate.run, candidate.text.length * 5.7 * unit_);
+      if (piece.length < 2) continue;
+      let minX = Infinity;
+      let minY = Infinity;
+      let maxX = -Infinity;
+      let maxY = -Infinity;
+      for (const [x, y] of piece) {
+        if (x < minX) minX = x;
+        if (y < minY) minY = y;
+        if (x > maxX) maxX = x;
+        if (y > maxY) maxY = y;
       }
-      candidates.sort((left, right) => right.length - left.length);
-      for (const candidate of candidates) {
-        if (names.length >= 28) break;
-        const slot: Slot = {
-          x: candidate.at[0],
-          y: candidate.at[1] - 9 * unit_,
-          w: candidate.text.length * 5.8 * unit_,
-          h: 12 * unit_,
-        };
-        if (taken.some((spot) => collide(spot, slot, 3 * unit_))) continue;
-        taken.push(slot);
-        names.push({ key: candidate.key, text: candidate.text, at: [candidate.at[0], candidate.at[1] - 5 * unit_] });
-      }
+      const slot: Slot = {
+        x: (minX + maxX) / 2,
+        y: (minY + maxY) / 2,
+        w: maxX - minX + 4 * unit_,
+        h: maxY - minY + fontSize,
+      };
+      if (taken.some((spot) => collide(spot, slot, 2 * unit_))) continue;
+      taken.push(slot);
+      seenText.set(candidate.text, (seenText.get(candidate.text) ?? 0) + 1);
+      names.push({
+        key: candidate.key,
+        text: candidate.text,
+        d: `M${piece.map(([x, y]) => `${x.toFixed(2)} ${y.toFixed(2)}`).join('L')}`,
+        size: fontSize,
+      });
     }
     return { shields, names };
   }, [on, labelView, labelUnit, labelZoom, routeTotals, route]);
@@ -456,9 +603,11 @@ export function RoadsMap({
     (section: RoadSection) => {
       // El clic que cierra un arrastre no aísla nada.
       if (consumeDrag()) return;
+      const key = streetKey(section.name);
       if (section.route) onPickRoute(section.route);
+      else if (key) onPickStreet(key);
     },
-    [consumeDrag, onPickRoute],
+    [consumeDrag, onPickRoute, onPickStreet],
   );
 
   /* Las cifras de la leyenda: lo que la selección tiene en cada categoría. */
@@ -507,7 +656,7 @@ export function RoadsMap({
           </g>
 
           <g fill="none" strokeLinecap="round" strokeLinejoin="round">
-            <RoadLines drawn={drawn} onIds={onIds} filtering={filtering} route={route} colorBy={colorBy} />
+            <RoadLines drawn={drawn} onIds={onIds} filtering={filtering} route={route} street={street} colorBy={colorBy} />
             {hovered ? (
               <path
                 d={hovered.d}
@@ -549,10 +698,17 @@ export function RoadsMap({
             })}
           </g>
 
+          <defs>
+            {labels.names.map((name) => (
+              <path key={name.key} id={`rn-${name.key}`} d={name.d} />
+            ))}
+          </defs>
           <g className="roads-map-names" aria-hidden="true">
             {labels.names.map((name) => (
-              <text key={name.key} x={name.at[0]} y={name.at[1]} fontSize={11 * labelUnit}>
-                {name.text}
+              <text key={name.key} fontSize={name.size}>
+                <textPath href={`#rn-${name.key}`} startOffset="50%">
+                  {name.text}
+                </textPath>
               </text>
             ))}
           </g>
@@ -601,6 +757,7 @@ export function RoadsMap({
             <RoadCard
               section={hovered.section}
               total={hovered.section.route ? routeTotals.get(hovered.section.route) : undefined}
+              street={hovered.street ? streetTotals.get(hovered.street) : undefined}
             />
           </div>
         ) : null}
@@ -637,16 +794,21 @@ export function RoadsMap({
 function RoadCard({
   section,
   total,
+  street,
 }: {
   section: RoadSection;
   total: { km: number; paved: number; departments: Set<string> } | undefined;
+  street: { km: number; paved: number; ways: number } | undefined;
 }) {
   const network = NETWORKS.find((one) => one.network === section.network)?.label ?? section.network;
   return (
     <div className="tooltip">
       <div className="t-date">{network}</div>
-      <b className="map-card-name">{section.route ? `Ruta ${section.route}` : 'Vía sin código de ruta'}</b>
-      {section.name ? <div className="roads-map-tip-name">{section.name}</div> : null}
+      <b className="map-card-name">
+        {section.route ? `Ruta ${section.route}` : (section.name ?? 'Vía sin nombre en OpenStreetMap')}
+      </b>
+      {section.name && section.route ? <div className="roads-map-tip-name">{section.name}</div> : null}
+      {!section.route && section.name ? <div className="roads-map-tip-name">Vía sin código de ruta</div> : null}
       <div className="t-row">
         <span>
           <i className="t-key" style={{ color: GROUP_COLOR[SURFACE_GROUP[section.surface]] }} />
@@ -676,8 +838,24 @@ function RoadCard({
           </div>
         </>
       ) : null}
+      {!total && street ? (
+        <>
+          <div className="t-row">
+            <span>Toda la calle en la selección</span>
+            <strong>{km(street.km)} km</strong>
+          </div>
+          <div className="t-row">
+            <span>Pavimentada</span>
+            <strong>{street.km > 0 ? Math.round((street.paved / street.km) * 100) : 0} %</strong>
+          </div>
+        </>
+      ) : null}
       {section.status === 'EN_CONSTRUCCION' ? <div className="t-note">En construcción.</div> : null}
       {section.route ? <div className="t-note">Clic para aislar la ruta {section.route}.</div> : null}
+      {!section.route && section.name ? <div className="t-note">Clic para aislar esta calle.</div> : null}
+      {!section.route && !section.name ? (
+        <div className="t-note">OpenStreetMap no le da nombre a esta vía.</div>
+      ) : null}
     </div>
   );
 }
