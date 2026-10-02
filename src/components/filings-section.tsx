@@ -1,9 +1,12 @@
 'use client';
 
+import { BusinessFabricSection } from './business-fabric-section';
+import { BusinessOwnersSection } from './business-owners-section';
 import { CompanySocialSection } from './company-social-explorer';
 import { ReputationSection } from './exporters-section';
 import { FilingExplorer } from './filing-explorer';
 import { ForeignTradeSection } from './foreign-trade-section';
+import { LargestCompaniesSection } from './largest-companies-section';
 import { OnOpenNotice, useOnOpen } from './on-open';
 import { SubTabs } from './tabs';
 import { TradeRecordsSection } from './trade-records-section';
@@ -38,24 +41,40 @@ import type { CompanyFiling } from '@/lib/series';
  * núcleo). Va junto a la reputación porque mira a las mismas empresas, y
  * aparte porque mide otra cosa: lo que declara una red, no una encuesta.
  *
- * `SubTabs` monta sólo la página activa, así que abrir «Empresas» sigue pidiendo
- * únicamente los hechos relevantes; las otras dos esperan a que alguien las
- * elija, y «Comercio exterior» y «Reputación empresarial» leen la misma
- * dirección de exportadoras, así que la segunda que se abra sale de la caché.
+ * Las tres primeras miran al tejido entero y no a un registro en particular.
+ * **Tejido empresarial** cuenta cuántas empresas hay —por tipo societario,
+ * departamento, actividad y tamaño, desde 2008— y cómo se reparte el padrón de
+ * Impuestos. **Principales empresas** ordena a las más grandes año a año con
+ * dos varas, una oficial y otra privada: el impuesto que pagan y lo que
+ * facturan.
+ * **Empresarios** sigue a sus dueños: las fortunas que publica Forbes y la
+ * estimación del observatorio, construida con el patrimonio de cada empresa y
+ * la participación que los documentos públicos atribuyen a cada accionista.
+ *
+ * `SubTabs` monta sólo la página activa, así que abrir «Empresas» pide sólo el
+ * tejido empresarial; las demás esperan a que alguien las elija, y «Comercio
+ * exterior» y «Reputación empresarial» leen la misma dirección de exportadoras,
+ * así que la segunda que se abra sale de la caché.
  */
 export function FilingsSection() {
   return (
     <SubTabs
       enlace
       labels={[
+        'Tejido empresarial',
+        'Principales empresas',
+        'Empresarios',
         'Bolsa de valores (BBV)',
         'Comercio exterior',
         'Detalle aduanero (INE)',
         'Reputación empresarial',
         'Redes sociales',
       ]}
-      icons={['velas', 'globo', 'cajas', 'escudo', 'personas']}
+      icons={['capas', 'barras', 'maletin', 'velas', 'globo', 'cajas', 'escudo', 'personas']}
     >
+      <BusinessFabricSection />
+      <LargestCompaniesSection />
+      <BusinessOwnersSection />
       <FilingsPage />
       <ForeignTradeSection />
       <TradeRecordsSection />
