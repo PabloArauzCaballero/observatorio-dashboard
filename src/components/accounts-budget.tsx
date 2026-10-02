@@ -29,6 +29,20 @@ import type { Measure } from '@/lib/public-accounts-rows';
  * año cerrado con su variación.
  */
 
+/**
+ * La variación frente al año anterior. Un saldo —el déficit— no se mide en porcentaje: pasar de
+ * −32.929 a −45.663 es «un 38 % menos» o «un 38 % más» según quién lea, así que se dice en
+ * bolivianos y con la palabra que corresponde.
+ */
+function change(side: string, value: number, before: number | undefined): string {
+  if (before === undefined || before === 0) return '—';
+  if (side === 'resultado') {
+    const gap = value - before;
+    return `${gap >= 0 ? 'Mejoró' : 'Empeoró'} en Bs ${number(Math.abs(gap), 0)} millones`;
+  }
+  return `${value >= before ? '+' : ''}${number(((value - before) / Math.abs(before)) * 100, 1)} %`;
+}
+
 const DEFAULT = ['INGRESOS_TRIBUTARIOS', 'SERVICIOS_PERSONALES', 'INTERESES_INTERNOS'];
 
 type View = 'month' | 'year';
@@ -182,7 +196,7 @@ export function AccountsBudget({ accounts }: { accounts: AccountsPayload }) {
           </p>
         </div>
         <div className="table-wrap">
-          <table className="grid-table">
+          <table className="grid-table accounts-table">
             <thead>
               <tr>
                 <th scope="col">Concepto</th>
@@ -197,9 +211,7 @@ export function AccountsBudget({ accounts }: { accounts: AccountsPayload }) {
                   <tr key={row.concept.key}>
                     <th scope="row">{row.concept.label}</th>
                     <td>{number(row.value, 0)}</td>
-                    <td>
-                      {row.before ? `${row.value >= row.before ? '+' : ''}${number(((row.value - row.before) / Math.abs(row.before)) * 100, 1)} %` : '—'}
-                    </td>
+                    <td>{change(row.concept.side, row.value, row.before)}</td>
                     <td>{row.share === null ? '—' : percent(row.share)}</td>
                   </tr>
                 ),

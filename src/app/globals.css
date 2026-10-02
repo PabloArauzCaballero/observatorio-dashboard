@@ -8352,3 +8352,36 @@ button.download-btn {
   gap: 0.35rem;
   margin-bottom: 0.8rem;
 }
+
+/*
+ * Cuentas públicas: el campo de monto de la calculadora usa el mismo trazo que el buscador, y las
+ * filas de las tablas de normas y de cuentas se leen desde la izquierda y desde arriba: son
+ * párrafos, no cifras centradas.
+ */
+.slicer input[type="text"] {
+  font: inherit;
+  font-size: 0.9rem;
+  padding: 0.42rem 0.7rem;
+  border: 1px solid var(--rule);
+  border-radius: 8px;
+  background: var(--panel);
+  color: var(--ink);
+  width: 100%;
+  min-width: 9rem;
+  transition: border-color var(--fast) var(--ease);
+}
+
+.slicer input[type="text"]:focus {
+  outline: none;
+  border-color: var(--official);
+}
+
+.accounts-table tbody th,
+.accounts-table tbody td {
+  text-align: left;
+  vertical-align: top;
+}
+
+.accounts-table .panel-sub {
+  margin-top: 0.25rem;
+}

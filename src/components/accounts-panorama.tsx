@@ -92,7 +92,7 @@ export function AccountsPanorama({ accounts }: { accounts: AccountsPayload }) {
     [
       { key: 'in', label: 'Ingresos', tone: seriesTone(0), codes: [spnf(place, 'INGRESOS_TOTALES')] },
       { key: 'out', label: 'Gasto', tone: seriesTone(2), codes: [spnf(place, 'EGRESOS_TOTALES')] },
-      { key: 'bal', label: 'Resultado global', tone: 'var(--gap)', codes: [spnf(place, 'RESULTADO_GLOBAL')] },
+      { key: 'bal', label: 'Resultado global', tone: seriesTone(3), codes: [spnf(place, 'RESULTADO_GLOBAL')] },
     ],
     measure,
     from,
@@ -123,7 +123,8 @@ export function AccountsPanorama({ accounts }: { accounts: AccountsPayload }) {
     const share = (value: number | null) => (value === null ? '' : ` · ${percent(value)} del PIB`);
     return { inc, out, bal, share, pib };
   })();
-  const tax = valueIn(closedYears(index, oecdCode('BOL', 'TOTAL')), lastYear);
+  // La OCDE publica con un año más de retraso que el Ministerio: se toma su último año cerrado.
+  const oecd = closedYears(index, oecdCode('BOL', 'TOTAL')).at(-1);
 
   return (
     <>
@@ -148,7 +149,7 @@ export function AccountsPanorama({ accounts }: { accounts: AccountsPayload }) {
             <Tile label={`Ingresos ${lastYear}`} value={millions(tiles.inc)} hint={`${PERIMETERS.find((p) => p.key === place)?.label}${tiles.share(tiles.pib(tiles.inc))}`} />
             <Tile label={`Gasto ${lastYear}`} value={millions(tiles.out)} hint={`Gastó Bs ${number((tiles.out / tiles.inc) * 100, 0)} por cada Bs 100 que ingresaron`} />
             <Tile label={`Resultado global ${lastYear}`} value={millions(tiles.bal)} hint={`Déficit${tiles.share(tiles.pib(tiles.bal))}`} />
-            {tax !== undefined ? <Tile label="Impuestos (OCDE)" value={percent(tax)} hint="del PIB, con seguridad social" /> : null}
+            {oecd ? <Tile label={`Impuestos ${oecd.year}`} value={percent(oecd.value)} hint="del PIB, con seguridad social (OCDE)" /> : null}
           </div>
         ) : null}
         <div className="slicer-row">
@@ -186,7 +187,7 @@ export function AccountsPanorama({ accounts }: { accounts: AccountsPayload }) {
               series={[
                 { key: 'in', label: 'Ingresos', tone: seriesTone(0), emphasis: true },
                 { key: 'out', label: 'Gasto', tone: seriesTone(2) },
-                { key: 'bal', label: 'Resultado global', tone: 'var(--gap)', dashed: true },
+                { key: 'bal', label: 'Resultado global', tone: seriesTone(3), dashed: true },
               ]}
               format={format}
               tick={tick}
