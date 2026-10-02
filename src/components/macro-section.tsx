@@ -1,5 +1,6 @@
 'use client';
 
+import { AccountsSection } from './accounts-section';
 import { BcbSection } from './bcb-section';
 import { DepartmentsSection } from './departments-section';
 import { EnergySection } from './energy-section';
@@ -97,6 +98,12 @@ function MeasuresPanel() {
          * asume que el tablero no la contesta, que es lo que pasaba hasta hoy.
          */
         { label: 'Departamentos', icon: 'mapa', panel: <DepartmentsSection /> },
+        /*
+         * «Cuentas públicas» va segundo: es el otro rubro que mira al Estado y no al territorio.
+         * Lee su propia vista y no el panel del Banco Mundial, pero cuelga de la misma barra de
+         * «Desde» y de la misma lista donde el lector ya está eligiendo de qué quiere leer.
+         */
+        { label: 'Cuentas públicas', icon: 'balanza', panel: <AccountsSection /> },
         { label: 'Energía', icon: 'rayo', panel: <EnergySection /> },
         { label: 'Recursos naturales', icon: 'gema', panel: <ResourcesSection /> },
         { label: 'Medio ambiente', icon: 'hoja', panel: <EnvironmentSection /> },

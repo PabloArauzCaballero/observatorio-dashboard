@@ -42,10 +42,10 @@ import type { NameType, ValueType } from 'recharts/types/component/DefaultToolti
  * The shape Recharts hands a custom tooltip, parameterised with the library's
  * own generics: pinning it tighter makes the renderer unassignable to `content`.
  */
-type TooltipRender = TooltipContentProps<ValueType, NameType>;
+export type TooltipRender = TooltipContentProps<ValueType, NameType>;
 
 /** Shared so a redesign happens in one place, not in six. */
-const MOTION = { duration: 900, easing: 'ease-out' } as const;
+export const MOTION = { duration: 900, easing: 'ease-out' } as const;
 
 /**
  * Los rótulos del eje son texto, y se leían a 3,8:1.
@@ -55,7 +55,7 @@ const MOTION = { duration: 900, easing: 'ease-out' } as const;
  * 4,6:1, que es el umbral a partir del cual un número pequeño se lee sin
  * acercarse a la pantalla.
  */
-const AXIS = {
+export const AXIS = {
   stroke: 'var(--axis-ink)',
   fontSize: 11,
   tickLine: false,
@@ -63,7 +63,7 @@ const AXIS = {
 } as const;
 
 /** Rejilla: un pelo sólido a un paso de la superficie, nunca discontinua. */
-const GRID = { stroke: 'var(--grid)', vertical: false } as const;
+export const GRID = { stroke: 'var(--grid)', vertical: false } as const;
 
 /**
  * El grosor máximo de una barra.
@@ -73,7 +73,7 @@ const GRID = { stroke: 'var(--grid)', vertical: false } as const;
  * Con el tope, lo que sobra de la banda es aire, que es lo que separa una
  * barra de la siguiente sin dibujar nada.
  */
-const BAR_CAP = 24;
+export const BAR_CAP = 24;
 
 /**
  * La rendija que separa dos marcas que se tocan.
@@ -82,7 +82,7 @@ const BAR_CAP = 24;
  * mecanismo —no un borde alrededor de cada tramo, que añade tinta con peso de
  * dato— y tiene que medir lo mismo en todo el apilado.
  */
-const STACK_GAP = { stroke: 'var(--chart-surface)', strokeWidth: 2 } as const;
+export const STACK_GAP = { stroke: 'var(--chart-surface)', strokeWidth: 2 } as const;
 
 /**
  * El anillo de superficie de un punto.
@@ -108,7 +108,7 @@ const DOT_RING = { stroke: 'var(--chart-surface)', strokeWidth: 2 } as const;
  * that number was of a 900-pixel one. The cap keeps a six-bar chart from
  * stretching its bars into bands.
  */
-const framed = (base: number): string =>
+export const framed = (base: number): string =>
   `clamp(${base}px, ${((base / 900) * 100).toFixed(1)}vh, ${Math.round(base * 1.55)}px)`;
 
 /**
@@ -157,7 +157,7 @@ export interface LegendItem {
  * La marca imita la marca del gráfico: cuadrado para un relleno, trazo para una
  * línea, discontinuo si la línea lo es.
  */
-function ChartLegend({ items }: { items: ReadonlyArray<LegendItem> }) {
+export function ChartLegend({ items }: { items: ReadonlyArray<LegendItem> }) {
   return (
     <ul className="chart-legend">
       {items.map((item) => (
@@ -457,7 +457,7 @@ export interface TooltipRow {
  * porque un valor que solo existe al pasar el ratón no existe para quien lee
  * con teclado, imprime o mira una captura.
  */
-function TooltipShell({
+export function TooltipShell({
   label,
   rows,
   note,
