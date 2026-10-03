@@ -5,7 +5,7 @@ import { TradeRecordsExplorer } from './trade-records-explorer';
 import type { TradeCodes } from '@/lib/trade-records';
 
 /**
- * «Detalle aduanero (INE)», pedida al abrir su página dentro de «Empresas».
+ * «Detalle aduanero (INE)», pedida al abrir su página dentro de «Macroeconomía».
  *
  * Primero el catálogo —los nombres de países, departamentos y clasificaciones,
  * y qué años trae cada flujo— y después, ya dentro del explorador, una lectura

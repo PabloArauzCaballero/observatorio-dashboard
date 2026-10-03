@@ -6,18 +6,20 @@ import { DepartmentsSection } from './departments-section';
 import { EnergySection } from './energy-section';
 import { EnvironmentSection } from './environment-section';
 import { ExogenousSection } from './exogenous-section';
+import { ForeignTradeSection } from './foreign-trade-section';
 import { InstitutionsExplorer } from './institutions-explorer';
 import { MacroExplorer } from './macro-explorer';
 import { OnOpenNotice, useOnOpen } from './on-open';
 import { PanelSection } from './panel-section';
 import { ResourcesSection } from './resources-section';
 import { SubTabs } from './tabs';
+import { TradeRecordsSection } from './trade-records-section';
 import { WorldExplorer } from './world-explorer';
 import type { InstitutionsBoard } from '@/lib/institutions-board';
 import type { MacroBundle } from '@/lib/macro-transport';
 
 /**
- * El capítulo de macroeconomía, con sus tres lecturas.
+ * El capítulo de macroeconomía y del sector externo.
  *
  * Tres y no una. «Series de Bolivia» son las que el observatorio mide una por
  * una; «Social Info» es el WDI entero recortado a Bolivia —salud, educación,
@@ -39,7 +41,12 @@ import type { MacroBundle } from '@/lib/macro-transport';
  * fuera. Es una pestaña y no un rubro invitado porque no lee el panel de
  * medidas: trae su propio corpus mensual y sus propios filtros.
  *
- * Las cuatro se piden solas al abrirse. `SubTabs` monta únicamente la página
+ * «Comercio exterior» resume qué vende y compra Bolivia, con quién comercia
+ * y quién exporta; «Detalle aduanero (INE)» permite cruzar partida, país,
+ * departamento y mes. Ambas pertenecen aquí porque describen el sector
+ * externo de la economía, no el registro o la reputación de las empresas.
+ *
+ * Las páginas se piden solas al abrirse. `SubTabs` monta únicamente la página
  * activa, así que abrir «Macroeconomía» pide las medidas de Bolivia y nada más:
  * el panel del Banco Mundial y el tablero mundial esperan a que alguien los
  * elija, como ya hacían, y ahora las medidas también.
@@ -54,8 +61,10 @@ export function MacroSection() {
         'Bolivia ante el mundo',
         'Variables exógenas',
         'Series del BCB',
+        'Comercio exterior',
+        'Detalle aduanero (INE)',
       ]}
-      icons={['linea', 'capas', 'globo', 'monedas', 'banco']}
+      icons={['linea', 'capas', 'globo', 'monedas', 'banco', 'globo', 'cajas']}
     >
       <MeasuresPanel />
       <PanelSection
@@ -64,6 +73,8 @@ export function MacroSection() {
       <WorldExplorer />
       <ExogenousSection />
       <BcbSection />
+      <ForeignTradeSection />
+      <TradeRecordsSection />
     </SubTabs>
   );
 }
