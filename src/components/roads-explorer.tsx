@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { ANY, accepts, additive, describe, multiTitle, picked, toggle } from '@/lib/choice';
 import type { Choice } from '@/lib/choice';
 import { MacroChart } from './charts';
@@ -9,9 +9,11 @@ import { FilterHint, PickedCount } from './filters';
 import { Icon } from './icons';
 import type { IconName } from './icons';
 import { splitStreetType, streetKey } from '@/lib/street-names';
+import type { StreetDataRow } from '@/lib/street-analysis';
 import { useStreetIndex } from './use-street-index';
 import { Pager } from './pager';
 import { RoadsMap } from './roads-map';
+import { StreetDataExplorer } from './street-data-explorer';
 import type { RoadColorBy } from './roads-map';
 import type { RoadSection } from '@/lib/roads';
 import type { LonLatBox, StreetIndexEntry } from '@/lib/street-types';
@@ -87,7 +89,6 @@ function officialKm(
   }
   return found ? { km, networks: wanted } : null;
 }
-
 /** «f4», «F 4» y «f-4» son la misma ruta que «F-4». */
 const squash = (value: string): string =>
   value
@@ -168,25 +169,6 @@ function rowsOf(sections: readonly RoadSection[]): RouteRow[] {
   }));
 }
 
-interface StreetRow {
-  /** Identifica la fila: la clave del nombre, y `clave@ciudad` en las calles de ciudad. */
-  id: string;
-  /** La clave de búsqueda del nombre: agrupa «Av. Panamericana» y «AVENIDA PANAMERICANA». */
-  key: string;
-  name: string;
-  type: string | null;
-  departments: string[];
-  routes: string[];
-  km: number;
-  paved: number;
-  /** Tramos del mapa nacional, o vías sueltas si es una calle de ciudad. */
-  sections: number;
-  /** La ciudad, si la fila sale del índice de calles urbanas. */
-  city: string | null;
-  /** La caja que limita la calle en esa ciudad; en las filas nacionales, null. */
-  bounds: LonLatBox | null;
-}
-
 /** Lo que se elige: una calle por su nombre, y en una ciudad concreta por la caja que la limita. */
 interface StreetPick {
   key: string;
@@ -197,19 +179,25 @@ interface StreetPick {
 }
 
 /** Una calle de ciudad del índice, como fila de la tabla. */
-function urbanRow(entry: StreetIndexEntry): StreetRow {
+function urbanRow(entry: StreetIndexEntry): StreetDataRow {
+  const name = splitStreetType(entry.name);
   return {
     id: `${entry.key}@${entry.city}`,
     key: entry.key,
     name: entry.name,
-    type: splitStreetType(entry.name).type,
+    properName: name.proper,
+    type: name.type,
     departments: entry.department ? [entry.department] : [],
+    departmentKm: entry.department ? { [entry.department]: entry.km } : {},
+    departmentPavedKm: entry.department ? { [entry.department]: entry.paved } : {},
+    departmentWays: entry.department ? { [entry.department]: entry.ways } : {},
     routes: [],
     km: entry.km,
     paved: entry.paved,
     sections: entry.ways,
     city: entry.city,
     bounds: entry.bounds,
+    scope: 'URBANA',
   };
 }
 
@@ -228,27 +216,41 @@ function touchesBox(section: RoadSection, box: LonLatBox): boolean {
  * tramo 3 de 11». Las vías sin nombre en OpenStreetMap no son una calle y quedan
  * fuera: se cuentan aparte, para decir cuánto falta y no esconderlo.
  */
-function streetsOf(sections: readonly RoadSection[]): StreetRow[] {
-  const rows = new Map<string, StreetRow>();
+function streetsOf(sections: readonly RoadSection[]): StreetDataRow[] {
+  const rows = new Map<string, StreetDataRow>();
   for (const section of sections) {
     const key = streetKey(section.name);
     if (!key || !section.name) continue;
+    const parsed = splitStreetType(section.name);
     const row = rows.get(key) ?? {
       id: key,
       key,
       name: section.name,
-      type: splitStreetType(section.name).type,
+      properName: parsed.proper,
+      type: parsed.type,
       departments: [],
+      departmentKm: {},
+      departmentPavedKm: {},
+      departmentWays: {},
       routes: [],
       km: 0,
       paved: 0,
       sections: 0,
       city: null,
       bounds: null,
+      scope: 'RED_NACIONAL',
     };
     row.km += section.lengthKm;
     row.sections += 1;
     if (section.surface === 'PAVIMENTO') row.paved += section.lengthKm;
+    row.departmentKm[section.department] =
+      (row.departmentKm[section.department] ?? 0) + section.lengthKm;
+    row.departmentWays[section.department] =
+      (row.departmentWays[section.department] ?? 0) + 1;
+    if (section.surface === 'PAVIMENTO') {
+      row.departmentPavedKm[section.department] =
+        (row.departmentPavedKm[section.department] ?? 0) + section.lengthKm;
+    }
     if (!row.departments.includes(section.department)) row.departments.push(section.department);
     if (section.route && !row.routes.includes(section.route)) row.routes.push(section.route);
     rows.set(key, row);
@@ -681,13 +683,13 @@ export function RoadsExplorer({ board }: { board: RoadBoard }) {
             onPick={(next) => pickRoute(next, 'tabla')}
           />
 
-          <StreetsTable
+          <StreetDataExplorer
             key={`${[...department].join(',')}|${[...network].join(',')}|${[...surface].join(',')}|${query}`}
             rows={streetRows}
             street={liveStreet}
             where={where}
             unnamedKm={unnamedKm}
-            indexFailed={indexFailed}
+            urbanIndexState={indexFailed ? 'failed' : cityStreets ? 'ready' : 'loading'}
             onSeen={() => setTableSeen(true)}
             onPick={(row) =>
               pickStreet({ key: row.key, label: row.city ? `${row.name} (${row.city})` : row.name, bounds: row.bounds, urban: row.city !== null }, 'tabla')
@@ -1012,190 +1014,6 @@ function RoutesTable({
         pageSize={PAGE_SIZE}
         where="abajo"
         noun="rutas"
-      />
-    </section>
-  );
-}
-
-type StreetSort = 'name' | 'km' | 'pavedShare' | 'sections';
-
-/**
- * Las calles del recorte, veinte por página, una fila por nombre.
- *
- * Es la tabla de lo que el mapa rotula: cada fila suma todas las vías que llevan ese
- * nombre dentro del recorte. Clic en un nombre aísla la calle en el mapa y lo acerca.
- */
-function StreetsTable({
-  rows,
-  street,
-  where,
-  unnamedKm,
-  indexFailed,
-  onSeen,
-  onPick,
-}: {
-  rows: StreetRow[];
-  street: StreetPick | null;
-  where: string;
-  unnamedKm: number;
-  indexFailed: boolean;
-  /** Se avisa una vez, cuando la tabla entra en pantalla. */
-  onSeen: () => void;
-  onPick: (row: StreetRow) => void;
-}) {
-  const [offset, setOffset] = useState(0);
-  const sectionRef = useRef<HTMLElement>(null);
-  useEffect(() => {
-    const node = sectionRef.current;
-    if (!node || typeof IntersectionObserver === 'undefined') return;
-    const watcher = new IntersectionObserver(
-      (entries) => {
-        if (entries.some((entry) => entry.isIntersecting)) {
-          onSeen();
-          watcher.disconnect();
-        }
-      },
-      { rootMargin: '300px' },
-    );
-    watcher.observe(node);
-    return () => watcher.disconnect();
-  }, [onSeen]);
-  const [sort, setSort] = useState<{ key: StreetSort; down: boolean }>({ key: 'km', down: true });
-
-  const sorted = useMemo(() => {
-    const value = (row: StreetRow): number | string => {
-      switch (sort.key) {
-        case 'name':
-          return row.name;
-        case 'sections':
-          return row.sections;
-        case 'pavedShare':
-          return row.km > 0 ? row.paved / row.km : 0;
-        default:
-          return row.km;
-      }
-    };
-    return [...rows].sort((left, right) => {
-      const a = value(left);
-      const b = value(right);
-      const order = typeof a === 'number' && typeof b === 'number' ? a - b : String(a).localeCompare(String(b), 'es');
-      return (sort.down ? -order : order) || right.km - left.km;
-    });
-  }, [rows, sort]);
-
-  const pages = Math.max(1, Math.ceil(sorted.length / PAGE_SIZE));
-  const page = Math.min(pages, Math.floor(offset / PAGE_SIZE) + 1);
-  const shown = sorted.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
-  const first = sorted.length ? (page - 1) * PAGE_SIZE + 1 : 0;
-  const last = (page - 1) * PAGE_SIZE + shown.length;
-  const totalKm = rows.reduce((sum, row) => sum + row.km, 0);
-
-  const head = (key: StreetSort, label: string, numeric = true) => {
-    const active = sort.key === key;
-    return (
-      <th className={numeric ? 'num' : undefined} aria-sort={active ? (sort.down ? 'descending' : 'ascending') : 'none'}>
-        <button
-          type="button"
-          className={active ? 'roads-sort roads-sort-on' : 'roads-sort'}
-          onClick={() => {
-            setOffset(0);
-            setSort((current) => (current.key === key ? { key, down: !current.down } : { key, down: key !== 'name' }));
-          }}
-        >
-          {label}
-          <span aria-hidden="true">{active ? (sort.down ? ' ↓' : ' ↑') : ''}</span>
-        </button>
-      </th>
-    );
-  };
-
-  return (
-    <section className="panel places-table roads-routes" ref={sectionRef}>
-      <div className="tile-head">
-        <Icon name="mapa" size={14} />
-        <h3 className="tile-title">Calles y vías con nombre ({where})</h3>
-        <span className="places-table-count">
-          {number(sorted.length)} {sorted.length === 1 ? 'nombre' : 'nombres'} · {number(totalKm)} km
-        </span>
-      </div>
-      <p className="panel-sub">
-        Una fila por nombre: suma todas las vías que lo llevan dentro del recorte. Toca un nombre para
-        aislarlo en el mapa y acercarlo. Incluye las calles de las ciudades que OpenStreetMap nombra
-        (sólo una de cada cuatro tiene nombre). OpenStreetMap no da nombre a {number(unnamedKm)} km de
-        lo trazado en la red nacional de este recorte; esas vías se dibujan pero no pueden aparecer aquí.
-        {indexFailed ? ' No se pudieron leer las calles de las ciudades.' : ''}
-      </p>
-
-      <Pager
-        page={page}
-        pages={pages}
-        first={first}
-        last={last}
-        total={sorted.length}
-        onGo={setOffset}
-        pageSize={PAGE_SIZE}
-        where="arriba"
-        noun="calles"
-      />
-
-      {sorted.length === 0 ? (
-        <div className="callout">Ninguna calle con nombre coincide con el recorte y la búsqueda.</div>
-      ) : (
-        <div className="table-wrap">
-          <table className="grid-table roads-table">
-            <thead>
-              <tr>
-                {head('name', 'Calle o vía', false)}
-                <th>Departamentos</th>
-                {head('km', 'Km')}
-                {head('pavedShare', '% pavim.')}
-                {head('sections', 'Tramos o vías')}
-              </tr>
-            </thead>
-            <tbody>
-              {shown.map((row) => {
-                const on = street !== null && row.key === street.key && (row.bounds?.join() ?? '') === (street.bounds?.join() ?? '');
-                return (
-                  <tr key={row.id} className={on ? 'roads-row-on' : undefined}>
-                    <td>
-                      <button
-                        type="button"
-                        className="table-link"
-                        aria-pressed={on}
-                        title={`${on ? 'Quitar del mapa' : 'Ver en el mapa'} ${row.name}`}
-                        onClick={() => onPick(row)}
-                      >
-                        {row.name}
-                      </button>
-                      {row.city ? <span className="stat-hint"> · {row.city}</span> : null}
-                      {row.routes.length ? (
-                        <span className="stat-hint"> · ruta {row.routes.slice(0, 3).join(', ')}</span>
-                      ) : null}
-                    </td>
-                    <td>{row.departments.map(departmentName).join(', ')}</td>
-                    <td className="num">
-                      <b>{number(row.km, 1)}</b>
-                    </td>
-                    <td className="num">{row.km > 0 ? Math.round((row.paved / row.km) * 100) : 0} %</td>
-                    <td className="num">{number(row.sections)}</td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
-      )}
-
-      <Pager
-        page={page}
-        pages={pages}
-        first={first}
-        last={last}
-        total={sorted.length}
-        onGo={setOffset}
-        pageSize={PAGE_SIZE}
-        where="abajo"
-        noun="calles"
       />
     </section>
   );
