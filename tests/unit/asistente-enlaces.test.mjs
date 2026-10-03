@@ -44,8 +44,9 @@ test('cada destino del asistente nombra una pestaña y una página que existen e
     if (destino.pagina) assert.ok(secciones.includes(`'${destino.pagina}'`), `la página «${destino.pagina}» de ${paquete} existe`);
   }
   // Solo las barras de primer nivel siguen la dirección; la anidada de Comercio exterior no.
-  assert.match(leer('src/components/macro-section.tsx'), /<SubTabs enlace/);
-  assert.doesNotMatch(leer('src/components/trade-explorer.tsx'), /<SubTabs enlace/);
+  const barraConEnlace = /<SubTabs[^>]*\benlace\b/u;
+  assert.match(leer('src/components/macro-section.tsx'), barraConEnlace);
+  assert.doesNotMatch(leer('src/components/trade-explorer.tsx'), barraConEnlace);
 });
 
 test('los enlaces no se repiten y siguen el orden del tablero', () => {
