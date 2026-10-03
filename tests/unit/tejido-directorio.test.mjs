@@ -1,8 +1,10 @@
 import assert from 'node:assert/strict';
+import { PassThrough } from 'node:stream';
 import { test } from 'node:test';
 
 import { businessNameTerms } from '../../src/lib/business-directory-words.ts';
-import { buildDirectoryPage } from '../../src/lib/business-directory-contract.ts';
+import { buildDirectoryPage, directoryMeta } from '../../src/lib/business-directory-contract.ts';
+import { writeBusinessDirectoryWorkbook } from '../../src/lib/business-directory-workbook.ts';
 
 test('la nube agrupa tildes y omite razones sociales y palabras genéricas', () => {
   const terms = businessNameTerms([
@@ -92,4 +94,62 @@ test('un filtro sin coincidencias devuelve cero filas y conserva metadatos de co
   assert.equal(result.total, 0);
   assert.equal(result.meta.coverage, 'PARCIAL');
   assert.equal(result.meta.publisher, 'SEPREC');
+});
+
+const workbookRows = [
+  {
+    placeId: 'seprec:empresa:00123',
+    registrationId: '00123',
+    name: 'Águila Dorada S.R.L.',
+    department: 'Chuquisaca',
+    municipality: 'Sucre',
+    address: 'Plaza 25 de Mayo 25',
+    activity: 'SERVICIOS',
+    licence: 'información pública',
+    cutDate: '2026-09-12T00:00:00.000Z',
+  },
+  {
+    placeId: 'seprec:empresa:9',
+    registrationId: '9',
+    name: 'Cóndor Tours',
+    department: 'La Paz',
+    municipality: 'La Paz',
+    address: null,
+    activity: 'TURISMO',
+    licence: 'información pública',
+    cutDate: null,
+  },
+];
+
+async function workbookBuffer(rows = workbookRows, meta = directoryMeta(rows.length, rows)) {
+  const stream = new PassThrough();
+  const chunks = [];
+  stream.on('data', (chunk) => chunks.push(Buffer.from(chunk)));
+  await writeBusinessDirectoryWorkbook(stream, rows, meta);
+  return Buffer.concat(chunks);
+}
+
+test('el Excel conserva nombres e identificadores y documenta su cobertura', async () => {
+  const { default: ExcelJS } = await import('exceljs');
+  const buffer = await workbookBuffer();
+  const workbook = new ExcelJS.Workbook();
+  await workbook.xlsx.load(buffer);
+
+  assert.deepEqual(workbook.worksheets.map((sheet) => sheet.name), ['Empresas', 'Metadatos']);
+  const companies = workbook.getWorksheet('Empresas');
+  assert.equal(companies?.getCell('A2').value, '00123');
+  assert.equal(companies?.getCell('B2').value, 'Águila Dorada S.R.L.');
+  assert.ok(companies?.autoFilter);
+  assert.equal(companies?.views[0]?.state, 'frozen');
+  const headers = companies?.getRow(1).values.join('|').toLocaleLowerCase('es') ?? '';
+  assert.doesNotMatch(headers, /teléfono|correo|email/u);
+  assert.equal(workbook.getWorksheet('Metadatos')?.getCell('B2').value, 'PARCIAL');
+});
+
+test('el Excel rechaza una selección vacía o no autorizada para descarga', async () => {
+  await assert.rejects(workbookBuffer([], directoryMeta(0, [])), /no contiene empresas/u);
+  await assert.rejects(
+    workbookBuffer(workbookRows, { ...directoryMeta(2, workbookRows), redistributable: false }),
+    /redistribución no está autorizada/u,
+  );
 });
