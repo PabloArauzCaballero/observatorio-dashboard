@@ -25,32 +25,32 @@ function Panorama({ board }: { board: RoadTransportBoard }) {
   return (
     <>
       <div className="stat-strip">
-        <div>
+        <div className="stat">
           <span className="stat-label">Parque automotor {board.summary.latestYear}</span>
           <span className="stat-value">{count(board.summary.latestFleet)}</span>
           <span className="stat-hint">vehículos registrados · preliminar</span>
         </div>
-        <div>
+        <div className="stat">
           <span className="stat-label">Desde {board.summary.firstYear}</span>
           <span className="stat-value">+{pct(board.summary.growthPercent)}</span>
           <span className="stat-hint">base: {count(board.summary.firstFleet)}</span>
         </div>
-        <div>
+        <div className="stat">
           <span className="stat-label">Servicio público</span>
           <span className="stat-value">{count(board.summary.publicFleet)}</span>
           <span className="stat-hint">todos los tipos</span>
         </div>
-        <div>
+        <div className="stat">
           <span className="stat-label">Bus + micro + minibús público</span>
           <span className="stat-value">{count(board.summary.publicPassengerFleet)}</span>
           <span className="stat-hint">detalle {board.summary.latestYear}</span>
         </div>
-        <div>
+        <div className="stat">
           <span className="stat-label">Conversiones GNV</span>
           <span className="stat-value">{count(board.summary.gnvConversions)}</span>
           <span className="stat-hint">último año publicado</span>
         </div>
-        <div>
+        <div className="stat">
           <span className="stat-label">Cilindros recalificados</span>
           <span className="stat-value">{count(board.summary.gnvRequalifications)}</span>
           <span className="stat-hint">último año publicado</span>

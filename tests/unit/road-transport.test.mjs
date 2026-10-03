@@ -153,3 +153,16 @@ test('database readings win while an empty category is filled from the bundled s
     fares: fallback.fares,
   });
 });
+
+test('panorama gives every headline metric its responsive stat card', async () => {
+  const source = await readFile(
+    new URL('../../src/components/road-transport-explorer.tsx', import.meta.url),
+    'utf8',
+  );
+  const panorama = source.slice(
+    source.indexOf('function Panorama'),
+    source.indexOf('function Departments'),
+  );
+
+  assert.equal((panorama.match(/<div className="stat">/gu) ?? []).length, 6);
+});
