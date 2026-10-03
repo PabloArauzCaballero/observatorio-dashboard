@@ -7313,9 +7313,171 @@ button.download-btn {
   background: var(--series-1);
 }
 
+/* El atlas de calles: muchos datos, pero en capas para no convertir la tabla
+   principal en una pared. Los indicadores quedan a la vista; las seis
+   distribuciones se abren cuando el lector necesita profundizar. */
+.street-data {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s2);
+}
+
+.street-filter-grid {
+  display: grid;
+  grid-template-columns: minmax(230px, 1.4fr) repeat(3, minmax(160px, 1fr));
+  gap: var(--s2);
+  align-items: end;
+  padding: var(--s2);
+  border: 1px solid var(--rule);
+  border-radius: var(--radius);
+  background: var(--panel-tint);
+}
+
+.street-filter-group,
+.street-filter-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  min-width: 0;
+}
+
+.street-filter-label,
+.street-filter-field > span {
+  font-size: 0.68rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+}
+
+.street-filter-field select {
+  width: 100%;
+  min-height: 2.15rem;
+  padding: 0.38rem 0.55rem;
+  border: 1px solid var(--rule);
+  border-radius: 8px;
+  background: var(--panel);
+  color: var(--ink);
+  font: inherit;
+  font-size: 0.78rem;
+}
+
+.street-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--s1);
+}
+
+.street-actions > .stat-hint {
+  margin-right: auto;
+}
+
+.street-actions .download-btn:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+.street-stat-strip {
+  grid-template-columns: repeat(auto-fit, minmax(min(175px, 100%), 1fr));
+}
+
+.street-insights {
+  border: 1px solid var(--rule);
+  border-radius: var(--radius);
+  background: var(--panel-tint);
+  overflow: hidden;
+}
+
+.street-insights > summary {
+  cursor: pointer;
+  padding: var(--s2) var(--s3);
+  font-weight: 650;
+  color: var(--ink);
+}
+
+.street-insights[open] > summary {
+  border-bottom: 1px solid var(--rule);
+}
+
+.street-insights > .panel-sub {
+  padding: 0 var(--s3);
+}
+
+.street-breakdowns {
+  padding: 0 var(--s3) var(--s3);
+}
+
+.street-breakdown-card {
+  min-width: 0;
+  padding: var(--s2);
+  border: 1px solid var(--rule-soft);
+  border-radius: var(--radius);
+  background: var(--panel);
+}
+
+.street-breakdown-card h4 {
+  margin: 0 0 0.2rem;
+  font-size: 0.88rem;
+}
+
+.street-breakdown-card .stat-hint {
+  display: block;
+  min-height: 2em;
+  margin-bottom: var(--s1);
+}
+
+.street-breakdown-data {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.street-method-note {
+  margin: 0;
+}
+
+.street-table {
+  min-width: 1260px;
+}
+
+.street-table td:first-child {
+  min-width: 190px;
+}
+
+.street-proper-name {
+  display: block;
+  margin-top: 0.15rem;
+}
+
 /* En un teléfono el pager, dentro del relleno del panel, no cabía: «Siguientes»
    salía por el borde. Más apretado y con el rango en su propia línea. */
+@media (max-width: 980px) {
+  .street-filter-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
 @media (max-width: 640px) {
+  .street-filter-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .street-actions {
+    align-items: stretch;
+  }
+
+  .street-actions .download-btn {
+    justify-content: center;
+    width: 100%;
+  }
+
   .roads-routes .pager {
     flex-wrap: wrap;
     justify-content: space-between;
