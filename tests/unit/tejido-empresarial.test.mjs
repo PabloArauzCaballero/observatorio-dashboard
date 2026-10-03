@@ -112,6 +112,93 @@ test('el patrimonio del balance publicado alimenta la estimación aunque no haya
   assert.equal(luis.holdings[0].sector, 'Bancos');
 });
 
+test('el tablero conserva los nombres y arma el podio y la trayectoria histórica de cada empresario', () => {
+  const stake = (holder, name, company) =>
+    point(
+      `OWNER_STAKE_${holder}_${company}`,
+      2023,
+      100,
+      `${name}: participación en ${company} {tipo=persona; titular=${holder}; empresa=${company}}`,
+      'PERCENT',
+    );
+  const equity = (company, companyName, year, value) =>
+    point(
+      `OWNER_EQUITY_${company}`,
+      year,
+      value,
+      `${companyName}: patrimonio {empresa=${company}; sector=Industria}`,
+      'MILLION_BOB',
+    );
+
+  const board = buildOwnersBoard([], [
+    stake('ANA_PEREZ', 'Ana Pérez', 'EMPRESA_A'),
+    stake('LUIS_ROJAS', 'Luis Rojas', 'EMPRESA_B'),
+    stake('CARLA_SUAREZ', 'Carla Suárez', 'EMPRESA_C'),
+    equity('EMPRESA_A', 'Empresa A', 2023, 696),
+    equity('EMPRESA_A', 'Empresa A', 2024, 348),
+    equity('EMPRESA_B', 'Empresa B', 2023, 556.8),
+    equity('EMPRESA_B', 'Empresa B', 2024, 1113.6),
+    equity('EMPRESA_C', 'Empresa C', 2023, 417.6),
+    equity('EMPRESA_C', 'Empresa C', 2024, 835.2),
+  ]);
+
+  assert.deepEqual(
+    board.podiums.map((podium) => [podium.year, podium.population, podium.places.map((place) => [place.rank, place.name])]),
+    [
+      [2023, 3, [[1, 'Ana Pérez'], [2, 'Luis Rojas'], [3, 'Carla Suárez']]],
+      [2024, 3, [[1, 'Luis Rojas'], [2, 'Carla Suárez'], [3, 'Ana Pérez']]],
+    ],
+  );
+  const ana = board.histories.find((history) => history.person === 'ANA_PEREZ');
+  assert.deepEqual(
+    {
+      name: ana?.name,
+      firstYear: ana?.firstYear,
+      latestYear: ana?.latestYear,
+      bestRank: ana?.bestRank,
+      podiumYears: ana?.podiumYears,
+      peak: ana?.peak,
+      years: ana?.years.map((year) => [year.year, year.rank, year.population, year.leadingHolding]),
+      mainHoldings: ana?.mainHoldings,
+    },
+    {
+      name: 'Ana Pérez',
+      firstYear: 2023,
+      latestYear: 2024,
+      bestRank: 1,
+      podiumYears: [2023, 2024],
+      peak: { year: 2023, rank: 1, book: 100, market: null },
+      years: [[2023, 1, 3, 'Empresa A'], [2024, 3, 3, 'Empresa A']],
+      mainHoldings: [{
+        company: 'EMPRESA_A',
+        name: 'Empresa A',
+        firstYear: 2023,
+        latestYear: 2024,
+        peakYear: 2023,
+        peakBook: 100,
+        latestStake: 100,
+        estimateYears: [2023, 2024],
+      }],
+    },
+  );
+});
+
+test('el historial de empresas enumera las gestiones disponibles sin inventar un período continuo', () => {
+  const board = buildOwnersBoard([], [
+    point(
+      'OWNER_STAKE_ANA_EMPRESA_A',
+      2021,
+      100,
+      'Ana Pérez: participación en Empresa A {tipo=persona; titular=ANA; empresa=EMPRESA_A}',
+      'PERCENT',
+    ),
+    point('OWNER_EQUITY_EMPRESA_A', 2021, 696, 'Empresa A: patrimonio {empresa=EMPRESA_A}', 'MILLION_BOB'),
+    point('OWNER_EQUITY_EMPRESA_A', 2024, 835.2, 'Empresa A: patrimonio {empresa=EMPRESA_A}', 'MILLION_BOB'),
+  ]);
+
+  assert.deepEqual(board.histories[0]?.mainHoldings[0]?.estimateYears, [2021, 2024]);
+});
+
 test('el padrón nombra cada fila por su categoría, no por la medida que sigue a los dos puntos', () => {
   // Los nombres reales de la semilla: «<categoría>: participación en el padrón».
   const board = buildFabricBoard([

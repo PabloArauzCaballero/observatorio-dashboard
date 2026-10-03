@@ -104,8 +104,54 @@ export interface PublishedFortune {
   points: Array<{ year: number; value: number }>;
 }
 
+export interface OwnerYearHistory {
+  year: number;
+  rank: number;
+  /** Cantidad de personas con una estimación calculable ese año. */
+  population: number;
+  book: number;
+  market: number | null;
+  leadingHolding: string;
+}
+
+export interface OwnerHistory {
+  person: string;
+  name: string;
+  firstYear: number;
+  latestYear: number;
+  bestRank: number;
+  podiumYears: number[];
+  peak: { year: number; rank: number; book: number; market: number | null };
+  years: OwnerYearHistory[];
+  mainHoldings: Array<{
+    company: string;
+    name: string;
+    firstYear: number;
+    latestYear: number;
+    peakYear: number;
+    peakBook: number;
+    latestStake: number;
+    estimateYears: number[];
+  }>;
+}
+
+export interface OwnerPodium {
+  year: number;
+  /** Universo comparable: personas con un piso calculable en la gestión. */
+  population: number;
+  places: Array<{
+    person: string;
+    name: string;
+    rank: number;
+    book: number;
+    market: number | null;
+  }>;
+}
+
 export interface OwnersBoard {
   estimates: OwnerEstimate[];
+  histories: OwnerHistory[];
+  podiums: OwnerPodium[];
   stakes: Stake[];
   forbes: PublishedFortune[];
   /** Impuesto a las Grandes Fortunas: cuántos lo pagan y cuánto. */
@@ -148,7 +194,7 @@ const toUsdMillions = (value: number, unit: string): number => {
 };
 
 export function buildOwnersBoard(ranking: readonly MacroPoint[], fortunes: readonly MacroPoint[]): OwnersBoard {
-  const board: OwnersBoard = { estimates: [], stakes: [], forbes: [], wealthTax: [], benchmarks: [], coverage: { withOwners: 0, withEquity: 0, people: 0 }, sources: {} };
+  const board: OwnersBoard = { estimates: [], histories: [], podiums: [], stakes: [], forbes: [], wealthTax: [], benchmarks: [], coverage: { withOwners: 0, withEquity: 0, people: 0 }, sources: {} };
   const equity = new Map<string, Map<number, number>>();
   const sectors = new Map<string, string>();
   const names = new Map<string, string>();
@@ -301,6 +347,89 @@ export function buildOwnersBoard(ranking: readonly MacroPoint[], fortunes: reado
       board.estimates.push({ person, name, year, book, market, holdings: holdings.sort((a, b) => b.book - a.book) });
     }
   }
+
+  const rankedByYear = new Map<number, OwnerEstimate[]>();
+  for (const estimate of board.estimates) {
+    const rows = rankedByYear.get(estimate.year) ?? [];
+    rows.push(estimate);
+    rankedByYear.set(estimate.year, rows);
+  }
+  for (const rows of rankedByYear.values()) {
+    rows.sort((left, right) => right.book - left.book || left.name.localeCompare(right.name, 'es'));
+  }
+  board.podiums = [...rankedByYear.entries()]
+    .sort(([left], [right]) => left - right)
+    .map(([year, rows]) => ({
+      year,
+      population: rows.length,
+      places: rows.slice(0, 3).map((estimate, index) => ({
+        person: estimate.person,
+        name: estimate.name,
+        rank: index + 1,
+        book: estimate.book,
+        market: estimate.market,
+      })),
+    }));
+
+  const histories = new Map<string, { name: string; years: OwnerYearHistory[] }>();
+  for (const [year, rows] of rankedByYear) {
+    rows.forEach((estimate, index) => {
+      const history = histories.get(estimate.person) ?? { name: estimate.name, years: [] };
+      history.years.push({
+        year,
+        rank: index + 1,
+        population: rows.length,
+        book: estimate.book,
+        market: estimate.market,
+        leadingHolding: estimate.holdings[0]?.name ?? '—',
+      });
+      histories.set(estimate.person, history);
+    });
+  }
+  board.histories = [...histories.entries()]
+    .map(([person, history]) => {
+      const years = history.years.sort((left, right) => left.year - right.year);
+      const peak = [...years].sort((left, right) => right.book - left.book || right.year - left.year)[0]!;
+      const holdingHistory = new Map<string, OwnerHistory['mainHoldings'][number]>();
+      for (const estimate of board.estimates.filter((row) => row.person === person).sort((left, right) => left.year - right.year)) {
+        for (const holding of estimate.holdings) {
+          const current = holdingHistory.get(holding.company);
+          if (!current) {
+            holdingHistory.set(holding.company, {
+              company: holding.company,
+              name: holding.name,
+              firstYear: estimate.year,
+              latestYear: estimate.year,
+              peakYear: estimate.year,
+              peakBook: holding.book,
+              latestStake: holding.stake,
+              estimateYears: [estimate.year],
+            });
+            continue;
+          }
+          current.latestYear = estimate.year;
+          current.latestStake = holding.stake;
+          if (!current.estimateYears.includes(estimate.year)) current.estimateYears.push(estimate.year);
+          if (holding.book > current.peakBook) {
+            current.peakBook = holding.book;
+            current.peakYear = estimate.year;
+          }
+        }
+      }
+      return {
+        person,
+        name: history.name,
+        firstYear: years[0]!.year,
+        latestYear: years.at(-1)!.year,
+        bestRank: Math.min(...years.map((row) => row.rank)),
+        podiumYears: years.filter((row) => row.rank <= 3).map((row) => row.year),
+        peak: { year: peak.year, rank: peak.rank, book: peak.book, market: peak.market },
+        years,
+        mainHoldings: [...holdingHistory.values()].sort((left, right) => right.peakBook - left.peakBook || left.name.localeCompare(right.name, 'es')),
+      };
+    })
+    .sort((left, right) => left.bestRank - right.bestRank || right.peak.book - left.peak.book || left.name.localeCompare(right.name, 'es'));
+
   board.coverage = {
     withOwners: new Set(board.stakes.map((one) => one.company)).size,
     withEquity: equity.size,
