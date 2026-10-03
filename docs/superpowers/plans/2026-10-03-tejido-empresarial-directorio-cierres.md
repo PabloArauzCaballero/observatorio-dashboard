@@ -44,7 +44,7 @@
 
 - [ ] **Step 1: Write the failing parser and series tests**
 
-Probar con filas literales que 2022 produce total `2491`, que 2023 produce total `3945` y departamentos como La Paz `1299`, y que un desglose cuya suma no coincide con el total es rechazado.
+Probar con filas literales que 2022 produce el total consistente `3339` (gráfico nacional y suma de nueve departamentos; la frase `2491` es una errata interna documentada), que 2023 produce total `3945` y departamentos como La Paz `1299`, y que un desglose cuya suma no coincide con el total es rechazado.
 
 - [ ] **Step 2: Run tests to verify RED**
 
