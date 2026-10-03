@@ -9,7 +9,7 @@
  * Puro, como `alcance.ts`, para poder probarlo sin levantar nada.
  */
 
-export const GUIA_VERSION = 'guia-tablero-v2-2026-09-27';
+export const GUIA_VERSION = 'guia-tablero-v3-2026-10-03';
 
 /** Las ocho pestañas, con el rótulo exacto del botón. */
 export const PESTANAS = [
@@ -59,8 +59,8 @@ export const GUIA: readonly EntradaGuia[] = [
   },
   {
     pestana: 'Transporte',
-    que: 'Tres páginas: «Carreteras» (la red vial por ruta, rodadura y departamento, con la longitud oficial del INE por red y departamento), «Ferrocarriles» (la Red Andina, la Oriental y el tren de Cochabamba, sus estaciones y la carga y pasajeros del INE) y «Ríos y puertos» (hidrovías, ríos navegables, cruces en transbordador y puertos).',
-    como: 'En cada página filtrá por departamento y por red, estado o navegabilidad; el mapa, las cifras y la tabla cambian juntos, y un clic en una ruta, línea o río la aísla.',
+    que: 'Seis páginas: «Automotor» (parque 2003–2025, servicio, clase, capacidad y GNV), «Pasajes» (tarifarios ATT de 2013 y 2025 por ruta y tipo de asiento), «Carreteras», «Ferrocarriles», «Ríos y puertos» y «Fletes» (histórico boliviano de aduana, índices internacionales y referencias nacionales documentadas).',
+    como: 'En «Pasajes» elegí el tarifario y buscá origen o destino. En «Fletes» la vista inicial muestra el histórico boliviano; los filtros permiten comparar otras familias sin mezclar unidades. En las páginas de infraestructura filtrá por departamento y red.',
   },
   {
     pestana: 'Prensa',
@@ -122,7 +122,7 @@ export const DESTINO_DE_PAQUETE: Record<string, Destino> = {
   COMERCIO: { pestana: 'Macroeconomía', pagina: 'Comercio exterior' },
   EMPRESAS: { pestana: 'Empresas', pagina: 'Bolsa de valores (BBV)' },
   CIUDADES: { pestana: 'Ciudades' },
-  CARRETERAS: { pestana: 'Transporte', pagina: 'Automotor y pasajes' },
+  CARRETERAS: { pestana: 'Transporte', pagina: 'Pasajes' },
   PRENSA: { pestana: 'Prensa', pagina: 'Cobertura' },
   METODO: { pestana: 'Método' },
 };
@@ -168,7 +168,7 @@ export const RUTA_DE_PAQUETE: Record<string, string> = {
   COMERCIO: '«Macroeconomía» › «Comercio exterior»',
   EMPRESAS: '«Empresas» › «Bolsa de valores (BBV)» y «Reputación empresarial»',
   CIUDADES: '«Ciudades»',
-  CARRETERAS: '«Transporte» › «Automotor y pasajes»',
+  CARRETERAS: '«Transporte» › «Pasajes»',
   PRENSA: '«Prensa» › «Cobertura»',
   METODO: '«Método»',
 };

@@ -7,6 +7,7 @@ import { SubTabs } from './tabs';
 import { WaterwaysExplorer } from './waterways-explorer';
 import { RoadTransportSection } from './road-transport-section';
 import { FreightSection } from './freight-section';
+import { FaresSection } from './fares-section';
 import type { RailBoard, WaterBoard } from '@/lib/transport-board';
 
 /**
@@ -19,11 +20,12 @@ import type { RailBoard, WaterBoard } from '@/lib/transport-board';
 export function TransportSection() {
   return (
     <SubTabs
-      labels={['Automotor y pasajes', 'Carreteras', 'Ferrocarriles', 'Ríos y puertos', 'Fletes']}
-      icons={['camion', 'mapa', 'linea', 'gota', 'cajas']}
+      labels={['Automotor', 'Pasajes', 'Carreteras', 'Ferrocarriles', 'Ríos y puertos', 'Fletes']}
+      icons={['camion', 'etiqueta', 'mapa', 'linea', 'gota', 'cajas']}
       enlace
     >
       <RoadTransportSection />
+      <FaresSection />
       <RoadsSection />
       <RailSection />
       <WaterwaysSection />

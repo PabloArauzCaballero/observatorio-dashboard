@@ -6,7 +6,7 @@ import type { RoadTransportBoard } from '@/lib/road-transport-board';
 
 export function RoadTransportSection() {
   const { payload, failed } = useOnOpen<{ board: RoadTransportBoard }>('/api/transporte-terrestre');
-  if (!payload) return <OnOpenNotice what="el parque automotor y los pasajes" failed={failed} />;
+  if (!payload) return <OnOpenNotice what="el parque automotor" failed={failed} />;
   if (!payload.board.fleet.length)
     return (
       <div className="callout">

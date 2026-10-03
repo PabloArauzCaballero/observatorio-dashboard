@@ -1,10 +1,10 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useState } from 'react';
 import { SeriesChart } from './charts';
 import { Download } from './download';
 import { SubTabs } from './tabs';
-import type { FareBand, FleetPoint } from '@/lib/transport';
+import type { FleetPoint } from '@/lib/transport';
 import type { RoadTransportBoard } from '@/lib/road-transport-board';
 
 const count = (value: number | null): string =>
@@ -12,8 +12,6 @@ const count = (value: number | null): string =>
 const pct = (value: number | null): string =>
   value === null ? '—' : `${value.toLocaleString('es-BO', { maximumFractionDigits: 1 })} %`;
 const label = (value: string | null): string => (value ?? 'TOTAL').replaceAll('_', ' ');
-const fare = (min: number | null, max: number | null): string =>
-  min === null || max === null ? '—' : `Bs ${min}–${max}`;
 
 function Panorama({ board }: { board: RoadTransportBoard }) {
   const series = board.fleet.filter(
@@ -292,78 +290,6 @@ function CapacityGnv({ board }: { board: RoadTransportBoard }) {
   );
 }
 
-function Fares({ fares }: { fares: FareBand[] }) {
-  const [regulation, setRegulation] = useState<FareBand['regulation']>('ATT_0032_2025');
-  const [query, setQuery] = useState('');
-  const shown = useMemo(
-    () =>
-      fares.filter(
-        (band) =>
-          band.regulation === regulation &&
-          `${band.origin} ${band.destination}`.toLowerCase().includes(query.toLowerCase()),
-      ),
-    [fares, regulation, query],
-  );
-  return (
-    <div className="panel">
-      <div className="panel-head">
-        <h3>Pasajes interdepartamentales por ruta</h3>
-        <p className="panel-sub">
-          Bandas mínima/máxima de normal, semicama y cama. “—” significa no publicado, no cero.
-        </p>
-      </div>
-      <div className="chips">
-        <select
-          value={regulation}
-          onChange={(event) => setRegulation(event.target.value as FareBand['regulation'])}
-        >
-          <option value="ATT_0032_2025">ATT 32/2025 · 30 rutas</option>
-          <option value="ATT_0178_2013">ATT 178/2013 · histórico</option>
-        </select>
-        <input
-          aria-label="Buscar ruta"
-          placeholder="Buscar origen o destino"
-          value={query}
-          onChange={(event) => setQuery(event.target.value)}
-        />
-      </div>
-      {regulation === 'ATT_0032_2025' ? (
-        <div className="callout">
-          La resolución fijó aplicación del 2 de enero al 30 de junio de 2026. La ATT aún la
-          mostraba al recuperar su pizarra; se exponen ambas fechas sin presumir una vigencia
-          posterior.
-        </div>
-      ) : null}
-      <div className="table-wrap">
-        <table>
-          <thead>
-            <tr>
-              <th>Ruta</th>
-              <th>Vía</th>
-              <th>Normal</th>
-              <th>Semicama</th>
-              <th>Cama</th>
-            </tr>
-          </thead>
-          <tbody>
-            {shown.map((band) => (
-              <tr key={`${band.origin}-${band.destination}-${band.road}`}>
-                <th>
-                  {label(band.origin)} → {label(band.destination)}
-                </th>
-                <td>{label(band.road)}</td>
-                <td>{fare(band.normalMin, band.normalMax)}</td>
-                <td>{fare(band.semicamaMin, band.semicamaMax)}</td>
-                <td>{fare(band.camaMin, band.camaMax)}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-    </div>
-  );
-}
-
 function Sources({ board }: { board: RoadTransportBoard }) {
   return (
     <div className="panel">
@@ -413,10 +339,9 @@ export function RoadTransportExplorer({ board }: { board: RoadTransportBoard }) 
     <>
       <div className="panel">
         <div className="panel-head">
-          <h2>Transporte automotor y pasajes de Bolivia</h2>
+          <h2>Transporte automotor de Bolivia</h2>
           <p className="panel-sub">
-            Parque 2003–2025, servicios, clases, buses, micros, minibuses, capacidad, GNV y tarifas
-            oficiales.
+            Parque 2003–2025, servicios, clases, buses, micros, minibuses, capacidad y GNV.
           </p>
         </div>
         <Download dataset="transporte-terrestre" label="Descargar todo el dato terrestre" />
@@ -427,16 +352,14 @@ export function RoadTransportExplorer({ board }: { board: RoadTransportBoard }) 
           'Departamentos',
           'Clases y micros',
           'Capacidad y GNV',
-          'Pasajes',
           'Fuentes',
         ]}
-        icons={['linea', 'mapa', 'camion', 'cajas', 'etiqueta', 'hoja']}
+        icons={['linea', 'mapa', 'camion', 'cajas', 'hoja']}
       >
         <Panorama board={board} />
         <Departments fleet={board.fleet} />
         <Classes fleet={board.fleet} />
         <CapacityGnv board={board} />
-        <Fares fares={board.fares} />
         <Sources board={board} />
       </SubTabs>
     </>

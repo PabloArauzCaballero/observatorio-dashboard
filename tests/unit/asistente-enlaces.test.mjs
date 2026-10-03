@@ -55,6 +55,13 @@ test('los enlaces no se repiten y siguen el orden del tablero', () => {
   assert.deepEqual(enlacesPara(['GUIA']), []);
 });
 
+test('el asistente manda las consultas de transporte al histórico visible de pasajes', () => {
+  assert.deepEqual(DESTINO_DE_PAQUETE.CARRETERAS, {
+    pestana: 'Transporte',
+    pagina: 'Pasajes',
+  });
+});
+
 test('la tabla recorta, completa celdas y dice el recorte en el título', () => {
   assert.equal(tabla('x', 'Vacía', ['a'], [[null], ['']], 'F'), undefined, 'sin filas con datos no hay tabla');
   const t = tabla('x', 'Larga', ['a', 'b'], Array.from({ length: MAX_FILAS + 5 }, (_, i) => [i]), 'F');

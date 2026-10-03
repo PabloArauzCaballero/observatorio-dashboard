@@ -166,3 +166,25 @@ test('panorama gives every headline metric its responsive stat card', async () =
 
   assert.equal((panorama.match(/<div className="stat">/gu) ?? []).length, 6);
 });
+
+test('pasajes es una página principal de transporte con ambos tarifarios oficiales', async () => {
+  const transport = await readFile(
+    new URL('../../src/components/transport-section.tsx', import.meta.url),
+    'utf8',
+  );
+  const road = await readFile(
+    new URL('../../src/components/road-transport-explorer.tsx', import.meta.url),
+    'utf8',
+  );
+  const fares = await readFile(
+    new URL('../../src/components/fares-explorer.tsx', import.meta.url),
+    'utf8',
+  );
+
+  assert.match(transport, /labels=\{\['Automotor', 'Pasajes', 'Carreteras'/u);
+  assert.match(transport, /<FaresSection \/>/u);
+  assert.doesNotMatch(road, /'Pasajes'/u);
+  assert.match(fares, /ATT_0032_2025/u);
+  assert.match(fares, /ATT_0178_2013/u);
+  assert.match(fares, /Pasajes interdepartamentales por ruta/u);
+});
