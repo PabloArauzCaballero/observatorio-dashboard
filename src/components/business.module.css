@@ -409,6 +409,35 @@ button.rankingName:focus-visible {
   justify-content: space-between;
 }
 
+.historyPicker {
+  scroll-margin-top: 1rem;
+}
+
+.historyChooser {
+  align-items: end;
+  display: flex;
+  gap: 1rem;
+  justify-content: space-between;
+  margin-bottom: 1rem;
+}
+
+.historyChooser h2,
+.historyChooser p {
+  margin: 0.2rem 0 0;
+}
+
+.historyChooser label {
+  display: grid;
+  font-size: 0.78rem;
+  font-weight: 700;
+  gap: 0.35rem;
+  min-width: min(100%, 22rem);
+}
+
+.historyChooser select {
+  width: 100%;
+}
+
 .profileHead h3 {
   font-size: clamp(1.25rem, 2.5vw, 1.75rem);
   margin: 0.15rem 0 0.25rem;
@@ -508,6 +537,11 @@ button.rankingName:focus-visible {
   }
 
   .profileHead {
+    flex-direction: column;
+  }
+
+  .historyChooser {
+    align-items: stretch;
     flex-direction: column;
   }
 

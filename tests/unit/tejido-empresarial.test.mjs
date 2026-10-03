@@ -7,6 +7,7 @@
  * Correr con: node --test tests/unit/
  */
 import assert from 'node:assert/strict';
+import { readFile } from 'node:fs/promises';
 import { test } from 'node:test';
 
 import {
@@ -365,4 +366,25 @@ test('los cierres recientes oficiales completan una copia anual todavía rezagad
       [2022, 3339],
     ],
   );
+});
+
+test('la ficha histórica de empresarios abre con nombre visible antes del podio', async () => {
+  const source = await readFile(
+    new URL('../../src/components/business-owners-explorer.tsx', import.meta.url),
+    'utf8',
+  );
+  const historySource = await readFile(
+    new URL('../../src/components/business-owner-history.tsx', import.meta.url),
+    'utf8',
+  );
+
+  assert.match(source, /const initialOwner = latestEstimate\?\.person \?\?/u);
+  assert.match(historySource, /aria-label="Empresario con historial"/u);
+  assert.match(historySource, /className=\{`panel \$\{styles\.historyPicker\}`\}/u);
+  assert.ok(
+    source.indexOf('<BusinessOwnerHistory') <
+      source.indexOf('Podio histórico de estimaciones documentables'),
+    'el selector y la ficha deben aparecer antes del podio histórico',
+  );
+  assert.doesNotMatch(source, /current === row\.key \? null : row\.key/u);
 });
