@@ -34,9 +34,17 @@ export const FORMS: ReadonlyArray<{ key: string; label: string; short: string }>
   { key: 'COLECTIVA', label: 'Sociedad colectiva', short: 'Colectiva' },
   { key: 'SAM', label: 'Sociedad anónima mixta', short: 'SAM' },
   { key: 'COMANDITA_SIMPLE', label: 'Sociedad en comandita simple', short: 'Comandita simple' },
-  { key: 'COMANDITA_ACCIONES', label: 'Sociedad en comandita por acciones', short: 'Comandita por acciones' },
+  {
+    key: 'COMANDITA_ACCIONES',
+    label: 'Sociedad en comandita por acciones',
+    short: 'Comandita por acciones',
+  },
   { key: 'EFV', label: 'Entidad financiera de vivienda', short: 'EFV' },
-  { key: 'PUBLICA_DEPARTAMENTAL', label: 'Empresa pública departamental mixta', short: 'Pública dptal.' },
+  {
+    key: 'PUBLICA_DEPARTAMENTAL',
+    label: 'Empresa pública departamental mixta',
+    short: 'Pública dptal.',
+  },
 ];
 
 export const ACTIVITIES: ReadonlyArray<{ key: string; label: string }> = [
@@ -66,6 +74,14 @@ export type FirmMeasure = 'STOCK' | 'NEW' | 'RENEWED' | 'CANCELLED' | 'ACTIVE';
 /** Por qué se abre: el total de un lugar, su tipo societario o su actividad. */
 export type FirmDimension = 'TOTAL' | 'FORM' | 'CIIU';
 
+export const FIRM_MEASURES: ReadonlyArray<{ value: FirmMeasure; label: string; noun: string }> = [
+  { value: 'STOCK', label: 'Vigentes', noun: 'empresas con matrícula vigente' },
+  { value: 'NEW', label: 'Inscripciones', noun: 'empresas inscritas en el año' },
+  { value: 'RENEWED', label: 'Renovaciones', noun: 'matrículas renovadas en el año' },
+  { value: 'CANCELLED', label: 'Cierres', noun: 'matrículas canceladas en el año' },
+  { value: 'ACTIVE', label: 'Activas', noun: 'empresas activas' },
+];
+
 /** Una cifra del registro de comercio. */
 export interface FirmCount {
   measure: FirmMeasure;
@@ -74,6 +90,72 @@ export interface FirmCount {
   key: string;
   year: number;
   count: number;
+}
+
+/** Serie continua de cierres; un año no publicado queda ausente, nunca en cero. */
+export function buildClosureSeries(
+  firms: readonly FirmCount[],
+  place: string,
+): Array<{ year: number; count: number | null }> {
+  const available = firms
+    .filter(
+      (row) => row.measure === 'CANCELLED' && row.place === place && row.dimension === 'TOTAL',
+    )
+    .sort((left, right) => left.year - right.year);
+  const first = available[0]?.year;
+  const last = available.at(-1)?.year;
+  if (first === undefined || last === undefined) return [];
+  const values = new Map(available.map((row) => [row.year, row.count]));
+  return Array.from({ length: last - first + 1 }, (_, index) => {
+    const year = first + index;
+    return { year, count: values.get(year) ?? null };
+  });
+}
+
+const RECENT_OFFICIAL_CLOSURES: ReadonlyArray<{
+  year: number;
+  count: number;
+  sourceUrl: string;
+}> = [
+  {
+    year: 2022,
+    count: 3339,
+    sourceUrl: 'https://www.seprec.gob.bo/wp-content/uploads/2024/12/Memoria-Anual-2-2022.pdf',
+  },
+  {
+    year: 2023,
+    count: 3945,
+    sourceUrl: 'https://www.seprec.gob.bo/wp-content/uploads/2025/10/Memoria_ANUAL-2023.pdf',
+  },
+];
+
+/**
+ * Completa la copia anual mientras la siembra del núcleo reconstruye su vista materializada.
+ * Las filas que ya llegaron de la base prevalecen, de modo que el respaldo no duplica ni
+ * reemplaza una lectura publicada por el núcleo.
+ */
+export function withOfficialRecentClosures(points: readonly MacroPoint[]): MacroPoint[] {
+  const code = 'FIRMS_CANCELLED_TOTAL_BOLIVIA';
+  const existing = new Set(
+    points.filter((point) => point.indicatorCode === code).map((point) => point.period),
+  );
+  return [
+    ...points,
+    ...RECENT_OFFICIAL_CLOSURES.filter(({ year }) => !existing.has(String(year))).map(
+      ({ year, count, sourceUrl }): MacroPoint => ({
+        indicatorCode: code,
+        name: 'Bolivia: matrículas canceladas',
+        sector: 'TEJIDO_EMPRESARIAL',
+        period: String(year),
+        unit: 'COUNT',
+        value: count,
+        previousValue: null,
+        changePercent: null,
+        publisher: 'Servicio Plurinacional de Registro de Comercio (SEPREC)',
+        sourceUrl,
+      }),
+    ),
+  ];
 }
 
 /** Quién encabeza las empresas de un departamento (SEPREC, corte de 2025). */
@@ -128,7 +210,8 @@ export interface FabricBoard {
   sources: Record<string, { publisher: string; url: string | null }>;
 }
 
-const FIRM = /^FIRMS_(STOCK|NEW|RENEWED|CANCELLED|ACTIVE)_(TOTAL|DEPT|FORM|CIIU|DEPTFORM|DEPTCIIU)_(.+)$/u;
+const FIRM =
+  /^FIRMS_(STOCK|NEW|RENEWED|CANCELLED|ACTIVE)_(TOTAL|DEPT|FORM|CIIU|DEPTFORM|DEPTCIIU)_(.+)$/u;
 const OWNER = /^FIRMS_OWNER_(MEN|WOMEN|ADULT|YOUTH)_DEPT_(.+)$/u;
 const SIZE = /^FIRMS_(SIZE|DEPT)_(VIG|ACT)_(.+?)__(.+)$/u;
 const JOBS = /^FIRMS_JOBS_(VIG|ACT)_([A-Z]+)_(.+)_(PERMANENT|TEMPORARY|TOTAL)$/u;
@@ -138,7 +221,12 @@ const ROLL = /^TAXROLL_(ROLL|REVENUE)_PCT_([A-Z]+)_(.+)$/u;
 function labelOf(printed: string | null, fallback: string): string {
   const name = printed ?? fallback;
   const after = name.includes(': ') ? name.slice(name.indexOf(': ') + 2) : name;
-  return after.replace(/\s*\{[^}]*\}\s*$/u, '').split(' · ')[0]?.trim() || fallback;
+  return (
+    after
+      .replace(/\s*\{[^}]*\}\s*$/u, '')
+      .split(' · ')[0]
+      ?.trim() || fallback
+  );
 }
 
 /**
@@ -162,10 +250,14 @@ function firmRow(match: RegExpExecArray, year: number, count: number): FirmCount
   const measure = match[1] as FirmMeasure;
   const kind = match[2] ?? '';
   const rest = match[3] ?? '';
-  if (kind === 'TOTAL') return { measure, place: rest, dimension: 'TOTAL', key: 'TOTAL', year, count };
-  if (kind === 'DEPT') return { measure, place: rest, dimension: 'TOTAL', key: 'TOTAL', year, count };
-  if (kind === 'FORM') return { measure, place: 'BOLIVIA', dimension: 'FORM', key: rest, year, count };
-  if (kind === 'CIIU') return { measure, place: 'BOLIVIA', dimension: 'CIIU', key: rest, year, count };
+  if (kind === 'TOTAL')
+    return { measure, place: rest, dimension: 'TOTAL', key: 'TOTAL', year, count };
+  if (kind === 'DEPT')
+    return { measure, place: rest, dimension: 'TOTAL', key: 'TOTAL', year, count };
+  if (kind === 'FORM')
+    return { measure, place: 'BOLIVIA', dimension: 'FORM', key: rest, year, count };
+  if (kind === 'CIIU')
+    return { measure, place: 'BOLIVIA', dimension: 'CIIU', key: rest, year, count };
   const [place, key] = rest.split('__');
   if (!place || !key) return null;
   return { measure, place, dimension: kind === 'DEPTFORM' ? 'FORM' : 'CIIU', key, year, count };
@@ -193,7 +285,12 @@ export function buildFabricBoard(points: readonly MacroPoint[]): FabricBoard {
 
     const owner = OWNER.exec(code);
     if (owner) {
-      board.owners.push({ place: owner[2] ?? '', kind: owner[1] as OwnerCount['kind'], year, count: point.value });
+      board.owners.push({
+        place: owner[2] ?? '',
+        kind: owner[1] as OwnerCount['kind'],
+        year,
+        count: point.value,
+      });
       continue;
     }
     if (code.startsWith('FIRMS_STOCK_SECTOR_')) {

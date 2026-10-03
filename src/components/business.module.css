@@ -113,6 +113,101 @@
   text-align: right;
 }
 
+.directorySummary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem 1rem;
+  align-items: baseline;
+  color: var(--ink-soft);
+  font-size: 0.82rem;
+  margin-bottom: var(--s2);
+}
+
+.directorySummary strong {
+  color: var(--ink);
+  font-size: 1rem;
+}
+
+.directoryFilters {
+  display: grid;
+  grid-template-columns: minmax(13rem, 2fr) minmax(10rem, 1fr) minmax(10rem, 1fr) auto;
+  gap: var(--s1);
+  align-items: end;
+  margin-bottom: var(--s2);
+}
+
+.directoryFilters label {
+  display: grid;
+  gap: 0.3rem;
+  color: var(--ink-soft);
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.directoryFilters input,
+.directoryFilters select {
+  border: 1px solid var(--rule);
+  border-radius: 8px;
+  background: var(--paper);
+  color: var(--ink);
+  min-height: 2.2rem;
+  padding: 0.42rem 0.55rem;
+  width: 100%;
+}
+
+.wordCloudBlock {
+  border: 1px solid var(--rule-soft);
+  border-radius: 12px;
+  padding: var(--s2);
+  margin-bottom: var(--s2);
+  background: color-mix(in srgb, var(--paper) 94%, var(--official));
+}
+
+.wordCloud {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: center;
+  gap: 0.35rem 0.7rem;
+  min-height: 6rem;
+}
+
+.word,
+.wordOn {
+  border: 0;
+  background: transparent;
+  color: var(--ink-soft);
+  cursor: pointer;
+  font: inherit;
+  font-weight: 650;
+  line-height: 1.2;
+  padding: 0.16rem 0.25rem;
+}
+
+.word:hover,
+.word:focus-visible,
+.wordOn {
+  color: var(--official);
+  text-decoration: underline;
+  text-underline-offset: 0.18rem;
+}
+
+.word small,
+.wordOn small {
+  font-size: 0.58em;
+  font-weight: 500;
+}
+
+.directoryPager {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--s2);
+  margin-top: var(--s2);
+  color: var(--ink-soft);
+  font-size: 0.8rem;
+}
+
 .podiumTable td {
   min-width: 12rem;
   vertical-align: top;
@@ -385,6 +480,14 @@ button.rankingName:focus-visible {
 
   .chain li {
     grid-template-columns: 1fr;
+  }
+
+  .directoryFilters {
+    grid-template-columns: 1fr;
+  }
+
+  .directoryPager {
+    justify-content: space-between;
   }
 
   .rankingRow {
