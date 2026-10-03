@@ -37,8 +37,9 @@ const valueAt = (
   points.find(
     (point) =>
       point.metric === metric &&
+      point.dimension === 'DEPARTMENT_CLASS' &&
       point.department === 'BOLIVIA' &&
-      point.vehicleClass === null &&
+      (point.vehicleClass === 'TOTAL' || point.vehicleClass === null) &&
       point.period === period,
   )?.value ?? null;
 
@@ -65,8 +66,9 @@ export function buildRoadTransportBoard(data: RoadTransportData): RoadTransportB
     data.gnv
       .filter(
         (point) =>
+          point.dimension === 'DEPARTMENT_CLASS' &&
           point.department === 'BOLIVIA' &&
-          point.vehicleClass === null &&
+          (point.vehicleClass === 'TOTAL' || point.vehicleClass === null) &&
           point.period.length === 4,
       )
       .map((point) => point.period)

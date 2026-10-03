@@ -1,6 +1,12 @@
 import 'server-only';
+import roadTransportSeed from '../data/road-transport.json';
 import { pool } from './db';
 import { held } from './hold';
+import {
+  fillRoadTransportGaps,
+  roadTransportFromSeed,
+  type RoadTransportSeed,
+} from './road-transport-fallback';
 
 /**
  * La red ferroviaria y la fluvial que el núcleo lee de OpenStreetMap y del INE.
@@ -123,6 +129,10 @@ export interface RoadTransportData {
   gnv: GnvPoint[];
   fares: FareBand[];
 }
+
+const BUNDLED_ROAD_TRANSPORT = roadTransportFromSeed(
+  roadTransportSeed as unknown as RoadTransportSeed,
+);
 
 /**
  * Un modelo ilegible es un capítulo vacío, nunca un informe que se cae: la
@@ -416,6 +426,6 @@ export function readRoadTransport(): Promise<RoadTransportData> {
         }));
       }),
     ]);
-    return { fleet, gnv, fares };
+    return fillRoadTransportGaps({ fleet, gnv, fares }, BUNDLED_ROAD_TRANSPORT);
   });
 }

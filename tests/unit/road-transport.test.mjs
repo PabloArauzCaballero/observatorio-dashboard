@@ -80,7 +80,7 @@ test('road transport board preserves the historical endpoints and operational de
       metric: 'CONVERSION',
       dimension: 'DEPARTMENT_CLASS',
       department: 'BOLIVIA',
-      vehicleClass: null,
+      vehicleClass: 'TOTAL',
       period: '2025',
       value: 14871,
       preliminary: true,
@@ -90,7 +90,7 @@ test('road transport board preserves the historical endpoints and operational de
       metric: 'CYLINDER_REQUALIFICATION',
       dimension: 'DEPARTMENT_CLASS',
       department: 'BOLIVIA',
-      vehicleClass: null,
+      vehicleClass: 'TOTAL',
       period: '2025',
       value: 21729,
       preliminary: true,
@@ -104,4 +104,52 @@ test('road transport board preserves the historical endpoints and operational de
   assert.equal(board.summary.gnvRequalifications, 21729);
   assert.equal(Math.round(board.summary.growthPercent), 502);
   assert.equal(board.sources.length, 1);
+});
+
+test('bundled road transport fallback carries the complete official snapshot', async () => {
+  const seed = JSON.parse(
+    await readFile(
+      new URL('../../src/data/road-transport.json', import.meta.url),
+      'utf8',
+    ),
+  );
+  const { roadTransportFromSeed } = await loadModule(
+    new URL('../../src/lib/road-transport-fallback.ts', import.meta.url),
+  );
+  const data = roadTransportFromSeed(seed);
+
+  assert.equal(data.fleet.length, 10_969);
+  assert.equal(data.gnv.length, 2_137);
+  assert.equal(data.fares.length, 60);
+  assert.equal(
+    data.fleet.find(
+      (point) =>
+        point.dimension === 'DEPARTMENT_SERVICE' &&
+        point.department === 'BOLIVIA' &&
+        point.service === 'TOTAL' &&
+        point.period === '2025',
+    )?.value,
+    2_672_176,
+  );
+  assert.ok(data.fares.some((fare) => fare.regulation === 'ATT_0032_2025'));
+  assert.ok(data.fleet.every((point) => point.sourceUrl.startsWith('https://')));
+  assert.ok(data.gnv.every((point) => point.evidenceSha256.length === 64));
+});
+
+test('database readings win while an empty category is filled from the bundled snapshot', async () => {
+  const { fillRoadTransportGaps } = await loadModule(
+    new URL('../../src/lib/road-transport-fallback.ts', import.meta.url),
+  );
+  const database = { fleet: [{ period: 'db' }], gnv: [], fares: [] };
+  const fallback = {
+    fleet: [{ period: 'fallback' }],
+    gnv: [{ period: 'gnv-fallback' }],
+    fares: [{ regulation: 'ATT_0032_2025' }],
+  };
+
+  assert.deepEqual(fillRoadTransportGaps(database, fallback), {
+    fleet: database.fleet,
+    gnv: fallback.gnv,
+    fares: fallback.fares,
+  });
 });
