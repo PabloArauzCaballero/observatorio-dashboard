@@ -9,9 +9,10 @@ import { Icon } from './icons';
 import { InfoPopover } from './info-popover';
 import styles from './business.module.css';
 import { BusinessSizePanel } from './business-size-panel';
+import { BusinessDirectoryPanel } from './business-directory-panel';
 import { ANY, additive, picked, toggle, without } from '@/lib/choice';
 import type { Choice } from '@/lib/choice';
-import { ACTIVITIES, FORMS, PLACES } from '@/lib/business-fabric-board';
+import { ACTIVITIES, FIRM_MEASURES, FORMS, PLACES, buildClosureSeries } from '@/lib/business-fabric-board';
 import type { FabricBoard, FirmCount, FirmDimension, FirmMeasure } from '@/lib/business-fabric-board';
 import { downloadCsv } from '@/lib/csv';
 
@@ -30,14 +31,6 @@ import { downloadCsv } from '@/lib/csv';
  * SEPREC porque la cifra de cierre que publica el portal del Ministerio no la
  * reconoce el registro.
  */
-
-const MEASURES: ReadonlyArray<{ value: FirmMeasure; label: string; noun: string }> = [
-  { value: 'STOCK', label: 'Vigentes', noun: 'empresas con matrícula vigente' },
-  { value: 'NEW', label: 'Inscripciones', noun: 'empresas inscritas en el año' },
-  { value: 'RENEWED', label: 'Renovaciones', noun: 'matrículas renovadas en el año' },
-  { value: 'CANCELLED', label: 'Cancelaciones', noun: 'matrículas canceladas en el año' },
-  { value: 'ACTIVE', label: 'Activas', noun: 'empresas activas' },
-];
 
 const MARKS: Record<string, string> = {
   '2013':
@@ -72,7 +65,7 @@ export function BusinessFabricExplorer({ board }: { board: FabricBoard }) {
   const [measure, setMeasure] = useState<FirmMeasure>('STOCK');
   const [mode, setMode] = useState<'count' | 'share'>('count');
 
-  const measures = MEASURES.filter((one) => board.firms.some((row) => row.measure === one.value));
+  const measures = FIRM_MEASURES.filter((one) => board.firms.some((row) => row.measure === one.value));
   const ofMeasure = useMemo(() => board.firms.filter((row) => row.measure === measure), [board, measure]);
   const allYears = useMemo(
     () => [...new Set(ofMeasure.map((row) => row.year))].sort((left, right) => left - right),
@@ -152,7 +145,7 @@ export function BusinessFabricExplorer({ board }: { board: FabricBoard }) {
   const prevTotal = total.get(years.at(-2) ?? -1) ?? null;
   const unipersonal = place === 'BOLIVIA' ? byKey.get('UNIPERSONAL') : cube(ofMeasure.filter((row) => row.place === place && row.dimension === 'FORM')).get('UNIPERSONAL');
   const shareUni = lastTotal && unipersonal?.get(last) ? (unipersonal.get(last)! / lastTotal) * 100 : null;
-  const noun = MEASURES.find((one) => one.value === measure)?.noun ?? 'empresas';
+  const noun = FIRM_MEASURES.find((one) => one.value === measure)?.noun ?? 'empresas';
 
   const growth = visible.map((one) => {
     const start = byKey.get(one.key)?.get(first) ?? null;
@@ -183,12 +176,12 @@ export function BusinessFabricExplorer({ board }: { board: FabricBoard }) {
       })
       .filter((row) => row.value > 0);
 
-  const flowSeries: WorldLineSeries[] = MEASURES.filter((one) => one.value !== 'STOCK' && board.firms.some((row) => row.measure === one.value && row.place === place && row.dimension === 'TOTAL')).map((one, index) => ({
+  const flowSeries: WorldLineSeries[] = FIRM_MEASURES.filter((one) => (one.value === 'NEW' || one.value === 'RENEWED') && board.firms.some((row) => row.measure === one.value && row.place === place && row.dimension === 'TOTAL')).map((one, index) => ({
     key: one.value,
     label: one.label,
     tone: seriesTone(index),
   }));
-  const flowYears = [...new Set(board.firms.filter((row) => row.measure !== 'STOCK' && row.place === place && row.dimension === 'TOTAL').map((row) => row.year))].sort((a, b) => a - b);
+  const flowYears = [...new Set(board.firms.filter((row) => flowSeries.some((series) => series.key === row.measure) && row.place === place && row.dimension === 'TOTAL').map((row) => row.year))].sort((a, b) => a - b);
   const flowData = flowYears.map((year) => {
     const row: Record<string, string | number | null> = { year: String(year) };
     for (const series of flowSeries) {
@@ -196,6 +189,12 @@ export function BusinessFabricExplorer({ board }: { board: FabricBoard }) {
     }
     return row as { year: string; [key: string]: string | number | null };
   });
+  const closures = buildClosureSeries(board.firms, place);
+  const knownClosures = closures.filter((row): row is { year: number; count: number } => row.count !== null);
+  const latestClosure = knownClosures.at(-1) ?? null;
+  const previousClosure = knownClosures.at(-2) ?? null;
+  const closureData = closures.map((row) => ({ year: String(row.year), CANCELLED: row.count }));
+  const closureLines: WorldLineSeries[] = [{ key: 'CANCELLED', label: 'Cierres', tone: seriesTone(2) }];
 
   const reset = (): void => {
     setPlace('BOLIVIA');
@@ -254,6 +253,46 @@ export function BusinessFabricExplorer({ board }: { board: FabricBoard }) {
           </div>
         </div>
       </div>
+
+      {latestClosure ? (
+        <div className="panel">
+          <div className="panel-head">
+            <h2>Cierres empresariales en {placeLabel(place)} (cancelaciones de matrícula)</h2>
+            <p className="panel-sub">
+              Cuenta matrículas de comercio canceladas en cada gestión. No equivale a quiebra, falta de renovación ni
+              cierre operativo: también puede responder a transformación, fusión u otras causas registrales.
+            </p>
+          </div>
+          <div className="stat-strip">
+            <div className="stat">
+              <span className="stat-label">Último dato · {latestClosure.year}</span>
+              <span className="stat-value">{say(latestClosure.count)}</span>
+              <span className="stat-hint">matrículas canceladas</span>
+            </div>
+            <div className="stat">
+              <span className="stat-label">Frente a {previousClosure?.year ?? '—'}</span>
+              <span className="stat-value">
+                {previousClosure ? `${latestClosure.count >= previousClosure.count ? '+' : ''}${say(latestClosure.count - previousClosure.count)}` : '—'}
+              </span>
+              <span className="stat-hint">variación en cantidad</span>
+            </div>
+            <div className="stat">
+              <span className="stat-label">Cobertura</span>
+              <span className="stat-value">{closures[0]?.year}–{latestClosure.year}</span>
+              <span className="stat-hint">los años no publicados quedan vacíos</span>
+            </div>
+          </div>
+          <WorldLines
+            data={closureData}
+            series={closureLines}
+            format={(value) => `${say(value)} cierres`}
+            tick={(value) => (value >= 1000 ? `${say(value / 1000)} mil` : say(value))}
+            countsOnly
+          />
+        </div>
+      ) : null}
+
+      <BusinessDirectoryPanel />
 
       <div className="workspace">
         <aside className="rail" id="tejido-filtros">
@@ -528,7 +567,7 @@ export function BusinessFabricExplorer({ board }: { board: FabricBoard }) {
           {flowSeries.length && flowData.length ? (
             <div className="panel">
               <div className="panel-head">
-                <h2>Movimiento del registro en {placeLabel(place)}: inscripciones, renovaciones y cancelaciones por año (cantidad)</h2>
+                <h2>Movimiento del registro en {placeLabel(place)}: inscripciones y renovaciones por año (cantidad)</h2>
                 <p className="panel-sub">Un año parcial lo dice su fuente; pasa el cursor para ver la cifra.</p>
               </div>
               <WorldLines

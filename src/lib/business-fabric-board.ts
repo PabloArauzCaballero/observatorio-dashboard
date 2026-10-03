@@ -66,6 +66,14 @@ export type FirmMeasure = 'STOCK' | 'NEW' | 'RENEWED' | 'CANCELLED' | 'ACTIVE';
 /** Por qué se abre: el total de un lugar, su tipo societario o su actividad. */
 export type FirmDimension = 'TOTAL' | 'FORM' | 'CIIU';
 
+export const FIRM_MEASURES: ReadonlyArray<{ value: FirmMeasure; label: string; noun: string }> = [
+  { value: 'STOCK', label: 'Vigentes', noun: 'empresas con matrícula vigente' },
+  { value: 'NEW', label: 'Inscripciones', noun: 'empresas inscritas en el año' },
+  { value: 'RENEWED', label: 'Renovaciones', noun: 'matrículas renovadas en el año' },
+  { value: 'CANCELLED', label: 'Cierres', noun: 'matrículas canceladas en el año' },
+  { value: 'ACTIVE', label: 'Activas', noun: 'empresas activas' },
+];
+
 /** Una cifra del registro de comercio. */
 export interface FirmCount {
   measure: FirmMeasure;
@@ -74,6 +82,24 @@ export interface FirmCount {
   key: string;
   year: number;
   count: number;
+}
+
+/** Serie continua de cierres; un año no publicado queda ausente, nunca en cero. */
+export function buildClosureSeries(
+  firms: readonly FirmCount[],
+  place: string,
+): Array<{ year: number; count: number | null }> {
+  const available = firms
+    .filter((row) => row.measure === 'CANCELLED' && row.place === place && row.dimension === 'TOTAL')
+    .sort((left, right) => left.year - right.year);
+  const first = available[0]?.year;
+  const last = available.at(-1)?.year;
+  if (first === undefined || last === undefined) return [];
+  const values = new Map(available.map((row) => [row.year, row.count]));
+  return Array.from({ length: last - first + 1 }, (_, index) => {
+    const year = first + index;
+    return { year, count: values.get(year) ?? null };
+  });
 }
 
 /** Quién encabeza las empresas de un departamento (SEPREC, corte de 2025). */

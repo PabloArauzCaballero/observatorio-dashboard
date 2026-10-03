@@ -3,7 +3,13 @@ import { PassThrough } from 'node:stream';
 import { test } from 'node:test';
 
 import { businessNameTerms } from '../../src/lib/business-directory-words.ts';
-import { buildDirectoryPage, directoryMeta } from '../../src/lib/business-directory-contract.ts';
+import {
+  buildDirectoryPage,
+  directoryApiUrl,
+  directoryExcelUrl,
+  directoryMeta,
+  directoryUnavailableMessage,
+} from '../../src/lib/business-directory-contract.ts';
 import { writeBusinessDirectoryWorkbook } from '../../src/lib/business-directory-workbook.ts';
 
 test('la nube agrupa tildes y omite razones sociales y palabras genéricas', () => {
@@ -94,6 +100,25 @@ test('un filtro sin coincidencias devuelve cero filas y conserva metadatos de co
   assert.equal(result.total, 0);
   assert.equal(result.meta.coverage, 'PARCIAL');
   assert.equal(result.meta.publisher, 'SEPREC');
+});
+
+test('la tabla y el Excel serializan exactamente los mismos filtros', () => {
+  const filters = {
+    department: 'La Paz',
+    municipality: 'El Alto',
+    search: 'águila & cóndor',
+    word: 'andina',
+    page: 3,
+  };
+  const api = new URL(directoryApiUrl(filters), 'https://example.test');
+  const excel = new URL(directoryExcelUrl(filters), 'https://example.test');
+
+  api.searchParams.delete('pagina');
+  assert.equal(api.searchParams.toString(), excel.searchParams.toString());
+});
+
+test('si el directorio falla, el aviso es recuperable y no sustituye al tablero agregado', () => {
+  assert.match(directoryUnavailableMessage(), /tablero agregado sigue disponible/u);
 });
 
 const workbookRows = [

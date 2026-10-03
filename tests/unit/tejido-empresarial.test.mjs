@@ -9,7 +9,7 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 
-import { buildFabricBoard } from '../../src/lib/business-fabric-board.ts';
+import { FIRM_MEASURES, buildClosureSeries, buildFabricBoard } from '../../src/lib/business-fabric-board.ts';
 import { buildLargestBoard } from '../../src/lib/largest-companies-board.ts';
 import { buildOwnersBoard } from '../../src/lib/business-owners-board.ts';
 
@@ -122,4 +122,18 @@ test('el padrón nombra cada fila por su categoría, no por la medida que sigue 
   const labels = board.taxRoll.map((row) => row.label).sort();
   assert.deepEqual(labels, ['Comercio', 'Servicios']);
   assert.equal(new Set(labels).size, labels.length, 'dos filas con la misma etiqueta repiten la clave de React');
+});
+
+test('los cierres se nombran como tales y conservan años ausentes', () => {
+  assert.equal(FIRM_MEASURES.find((measure) => measure.value === 'CANCELLED')?.label, 'Cierres');
+  const board = buildFabricBoard([
+    point('FIRMS_CANCELLED_TOTAL_BOLIVIA', 2021, 4398),
+    point('FIRMS_CANCELLED_TOTAL_BOLIVIA', 2023, 3945),
+  ]);
+
+  assert.deepEqual(buildClosureSeries(board.firms, 'BOLIVIA'), [
+    { year: 2021, count: 4398 },
+    { year: 2022, count: null },
+    { year: 2023, count: 3945 },
+  ]);
 });

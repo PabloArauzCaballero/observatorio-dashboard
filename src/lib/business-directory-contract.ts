@@ -56,6 +56,36 @@ export interface BusinessDirectoryPage {
   meta: BusinessDirectoryMeta;
 }
 
+function directoryParams(filters: BusinessDirectoryFilters, includePage: boolean): URLSearchParams {
+  const params = new URLSearchParams();
+  const add = (key: string, value?: string): void => {
+    if (value?.trim()) params.set(key, value.trim());
+  };
+  add('departamento', filters.department);
+  add('municipio', filters.municipality);
+  add('buscar', filters.search);
+  add('palabra', filters.word);
+  if (includePage && (filters.page ?? 1) > 1) params.set('pagina', String(Math.trunc(filters.page ?? 1)));
+  return params;
+}
+
+function withQuery(path: string, params: URLSearchParams): string {
+  const query = params.toString();
+  return query ? `${path}?${query}` : path;
+}
+
+export function directoryApiUrl(filters: BusinessDirectoryFilters): string {
+  return withQuery('/api/tejido-empresarial/directorio', directoryParams(filters, true));
+}
+
+export function directoryExcelUrl(filters: BusinessDirectoryFilters): string {
+  return withQuery('/api/tejido-empresarial/excel', directoryParams(filters, false));
+}
+
+export function directoryUnavailableMessage(): string {
+  return 'El directorio nominal no está disponible en este momento; el tablero agregado sigue disponible.';
+}
+
 export const DIRECTORY_SOURCE = {
   publisher: 'SEPREC' as const,
   sourceUrl: 'https://servicios.seprec.gob.bo/',
