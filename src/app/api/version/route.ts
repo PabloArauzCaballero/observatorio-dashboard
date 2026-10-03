@@ -1,4 +1,5 @@
 import { correctionApplied, EXPECTED_DATABASE, pool, type Correction } from '@/lib/db';
+import roadTransportSeed from '@/data/road-transport.json';
 
 /**
  * When this process started, and whether it can reach the database.
@@ -174,6 +175,12 @@ export async function GET(): Promise<Response> {
       correccion,
       ultimaMigracion: identity.migracion,
       modelos: { nucleo: identity.nucleo, ciudades: identity.ciudades },
+      transporteRespaldo: {
+        generado: roadTransportSeed.generatedAt,
+        parque: roadTransportSeed.fleetPoints.length,
+        gnv: roadTransportSeed.gnvPoints.length,
+        tarifas: roadTransportSeed.fareBands.length,
+      },
       queHacer: REMEDY[database],
     },
     { headers: { 'cache-control': 'no-store' } },
