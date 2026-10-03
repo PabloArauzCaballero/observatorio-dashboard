@@ -74,8 +74,14 @@ const decimalsFor = (values: readonly number[]): number => {
   return top >= 1000 ? 0 : top >= 10 ? 1 : top >= 1 ? 2 : 3;
 };
 
-export function ExogenousExplorer({ board }: { board: ExogenousBoard }) {
-  const [group, setGroup] = useState<ExogenousGroup>('ENERGY');
+export function ExogenousExplorer({
+  board,
+  fixedGroup,
+}: {
+  board: ExogenousBoard;
+  fixedGroup?: ExogenousGroup;
+}) {
+  const [group, setGroup] = useState<ExogenousGroup>(fixedGroup ?? 'ENERGY');
   const [product, setProduct] = useState<Choice>(ANY);
   const [scope, setScope] = useState<Choice>(ANY);
   const [market, setMarket] = useState<Choice>(ANY);
@@ -152,36 +158,44 @@ export function ExogenousExplorer({ board }: { board: ExogenousBoard }) {
     <>
       <div className="panel">
         <div className="panel-head">
-          <h2>Variables exógenas: los precios que Bolivia no fija</h2>
+          <h2>
+            {fixedGroup === 'FREIGHT'
+              ? 'Fletes: cuánto cuesta mover carga'
+              : 'Variables exógenas: los precios que Bolivia no fija'}
+          </h2>
           <p className="panel-sub">
-            Cotizaciones del mercado mundial y de los vecinos, índices de productor de EE. UU., el
+            {fixedGroup === 'FREIGHT'
+              ? 'Series de flete marítimo, aéreo, aduanero y referencias del transporte pesado boliviano. '
+              : 'Cotizaciones del mercado mundial y de los vecinos, índices de productor de EE. UU., el '}
             precio en bolivianos en los mercados del país y el precio por kilo que Bolivia pagó y
             cobró en su aduana. {board.series.length} series; el último mes cerrado es{' '}
             {board.latestMonth ? sayPeriod(board.latestMonth) : '—'}. Elegí una familia, un producto
             y un ámbito en el riel de la izquierda; los filtros se recortan entre sí.
           </p>
         </div>
-        <div className="chips" role="tablist" aria-label="Familia de productos">
-          {GROUPS.map((option) => {
-            const on = option.key === group;
-            return (
-              <button
-                key={option.key}
-                type="button"
-                role="tab"
-                aria-selected={on}
-                className={on ? 'chip chip-on' : 'chip'}
-                onClick={() => pickGroup(option.key)}
-              >
-                <Icon name={GROUP_ICON[option.key]} size={13} />
-                {option.label}
-                <span className="chip-count">
-                  {board.series.filter((one) => one.group === option.key).length}
-                </span>
-              </button>
-            );
-          })}
-        </div>
+        {fixedGroup ? null : (
+          <div className="chips" role="tablist" aria-label="Familia de productos">
+            {GROUPS.map((option) => {
+              const on = option.key === group;
+              return (
+                <button
+                  key={option.key}
+                  type="button"
+                  role="tab"
+                  aria-selected={on}
+                  className={on ? 'chip chip-on' : 'chip'}
+                  onClick={() => pickGroup(option.key)}
+                >
+                  <Icon name={GROUP_ICON[option.key]} size={13} />
+                  {option.label}
+                  <span className="chip-count">
+                    {board.series.filter((one) => one.group === option.key).length}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+        )}
         {lead ? <p className="panel-sub">{lead.lead}</p> : null}
       </div>
 
@@ -438,8 +452,8 @@ export function ExogenousExplorer({ board }: { board: ExogenousBoard }) {
             FRED del Banco de la Reserva Federal de San Luis (EIA y Oficina de Estadísticas
             Laborales de EE. UU.), FAO/GIEWS (con datos del INE y del Ministerio de Desarrollo
             Productivo de Bolivia), Naciones Unidas (Comtrade), Freightos (contenedor y flete aéreo)
-            y la base aduanera del INE (flete implícito). Cada cifra guarda la celda o la
-            fila de la que salió.
+            y la base aduanera del INE (flete implícito). Cada cifra guarda la celda o la fila de la
+            que salió.
           </p>
         </div>
       </div>

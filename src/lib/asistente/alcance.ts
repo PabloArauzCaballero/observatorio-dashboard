@@ -10,27 +10,7 @@
  * reglas se prueben con `node --test` sin levantar nada.
  */
 
-export const PAQUETES = [
-  'HOY',
-  'DOLAR',
-  'MACRO',
-  'DEPTO',
-  'DEPTOS',
-  'POLITICA',
-  'PRENSA',
-  'ENERGIA',
-  'RECURSOS',
-  'AMBIENTE',
-  'COMERCIO',
-  'EMPRESAS',
-  'EXOGENAS',
-  'MERCADOS',
-  'MUNDO',
-  'CARRETERAS',
-  'CIUDADES',
-  'METODO',
-  'GUIA',
-] as const;
+export const PAQUETES = ['HOY', 'DOLAR', 'MACRO', 'DEPTO', 'DEPTOS', 'POLITICA', 'PRENSA', 'ENERGIA', 'RECURSOS', 'AMBIENTE', 'COMERCIO', 'EMPRESAS', 'EXOGENAS', 'MERCADOS', 'MUNDO', 'CARRETERAS', 'CIUDADES', 'METODO', 'GUIA'] as const;
 
 export type PaqueteId = (typeof PAQUETES)[number];
 
@@ -68,19 +48,39 @@ export const DESCRIPCION_PAQUETE: Record<PaqueteId, string> = {
   EXOGENAS: 'precios internacionales que afectan a Bolivia: petróleo, gas, metales, granos, fertilizantes, fletes de contenedor y aéreo',
   MERCADOS: 'bitcoin, USDT y oro en dólares',
   MUNDO: 'Bolivia comparada con sus vecinos y con el mundo',
-  CARRETERAS: 'transporte: red vial (kilómetros, pavimento, rutas por departamento), ferrocarriles (vías, estaciones, carga y pasajeros) y ríos navegables, hidrovías y puertos',
+  CARRETERAS: 'transporte: parque automotor histórico, buses, micros, minibuses, GNV, pasajes interdepartamentales, red vial, ferrocarriles, ríos, puertos y fletes',
   CIUDADES: 'lugares y negocios mapeados por ciudad (comercios, restaurantes, farmacias, etc.)',
   METODO: 'de dónde salen los datos, fuentes y cada cuánto se actualizan',
   GUIA: 'cómo usar el tablero: pestañas, filtros, descargas, informes PDF',
 };
 
-export const DEPARTAMENTOS: ReadonlyArray<{ slug: string; nombre: string; alias: readonly string[] }> = [
-  { slug: 'SANTA_CRUZ', nombre: 'Santa Cruz', alias: ['santa cruz', 'scz', 'cruceno', 'cruceña', 'crucena', 'cruceños', 'crucenos'] },
-  { slug: 'LA_PAZ', nombre: 'La Paz', alias: ['la paz', 'paceno', 'pacena', 'pacenos', 'el alto', 'lpz'] },
-  { slug: 'COCHABAMBA', nombre: 'Cochabamba', alias: ['cochabamba', 'cocha', 'cochala', 'cochalo', 'cbba'] },
+export const DEPARTAMENTOS: ReadonlyArray<{
+  slug: string;
+  nombre: string;
+  alias: readonly string[];
+}> = [
+  {
+    slug: 'SANTA_CRUZ',
+    nombre: 'Santa Cruz',
+    alias: ['santa cruz', 'scz', 'cruceno', 'cruceña', 'crucena', 'cruceños', 'crucenos'],
+  },
+  {
+    slug: 'LA_PAZ',
+    nombre: 'La Paz',
+    alias: ['la paz', 'paceno', 'pacena', 'pacenos', 'el alto', 'lpz'],
+  },
+  {
+    slug: 'COCHABAMBA',
+    nombre: 'Cochabamba',
+    alias: ['cochabamba', 'cocha', 'cochala', 'cochalo', 'cbba'],
+  },
   { slug: 'ORURO', nombre: 'Oruro', alias: ['oruro', 'orureno', 'orurena'] },
   { slug: 'POTOSI', nombre: 'Potosí', alias: ['potosi', 'potosino', 'potosina'] },
-  { slug: 'TARIJA', nombre: 'Tarija', alias: ['tarija', 'chapaco', 'chapaca', 'tarijeno', 'tarijena'] },
+  {
+    slug: 'TARIJA',
+    nombre: 'Tarija',
+    alias: ['tarija', 'chapaco', 'chapaca', 'tarijeno', 'tarijena'],
+  },
   { slug: 'CHUQUISACA', nombre: 'Chuquisaca', alias: ['chuquisaca', 'sucre', 'chuquisaqueno'] },
   { slug: 'BENI', nombre: 'Beni', alias: ['beni', 'trinidad', 'beniano', 'beniana', 'riberalta'] },
   { slug: 'PANDO', nombre: 'Pando', alias: ['pando', 'cobija', 'pandino'] },
@@ -90,12 +90,7 @@ const SLUGS = new Set(DEPARTAMENTOS.map((d) => d.slug));
 
 /** Minúsculas y sin tildes: «Potosí», «POTOSI» y «potosi» son la misma palabra. */
 export function normalizar(texto: string): string {
-  return texto
-    .toLowerCase()
-    .normalize('NFD')
-    .replace(/[̀-ͯ]/g, '')
-    .replace(/\s+/g, ' ')
-    .trim();
+  return texto.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/\s+/g, ' ').trim();
 }
 
 /** Coincide por palabra entera, para que «beni» no salga de «beneficio». */
@@ -107,14 +102,9 @@ function tiene(texto: string, patron: RegExp): boolean {
  * Raíces que empiezan palabra. Una raíz que termina en `$` tiene que ser la
  * palabra entera: «gas$» no puede salir de «gastos» ni «oro$» de «Orobó».
  */
-const palabra = (raices: readonly string[]): RegExp =>
-  new RegExp(
-    `(?:^|[^a-z0-9])(?:${raices.map((r) => (r.endsWith('$') ? `${r.slice(0, -1)}(?![a-z0-9])` : r)).join('|')})`,
-    'i',
-  );
+const palabra = (raices: readonly string[]): RegExp => new RegExp(`(?:^|[^a-z0-9])(?:${raices.map((r) => (r.endsWith('$') ? `${r.slice(0, -1)}(?![a-z0-9])` : r)).join('|')})`, 'i');
 
-const palabraExacta = (palabras: readonly string[]): RegExp =>
-  new RegExp(`(?:^|[^a-z0-9])(?:${palabras.join('|')})(?:$|[^a-z0-9])`, 'i');
+const palabraExacta = (palabras: readonly string[]): RegExp => new RegExp(`(?:^|[^a-z0-9])(?:${palabras.join('|')})(?:$|[^a-z0-9])`, 'i');
 
 export function detectarDepartamento(texto: string): string | null {
   const t = normalizar(texto);
@@ -130,53 +120,214 @@ export function detectarDepartamento(texto: string): string | null {
  * propósito («inflaci» atrapa inflación e inflacionario) para aguantar faltas.
  */
 const REGLAS: ReadonlyArray<{ patron: RegExp; paquetes: readonly PaqueteId[] }> = [
-  { patron: palabra(['dolar', 'dollar', 'paralelo', 'tipo de cambio', 'brecha', 'divisa', 'usdt', 'usdc', 'stablecoin', 'binance', 'p2p$', 'verdes?$', 'cotiza', 'tasa de cambio', 'casas? de cambio', 'cambista']), paquetes: ['DOLAR'] },
-  { patron: palabra(['inflaci', 'ufv$', 'precios? sub', 'canasta', 'carestia', 'costo de vida', 'suben los precios', 'todo sube', 'todo esta caro']), paquetes: ['DOLAR', 'MACRO'] },
-  { patron: palabra(['pib$', 'producto interno', 'crecimiento', 'crece', 'recesi', 'reservas', 'deuda', 'deficit', 'fiscal', 'desempleo', 'empleo', 'pobreza', 'salario', 'tasas? de interes', 'credito', 'depositos', 'balanza', 'remesas', 'inversion extranjera', 'ied$', 'macro']), paquetes: ['MACRO'] },
-  { patron: palabra(['politic', 'gobierno', 'elecci', 'democra', 'corrupci', 'estado de derecho', 'libertad', 'presidente', 'asamblea', 'justicia', 'tribunal', 'institucion', 'partidos?$', 'ministro', 'oposici']), paquetes: ['POLITICA'] },
-  { patron: palabra(['bloqueo', 'conflict', 'protesta', 'paros?$', 'marchas?$', 'huelga', 'movilizaci']), paquetes: ['POLITICA', 'PRENSA'] },
-  { patron: palabra(['gas$', 'gas natural', 'petrole', 'combustible', 'diesel', 'gasolina', 'electric', 'energia', 'energetic', 'ypfb', 'hidrocarbur']), paquetes: ['ENERGIA'] },
-  { patron: palabra(['litio', 'mineria', 'minero', 'minera', 'minas?$', 'estano', 'zinc', 'recursos naturales', 'subsuelo', 'extractiv']), paquetes: ['RECURSOS'] },
-  { patron: palabra(['bosque', 'incendio', 'deforest', 'ambient', 'emision', 'contamina', 'chaqueo', 'clima']), paquetes: ['AMBIENTE'] },
-  { patron: palabra(['exporta', 'importa', 'comercio exterior', 'socios? comercial', 'aduana', 'soya', 'soja']), paquetes: ['COMERCIO'] },
-  { patron: palabra(['empresa', 'bolsa boliviana', 'bolsa de valores', 'bbv$', 'hechos? relevantes?', 'merco$', 'reputaci', 'emisor', 'bonos?$']), paquetes: ['EMPRESAS'] },
-  { patron: palabra(['precios? internacional', 'materias primas', 'commodit', 'exogen', 'flete', 'contenedor', 'freight', 'trigo', 'fertilizante', 'cobre', 'aluminio', 'crudo', 'brent', 'wti$']), paquetes: ['EXOGENAS'] },
+  {
+    patron: palabra(['dolar', 'dollar', 'paralelo', 'tipo de cambio', 'brecha', 'divisa', 'usdt', 'usdc', 'stablecoin', 'binance', 'p2p$', 'verdes?$', 'cotiza', 'tasa de cambio', 'casas? de cambio', 'cambista']),
+    paquetes: ['DOLAR'],
+  },
+  {
+    patron: palabra(['inflaci', 'ufv$', 'precios? sub', 'canasta', 'carestia', 'costo de vida', 'suben los precios', 'todo sube', 'todo esta caro']),
+    paquetes: ['DOLAR', 'MACRO'],
+  },
+  {
+    patron: palabra([
+      'pib$',
+      'producto interno',
+      'crecimiento',
+      'crece',
+      'recesi',
+      'reservas',
+      'deuda',
+      'deficit',
+      'fiscal',
+      'desempleo',
+      'empleo',
+      'pobreza',
+      'salario',
+      'tasas? de interes',
+      'credito',
+      'depositos',
+      'balanza',
+      'remesas',
+      'inversion extranjera',
+      'ied$',
+      'macro',
+    ]),
+    paquetes: ['MACRO'],
+  },
+  {
+    patron: palabra(['politic', 'gobierno', 'elecci', 'democra', 'corrupci', 'estado de derecho', 'libertad', 'presidente', 'asamblea', 'justicia', 'tribunal', 'institucion', 'partidos?$', 'ministro', 'oposici']),
+    paquetes: ['POLITICA'],
+  },
+  {
+    patron: palabra(['bloqueo', 'conflict', 'protesta', 'paros?$', 'marchas?$', 'huelga', 'movilizaci']),
+    paquetes: ['POLITICA', 'PRENSA'],
+  },
+  {
+    patron: palabra(['gas$', 'gas natural', 'petrole', 'combustible', 'diesel', 'gasolina', 'electric', 'energia', 'energetic', 'ypfb', 'hidrocarbur']),
+    paquetes: ['ENERGIA'],
+  },
+  {
+    patron: palabra(['litio', 'mineria', 'minero', 'minera', 'minas?$', 'estano', 'zinc', 'recursos naturales', 'subsuelo', 'extractiv']),
+    paquetes: ['RECURSOS'],
+  },
+  {
+    patron: palabra(['bosque', 'incendio', 'deforest', 'ambient', 'emision', 'contamina', 'chaqueo', 'clima']),
+    paquetes: ['AMBIENTE'],
+  },
+  {
+    patron: palabra(['exporta', 'importa', 'comercio exterior', 'socios? comercial', 'aduana', 'soya', 'soja']),
+    paquetes: ['COMERCIO'],
+  },
+  {
+    patron: palabra(['empresa', 'bolsa boliviana', 'bolsa de valores', 'bbv$', 'hechos? relevantes?', 'merco$', 'reputaci', 'emisor', 'bonos?$']),
+    paquetes: ['EMPRESAS'],
+  },
+  {
+    patron: palabra(['precios? internacional', 'materias primas', 'commodit', 'exogen', 'flete', 'contenedor', 'freight', 'trigo', 'fertilizante', 'cobre', 'aluminio', 'crudo', 'brent', 'wti$']),
+    paquetes: ['EXOGENAS'],
+  },
   { patron: palabra(['bitcoin', 'btc$', 'cripto', 'oro$']), paquetes: ['MERCADOS'] },
-  { patron: palabra(['vecinos?$', 'el mundo', 'comparad[oa] con (?:el mundo|los vecinos|la region|otros paises|america)', 'frente al mundo', 'otros paises', 'latinoameric', 'america latina', 'la region', 'peru$', 'chile$', 'paraguay', 'argentina', 'brasil']), paquetes: ['MUNDO'] },
-  { patron: palabra(['carretera', 'rutas?$', 'caminos?$', 'red vial', 'vial$', 'asfalt', 'paviment', 'ferrocarril', 'ferrovi', 'trenes', 'tren$', 'estacion de tren', 'hidrovia', 'navegab', 'fluvial', 'puertos?$', 'transporte']), paquetes: ['CARRETERAS'] },
-  { patron: palabra(['restaurant', 'farmacia', 'negocios', 'comercios', 'lugares', 'tiendas', 'supermercado', 'hotel', 'ciudades']), paquetes: ['CIUDADES'] },
-  { patron: palabra(['noticia', 'prensa', 'periodic', 'medios', 'titular', 'que paso', 'que esta pasando', 'actualidad', 'ultimas']), paquetes: ['PRENSA'] },
-  { patron: palabra(['fuente', 'de donde salen', 'metodolog', 'confiable', 'se actualiza', 'actualizan', 'cada cuanto']), paquetes: ['METODO'] },
+  {
+    patron: palabra([
+      'vecinos?$',
+      'el mundo',
+      'comparad[oa] con (?:el mundo|los vecinos|la region|otros paises|america)',
+      'frente al mundo',
+      'otros paises',
+      'latinoameric',
+      'america latina',
+      'la region',
+      'peru$',
+      'chile$',
+      'paraguay',
+      'argentina',
+      'brasil',
+    ]),
+    paquetes: ['MUNDO'],
+  },
+  {
+    patron: palabra([
+      'carretera',
+      'rutas?$',
+      'caminos?$',
+      'red vial',
+      'vial$',
+      'asfalt',
+      'paviment',
+      'ferrocarril',
+      'ferrovi',
+      'trenes',
+      'tren$',
+      'estacion de tren',
+      'hidrovia',
+      'navegab',
+      'fluvial',
+      'puertos?$',
+      'transporte',
+      'parque automotor',
+      'automotor',
+      'buses?',
+      'micros?',
+      'minibuses?',
+      'pasajes?',
+      'interdepartamental',
+      'gnv',
+      'fletes?',
+    ]),
+    paquetes: ['CARRETERAS'],
+  },
+  {
+    patron: palabra(['restaurant', 'farmacia', 'negocios', 'comercios', 'lugares', 'tiendas', 'supermercado', 'hotel', 'ciudades']),
+    paquetes: ['CIUDADES'],
+  },
+  {
+    patron: palabra(['noticia', 'prensa', 'periodic', 'medios', 'titular', 'que paso', 'que esta pasando', 'actualidad', 'ultimas']),
+    paquetes: ['PRENSA'],
+  },
+  {
+    patron: palabra(['fuente', 'de donde salen', 'metodolog', 'confiable', 'se actualiza', 'actualizan', 'cada cuanto']),
+    paquetes: ['METODO'],
+  },
   { patron: palabra(['departamentos', 'regiones', 'por departamento']), paquetes: ['DEPTOS'] },
-  { patron: palabra(['situacion(?! politic| social| institucional)', 'como esta bolivia', 'como va bolivia', 'panorama', 'resumen', 'economia boliviana', 'economia de bolivia', 'como estamos', 'la economia']), paquetes: ['HOY', 'DOLAR', 'MACRO'] },
+  {
+    patron: palabra(['situacion(?! politic| social| institucional)', 'como esta bolivia', 'como va bolivia', 'panorama', 'resumen', 'economia boliviana', 'economia de bolivia', 'como estamos', 'la economia']),
+    paquetes: ['HOY', 'DOLAR', 'MACRO'],
+  },
 ];
 
 /** Preguntas sobre cómo usar la herramienta, no sobre el país. */
 const USO = palabra([
-  'tablero', 'pestana', 'como uso', 'como se usa', 'donde veo', 'donde encuentro', 'donde esta',
-  'descarg', 'csv', 'excel', 'pdf', 'filtr', 'grafico', 'herramienta', 'pagina', 'sitio', 'web',
-  'observatorio', 'como funciona', 'para que sirve', 'que puedo hacer', 'que haces', 'quien sos',
-  'quien eres', 'ayuda', 'como te uso', 'que sabes',
+  'tablero',
+  'pestana',
+  'como uso',
+  'como se usa',
+  'donde veo',
+  'donde encuentro',
+  'donde esta',
+  'descarg',
+  'csv',
+  'excel',
+  'pdf',
+  'filtr',
+  'grafico',
+  'herramienta',
+  'pagina',
+  'sitio',
+  'web',
+  'observatorio',
+  'como funciona',
+  'para que sirve',
+  'que puedo hacer',
+  'que haces',
+  'quien sos',
+  'quien eres',
+  'ayuda',
+  'como te uso',
+  'que sabes',
 ]);
 
 const ASESORIA = palabra([
-  'invertir', 'inversion', 'invierto', 'conviene', 'deberia comprar', 'deberia vender', 'compro$',
-  'vendo$', 'ahorrar', 'ahorro', 'plazo fijo', 'meter mi plata', 'mis ahorros', 'que hago con mi',
-  'es buen momento', 'buen negocio', 'recomiendas', 'recomendas', 'me recomiendas', 'me recomendas',
+  'invertir',
+  'inversion',
+  'invierto',
+  'conviene',
+  'deberia comprar',
+  'deberia vender',
+  'compro$',
+  'vendo$',
+  'ahorrar',
+  'ahorro',
+  'plazo fijo',
+  'meter mi plata',
+  'mis ahorros',
+  'que hago con mi',
+  'es buen momento',
+  'buen negocio',
+  'recomiendas',
+  'recomendas',
+  'me recomiendas',
+  'me recomendas',
 ]);
 
-const OPINION = palabra([
-  'que pensas', 'que piensas', 'que opinas', 'tu opinion', 'que te parece', 'por quien',
-  'a quien votar', 'votar', 'quien es mejor', 'quien tiene la culpa', 'es culpa',
-]);
+const OPINION = palabra(['que pensas', 'que piensas', 'que opinas', 'tu opinion', 'que te parece', 'por quien', 'a quien votar', 'votar', 'quien es mejor', 'quien tiene la culpa', 'es culpa']);
 
 const SALUDO = /^(hola|buenas|buenos dias|buenas tardes|buenas noches|hey|que tal|gracias|muchas gracias|ok|okay|dale|genial|perfecto|chau|adios)[\s!.?¡¿,]*$/i;
 
 /** Intentos de cambiarle la función al asistente o sacarle sus reglas. */
 const MANIPULACION = palabra([
-  'ignora (?:tus|las|todas)', 'olvida (?:tus|las|todas)', 'system prompt', 'prompt del sistema',
-  'tus instrucciones', 'revela(?:me)? (?:tus|las|el) (?:reglas|instrucciones|prompt)', 'actua como', 'modo desarrollador', 'jailbreak', 'dan mode',
-  'sin restricciones', 'eres ahora', 'sos ahora',
+  'ignora (?:tus|las|todas)',
+  'olvida (?:tus|las|todas)',
+  'system prompt',
+  'prompt del sistema',
+  'tus instrucciones',
+  'revela(?:me)? (?:tus|las|el) (?:reglas|instrucciones|prompt)',
+  'actua como',
+  'modo desarrollador',
+  'jailbreak',
+  'dan mode',
+  'sin restricciones',
+  'eres ahora',
+  'sos ahora',
 ]);
 
 /**
@@ -190,21 +341,74 @@ const MANIPULACION = palabra([
  * «administradora de fondos»).
  */
 const SENSIBLE = palabra([
-  'contrasena', 'password', 'passwd', 'credencial', 'api ?key', 'api_key', 'apikey',
+  'contrasena',
+  'password',
+  'passwd',
+  'credencial',
+  'api ?key',
+  'api_key',
+  'apikey',
   'clave (?:de (?:acceso|la api|api|admin|administrador|la base|usuario|root|openrouter|github|coolify)|secreta|privada|del (?:servidor|sistema|sitio|admin|administrador|tablero))',
-  'llaves? (?:privadas?|de (?:la )?api|de acceso)', 'private key', 'frase semilla', 'seed phrase',
-  'secrets?$', 'tokens? de (?:acceso|api|autenticacion|sesion|github|coolify|openrouter)', 'access token', 'bearer$', 'jwt$',
-  '\\.env$', 'variables? de entorno', 'env vars?$', 'openrouter', 'database_url', 'cadena de conexion', 'connection string',
+  'llaves? (?:privadas?|de (?:la )?api|de acceso)',
+  'private key',
+  'frase semilla',
+  'seed phrase',
+  'secrets?$',
+  'tokens? de (?:acceso|api|autenticacion|sesion|github|coolify|openrouter)',
+  'access token',
+  'bearer$',
+  'jwt$',
+  '\\.env$',
+  'variables? de entorno',
+  'env vars?$',
+  'openrouter',
+  'database_url',
+  'cadena de conexion',
+  'connection string',
   '(?:acceso|acceder|conect[a-z]*|entr[a-z]*|meterme) (?:a|en|al|con) (?:la |el )?(?:base de datos|servidor|panel|admin)',
-  '(?:usuario|tablas?|esquema|dump|respaldo|backup) de (?:la )?base de datos', 'que base de datos (?:usa|tiene|corre)',
-  'sql$', 'select \\*', 'drop table',
-  'ssh$', 'sudo$', 'acceso root', 'usuario root', 'ip del servidor', 'direccion ip', 'que servidor', 'donde (?:esta|estan) alojad',
-  'hosting', 'coolify', 'contabo', 'docker', 'postgres', 'nginx', 'firewall', 'escaneo de puertos', 'nmap$',
-  'admin$', 'panel de administraci', '(?:cuenta|acceso|usuario|permisos?) de administrador', '/admin',
-  'hacke', 'hack$', 'vulnerar', 'vulnerabilidad(?:es)? (?:del|de la|de este|en el|en la|en este) (?:sistema|sitio|pagina|web|servidor|tablero|app|api|chat|bot|asistente)',
-  'exploit', 'inyeccion (?:sql|de (?:sql|codigo|prompt|comandos))', 'sql injection', 'prompt injection', 'xss$', 'ddos', 'bypass',
-  '(?:salt[a-z]*|evad[a-z]*|burlar) (?:el|la|los|las|tus|sus) (?:limites?|filtros?|seguridad|restricciones|reglas)', 'codigo fuente', 'repositorio',
-  'datos de (?:los )?usuarios', 'quien (?:mas )?(?:usa|pregunta|consulta)', 'historial de (?:otros|los) usuarios',
+  '(?:usuario|tablas?|esquema|dump|respaldo|backup) de (?:la )?base de datos',
+  'que base de datos (?:usa|tiene|corre)',
+  'sql$',
+  'select \\*',
+  'drop table',
+  'ssh$',
+  'sudo$',
+  'acceso root',
+  'usuario root',
+  'ip del servidor',
+  'direccion ip',
+  'que servidor',
+  'donde (?:esta|estan) alojad',
+  'hosting',
+  'coolify',
+  'contabo',
+  'docker',
+  'postgres',
+  'nginx',
+  'firewall',
+  'escaneo de puertos',
+  'nmap$',
+  'admin$',
+  'panel de administraci',
+  '(?:cuenta|acceso|usuario|permisos?) de administrador',
+  '/admin',
+  'hacke',
+  'hack$',
+  'vulnerar',
+  'vulnerabilidad(?:es)? (?:del|de la|de este|en el|en la|en este) (?:sistema|sitio|pagina|web|servidor|tablero|app|api|chat|bot|asistente)',
+  'exploit',
+  'inyeccion (?:sql|de (?:sql|codigo|prompt|comandos))',
+  'sql injection',
+  'prompt injection',
+  'xss$',
+  'ddos',
+  'bypass',
+  '(?:salt[a-z]*|evad[a-z]*|burlar) (?:el|la|los|las|tus|sus) (?:limites?|filtros?|seguridad|restricciones|reglas)',
+  'codigo fuente',
+  'repositorio',
+  'datos de (?:los )?usuarios',
+  'quien (?:mas )?(?:usa|pregunta|consulta)',
+  'historial de (?:otros|los) usuarios',
 ]);
 
 /**
@@ -214,11 +418,36 @@ const SENSIBLE = palabra([
  */
 const FUERA_TAREA = palabra([
   'escribi(?:me)? (?:un|una) (?:poema|cuento|cancion|carta|ensayo|historia|chiste|codigo|programa|script|correo|mail|novela)',
-  'redacta(?:me)?$', 'redactame', 'poema', 'poesia', 'cancion', 'chiste', 'cuento', 'receta', 'cocinar', 'horoscopo', 'signo zodiacal',
-  'traduc', 'translate', 'programa(?:r|me|cion)', 'python', 'javascript', 'typescript', 'java$', 'html$', 'css$',
-  'codigo (?:en|de|para|que)', 'script$', 'algoritmo', 'funcion en', 'regex',
+  'redacta(?:me)?$',
+  'redactame',
+  'poema',
+  'poesia',
+  'cancion',
+  'chiste',
+  'cuento',
+  'receta',
+  'cocinar',
+  'horoscopo',
+  'signo zodiacal',
+  'traduc',
+  'translate',
+  'programa(?:r|me|cion)',
+  'python',
+  'javascript',
+  'typescript',
+  'java$',
+  'html$',
+  'css$',
+  'codigo (?:en|de|para|que)',
+  'script$',
+  'algoritmo',
+  'funcion en',
+  'regex',
   '(?:hago|hacer|crear|creo|armar|armo|disenar|diseno|programar) (?:una|mi|un) (?:pagina|sitio|web|app|aplicacion|programa|bot|juego)',
-  'resolve(?:r|me)? (?:esta|la|este|el|mi) (?:ecuacion|ejercicio|problema|tarea|integral|examen)', 'mi tarea', 'tarea de', 'deberes',
+  'resolve(?:r|me)? (?:esta|la|este|el|mi) (?:ecuacion|ejercicio|problema|tarea|integral|examen)',
+  'mi tarea',
+  'tarea de',
+  'deberes',
 ]);
 
 /**
@@ -227,11 +456,38 @@ const FUERA_TAREA = palabra([
  * ninguna, se contesta que queda fuera sin gastar modelo.
  */
 const FUERA_TEMA = palabra([
-  'futbol', 'deporte', 'mundial de', 'partido de (?:futbol|hoy|manana)', 'goles', 'campeonato', 'pelicula', 'netflix', 'musica',
-  'videojuego', 'anime', 'famos', 'farandula', 'novio', 'novia', 'enamor', 'mi pareja', 'sintomas?$', 'me duele', 'dolor de',
-  'va a llover', 'pronostico del tiempo', 'que tiempo hace', 'mascota', 'perro', 'gato', 'dieta', 'ejercicios? (?:fisico|para)',
-  'capital de (?:francia|espana|peru|chile|brasil|argentina|italia|alemania|japon|china)', 'quien (?:invento|descubrio|pinto|escribio)',
-  'chatgpt', 'inteligencia artificial',
+  'futbol',
+  'deporte',
+  'mundial de',
+  'partido de (?:futbol|hoy|manana)',
+  'goles',
+  'campeonato',
+  'pelicula',
+  'netflix',
+  'musica',
+  'videojuego',
+  'anime',
+  'famos',
+  'farandula',
+  'novio',
+  'novia',
+  'enamor',
+  'mi pareja',
+  'sintomas?$',
+  'me duele',
+  'dolor de',
+  'va a llover',
+  'pronostico del tiempo',
+  'que tiempo hace',
+  'mascota',
+  'perro',
+  'gato',
+  'dieta',
+  'ejercicios? (?:fisico|para)',
+  'capital de (?:francia|espana|peru|chile|brasil|argentina|italia|alemania|japon|china)',
+  'quien (?:invento|descubrio|pinto|escribio)',
+  'chatgpt',
+  'inteligencia artificial',
 ]);
 
 /**
@@ -315,12 +571,28 @@ export function preclasificar(pregunta: string): Previo {
   // Una tarea ajena queda fuera aunque nombre un tema económico; un tema ajeno,
   // solo si no nombra ninguno (si nombra uno, decide el clasificador).
   if (tiene(t, FUERA_TAREA)) {
-    return { saludo, manipulacion, sensible, tipo: 'FUERA', paquetes: [], departamento, busqueda: null };
+    return {
+      saludo,
+      manipulacion,
+      sensible,
+      tipo: 'FUERA',
+      paquetes: [],
+      departamento,
+      busqueda: null,
+    };
   }
   if (tiene(t, FUERA_TEMA)) {
     const economicos = [...paquetes].filter((p) => p !== 'GUIA');
     return economicos.length === 0
-      ? { saludo, manipulacion, sensible, tipo: 'FUERA', paquetes: [], departamento, busqueda: null }
+      ? {
+          saludo,
+          manipulacion,
+          sensible,
+          tipo: 'FUERA',
+          paquetes: [],
+          departamento,
+          busqueda: null,
+        }
       : { saludo, manipulacion, sensible, tipo, paquetes: null, departamento, busqueda };
   }
 
@@ -365,7 +637,10 @@ export function leerClasificacion(contenido: string): Clasificacion | null {
   let bruto: unknown;
   try {
     if (contenido.length > 2_000) return null;
-    const json = contenido.trim().replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/, '');
+    const json = contenido
+      .trim()
+      .replace(/^```(?:json)?\s*/i, '')
+      .replace(/\s*```$/, '');
     bruto = JSON.parse(json);
   } catch {
     return null;
@@ -374,9 +649,7 @@ export function leerClasificacion(contenido: string): Clasificacion | null {
   const objeto = bruto as Record<string, unknown>;
 
   const tipos: readonly Tipo[] = ['DATOS', 'ASESORIA', 'OPINION', 'GUIA', 'FUERA'];
-  const tipo = typeof objeto.tipo === 'string' && (tipos as readonly string[]).includes(objeto.tipo.toUpperCase())
-    ? (objeto.tipo.toUpperCase() as Tipo)
-    : 'DATOS';
+  const tipo = typeof objeto.tipo === 'string' && (tipos as readonly string[]).includes(objeto.tipo.toUpperCase()) ? (objeto.tipo.toUpperCase() as Tipo) : 'DATOS';
 
   const paquetes = Array.isArray(objeto.paquetes)
     ? ordenar(
@@ -389,13 +662,13 @@ export function leerClasificacion(contenido: string): Clasificacion | null {
 
   let departamento: string | null = null;
   if (typeof objeto.departamento === 'string' && objeto.departamento.trim()) {
-    const slug = normalizar(objeto.departamento).toUpperCase().replace(/[\s-]+/g, '_');
+    const slug = normalizar(objeto.departamento)
+      .toUpperCase()
+      .replace(/[\s-]+/g, '_');
     departamento = SLUGS.has(slug) ? slug : detectarDepartamento(objeto.departamento);
   }
 
-  const busqueda = typeof objeto.busqueda === 'string' && objeto.busqueda.trim().length >= 3
-    ? objeto.busqueda.trim().slice(0, 60)
-    : null;
+  const busqueda = typeof objeto.busqueda === 'string' && objeto.busqueda.trim().length >= 3 ? objeto.busqueda.trim().slice(0, 60) : null;
 
   if (departamento && !paquetes.includes('DEPTO')) paquetes.push('DEPTO');
   return { tipo, paquetes: ordenar(paquetes), departamento, busqueda };

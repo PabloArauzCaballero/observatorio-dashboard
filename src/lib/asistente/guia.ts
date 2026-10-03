@@ -122,7 +122,7 @@ export const DESTINO_DE_PAQUETE: Record<string, Destino> = {
   COMERCIO: { pestana: 'Empresas', pagina: 'Comercio exterior' },
   EMPRESAS: { pestana: 'Empresas', pagina: 'Bolsa de valores (BBV)' },
   CIUDADES: { pestana: 'Ciudades' },
-  CARRETERAS: { pestana: 'Transporte', pagina: 'Carreteras' },
+  CARRETERAS: { pestana: 'Transporte', pagina: 'Automotor y pasajes' },
   PRENSA: { pestana: 'Prensa', pagina: 'Cobertura' },
   METODO: { pestana: 'Método' },
 };
@@ -145,7 +145,9 @@ export function enlacesPara(paquetes: readonly string[]): Enlace[] {
     const etiqueta = destino.pagina ? `${destino.pestana} › ${destino.pagina}` : destino.pestana;
     if (!vistos.has(etiqueta)) vistos.set(etiqueta, { ...destino, etiqueta });
   }
-  return [...vistos.values()].sort((a, b) => PESTANAS.indexOf(a.pestana) - PESTANAS.indexOf(b.pestana)).slice(0, 3);
+  return [...vistos.values()]
+    .sort((a, b) => PESTANAS.indexOf(a.pestana) - PESTANAS.indexOf(b.pestana))
+    .slice(0, 3);
 }
 
 /** Dónde está cada cosa dentro de su pestaña, para decirlo en la respuesta. */
@@ -156,7 +158,8 @@ export const RUTA_DE_PAQUETE: Record<string, string> = {
   MACRO: '«Macroeconomía» › «Series de Bolivia»',
   DEPTO: '«Macroeconomía» › «Series de Bolivia» › rubro «Departamentos»',
   DEPTOS: '«Macroeconomía» › «Series de Bolivia» › rubro «Departamentos»',
-  POLITICA: '«Macroeconomía» › «Social Info» › «Instituciones», y «Prensa» filtrando el tema «Política y Estado»',
+  POLITICA:
+    '«Macroeconomía» › «Social Info» › «Instituciones», y «Prensa» filtrando el tema «Política y Estado»',
   ENERGIA: '«Macroeconomía» › «Series de Bolivia» › rubro «Energía»',
   RECURSOS: '«Macroeconomía» › «Series de Bolivia» › rubro «Recursos naturales»',
   AMBIENTE: '«Macroeconomía» › «Series de Bolivia» › rubro «Medio ambiente»',
@@ -165,7 +168,7 @@ export const RUTA_DE_PAQUETE: Record<string, string> = {
   COMERCIO: '«Empresas» › «Comercio exterior»',
   EMPRESAS: '«Empresas» › «Bolsa de valores (BBV)» y «Reputación empresarial»',
   CIUDADES: '«Ciudades»',
-  CARRETERAS: '«Transporte» › «Carreteras»',
+  CARRETERAS: '«Transporte» › «Automotor y pasajes»',
   PRENSA: '«Prensa» › «Cobertura»',
   METODO: '«Método»',
 };
