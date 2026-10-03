@@ -188,3 +188,20 @@ test('pasajes es una página principal de transporte con ambos tarifarios oficia
   assert.match(fares, /ATT_0178_2013/u);
   assert.match(fares, /Pasajes interdepartamentales por ruta/u);
 });
+
+test('fletes abre el histórico boliviano completo y deja las referencias nacionales arriba', async () => {
+  const source = await readFile(
+    new URL('../../src/components/exogenous-explorer.tsx', import.meta.url),
+    'utf8',
+  );
+
+  assert.match(source, /preferredProduct = fixedGroup === 'FREIGHT'.*'FREIGHT_BO'/su);
+  assert.match(source, /preferredScope = fixedGroup === 'FREIGHT'.*'BOLIVIA_CUSTOMS'/su);
+  assert.match(source, /EXO_BO_FREIGHT_IMPLIED_TOTAL/u);
+  assert.match(source, /freightFrom/u);
+  assert.ok(
+    source.indexOf("group === 'FREIGHT' ? <FreightReferences />") <
+      source.indexOf('<SummaryCards'),
+    'las tarifas nacionales deben aparecer antes de las series internacionales',
+  );
+});

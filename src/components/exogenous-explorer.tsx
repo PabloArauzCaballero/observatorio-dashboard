@@ -93,8 +93,6 @@ export function ExogenousExplorer({
   }, [board]);
   const [yearFrom, setYearFrom] = useState<number | null>(null);
   const [yearTo, setYearTo] = useState<number | null>(null);
-  const from = yearFrom ?? Math.max(bounds.min, bounds.max - 10);
-  const to = yearTo ?? bounds.max;
 
   const inGroup = useMemo(() => board.series.filter((one) => one.group === group), [board, group]);
   const products = useMemo(() => {
@@ -115,22 +113,40 @@ export function ExogenousExplorer({
 
   /* Sin producto elegido, el primero de la familia: un gráfico con treinta
      líneas no responde nada, y el lector cambia de producto con un clic. */
-  const firstProduct = products[0]?.value;
-  const productChoice: Choice = product.size || !firstProduct ? product : new Set([firstProduct]);
+  const preferredProduct = fixedGroup === 'FREIGHT' && products.some((one) => one.value === 'FREIGHT_BO')
+    ? 'FREIGHT_BO'
+    : products[0]?.value;
+  const productChoice: Choice = product.size || !preferredProduct
+    ? product
+    : new Set([preferredProduct]);
   const ofProduct = inGroup.filter((one) => picked(productChoice, one.product));
 
   const scopes = SCOPES.map((option) => ({
     ...option,
     count: ofProduct.filter((one) => one.scope === option.key).length,
   })).filter((option) => option.count > 0);
-  const ofScope = ofProduct.filter((one) => scope.size === 0 || scope.has(one.scope));
+  const preferredScope = fixedGroup === 'FREIGHT' && ofProduct.some((one) => one.scope === 'BOLIVIA_CUSTOMS')
+    ? 'BOLIVIA_CUSTOMS'
+    : undefined;
+  const scopeChoice: Choice = scope.size || !preferredScope ? scope : new Set([preferredScope]);
+  const ofScope = ofProduct.filter((one) => scopeChoice.size === 0 || scopeChoice.has(one.scope));
+
+  const freightFrom = Math.min(
+    ...ofScope.flatMap((one) => one.points.map(([period]) => yearOf(period))),
+    bounds.max,
+  );
+  const from = yearFrom ?? (fixedGroup === 'FREIGHT' ? freightFrom : Math.max(bounds.min, bounds.max - 10));
+  const to = yearTo ?? bounds.max;
 
   const markets = [
     ...new Set(ofScope.filter((one) => one.scope === 'BOLIVIA_MARKET').map((one) => one.market)),
   ];
-  const listed = ofScope.filter(
-    (one) => one.scope !== 'BOLIVIA_MARKET' || market.size === 0 || market.has(one.market),
-  );
+  const listed = ofScope
+    .filter((one) => one.scope !== 'BOLIVIA_MARKET' || market.size === 0 || market.has(one.market))
+    .sort((left, right) =>
+      Number(right.code === 'EXO_BO_FREIGHT_IMPLIED_TOTAL') -
+      Number(left.code === 'EXO_BO_FREIGHT_IMPLIED_TOTAL'),
+    );
   const shown = listed.filter((one) => !hidden.has(one.code));
 
   const monthly = shown.filter((one) => one.frequency === 'MONTHLY');
@@ -261,7 +277,7 @@ export function ExogenousExplorer({
             </div>
             <div className="rail-pills">
               {scopes.map((option) => {
-                const on = scope.has(option.key);
+                const on = scopeChoice.has(option.key);
                 return (
                   <button
                     key={option.key}
@@ -270,7 +286,7 @@ export function ExogenousExplorer({
                     aria-pressed={on}
                     title={option.hint}
                     onClick={(event) => {
-                      setScope((current) => toggleChoice(current, option.key, additive(event)));
+                      setScope(toggleChoice(scopeChoice, option.key, additive(event)));
                       setHidden(ANY);
                     }}
                   >
@@ -422,11 +438,11 @@ export function ExogenousExplorer({
               Ninguna lectura coincide con el recorte. Quitá un filtro de la izquierda.
             </div>
           ) : null}
+          {group === 'FREIGHT' ? <FreightReferences /> : null}
           <SummaryCards series={shown.slice(0, MOST_DRAWN)} />
           <MonthlyCharts series={monthly} measure={measure} from={from} to={to} />
           <AnnualChart series={annual} measure={measure} from={from} to={to} />
           <ExogenousTable series={listed} />
-          {group === 'FREIGHT' ? <FreightReferences /> : null}
           {UNSOURCED[group].length ? (
             <div className="callout">
               <b>Sin fuente disponible.</b>
