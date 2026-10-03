@@ -1,5 +1,5 @@
 import { readBusinessAnnual } from '@/lib/business-annual';
-import { buildFabricBoard } from '@/lib/business-fabric-board';
+import { buildFabricBoard, withOfficialRecentClosures } from '@/lib/business-fabric-board';
 import { jsonResponse } from '@/lib/respond';
 import { isUnaffordableRead } from '@/lib/series';
 
@@ -18,9 +18,14 @@ export const dynamic = 'force-dynamic';
 export async function GET(request: Request): Promise<Response> {
   try {
     const points = await readBusinessAnnual('TEJIDO_EMPRESARIAL');
+    const board = buildFabricBoard(withOfficialRecentClosures(points));
+    board.sources.FIRMS_CANCELLED = {
+      publisher: 'FUNDEMPRESA y Servicio Plurinacional de Registro de Comercio (SEPREC)',
+      url: 'https://www.seprec.gob.bo/wp-content/uploads/2025/10/Memoria_ANUAL-2023.pdf',
+    };
     return jsonResponse(
       request,
-      { board: buildFabricBoard(points) },
+      { board },
       { headers: { 'Cache-Control': 'private, max-age=600' } },
     );
   } catch (error) {
