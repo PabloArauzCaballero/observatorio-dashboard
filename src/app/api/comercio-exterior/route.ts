@@ -4,7 +4,7 @@ import { jsonResponse } from '@/lib/respond';
 
 /**
  * El comercio exterior agregado ante Naciones Unidas, pedido al abrir
- * «Comercio exterior», la cuarta página de «Empresas».
+ * «Comercio exterior», dentro de «Macroeconomía».
  *
  * Se filtra por el prefijo del código y no por el sector: hoy las dos series
  * agregadas están en el sector EXTERNO, que también lleva deuda, remesas e

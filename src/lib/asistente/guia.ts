@@ -44,12 +44,12 @@ export const GUIA: readonly EntradaGuia[] = [
   },
   {
     pestana: 'Macroeconomía',
-    que: 'Cuatro páginas: «Series de Bolivia» (indicadores anuales por rubro, con los rubros invitados «Departamentos», «Cuentas públicas» —qué cobra, gasta y debe el Estado, qué dicen las normas de cada impuesto y cuánto de un precio es impuesto—, «Energía», «Recursos naturales» y «Medio ambiente»), «Social Info» (el catálogo del Banco Mundial para Bolivia, con el invitado «Instituciones»), «Bolivia ante el mundo» (comparación con vecinos y el mundo) y «Variables exógenas» (precios internacionales de petróleo, metales, granos y fertilizantes).',
-    como: 'Elegí la página arriba y después el rubro o el indicador. El control «Desde» recorta los años. Cada serie tiene «Descargar análisis (PDF)» con su distribución y atípicos, y las tablas se bajan en CSV o JSON.',
+    que: 'Siete páginas: «Series de Bolivia» (indicadores anuales por rubro, con los rubros invitados «Departamentos», «Cuentas públicas» —qué cobra, gasta y debe el Estado, qué dicen las normas de cada impuesto y cuánto de un precio es impuesto—, «Energía», «Recursos naturales» y «Medio ambiente»), «Social Info» (el catálogo del Banco Mundial para Bolivia, con el invitado «Instituciones»), «Bolivia ante el mundo», «Variables exógenas», «Series del BCB», «Comercio exterior» (socios, productos, departamentos y principales exportadoras) y «Detalle aduanero (INE)».',
+    como: 'Elegí la página arriba y después el rubro, indicador o filtro. El control «Desde» recorta los años. Cada serie tiene «Descargar análisis (PDF)» con su distribución y atípicos, y las tablas se bajan en CSV o JSON.',
   },
   {
     pestana: 'Empresas',
-    que: 'Ocho páginas: «Tejido empresarial» (cuántas empresas tiene Bolivia por tipo societario, departamento, actividad y tamaño desde 2008; cierres por cancelación de matrícula; y el directorio nominal disponible con nube de palabras y Excel), «Principales empresas» (el ránking anual de las que más impuestos pagan y de «Las 500» por ingresos, utilidad, activos y patrimonio), «Empresarios» (las fortunas que publica Forbes y la estimación del observatorio por participaciones en empresas, siempre rotulada como cota inferior), «Bolsa de valores (BBV)» con los hechos relevantes que publican los emisores, «Comercio exterior» (socios, productos y exportaciones por departamento, más las principales exportadoras), «Detalle aduanero (INE)», «Reputación empresarial» (las ediciones del monitor Merco) y «Redes sociales» (seguidores, interacción, sentimiento de los comentarios y palabras más repetidas de las cuentas oficiales de esas empresas).',
+    que: 'Seis páginas: «Tejido empresarial» (cuántas empresas tiene Bolivia por tipo societario, departamento, actividad y tamaño desde 2008; cierres por cancelación de matrícula; y el directorio nominal disponible con nube de palabras y Excel), «Principales empresas» (el ránking anual de las que más impuestos pagan y de «Las 500» por ingresos, utilidad, activos y patrimonio), «Empresarios» (las fortunas que publica Forbes y la estimación del observatorio por participaciones en empresas, siempre rotulada como cota inferior), «Bolsa de valores (BBV)» con los hechos relevantes que publican los emisores, «Reputación empresarial» (las ediciones del monitor Merco) y «Redes sociales» (seguidores, interacción, sentimiento de los comentarios y palabras más repetidas de las cuentas oficiales de esas empresas).',
     como: 'En «Tejido empresarial» elegís la medida, el lugar (también tocando el mapa), la dimensión, las categorías y los años, y todo se cruza. El directorio se busca por nombre, departamento, municipio o palabra; «Excel» descarga todas las coincidencias, no sólo la página visible. En «Principales empresas» elegís la vara, el año, el departamento y el sector, y tocar una empresa abre su ficha. En la Bolsa podés filtrar por empresa, sector y categoría y bajar la selección en CSV o JSON. En «Redes sociales» filtrás por red, sector, tono y empresa; tocar una empresa de la tabla la aísla en los gráficos.',
   },
   {
@@ -88,7 +88,7 @@ export const PESTANA_DE_PAQUETE: Record<string, Pestana> = {
   AMBIENTE: 'Macroeconomía',
   EXOGENAS: 'Macroeconomía',
   MUNDO: 'Macroeconomía',
-  COMERCIO: 'Empresas',
+  COMERCIO: 'Macroeconomía',
   EMPRESAS: 'Empresas',
   CIUDADES: 'Ciudades',
   CARRETERAS: 'Transporte',
@@ -119,10 +119,10 @@ export const DESTINO_DE_PAQUETE: Record<string, Destino> = {
   AMBIENTE: { pestana: 'Macroeconomía', pagina: 'Series de Bolivia' },
   EXOGENAS: { pestana: 'Macroeconomía', pagina: 'Variables exógenas' },
   MUNDO: { pestana: 'Macroeconomía', pagina: 'Bolivia ante el mundo' },
-  COMERCIO: { pestana: 'Empresas', pagina: 'Comercio exterior' },
+  COMERCIO: { pestana: 'Macroeconomía', pagina: 'Comercio exterior' },
   EMPRESAS: { pestana: 'Empresas', pagina: 'Bolsa de valores (BBV)' },
   CIUDADES: { pestana: 'Ciudades' },
-  CARRETERAS: { pestana: 'Transporte', pagina: 'Carreteras' },
+  CARRETERAS: { pestana: 'Transporte', pagina: 'Automotor y pasajes' },
   PRENSA: { pestana: 'Prensa', pagina: 'Cobertura' },
   METODO: { pestana: 'Método' },
 };
@@ -145,7 +145,9 @@ export function enlacesPara(paquetes: readonly string[]): Enlace[] {
     const etiqueta = destino.pagina ? `${destino.pestana} › ${destino.pagina}` : destino.pestana;
     if (!vistos.has(etiqueta)) vistos.set(etiqueta, { ...destino, etiqueta });
   }
-  return [...vistos.values()].sort((a, b) => PESTANAS.indexOf(a.pestana) - PESTANAS.indexOf(b.pestana)).slice(0, 3);
+  return [...vistos.values()]
+    .sort((a, b) => PESTANAS.indexOf(a.pestana) - PESTANAS.indexOf(b.pestana))
+    .slice(0, 3);
 }
 
 /** Dónde está cada cosa dentro de su pestaña, para decirlo en la respuesta. */
@@ -156,16 +158,17 @@ export const RUTA_DE_PAQUETE: Record<string, string> = {
   MACRO: '«Macroeconomía» › «Series de Bolivia»',
   DEPTO: '«Macroeconomía» › «Series de Bolivia» › rubro «Departamentos»',
   DEPTOS: '«Macroeconomía» › «Series de Bolivia» › rubro «Departamentos»',
-  POLITICA: '«Macroeconomía» › «Social Info» › «Instituciones», y «Prensa» filtrando el tema «Política y Estado»',
+  POLITICA:
+    '«Macroeconomía» › «Social Info» › «Instituciones», y «Prensa» filtrando el tema «Política y Estado»',
   ENERGIA: '«Macroeconomía» › «Series de Bolivia» › rubro «Energía»',
   RECURSOS: '«Macroeconomía» › «Series de Bolivia» › rubro «Recursos naturales»',
   AMBIENTE: '«Macroeconomía» › «Series de Bolivia» › rubro «Medio ambiente»',
   EXOGENAS: '«Macroeconomía» › «Variables exógenas»',
   MUNDO: '«Macroeconomía» › «Bolivia ante el mundo»',
-  COMERCIO: '«Empresas» › «Comercio exterior»',
+  COMERCIO: '«Macroeconomía» › «Comercio exterior»',
   EMPRESAS: '«Empresas» › «Bolsa de valores (BBV)» y «Reputación empresarial»',
   CIUDADES: '«Ciudades»',
-  CARRETERAS: '«Transporte» › «Carreteras»',
+  CARRETERAS: '«Transporte» › «Automotor y pasajes»',
   PRENSA: '«Prensa» › «Cobertura»',
   METODO: '«Método»',
 };

@@ -72,6 +72,58 @@ export interface WaterPort {
   lat: number;
 }
 
+export interface TransportProvenance {
+  sourceKey: string;
+  publisher: string;
+  sourceTitle: string;
+  sourceUrl: string;
+  evidenceSha256: string;
+}
+
+export interface FleetPoint extends TransportProvenance {
+  dimension: 'DEPARTMENT_SERVICE' | 'SERVICE_CLASS' | 'SERVICE_CLASS_CAPACITY';
+  department: string | null;
+  service: 'TOTAL' | 'PARTICULAR' | 'PUBLICO' | 'OFICIAL';
+  vehicleClass: string | null;
+  capacityBand: string | null;
+  period: string;
+  value: number;
+  preliminary: boolean;
+}
+
+export interface GnvPoint extends TransportProvenance {
+  metric: 'CONVERSION' | 'CYLINDER_REQUALIFICATION';
+  dimension: 'DEPARTMENT_QUARTER' | 'DEPARTMENT_CLASS';
+  department: string;
+  vehicleClass: string | null;
+  period: string;
+  value: number;
+  preliminary: boolean;
+}
+
+export interface FareBand extends TransportProvenance {
+  regulation: 'ATT_0178_2013' | 'ATT_0032_2025';
+  publishedOn: string;
+  effectiveFrom: string;
+  effectiveUntil: string | null;
+  origin: string;
+  destination: string;
+  road: 'DEFAULT' | 'NEW' | 'OLD';
+  currency: 'BOB';
+  normalMin: number;
+  normalMax: number;
+  semicamaMin: number | null;
+  semicamaMax: number | null;
+  camaMin: number | null;
+  camaMax: number | null;
+}
+
+export interface RoadTransportData {
+  fleet: FleetPoint[];
+  gnv: GnvPoint[];
+  fares: FareBand[];
+}
+
 /**
  * Un modelo ilegible es un capítulo vacío, nunca un informe que se cae: la
  * misma regla que `roads.ts`. El SQLSTATE va al log; la página recibe una
@@ -235,4 +287,135 @@ export function readWaterPorts(): Promise<WaterPort[]> {
       }));
     }),
   );
+}
+
+const provenance = (row: {
+  source_key: string;
+  publisher: string;
+  source_title: string;
+  source_url: string;
+  evidence_sha256: string;
+}): TransportProvenance => ({
+  sourceKey: row.source_key,
+  publisher: row.publisher,
+  sourceTitle: row.source_title,
+  sourceUrl: row.source_url,
+  evidenceSha256: row.evidence_sha256,
+});
+
+/** All road-economy readings in one held request; each query still degrades independently. */
+export function readRoadTransport(): Promise<RoadTransportData> {
+  return held('roadTransport', async () => {
+    const [fleet, gnv, fares] = await Promise.all([
+      readOrEmpty('read_models.vehicle_fleet', async () => {
+        const { rows } = await pool().query<{
+          dimension: FleetPoint['dimension'];
+          department: string | null;
+          service: FleetPoint['service'];
+          vehicle_class: string | null;
+          capacity_band: string | null;
+          period: string;
+          value: string;
+          preliminary: boolean;
+          source_key: string;
+          publisher: string;
+          source_title: string;
+          source_url: string;
+          evidence_sha256: string;
+        }>(`SELECT dimension, department, service, vehicle_class, capacity_band, period,
+                    value::text, preliminary, source_key, publisher, source_title,
+                    source_url, evidence_sha256
+             FROM read_models.vehicle_fleet WHERE ${PUBLISHED}
+             ORDER BY dimension, department NULLS FIRST, service, vehicle_class NULLS FIRST, period`);
+        return rows.map((row) => ({
+          dimension: row.dimension,
+          department: row.department,
+          service: row.service,
+          vehicleClass: row.vehicle_class,
+          capacityBand: row.capacity_band,
+          period: row.period,
+          value: Number(row.value),
+          preliminary: row.preliminary,
+          ...provenance(row),
+        }));
+      }),
+      readOrEmpty('read_models.gnv_activity', async () => {
+        const { rows } = await pool().query<{
+          metric: GnvPoint['metric'];
+          dimension: GnvPoint['dimension'];
+          department: string;
+          vehicle_class: string | null;
+          period: string;
+          value: string;
+          preliminary: boolean;
+          source_key: string;
+          publisher: string;
+          source_title: string;
+          source_url: string;
+          evidence_sha256: string;
+        }>(`SELECT metric, dimension, department, vehicle_class, period, value::text, preliminary,
+                    source_key, publisher, source_title, source_url, evidence_sha256
+             FROM read_models.gnv_activity WHERE ${PUBLISHED}
+             ORDER BY metric, dimension, department, vehicle_class NULLS FIRST, period`);
+        return rows.map((row) => ({
+          metric: row.metric,
+          dimension: row.dimension,
+          department: row.department,
+          vehicleClass: row.vehicle_class,
+          period: row.period,
+          value: Number(row.value),
+          preliminary: row.preliminary,
+          ...provenance(row),
+        }));
+      }),
+      readOrEmpty('read_models.intercity_fare_band', async () => {
+        const { rows } = await pool().query<{
+          regulation: FareBand['regulation'];
+          published_on: string;
+          effective_from: string;
+          effective_until: string | null;
+          origin: string;
+          destination: string;
+          road: FareBand['road'];
+          currency: 'BOB';
+          normal_min: string;
+          normal_max: string;
+          semicama_min: string | null;
+          semicama_max: string | null;
+          cama_min: string | null;
+          cama_max: string | null;
+          source_key: string;
+          publisher: string;
+          source_title: string;
+          source_url: string;
+          evidence_sha256: string;
+        }>(`SELECT regulation, published_on::text, effective_from::text, effective_until::text,
+                    origin, destination, road, currency, normal_min::text, normal_max::text,
+                    semicama_min::text, semicama_max::text, cama_min::text, cama_max::text,
+                    source_key, publisher, source_title, source_url, evidence_sha256
+             FROM read_models.intercity_fare_band WHERE ${PUBLISHED}
+             ORDER BY regulation, origin, destination, road`);
+        const optional = (value: string | null): number | null =>
+          value === null ? null : Number(value);
+        return rows.map((row) => ({
+          regulation: row.regulation,
+          publishedOn: row.published_on,
+          effectiveFrom: row.effective_from,
+          effectiveUntil: row.effective_until,
+          origin: row.origin,
+          destination: row.destination,
+          road: row.road,
+          currency: row.currency,
+          normalMin: Number(row.normal_min),
+          normalMax: Number(row.normal_max),
+          semicamaMin: optional(row.semicama_min),
+          semicamaMax: optional(row.semicama_max),
+          camaMin: optional(row.cama_min),
+          camaMax: optional(row.cama_max),
+          ...provenance(row),
+        }));
+      }),
+    ]);
+    return { fleet, gnv, fares };
+  });
 }

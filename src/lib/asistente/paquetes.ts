@@ -5,12 +5,7 @@ import type { DepartmentBoard, YearValue } from '@/lib/departments-board';
 import { activityStructure } from '@/lib/department-activities';
 import { DEPARTMENTS, MEASURES } from '@/lib/departments';
 import { ENERGY_CODES, ENERGY_INDICATORS, ENERGY_PLACE_CODES, buildEnergyBoard } from '@/lib/energy-board';
-import {
-  ENVIRONMENT_CODES,
-  ENVIRONMENT_INDICATORS,
-  ENVIRONMENT_PLACE_CODES,
-  buildEnvironmentBoard,
-} from '@/lib/environment-board';
+import { ENVIRONMENT_CODES, ENVIRONMENT_INDICATORS, ENVIRONMENT_PLACE_CODES, buildEnvironmentBoard } from '@/lib/environment-board';
 import { buildExportersBoard, concentration } from '@/lib/exporters-board';
 import { readExogenousBoard } from '@/lib/exogenous';
 import { summarize } from '@/lib/exogenous-board';
@@ -27,19 +22,10 @@ import { readPlaceFamilies } from '@/lib/places';
 import { RESOURCE_CODES, RESOURCE_INDICATORS, RESOURCE_PLACE_CODES, buildResourceBoard } from '@/lib/resources-board';
 import { buildRoadBoard } from '@/lib/roads-board';
 import { readRoadLengths, readRoadSections } from '@/lib/roads';
-import { readRailFlows, readRailLines, readRailStations, readWaterPorts, readWaterways } from '@/lib/transport';
+import { readRailFlows, readRailLines, readRailStations, readRoadTransport, readWaterPorts, readWaterways } from '@/lib/transport';
+import { buildRoadTransportBoard } from '@/lib/road-transport-board';
 import { buildRailBoard, buildWaterBoard } from '@/lib/transport-board';
-import {
-  officialSeries,
-  readCompanyFilings,
-  readGap,
-  readMacroAnnual,
-  readMarkets,
-  readObservatory,
-  readPressPage,
-  readSources,
-  readWorldBoard,
-} from '@/lib/series';
+import { officialSeries, readCompanyFilings, readGap, readMacroAnnual, readMarkets, readObservatory, readPressPage, readSources, readWorldBoard } from '@/lib/series';
 import type { DailyPoint, MacroPoint, PressArticle } from '@/lib/series';
 import { buildTodayBoard } from '@/lib/today-board';
 import { PLACE_LABEL, WORLD_CODES, WORLD_INDICATORS, WORLD_PLACE_CODES, sayWorldFigure } from '@/lib/world-board';
@@ -93,17 +79,16 @@ export interface Contexto {
 /* ------------------------------------------------------------------ formato */
 
 const num = (value: number, decimals = 2): string =>
-  value.toLocaleString('es-BO', { minimumFractionDigits: decimals, maximumFractionDigits: decimals });
+  value.toLocaleString('es-BO', {
+    minimumFractionDigits: decimals,
+    maximumFractionDigits: decimals,
+  });
 
 const entero = (value: number): string => value.toLocaleString('es-BO', { maximumFractionDigits: 0 });
 
-const pct = (value: number | null | undefined, decimals = 1): string =>
-  value === null || value === undefined || !Number.isFinite(value) ? 's/d' : `${num(value, decimals)} %`;
+const pct = (value: number | null | undefined, decimals = 1): string => (value === null || value === undefined || !Number.isFinite(value) ? 's/d' : `${num(value, decimals)} %`);
 
-const signo = (value: number | null | undefined, decimals = 1): string =>
-  value === null || value === undefined || !Number.isFinite(value)
-    ? 's/d'
-    : `${value > 0 ? '+' : ''}${num(value, decimals)} %`;
+const signo = (value: number | null | undefined, decimals = 1): string => (value === null || value === undefined || !Number.isFinite(value) ? 's/d' : `${value > 0 ? '+' : ''}${num(value, decimals)} %`);
 
 /** Una cifra con su unidad, legible: 579.906.699 USD se dice «579,9 millones de US$». */
 function cifra(value: number, unit: string): string {
@@ -144,15 +129,17 @@ function cifra(value: number, unit: string): string {
 const conclusion = (c: FxConclusion): string => `- ${c.claim}: ${c.figure}. ${c.detail}`;
 
 /** Una cifra para la tabla: redondeada, y `null` si no hay dato en vez de «s/d». */
-const r = (value: number | null | undefined, decimals = 2): Celda =>
-  value === null || value === undefined || !Number.isFinite(value) ? null : Number(value.toFixed(decimals));
+const r = (value: number | null | undefined, decimals = 2): Celda => (value === null || value === undefined || !Number.isFinite(value) ? null : Number(value.toFixed(decimals)));
 
 const filaDeConclusion = (c: FxConclusion): Celda[] => [c.claim, c.figure, c.detail];
 const COLUMNAS_CONCLUSION = ['Hallazgo', 'Cifra', 'Detalle'];
 
 /** La descarga completa de `/api/export`, con los mismos filtros que usaría el tablero. */
 function exportar(parametros: Record<string, string>, etiqueta: string): Tabla['completa'] {
-  return { href: `/api/export?${new URLSearchParams({ ...parametros, format: 'csv' }).toString()}`, etiqueta };
+  return {
+    href: `/api/export?${new URLSearchParams({ ...parametros, format: 'csv' }).toString()}`,
+    etiqueta,
+  };
 }
 
 function hoyEnLaPaz(): { fecha: string; anio: number } {
@@ -169,16 +156,12 @@ export function fechaDeHoy(): string {
   return hoyEnLaPaz().fecha;
 }
 
-const nota = (a: PressArticle): string =>
-  `- ${a.eventDate} · ${a.outlet} · tema ${a.topic} · tono ${a.tone}${a.region && a.region !== 'NACIONAL' ? ` · ${a.region}` : ''}: «${a.headline}»`;
+const nota = (a: PressArticle): string => `- ${a.eventDate} · ${a.outlet} · tema ${a.topic} · tono ${a.tone}${a.region && a.region !== 'NACIONAL' ? ` · ${a.region}` : ''}: «${a.headline}»`;
 
 /* ---------------------------------------------------------------- lecturas */
 
 /** Solo los puntos macro que no son de otro capítulo. */
-const SECTORES_MACRO = new Set([
-  'ACTIVIDAD', 'PRECIOS', 'MONETARIO', 'FINANCIERO', 'FISCAL', 'DEUDA', 'EXTERNO', 'TRABAJO',
-  'POBREZA', 'SALUD', 'EDUCACION', 'POBLACION', 'SECTORIAL', 'INFRAESTRUCTURA', 'CAMBIARIO', 'SOCIAL',
-]);
+const SECTORES_MACRO = new Set(['ACTIVIDAD', 'PRECIOS', 'MONETARIO', 'FINANCIERO', 'FISCAL', 'DEUDA', 'EXTERNO', 'TRABAJO', 'POBREZA', 'SALUD', 'EDUCACION', 'POBLACION', 'SECTORIAL', 'INFRAESTRUCTURA', 'CAMBIARIO', 'SOCIAL']);
 
 function ultimos(points: readonly MacroPoint[]): MacroPoint[] {
   const porCodigo = new Map<string, MacroPoint>();
@@ -221,8 +204,7 @@ function haceDias(fecha: string, dias: number): string {
 function econometria(): Promise<FxConclusion[]> {
   return held('asistenteEconometria', async () => {
     const [observatory, gap] = await Promise.all([readObservatory(), readGap()]);
-    const plain = (key: string) =>
-      (observatory.series.get(key) ?? []).map((p) => ({ date: p.date, value: p.value }));
+    const plain = (key: string) => (observatory.series.get(key) ?? []).map((p) => ({ date: p.date, value: p.value }));
     const result = assembleEconometrics({
       official: officialSeries(observatory).map((p) => ({ date: p.date, value: p.value })),
       parallelBuy: plain('FX_PARALLEL_USD_BOB:BUY'),
@@ -238,11 +220,7 @@ function econometria(): Promise<FxConclusion[]> {
 
 async function hoy(): Promise<Salida> {
   const { anio } = hoyEnLaPaz();
-  const [macro, gap, press] = await Promise.all([
-    readMacroAnnual(),
-    readGap(),
-    readPressPage({}, 120).then((page) => page.articles),
-  ]);
+  const [macro, gap, press] = await Promise.all([readMacroAnnual(), readGap(), readPressPage({}, 120).then((page) => page.articles)]);
   const board = buildTodayBoard({ macro, gap, press, currentYear: anio });
   const lineas = board.blocks.map(
     (b) =>
@@ -254,7 +232,9 @@ async function hoy(): Promise<Salida> {
     ...lineas,
     novedades.length ? `NOVEDADES DE PRENSA del ${board.changesDate ?? 's/f'} (${board.changesOutlets} medios):` : '',
     ...novedades,
-  ].filter(Boolean).join('\n');
+  ]
+    .filter(Boolean)
+    .join('\n');
   return {
     texto,
     tabla: tabla(
@@ -268,34 +248,41 @@ async function hoy(): Promise<Salida> {
 }
 
 async function dolar(): Promise<Salida> {
-  const [fx, observatory, pruebas] = await Promise.all([
-    readFxSnapshot(),
-    readObservatory(),
-    econometria().catch(() => [] as FxConclusion[]),
-  ]);
+  const [fx, observatory, pruebas] = await Promise.all([readFxSnapshot(), readObservatory(), econometria().catch(() => [] as FxConclusion[])]);
   const mid = midSeries(observatory.series);
   const official = officialSeries(observatory).map((p) => ({ date: p.date, value: p.value }));
   const ultimo = mid.at(-1);
   const movimientos = ultimo
-    ? [7, 30, 90, 365].map((dias) => {
-        const antes = enFecha(mid, haceDias(ultimo.date, dias));
-        return antes ? `${dias} días: ${signo((ultimo.value / antes.value - 1) * 100)} (desde ${num(antes.value)} el ${antes.date})` : null;
-      }).filter(Boolean)
+    ? [7, 30, 90, 365]
+        .map((dias) => {
+          const antes = enFecha(mid, haceDias(ultimo.date, dias));
+          return antes ? `${dias} días: ${signo((ultimo.value / antes.value - 1) * 100)} (desde ${num(antes.value)} el ${antes.date})` : null;
+        })
+        .filter(Boolean)
     : [];
   const ultimoOficial = official.at(-1);
   const oficialAnio = ultimoOficial ? enFecha(official, haceDias(ultimoOficial.date, 365)) : undefined;
 
   const lineas = [
     `Datos al ${fx.asOf ?? 's/f'} (se recogen tres veces al día).`,
-    fx.official ? `- Dólar oficial (BCB): ${num(fx.official.value, 2)} Bs por dólar, el ${fx.official.date}.${oficialAnio ? ` Hace un año: ${num(oficialAnio.value, 2)} (${signo((fx.official.value / oficialAnio.value - 1) * 100)}).` : ''}` : '- Dólar oficial: sin lectura.',
+    fx.official
+      ? `- Dólar oficial (BCB): ${num(fx.official.value, 2)} Bs por dólar, el ${fx.official.date}.${oficialAnio ? ` Hace un año: ${num(oficialAnio.value, 2)} (${signo((fx.official.value / oficialAnio.value - 1) * 100)}).` : ''}`
+      : '- Dólar oficial: sin lectura.',
     fx.parallelMid ? `- Dólar paralelo, punto medio entre compra y venta: ${num(fx.parallelMid.value, 2)} Bs por dólar, el ${fx.parallelMid.date}.` : '- Dólar paralelo: sin lectura.',
     movimientos.length ? `- Variación del paralelo en ${movimientos.join('; ')}.` : '',
-    fx.gap.current ? `- Brecha cambiaria (paralelo sobre oficial): ${pct(fx.gap.current.gapPercent)} el ${fx.gap.current.date}; máximo del periodo ${pct(fx.gap.peak?.gapPercent)} el ${fx.gap.peak?.date ?? 's/f'}; ${fx.gap.daysInverted} días con el oficial por encima del paralelo, de ${fx.gap.observations} observados.` : '',
+    fx.gap.current
+      ? `- Brecha cambiaria (paralelo sobre oficial): ${pct(fx.gap.current.gapPercent)} el ${fx.gap.current.date}; máximo del periodo ${pct(fx.gap.peak?.gapPercent)} el ${fx.gap.peak?.date ?? 's/f'}; ${fx.gap.daysInverted} días con el oficial por encima del paralelo, de ${fx.gap.observations} observados.`
+      : '',
     `- Régimen del oficial: ${fx.regime === 'FIJO' ? 'fijo (no se movió en los últimos 30 días)' : 'en movimiento (se movió en los últimos 30 días)'}.`,
     ...fx.regimes.slice(-3).map((r) => `  · tramo ${r.regime === 'FIJO' ? 'fijo' : 'en movimiento'} del ${r.from} al ${r.to} (${r.days} días), de ${num(r.rateFrom)} a ${num(r.rateTo)}`),
-    fx.real ? `- Nivel real (deflactado por la UFV, base 100 = ${fx.real.base}): oficial ${num(fx.real.officialIndex, 1)}, paralelo ${num(fx.real.parallelIndex, 1)}. Cada índice se mide contra su propio arranque; no se comparan entre sí.` : '',
+    fx.real
+      ? `- Nivel real (deflactado por la UFV, base 100 = ${fx.real.base}): oficial ${num(fx.real.officialIndex, 1)}, paralelo ${num(fx.real.parallelIndex, 1)}. Cada índice se mide contra su propio arranque; no se comparan entre sí.`
+      : '',
     fx.impliedInflationAnnual !== null ? `- Inflación anual implícita en la UFV (últimos doce meses): ${pct(fx.impliedInflationAnnual)}.` : '',
-    ...fx.stablecoins.map((s) => `- ${s.token} en bolivianos (${s.venues} plazas P2P, ${s.date}): medio ${num(s.mid)}${s.ask !== null ? `, venta ${num(s.ask)}` : ''}${s.bid !== null ? `, compra ${num(s.bid)}` : ''}; prima para comprar frente al riel más barato ${pct(s.premiumAskPercent, 2)}.`),
+    ...fx.stablecoins.map(
+      (s) =>
+        `- ${s.token} en bolivianos (${s.venues} plazas P2P, ${s.date}): medio ${num(s.mid)}${s.ask !== null ? `, venta ${num(s.ask)}` : ''}${s.bid !== null ? `, compra ${num(s.bid)}` : ''}; prima para comprar frente al riel más barato ${pct(s.premiumAskPercent, 2)}.`,
+    ),
     'CONCLUSIONES DEL CAPÍTULO CAMBIARIO:',
     ...fx.conclusions.map(conclusion),
     pruebas.length ? 'PRUEBAS ECONOMÉTRICAS (informe PDF de «Tipo de cambio»):' : '',
@@ -307,10 +294,13 @@ async function dolar(): Promise<Salida> {
       'dolar',
       'Dólar oficial, paralelo y brecha, últimos 30 días con lectura',
       ['Fecha', 'Oficial (Bs por US$)', 'Paralelo, punto medio (Bs por US$)', 'Brecha (%)'],
-      mid.slice(-30).reverse().map((p) => {
-        const oficial = enFecha(official, p.date);
-        return [p.date, r(oficial?.value), r(p.value), oficial ? r((p.value / oficial.value - 1) * 100) : null];
-      }),
+      mid
+        .slice(-30)
+        .reverse()
+        .map((p) => {
+          const oficial = enFecha(official, p.date);
+          return [p.date, r(oficial?.value), r(p.value), oficial ? r((p.value / oficial.value - 1) * 100) : null];
+        }),
       'Banco Central de Bolivia (oficial) y mercado paralelo que recoge el Observatorio',
       ultimo ? exportar({ dataset: 'series', desde: haceDias(ultimo.date, 365) }, 'Todas las series diarias del último año') : undefined,
     ),
@@ -364,12 +354,7 @@ function crecimientoDecada(board: DepartmentBoard, lugar: string): { desde: numb
 
 async function departamento(slug: string): Promise<Salida> {
   const nombre = nombreDepartamento(slug) ?? slug;
-  const [macroPoints, prensa, sections, lengths] = await Promise.all([
-    readMacroAnnual(),
-    readPressPage({ region: [slug] }, 12).catch(() => null),
-    readRoadSections().catch(() => null),
-    readRoadLengths().catch(() => null),
-  ]);
+  const [macroPoints, prensa, sections, lengths] = await Promise.all([readMacroAnnual(), readPressPage({ region: [slug] }, 12).catch(() => null), readRoadSections().catch(() => null), readRoadLengths().catch(() => null)]);
   const board = departmentBoard(macroPoints);
   const lineas: string[] = [`DEPARTAMENTO DE ${nombre.toUpperCase()} (cuentas regionales del INE):`];
   const filas: Celda[][] = [];
@@ -466,15 +451,9 @@ async function departamentos(): Promise<Salida> {
 const TEMAS_POLITICOS = ['POLITICA', 'CONFLICTO', 'JUDICIAL', 'SOCIAL'];
 
 async function politica(): Promise<Salida> {
-  const [macroPoints, prensa] = await Promise.all([
-    readMacroAnnual(),
-    readPressPage({ topic: TEMAS_POLITICOS }, 60).catch(() => null),
-  ]);
+  const [macroPoints, prensa] = await Promise.all([readMacroAnnual(), readPressPage({ topic: TEMAS_POLITICOS }, 60).catch(() => null)]);
   const inst = buildInstitutionsBoard(macroPoints.filter((p) => p.sector === 'INSTITUCIONAL'));
-  const lineas = [
-    `ÍNDICES INSTITUCIONALES (V-Dem, Freedom House, Fraser, Banco Mundial WGI, Transparencia; último año ${inst.asOfYear ?? 's/f'}):`,
-    ...inst.conclusions.map(conclusion),
-  ];
+  const lineas = [`ÍNDICES INSTITUCIONALES (V-Dem, Freedom House, Fraser, Banco Mundial WGI, Transparencia; último año ${inst.asOfYear ?? 's/f'}):`, ...inst.conclusions.map(conclusion)];
   if (prensa?.articles.length) {
     const ultimo = prensa.articles[0]?.eventDate ?? '';
     const desde = haceDias(ultimo, 14);
@@ -482,7 +461,12 @@ async function politica(): Promise<Salida> {
     const tonos = new Map<string, number>();
     for (const a of recientes) tonos.set(a.tone, (tonos.get(a.tone) ?? 0) + 1);
     lineas.push(
-      `PRENSA POLÍTICA Y DE CONFLICTO: ${recientes.length} notas entre el ${desde} y el ${ultimo} en la muestra leída; por tono: ${[...tonos.entries()].sort((a, b) => b[1] - a[1]).map(([t, n]) => `${t} ${n}`).join(', ') || 's/d'}. El tono se deriva del titular por léxico, no lo publica el medio.`,
+      `PRENSA POLÍTICA Y DE CONFLICTO: ${recientes.length} notas entre el ${desde} y el ${ultimo} en la muestra leída; por tono: ${
+        [...tonos.entries()]
+          .sort((a, b) => b[1] - a[1])
+          .map(([t, n]) => `${t} ${n}`)
+          .join(', ') || 's/d'
+      }. El tono se deriva del titular por léxico, no lo publica el medio.`,
       'TITULARES RECIENTES:',
       ...prensa.articles.slice(0, 14).map(nota),
     );
@@ -507,7 +491,10 @@ async function prensa(busqueda: string | null): Promise<Salida> {
   const texto = [
     busqueda
       ? `PRENSA QUE MENCIONA «${busqueda}»: las ${page.articles.length} más recientes (no es el total del archivo; para contar, usar la búsqueda de «Prensa»):`
-      : `PRENSA RECIENTE (las últimas ${page.articles.length} notas de todos los temas; por tema: ${[...temas.entries()].sort((a, b) => b[1] - a[1]).map(([t, n]) => `${t} ${n}`).join(', ')}):`,
+      : `PRENSA RECIENTE (las últimas ${page.articles.length} notas de todos los temas; por tema: ${[...temas.entries()]
+          .sort((a, b) => b[1] - a[1])
+          .map(([t, n]) => `${t} ${n}`)
+          .join(', ')}):`,
     ...page.articles.slice(0, 20).map(nota),
   ].join('\n');
   return {
@@ -518,9 +505,7 @@ async function prensa(busqueda: string | null): Promise<Salida> {
       ['Fecha', 'Medio', 'Tema', 'Tono', 'Región', 'Titular', 'Enlace'],
       page.articles.map((a) => [a.eventDate, a.outlet, a.topic, a.tone, a.region ?? null, a.headline, a.url ?? null]),
       'Medios bolivianos; el tema y el tono los deriva el Observatorio del titular',
-      busqueda
-        ? exportar({ dataset: 'prensa', buscar: busqueda }, `Todas las notas del archivo que mencionan «${busqueda}»`)
-        : exportar({ dataset: 'prensa', desde: haceDias(fechaDeHoy(), 30) }, 'Todas las notas del último mes'),
+      busqueda ? exportar({ dataset: 'prensa', buscar: busqueda }, `Todas las notas del archivo que mencionan «${busqueda}»`) : exportar({ dataset: 'prensa', desde: haceDias(fechaDeHoy(), 30) }, 'Todas las notas del último mes'),
     ),
   };
 }
@@ -564,21 +549,10 @@ async function recursos(): Promise<Salida> {
     return v ? [[`Exportación de ${c.label}`, 'millones de US$', v.year, r(v.value / 1e6, 1)]] : [];
   });
   return {
-    texto: [
-      'RECURSOS NATURALES:',
-      ...board.conclusions.map(conclusion),
-      'ÚLTIMOS DATOS DE BOLIVIA:',
-      ...bolivia(board.latest, RESOURCE_INDICATORS),
-      partidas.length ? 'EXPORTACIONES POR PARTIDA DE MATERIA PRIMA:' : '',
-      ...partidas,
-    ].filter(Boolean).join('\n'),
-    tabla: tabla(
-      'recursos',
-      'Recursos naturales de Bolivia',
-      COLUMNAS_DATO,
-      [...filasBolivia(board.latest, RESOURCE_INDICATORS), ...filasPartidas],
-      'Banco Mundial y UN Comtrade',
-    ),
+    texto: ['RECURSOS NATURALES:', ...board.conclusions.map(conclusion), 'ÚLTIMOS DATOS DE BOLIVIA:', ...bolivia(board.latest, RESOURCE_INDICATORS), partidas.length ? 'EXPORTACIONES POR PARTIDA DE MATERIA PRIMA:' : '', ...partidas]
+      .filter(Boolean)
+      .join('\n'),
+    tabla: tabla('recursos', 'Recursos naturales de Bolivia', COLUMNAS_DATO, [...filasBolivia(board.latest, RESOURCE_INDICATORS), ...filasPartidas], 'Banco Mundial y UN Comtrade'),
   };
 }
 
@@ -601,13 +575,18 @@ async function comercio(): Promise<Salida> {
     .slice(0, 10)
     .map((e) => `- ${e.rank}. ${e.name}: ${pct(e.share)} de las exportaciones`);
   const conclusiones = foreignTradeConclusions(depts, trade);
-  const ranking = exporters.exporters.slice().sort((a, b) => a.rank - b.rank).slice(0, 10);
+  const ranking = exporters.exporters
+    .slice()
+    .sort((a, b) => a.rank - b.rank)
+    .slice(0, 10);
   const texto = [
     'COMERCIO EXTERIOR:',
     ...conclusiones.map(conclusion),
     top.length ? `PRINCIPALES EXPORTADORAS (${exporters.exportYear ?? 's/f'}; las diez primeras suman ${pct(concentration(exporters, 10))}; ranking de fuente privada, no oficial):` : '',
     ...top,
-  ].filter(Boolean).join('\n');
+  ]
+    .filter(Boolean)
+    .join('\n');
   return {
     texto,
     tabla: ranking.length
@@ -632,15 +611,8 @@ async function empresas(): Promise<Salida> {
     .slice(0, 10)
     .map((s) => `- ${s.rank}. ${s.name}${s.score !== null ? ` (${entero(s.score)} puntos)` : ''}`);
   const ordenados = filings.slice().sort((a, b) => b.eventDate.localeCompare(a.eventDate));
-  const recientes = ordenados
-    .slice(0, 12)
-    .map((f) => `- ${f.eventDate} · ${f.filer} (${f.sector}) · ${f.category}: ${f.subject}`);
-  const texto = [
-    `HECHOS RELEVANTES RECIENTES EN LA BOLSA BOLIVIANA DE VALORES (${filings.length} leídos):`,
-    ...recientes,
-    merco.length ? `MONITOR MERCO DE REPUTACIÓN, edición ${edicion}:` : '',
-    ...merco,
-  ].filter(Boolean).join('\n');
+  const recientes = ordenados.slice(0, 12).map((f) => `- ${f.eventDate} · ${f.filer} (${f.sector}) · ${f.category}: ${f.subject}`);
+  const texto = [`HECHOS RELEVANTES RECIENTES EN LA BOLSA BOLIVIANA DE VALORES (${filings.length} leídos):`, ...recientes, merco.length ? `MONITOR MERCO DE REPUTACIÓN, edición ${edicion}:` : '', ...merco].filter(Boolean).join('\n');
   return {
     texto,
     tabla: tabla(
@@ -731,7 +703,7 @@ async function mundo(): Promise<Salida> {
 }
 
 async function carreteras(): Promise<Salida> {
-  const [sections, lengths, railLines, stations, flows, waterways, ports] = await Promise.all([
+  const [sections, lengths, railLines, stations, flows, waterways, ports, roadTransport] = await Promise.all([
     readRoadSections(),
     readRoadLengths(),
     readRailLines(),
@@ -739,10 +711,12 @@ async function carreteras(): Promise<Salida> {
     readRailFlows(),
     readWaterways(),
     readWaterPorts(),
+    readRoadTransport(),
   ]);
   const board = buildRoadBoard(sections, lengths);
   const rail = buildRailBoard(railLines, stations, flows);
   const water = buildWaterBoard(waterways, ports);
+  const roadEconomy = buildRoadTransportBoard(roadTransport);
   const flujo = rail.flows
     .filter((one) => one.lastYear && (one.service === 'CARGA' || one.service === 'PASAJEROS'))
     .map((one) => {
@@ -752,6 +726,8 @@ async function carreteras(): Promise<Salida> {
       return `- Red ${red}, ${one.service === 'CARGA' ? 'carga' : 'pasajeros'} ${last.period}${last.preliminary ? ' (preliminar)' : ''}: ${entero(last.value)} ${unidad}`;
     });
   const texto = [
+    `PARQUE AUTOMOTOR (INE): ${entero(roadEconomy.summary.latestFleet ?? 0)} vehículos en ${roadEconomy.summary.latestYear ?? 'el último año'}, frente a ${entero(roadEconomy.summary.firstFleet ?? 0)} en ${roadEconomy.summary.firstYear ?? 'el primer año'}; ${entero(roadEconomy.summary.publicPassengerFleet ?? 0)} buses, micros y minibuses de servicio público.`,
+    `GNV (INE, último año): ${entero(roadEconomy.summary.gnvConversions ?? 0)} conversiones y ${entero(roadEconomy.summary.gnvRequalifications ?? 0)} recalificaciones de cilindro. PASAJES (ATT): ${roadEconomy.fares.length / 2} rutas en dos tarifarios históricos, con rangos normal, semicama y cama.`,
     `RED VIAL: ${entero(board.totalKm)} km mapeados, ${pct(board.pavedShare)} pavimentados${board.asOfPeriod ? `; longitud oficial del INE al ${board.asOfPeriod}` : ''}.`,
     ...board.conclusions.map(conclusion),
     'POR DEPARTAMENTO:',
@@ -767,7 +743,8 @@ async function carreteras(): Promise<Salida> {
       'Red vial mapeada por departamento',
       ['Departamento', 'Kilómetros'],
       board.kmByDepartment.map((d) => [d.name, r(d.totalKm, 0)]),
-      'Red vial mapeada por el Observatorio; la longitud oficial del INE está en «Transporte» › «Carreteras»',
+      'INE, ATT y red vial mapeada por el Observatorio',
+      exportar({ dataset: 'transporte-terrestre' }, 'Parque automotor, GNV y pasajes completos'),
     ),
   };
 }
@@ -781,16 +758,33 @@ async function ciudades(): Promise<Salida> {
     porCiudad.set(f.city, grupos);
   }
   const resumen = [...porCiudad.entries()]
-    .map(([ciudad, grupos]) => ({ ciudad, total: [...grupos.values()].reduce((a, b) => a + b, 0), grupos: [...grupos.entries()].sort((a, b) => b[1] - a[1]) }))
+    .map(([ciudad, grupos]) => ({
+      ciudad,
+      total: [...grupos.values()].reduce((a, b) => a + b, 0),
+      grupos: [...grupos.entries()].sort((a, b) => b[1] - a[1]),
+    }))
     .sort((a, b) => b.total - a.total);
-  const lineas = resumen.map(({ ciudad, total, grupos }) => `- ${ciudad}: ${entero(total)} lugares; ${grupos.slice(0, 8).map(([g, n]) => `${g} ${entero(n)}`).join(', ')}`);
+  const lineas = resumen.map(
+    ({ ciudad, total, grupos }) =>
+      `- ${ciudad}: ${entero(total)} lugares; ${grupos
+        .slice(0, 8)
+        .map(([g, n]) => `${g} ${entero(n)}`)
+        .join(', ')}`,
+  );
   return {
     texto: ['LUGARES Y NEGOCIOS MAPEADOS POR CIUDAD (OpenStreetMap y Overture; conteos de lo mapeado, no un censo):', ...lineas].join('\n'),
     tabla: tabla(
       'ciudades',
       'Lugares mapeados por ciudad (no es un censo)',
       ['Ciudad', 'Lugares', 'Grupos con más lugares'],
-      resumen.map(({ ciudad, total, grupos }) => [ciudad, total, grupos.slice(0, 5).map(([g, n]) => `${g} ${n}`).join('; ')]),
+      resumen.map(({ ciudad, total, grupos }) => [
+        ciudad,
+        total,
+        grupos
+          .slice(0, 5)
+          .map(([g, n]) => `${g} ${n}`)
+          .join('; '),
+      ]),
       'OpenStreetMap y Overture Maps',
     ),
   };
@@ -822,25 +816,44 @@ async function metodo(): Promise<Salida> {
 
 function armar(id: PaqueteId, ctx: Contexto): Promise<Salida> {
   switch (id) {
-    case 'HOY': return hoy();
-    case 'DOLAR': return dolar();
-    case 'MACRO': return macro();
-    case 'DEPTO': return ctx.departamento ? departamento(ctx.departamento) : departamentos();
-    case 'DEPTOS': return departamentos();
-    case 'POLITICA': return politica();
-    case 'PRENSA': return prensa(ctx.busqueda);
-    case 'ENERGIA': return energia();
-    case 'RECURSOS': return recursos();
-    case 'AMBIENTE': return ambiente();
-    case 'COMERCIO': return comercio();
-    case 'EMPRESAS': return empresas();
-    case 'EXOGENAS': return exogenas();
-    case 'MERCADOS': return mercados();
-    case 'MUNDO': return mundo();
-    case 'CARRETERAS': return carreteras();
-    case 'CIUDADES': return ciudades();
-    case 'METODO': return metodo();
-    case 'GUIA': return Promise.resolve({ texto: guiaCompleta() });
+    case 'HOY':
+      return hoy();
+    case 'DOLAR':
+      return dolar();
+    case 'MACRO':
+      return macro();
+    case 'DEPTO':
+      return ctx.departamento ? departamento(ctx.departamento) : departamentos();
+    case 'DEPTOS':
+      return departamentos();
+    case 'POLITICA':
+      return politica();
+    case 'PRENSA':
+      return prensa(ctx.busqueda);
+    case 'ENERGIA':
+      return energia();
+    case 'RECURSOS':
+      return recursos();
+    case 'AMBIENTE':
+      return ambiente();
+    case 'COMERCIO':
+      return comercio();
+    case 'EMPRESAS':
+      return empresas();
+    case 'EXOGENAS':
+      return exogenas();
+    case 'MERCADOS':
+      return mercados();
+    case 'MUNDO':
+      return mundo();
+    case 'CARRETERAS':
+      return carreteras();
+    case 'CIUDADES':
+      return ciudades();
+    case 'METODO':
+      return metodo();
+    case 'GUIA':
+      return Promise.resolve({ texto: guiaCompleta() });
   }
 }
 
@@ -861,7 +874,11 @@ export async function leerPaquetes(ids: readonly PaqueteId[], ctx: Contexto): Pr
       } catch (error) {
         const code = (error as { code?: string } | null)?.code ?? (error instanceof Error ? error.message : 'sin codigo');
         console.warn(`[asistente] paquete ${id} sin leer (${code})`);
-        return { id, texto: 'No se pudo leer a tiempo. Decí que ese dato no está disponible ahora y no lo reemplaces por otro.', leido: false };
+        return {
+          id,
+          texto: 'No se pudo leer a tiempo. Decí que ese dato no está disponible ahora y no lo reemplaces por otro.',
+          leido: false,
+        };
       }
     }),
   );

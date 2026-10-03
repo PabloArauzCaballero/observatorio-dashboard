@@ -19,6 +19,7 @@ import {
   WORLD_PLACES,
   WORLD_PLACE_CODES,
 } from '@/lib/world-board';
+import { readRoadTransport } from '@/lib/transport';
 
 /**
  * Every dataset the report draws, in either format.
@@ -56,6 +57,7 @@ const DATASETS = [
   'temas',
   'lugares',
   'mundo',
+  'transporte-terrestre',
 ] as const;
 type Dataset = (typeof DATASETS)[number];
 
@@ -151,6 +153,87 @@ async function annualRows(
 async function collect(dataset: Dataset, selection: Selection): Promise<Row[]> {
   if (dataset === 'macro') return annualRows(readMacroAnnual, selection);
   if (dataset === 'panel') return annualRows(readBoliviaPanel, selection);
+
+  if (dataset === 'transporte-terrestre') {
+    const data = await readRoadTransport();
+    const blank = {
+      dimension: null,
+      departamento: null,
+      servicio: null,
+      clase_vehiculo: null,
+      capacidad: null,
+      periodo: null,
+      valor: null,
+      preliminar: null,
+      metrica: null,
+      regulacion: null,
+      publicado: null,
+      vigencia_desde: null,
+      vigencia_hasta: null,
+      origen: null,
+      destino: null,
+      via: null,
+      moneda: null,
+      normal_min: null,
+      normal_max: null,
+      semicama_min: null,
+      semicama_max: null,
+      cama_min: null,
+      cama_max: null,
+    };
+    return [
+      ...data.fleet.map((point) => ({
+        ...blank,
+        tipo_registro: 'PARQUE_AUTOMOTOR',
+        dimension: point.dimension,
+        departamento: point.department,
+        servicio: point.service,
+        clase_vehiculo: point.vehicleClass,
+        capacidad: point.capacityBand,
+        periodo: point.period,
+        valor: point.value,
+        preliminar: point.preliminary,
+        editor: point.publisher,
+        fuente: point.sourceUrl,
+        evidencia_sha256: point.evidenceSha256,
+      })),
+      ...data.gnv.map((point) => ({
+        ...blank,
+        tipo_registro: 'ACTIVIDAD_GNV',
+        dimension: point.dimension,
+        departamento: point.department,
+        clase_vehiculo: point.vehicleClass,
+        periodo: point.period,
+        valor: point.value,
+        preliminar: point.preliminary,
+        metrica: point.metric,
+        editor: point.publisher,
+        fuente: point.sourceUrl,
+        evidencia_sha256: point.evidenceSha256,
+      })),
+      ...data.fares.map((point) => ({
+        ...blank,
+        tipo_registro: 'TARIFA_INTERDEPARTAMENTAL',
+        regulacion: point.regulation,
+        publicado: point.publishedOn,
+        vigencia_desde: point.effectiveFrom,
+        vigencia_hasta: point.effectiveUntil,
+        origen: point.origin,
+        destino: point.destination,
+        via: point.road,
+        moneda: point.currency,
+        normal_min: point.normalMin,
+        normal_max: point.normalMax,
+        semicama_min: point.semicamaMin,
+        semicama_max: point.semicamaMax,
+        cama_min: point.camaMin,
+        cama_max: point.camaMax,
+        editor: point.publisher,
+        fuente: point.sourceUrl,
+        evidencia_sha256: point.evidenceSha256,
+      })),
+    ];
+  }
 
   if (dataset === 'lugares') {
     // The map draws at most four thousand premises because past that a drawing

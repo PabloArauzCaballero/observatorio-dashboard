@@ -46,6 +46,12 @@
   border-top: 1px solid var(--rule-soft);
   margin-top: var(--s2);
   padding-top: var(--s2);
+  scroll-margin-top: var(--s3);
+}
+
+.sheet:focus {
+  outline: 2px solid var(--official);
+  outline-offset: 4px;
 }
 
 .figures {
@@ -202,7 +208,272 @@
   font-size: 0.8rem;
 }
 
-@media (max-width: 640px) {
+.podiumTable td {
+  min-width: 12rem;
+  vertical-align: top;
+}
+
+.podiumTable tbody th,
+.historyTable tbody th {
+  border-bottom: 1px solid var(--rule-soft);
+  color: var(--ink-soft);
+  font-weight: 600;
+  padding: 0.5rem var(--s3);
+  text-align: left;
+  vertical-align: baseline;
+}
+
+.podiumTable tbody tr:hover th,
+.historyTable tbody tr:hover th {
+  background: var(--panel-tint);
+}
+
+.podiumTable tbody tr:last-child th,
+.historyTable tbody tr:last-child th {
+  border-bottom: none;
+}
+
+.podiumCards {
+  display: none;
+}
+
+.population {
+  color: var(--ink-soft);
+  display: block;
+  font-family: var(--mono);
+  font-size: 0.68rem;
+  font-weight: 400;
+  margin-top: 0.15rem;
+  white-space: nowrap;
+}
+
+.personButton {
+  appearance: none;
+  border: 0;
+  background: transparent;
+  color: var(--ink);
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  padding: 0;
+  text-align: left;
+}
+
+.personButton strong {
+  color: var(--official);
+  font-size: 0.86rem;
+  line-height: 1.25;
+  text-decoration: underline;
+  text-decoration-color: transparent;
+  text-underline-offset: 0.16rem;
+}
+
+.personButton:hover strong,
+.personButton:focus-visible strong {
+  text-decoration-color: currentColor;
+}
+
+.personButton small {
+  color: var(--ink-soft);
+  font-family: var(--mono);
+  font-size: 0.72rem;
+}
+
+.ranking {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.listSubhead {
+  border-top: 1px solid var(--rule);
+  color: var(--ink-soft);
+  font-size: 0.72rem;
+  letter-spacing: 0.06em;
+  margin: var(--s2) 0 0;
+  padding: var(--s2) 0.25rem 0.35rem;
+  text-transform: uppercase;
+}
+
+.rankingRow {
+  align-items: center;
+  border-bottom: 1px solid var(--rule-soft);
+  display: grid;
+  gap: var(--s1);
+  grid-template-columns: 2rem minmax(14rem, 1fr) minmax(14rem, 0.9fr);
+  padding: 0.7rem 0.25rem;
+}
+
+.rankingRow:last-child {
+  border-bottom: 0;
+}
+
+.rankingRow:hover {
+  background: var(--panel-tint);
+}
+
+.rankingPosition {
+  color: var(--ink-soft);
+  font-family: var(--mono);
+  font-size: 0.9rem;
+  font-weight: 650;
+  text-align: right;
+}
+
+.rankingPerson {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  min-width: 0;
+}
+
+.rankingName {
+  appearance: none;
+  background: transparent;
+  border: 0;
+  color: var(--ink);
+  display: block;
+  font: inherit;
+  font-size: 0.94rem;
+  font-weight: 700;
+  line-height: 1.3;
+  overflow-wrap: normal;
+  padding: 0;
+  text-align: left;
+  word-break: normal;
+}
+
+button.rankingName {
+  color: var(--official);
+  cursor: pointer;
+  text-decoration: underline;
+  text-decoration-color: transparent;
+  text-underline-offset: 0.16rem;
+}
+
+button.rankingName:hover,
+button.rankingName:focus-visible {
+  text-decoration-color: currentColor;
+}
+
+.rankingMeta {
+  align-items: center;
+  color: var(--ink-soft);
+  display: flex;
+  flex-wrap: wrap;
+  font-size: 0.75rem;
+  gap: 0.3rem 0.55rem;
+}
+
+.rankingValue {
+  align-items: center;
+  display: flex;
+  gap: 0.6rem;
+  min-width: 0;
+}
+
+.rankingBar {
+  background: var(--rule-soft);
+  border-radius: 999px;
+  flex: 1 1 auto;
+  height: 8px;
+  overflow: hidden;
+}
+
+.rankingBar > span {
+  background: var(--official);
+  border-radius: inherit;
+  display: block;
+  height: 100%;
+}
+
+.rankingNumber {
+  display: flex;
+  flex-direction: column;
+  font-family: var(--mono);
+  font-size: 0.8rem;
+  min-width: 8rem;
+  text-align: right;
+  white-space: nowrap;
+}
+
+.rankingNumber small {
+  color: var(--ink-soft);
+}
+
+.profileHead {
+  align-items: flex-start;
+  display: flex;
+  gap: var(--s2);
+  justify-content: space-between;
+}
+
+.profileHead h3 {
+  font-size: clamp(1.25rem, 2.5vw, 1.75rem);
+  margin: 0.15rem 0 0.25rem;
+}
+
+.profileHead p {
+  color: var(--ink-soft);
+  font-size: 0.85rem;
+  margin: 0;
+  max-width: 70ch;
+}
+
+.eyebrow {
+  color: var(--official);
+  font-size: 0.7rem;
+  font-weight: 750;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.historyGrid {
+  display: grid;
+  gap: var(--s2);
+  grid-template-columns: minmax(0, 1.5fr) minmax(15rem, 0.75fr);
+}
+
+.milestones {
+  border-left: 2px solid var(--rule);
+  display: grid;
+  gap: var(--s2);
+  list-style: none;
+  margin: var(--s1) 0 var(--s2) 0.35rem;
+  padding: 0 0 0 var(--s2);
+}
+
+.milestones li {
+  display: grid;
+  gap: 0.15rem;
+  position: relative;
+}
+
+.milestones li::before {
+  background: var(--official);
+  border: 3px solid var(--panel);
+  border-radius: 50%;
+  content: '';
+  height: 0.72rem;
+  left: calc(-1 * var(--s2) - 0.43rem);
+  position: absolute;
+  top: 0.12rem;
+  width: 0.72rem;
+}
+
+.milestones b {
+  font-family: var(--mono);
+  font-size: 0.82rem;
+}
+
+.milestones span {
+  color: var(--ink-soft);
+  font-size: 0.8rem;
+  line-height: 1.45;
+}
+
+@media (max-width: 720px) {
   .pair {
     grid-template-columns: 1fr;
   }
@@ -217,6 +488,102 @@
 
   .directoryPager {
     justify-content: space-between;
+  }
+
+  .rankingRow {
+    align-items: start;
+    grid-template-columns: 1.6rem minmax(0, 1fr);
+  }
+
+  .rankingValue {
+    grid-column: 2;
+  }
+
+  .rankingBar {
+    min-width: 3rem;
+  }
+
+  .rankingNumber {
+    min-width: 7.4rem;
+  }
+
+  .profileHead {
+    flex-direction: column;
+  }
+
+  .historyGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .podiumDesktop {
+    display: none;
+  }
+
+  .podiumCards {
+    display: grid;
+    gap: var(--s1);
+  }
+
+  .podiumCard {
+    border: 1px solid var(--rule-soft);
+    border-radius: 10px;
+    padding: 0.7rem;
+  }
+
+  .podiumCard h3 {
+    align-items: baseline;
+    display: flex;
+    font-family: var(--mono);
+    font-size: 0.85rem;
+    gap: 0.5rem;
+    justify-content: space-between;
+    margin: 0 0 0.55rem;
+  }
+
+  .podiumCard h3 span {
+    color: var(--ink-soft);
+    font-size: 0.68rem;
+    font-weight: 400;
+  }
+
+  .podiumCard ol {
+    display: grid;
+    gap: 0.55rem;
+    list-style: none;
+    margin: 0;
+    padding: 0;
+  }
+
+  .podiumCard li {
+    align-items: start;
+    display: grid;
+    gap: 0.55rem;
+    grid-template-columns: 1.7rem minmax(0, 1fr);
+  }
+
+  .podiumCard li > span {
+    color: var(--ink-soft);
+    font-family: var(--mono);
+    font-size: 0.8rem;
+    font-weight: 700;
+    padding-top: 0.05rem;
+    text-align: right;
+  }
+
+  /*
+   * La regla móvil global oculta las columnas 3 y 5 de todas las tablas.
+   * En estas tablas ambas contienen datos esenciales del historial, por lo que
+   * se preservan dentro del contenedor con desplazamiento horizontal.
+   */
+  .historyTable th:nth-child(3),
+  .historyTable td:nth-child(3),
+  .holdingsTable th:nth-child(3),
+  .holdingsTable td:nth-child(3),
+  .compositionTable th:nth-child(3),
+  .compositionTable td:nth-child(3),
+  .compositionTable th:nth-child(5),
+  .compositionTable td:nth-child(5) {
+    display: table-cell !important;
   }
 }
 
