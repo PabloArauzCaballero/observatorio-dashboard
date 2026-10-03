@@ -182,23 +182,33 @@ export function BusinessFabricExplorer({ board }: { board: FabricBoard }) {
     tone: seriesTone(index),
   }));
   const flowYears = [...new Set(board.firms.filter((row) => flowSeries.some((series) => series.key === row.measure) && row.place === place && row.dimension === 'TOTAL').map((row) => row.year))].sort((a, b) => a - b);
-  const flowData = flowYears.map((year) => {
+  const closures = buildClosureSeries(board.firms, place);
+  const knownClosures = closures.filter((row): row is { year: number; count: number } => row.count !== null);
+  const latestClosure = knownClosures.at(-1) ?? null;
+  const previousClosure = knownClosures.at(-2) ?? null;
+  /*
+   * Entradas y salidas van lado a lado y se leen una contra otra, así que las
+   * dos comparten el mismo eje de años, y ese eje no se salta ninguno: dibujar
+   * sólo los años con cifra ponía 2010 y 2016 a un paso, como si fueran
+   * seguidos. Un año sin publicar queda como hueco en la línea, no como cero.
+   */
+  const spanYears = [...flowYears, ...knownClosures.map((row) => row.year)];
+  const spanFirst = spanYears.length ? Math.min(...spanYears) : 0;
+  const span = spanYears.length ? Array.from({ length: Math.max(...spanYears) - spanFirst + 1 }, (_, index) => spanFirst + index) : [];
+  const flowData = span.map((year) => {
     const row: Record<string, string | number | null> = { year: String(year) };
     for (const series of flowSeries) {
       row[series.key] = board.firms.find((one) => one.measure === series.key && one.place === place && one.dimension === 'TOTAL' && one.year === year)?.count ?? null;
     }
     return row as { year: string; [key: string]: string | number | null };
   });
-  const hasFlow = flowSeries.length > 0 && flowData.length > 0;
+  const hasFlow = flowSeries.length > 0 && flowYears.length > 0;
   const latestFlows = flowSeries.flatMap((series) => {
     const row = flowData.filter((one) => typeof one[series.key] === 'number').at(-1);
     return row ? [{ key: series.key, label: series.label, year: row.year, count: row[series.key] as number }] : [];
   });
-  const closures = buildClosureSeries(board.firms, place);
-  const knownClosures = closures.filter((row): row is { year: number; count: number } => row.count !== null);
-  const latestClosure = knownClosures.at(-1) ?? null;
-  const previousClosure = knownClosures.at(-2) ?? null;
-  const closureData = closures.map((row) => ({ year: String(row.year), CANCELLED: row.count }));
+  const closureCount = new Map(knownClosures.map((row) => [row.year, row.count]));
+  const closureData = span.map((year) => ({ year: String(year), CANCELLED: closureCount.get(year) ?? null }));
   const closureLines: WorldLineSeries[] = [{ key: 'CANCELLED', label: 'Cierres', tone: seriesTone(2) }];
 
   const reset = (): void => {
@@ -568,7 +578,7 @@ export function BusinessFabricExplorer({ board }: { board: FabricBoard }) {
                     ))}
                     <div className="stat">
                       <span className="stat-label">Cobertura</span>
-                      <span className="stat-value">{flowData[0]?.year}–{flowData.at(-1)?.year}</span>
+                      <span className="stat-value">{flowYears[0]}–{flowYears.at(-1)}</span>
                       <span className="stat-hint">años con alguna cifra</span>
                     </div>
                   </div>
@@ -606,7 +616,7 @@ export function BusinessFabricExplorer({ board }: { board: FabricBoard }) {
                     </div>
                     <div className="stat">
                       <span className="stat-label">Cobertura</span>
-                      <span className="stat-value">{closures[0]?.year}–{latestClosure.year}</span>
+                      <span className="stat-value">{knownClosures[0]?.year}–{latestClosure.year}</span>
                       <span className="stat-hint">los años no publicados quedan vacíos</span>
                     </div>
                   </div>
