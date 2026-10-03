@@ -18,7 +18,7 @@ export async function GET(request: Request): Promise<Response> {
       search: url.searchParams.get('buscar') ?? '',
       word: url.searchParams.get('palabra') ?? '',
       page: pageNumber(url.searchParams.get('pagina')),
-      pageSize: 50,
+      pageSize: 10,
     });
     return jsonResponse(request, result, { headers: { 'Cache-Control': 'private, max-age=300' } });
   } catch (error) {

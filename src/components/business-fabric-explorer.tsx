@@ -189,6 +189,11 @@ export function BusinessFabricExplorer({ board }: { board: FabricBoard }) {
     }
     return row as { year: string; [key: string]: string | number | null };
   });
+  const hasFlow = flowSeries.length > 0 && flowData.length > 0;
+  const latestFlows = flowSeries.flatMap((series) => {
+    const row = flowData.filter((one) => typeof one[series.key] === 'number').at(-1);
+    return row ? [{ key: series.key, label: series.label, year: row.year, count: row[series.key] as number }] : [];
+  });
   const closures = buildClosureSeries(board.firms, place);
   const knownClosures = closures.filter((row): row is { year: number; count: number } => row.count !== null);
   const latestClosure = knownClosures.at(-1) ?? null;
@@ -253,46 +258,6 @@ export function BusinessFabricExplorer({ board }: { board: FabricBoard }) {
           </div>
         </div>
       </div>
-
-      {latestClosure ? (
-        <div className="panel">
-          <div className="panel-head">
-            <h2>Cierres empresariales en {placeLabel(place)} (cancelaciones de matrícula)</h2>
-            <p className="panel-sub">
-              Cuenta matrículas de comercio canceladas en cada gestión. No equivale a quiebra, falta de renovación ni
-              cierre operativo: también puede responder a transformación, fusión u otras causas registrales.
-            </p>
-          </div>
-          <div className="stat-strip">
-            <div className="stat">
-              <span className="stat-label">Último dato · {latestClosure.year}</span>
-              <span className="stat-value">{say(latestClosure.count)}</span>
-              <span className="stat-hint">matrículas canceladas</span>
-            </div>
-            <div className="stat">
-              <span className="stat-label">Frente a {previousClosure?.year ?? '—'}</span>
-              <span className="stat-value">
-                {previousClosure ? `${latestClosure.count >= previousClosure.count ? '+' : ''}${say(latestClosure.count - previousClosure.count)}` : '—'}
-              </span>
-              <span className="stat-hint">variación en cantidad</span>
-            </div>
-            <div className="stat">
-              <span className="stat-label">Cobertura</span>
-              <span className="stat-value">{closures[0]?.year}–{latestClosure.year}</span>
-              <span className="stat-hint">los años no publicados quedan vacíos</span>
-            </div>
-          </div>
-          <WorldLines
-            data={closureData}
-            series={closureLines}
-            format={(value) => `${say(value)} cierres`}
-            tick={(value) => (value >= 1000 ? `${say(value / 1000)} mil` : say(value))}
-            countsOnly
-          />
-        </div>
-      ) : null}
-
-      <BusinessDirectoryPanel />
 
       <div className="workspace">
         <aside className="rail" id="tejido-filtros">
@@ -564,22 +529,6 @@ export function BusinessFabricExplorer({ board }: { board: FabricBoard }) {
             </div>
           </div>
 
-          {flowSeries.length && flowData.length ? (
-            <div className="panel">
-              <div className="panel-head">
-                <h2>Movimiento del registro en {placeLabel(place)}: inscripciones y renovaciones por año (cantidad)</h2>
-                <p className="panel-sub">Un año parcial lo dice su fuente; pasa el cursor para ver la cifra.</p>
-              </div>
-              <WorldLines
-                data={flowData}
-                series={flowSeries}
-                format={(value) => `${say(value)} empresas`}
-                tick={(value) => (value >= 1000 ? `${say(value / 1000)} mil` : say(value))}
-                countsOnly
-              />
-            </div>
-          ) : null}
-
           {owners.length ? (
             <div className="grid-two">
               <div className="panel">
@@ -600,6 +549,80 @@ export function BusinessFabricExplorer({ board }: { board: FabricBoard }) {
           ) : null}
 
           <BusinessSizePanel board={board} place={place} />
+
+          {hasFlow || latestClosure ? (
+            <div className={hasFlow && latestClosure ? 'grid-pair' : undefined}>
+              {hasFlow ? (
+                <div className="panel">
+                  <div className="panel-head">
+                    <h2>Entradas al registro en {placeLabel(place)}: inscripciones y renovaciones por año (cantidad)</h2>
+                    <p className="panel-sub">Un año parcial lo dice su fuente; pasa el cursor para ver la cifra.</p>
+                  </div>
+                  <div className="stat-strip">
+                    {latestFlows.map((one) => (
+                      <div className="stat" key={one.key}>
+                        <span className="stat-label">{one.label} · {one.year}</span>
+                        <span className="stat-value">{say(one.count)}</span>
+                        <span className="stat-hint">último dato publicado</span>
+                      </div>
+                    ))}
+                    <div className="stat">
+                      <span className="stat-label">Cobertura</span>
+                      <span className="stat-value">{flowData[0]?.year}–{flowData.at(-1)?.year}</span>
+                      <span className="stat-hint">años con alguna cifra</span>
+                    </div>
+                  </div>
+                  <WorldLines
+                    data={flowData}
+                    series={flowSeries}
+                    format={(value) => `${say(value)} empresas`}
+                    tick={(value) => (value >= 1000 ? `${say(value / 1000)} mil` : say(value))}
+                    countsOnly
+                  />
+                </div>
+              ) : null}
+
+              {latestClosure ? (
+                <div className="panel">
+                  <div className="panel-head">
+                    <h2>Salidas del registro en {placeLabel(place)}: cancelaciones de matrícula por año (cantidad)</h2>
+                    <p className="panel-sub">
+                      No equivale a quiebra ni a falta de renovación: también responde a transformación, fusión u otras
+                      causas registrales.
+                    </p>
+                  </div>
+                  <div className="stat-strip">
+                    <div className="stat">
+                      <span className="stat-label">Cierres · {latestClosure.year}</span>
+                      <span className="stat-value">{say(latestClosure.count)}</span>
+                      <span className="stat-hint">matrículas canceladas</span>
+                    </div>
+                    <div className="stat">
+                      <span className="stat-label">Frente a {previousClosure?.year ?? '—'}</span>
+                      <span className="stat-value">
+                        {previousClosure ? `${latestClosure.count >= previousClosure.count ? '+' : ''}${say(latestClosure.count - previousClosure.count)}` : '—'}
+                      </span>
+                      <span className="stat-hint">variación en cantidad</span>
+                    </div>
+                    <div className="stat">
+                      <span className="stat-label">Cobertura</span>
+                      <span className="stat-value">{closures[0]?.year}–{latestClosure.year}</span>
+                      <span className="stat-hint">los años no publicados quedan vacíos</span>
+                    </div>
+                  </div>
+                  <WorldLines
+                    data={closureData}
+                    series={closureLines}
+                    format={(value) => `${say(value)} cierres`}
+                    tick={(value) => (value >= 1000 ? `${say(value / 1000)} mil` : say(value))}
+                    countsOnly
+                  />
+                </div>
+              ) : null}
+            </div>
+          ) : null}
+
+          <BusinessDirectoryPanel />
         </div>
       </div>
     </>
