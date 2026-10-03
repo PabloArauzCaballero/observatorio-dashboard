@@ -11,7 +11,7 @@ import { FaresSection } from './fares-section';
 import type { RailBoard, WaterBoard } from '@/lib/transport-board';
 
 /**
- * El capítulo de transporte: carreteras, ferrocarriles y ríos, tres páginas.
+ * El capítulo de transporte: automotor, pasajes, infraestructura y fletes, seis páginas.
  *
  * Cada página pide su tablero al abrirse y no antes, como hacía «Carreteras»
  * sola: `SubTabs` monta sólo la página activa, así que abrir el capítulo no

@@ -41,7 +41,8 @@ import type { IconName } from './icons';
  * Se dibuja un gráfico por unidad y no uno para todo. Un barril de crudo y un
  * galón de diésel en el mismo eje hacen del segundo una línea plana en el
  * suelo; para compararlos está la medida «índice», que los pone a todos en
- * base 100 en el primer mes visible, o la variación interanual.
+ * base 100 en el primer mes visible, o la variación interanual. La página fija
+ * de fletes abre en el producto y el ámbito bolivianos documentados.
  */
 
 const GROUP_ICON: Record<ExogenousGroup, IconName> = {

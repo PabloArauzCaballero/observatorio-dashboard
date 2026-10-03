@@ -414,7 +414,7 @@ button.rankingName:focus-visible {
 }
 
 .historyChooser {
-  align-items: end;
+  align-items: flex-end;
   display: flex;
   gap: 1rem;
   justify-content: space-between;
