@@ -32,7 +32,9 @@ const DIRECTORY_CTE = `WITH directory AS (
   SELECT DISTINCT ON (place_id)
          place_id,
          regexp_replace(place_id, '^.*:', '') AS registration_id,
-         name,
+         -- El SEPREC entrega razones sociales entre comillas sueltas («" AYZA "»):
+         -- se quitan aquí para que la tabla, el orden, la búsqueda y el Excel lean igual.
+         btrim(regexp_replace(regexp_replace(name, '["“”]+', '', 'g'), '[[:space:]]+', ' ', 'g')) AS name,
          department,
          locality AS municipality,
          address,
@@ -139,7 +141,7 @@ export async function readBusinessDirectory(filters: BusinessDirectoryFilters = 
       `${DIRECTORY_CTE}
        SELECT place_id, registration_id, name, department, municipality, address, activity, licence, cut_date
          FROM directory ${scoped.sql}
-        ORDER BY name, registration_id
+        ORDER BY regexp_replace(name, '^[^[:alnum:]]+', ''), registration_id
         LIMIT $${scoped.values.length + 1} OFFSET $${scoped.values.length + 2}`,
       [...scoped.values, selected.pageSize, offset],
     ),

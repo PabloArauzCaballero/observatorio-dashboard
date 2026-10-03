@@ -148,7 +148,6 @@ export function BusinessDirectoryPanel() {
                   <th>Departamento</th>
                   <th>Municipio</th>
                   <th>Dirección declarada</th>
-                  <th>Categoría disponible</th>
                 </tr>
               </thead>
               <tbody>
@@ -159,7 +158,6 @@ export function BusinessDirectoryPanel() {
                     <td>{company.department ?? '—'}</td>
                     <td>{company.municipality ?? '—'}</td>
                     <td>{company.address ?? '—'}</td>
-                    <td>{company.activity ?? '—'}</td>
                   </tr>
                 ))}
               </tbody>

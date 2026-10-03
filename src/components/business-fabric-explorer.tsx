@@ -596,10 +596,7 @@ export function BusinessFabricExplorer({ board }: { board: FabricBoard }) {
                 <div className="panel">
                   <div className="panel-head">
                     <h2>Salidas del registro en {placeLabel(place)}: cancelaciones de matrícula por año (cantidad)</h2>
-                    <p className="panel-sub">
-                      No equivale a quiebra ni a falta de renovación: también responde a transformación, fusión u otras
-                      causas registrales.
-                    </p>
+                    <p className="panel-sub">No es quiebra: incluye fusiones, transformaciones y otras bajas registrales.</p>
                   </div>
                   <div className="stat-strip">
                     <div className="stat">
