@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useId, useRef, useState, type RefObject } from 'react';
 import { Icon } from '@/components/icons';
-import type { DatosDeFigura } from '@/components/ui/panel-data';
+import type { DatosDeFigura, ProveedorDeImagen } from '@/components/ui/panel-data';
 import { afichePng, componerAfiche, puedeComponerImagen } from '@/lib/export/afiche';
 import { aCsv, nombreDeArchivo, type Dataset } from '@/lib/export/datos';
 import { entregar, fechaLarga, hoyEnLaPaz, TIPO } from '@/lib/export/entrega';
@@ -20,6 +20,10 @@ interface Props {
   fuente: string;
   /** Las cifras que el panel muestra, con los filtros puestos. Se piden al abrir el menú. */
   datos?: (() => DatosDeFigura[]) | undefined;
+  /** La imagen que una figura sabe componer por su cuenta, si alguna (un mapa con teselas). */
+  imagenPropia?: (() => ProveedorDeImagen | undefined) | undefined;
+  /** Descargas que ya existen en otro sitio (el archivo completo del servidor, por ejemplo). */
+  extra?: ReadonlyArray<{ etiqueta: string; nota?: string; href: string }> | undefined;
 }
 
 type Accion = { tipo: 'png' | 'svg' | 'xlsx' | 'enlace' } | { tipo: 'csv'; indice: number };
@@ -35,11 +39,21 @@ const clave = (accion: Accion): string =>
  * y otros cuentan lo mismo. Cada opción aparece solo si se puede cumplir: un panel
  * sin gráfico no ofrece imagen, y uno sin cifras no ofrece datos.
  */
-export function DownloadMenu({ panel, id, titulo, entradilla, fuente, datos }: Props) {
+export function DownloadMenu({
+  panel,
+  id,
+  titulo,
+  entradilla,
+  fuente,
+  datos,
+  imagenPropia,
+  extra,
+}: Props) {
   const [abierto, setAbierto] = useState(false);
   const [ocupado, setOcupado] = useState<string | null>(null);
   const [aviso, setAviso] = useState<string | null>(null);
   const [conImagen, setConImagen] = useState(false);
+  const [conImagenPropia, setConImagenPropia] = useState(false);
   const [conjuntos, setConjuntos] = useState<DatosDeFigura[]>([]);
   const raiz = useRef<HTMLDivElement>(null);
   const boton = useRef<HTMLButtonElement>(null);
@@ -60,7 +74,9 @@ export function DownloadMenu({ panel, id, titulo, entradilla, fuente, datos }: P
   // Lo que se ofrece se mira al abrir, no al montar: el gráfico puede dibujarse después.
   const alternar = () => {
     if (!abierto) {
-      setConImagen(panel.current ? puedeComponerImagen(panel.current) : false);
+      const propia = Boolean(imagenPropia?.());
+      setConImagenPropia(propia);
+      setConImagen(propia || (panel.current ? puedeComponerImagen(panel.current) : false));
       setConjuntos(reunir());
       setAviso(null);
     }
@@ -117,7 +133,12 @@ export function DownloadMenu({ panel, id, titulo, entradilla, fuente, datos }: P
         return;
       }
       setOcupado(clave(accion));
-      if (accion.tipo === 'png' || accion.tipo === 'svg') {
+      if (accion.tipo === 'png' && imagenPropia?.()) {
+        // La figura compone su propia imagen (un mapa con teselas): el afiche no podría.
+        const blob = await imagenPropia()?.();
+        if (!blob) throw new Error('La figura no devolvió imagen.');
+        entregar(blob, nombreDeArchivo(id, hoy, 'png'), 'panel-png');
+      } else if (accion.tipo === 'png' || accion.tipo === 'svg') {
         const host = panel.current;
         if (!host) return;
         const afiche = await componerAfiche({
@@ -205,7 +226,7 @@ export function DownloadMenu({ panel, id, titulo, entradilla, fuente, datos }: P
           {conImagen ? (
             <>
               {item({ tipo: 'png' }, 'Imagen', 'PNG')}
-              {item({ tipo: 'svg' }, 'Imagen vectorial', 'SVG')}
+              {conImagenPropia ? null : item({ tipo: 'svg' }, 'Imagen vectorial', 'SVG')}
             </>
           ) : null}
           {conjuntos.length > 0 ? (
@@ -226,6 +247,19 @@ export function DownloadMenu({ panel, id, titulo, entradilla, fuente, datos }: P
                 : item({ tipo: 'csv', indice: 0 }, 'Datos', 'CSV')}
             </>
           ) : null}
+          {(extra ?? []).map((descarga) => (
+            <a
+              key={descarga.href}
+              role="menuitem"
+              className="menu-item"
+              href={descarga.href}
+              download
+              onClick={() => cerrar(false)}
+            >
+              <span>{descarga.etiqueta}</span>
+              <span className="menu-item-note">{descarga.nota ?? ''}</span>
+            </a>
+          ))}
           {item({ tipo: 'enlace' }, 'Copiar enlace al panel', '')}
           <p className="menu-aviso" role="status">
             {aviso ?? ''}

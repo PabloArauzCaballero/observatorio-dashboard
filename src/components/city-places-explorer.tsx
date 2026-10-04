@@ -18,7 +18,8 @@ import { FilterHint, PickedCount } from './filters';
 import { Icon } from './icons';
 import type { IconName } from './icons';
 import { Pager } from './pager';
-import { PlacesMap, mapsHref } from './places-map';
+import { PlacesMap, mapsHref, placesDataset } from './places-map';
+import { Panel } from '@/components/ui/panel';
 import type { Place, PlaceFamily } from '@/lib/places';
 import {
   APPROXIMATE_POSITION_NOTE,
@@ -59,6 +60,10 @@ const WITHOUT_LOCALITY = 'Sin localidad declarada';
 const MAPPED_CITIES = ['Santa Cruz de la Sierra', 'La Paz', 'Cochabamba'];
 
 const NUMBER = new Intl.NumberFormat('es-BO');
+
+/** De dónde sale cada lugar y con qué filtro: lo mismo para el mapa y para la tabla. */
+const PLACES_SOURCE =
+  'Overture Maps Foundation (entrega 2026-08-19.0), con confianza de 0,60 o más y dentro de los polígonos municipales que la propia fuente publica; mapa base © OpenStreetMap contributors';
 /** Enough to see the shape of a chapter's rail without scrolling past it. */
 const SHOWN = 16;
 /** Rows of the register on screen at once, as the rest of the report pages. */
@@ -635,75 +640,80 @@ export function CityPlacesExplorer({ families }: { families: PlaceFamily[] }) {
               </button>
             </div>
           ) : (
-            <PlacesMap
-              places={places}
-              csvHref={`/api/export?${fileQuery.toString()}&format=csv`}
-              jsonHref={`/api/export?${fileQuery.toString()}&format=json`}
-              fileName={slug}
-            />
-          )}
-          {/*
-            Lo que hay debajo del mapa, en una caja y no en tres.
-
-            Eran dos parrafos sueltos con el mismo borde azul de una nota
-            destacada, uno de ellos en monoespaciada diminuta, cada uno en su
-            propio recuadro: tres cajas apiladas del mismo peso visual diciendo
-            tres cosas de importancia muy distinta. Y `.card-note` esta escrita
-            para envolver parrafos —el tamano de letra vive en `.card-note p`—
-            asi que puesta sobre el parrafo mismo no se aplicaba y la frase
-            salia con el cuerpo de un titulo.
-          */}
-          <div className="card-note">
-            <p>
-              {/*
+            <Panel
+              id="mapa-de-lugares"
+              title={`Lugares de ${cityLabel} (cantidad de lugares)`}
+              lede={
+                <>
+                  {/*
                 Un rubro, un grupo o un sub-rubro se nombra por su nombre: quien
                 pulsó «Pizzerías» lee «Pizzerías en Santa Cruz», no «1 familia»
                 ni el código de la familia.
               */}
-              {chosenNode ? (
-                <>
-                  <b>{chosenNode}</b> en {cityLabel}: {NUMBER.format(chosenPlaces)}{' '}
-                  {chosenPlaces === 1 ? 'lugar' : 'lugares'}, {NUMBER.format(chosenRegulated)} de
-                  actividad regulada.
+                  {chosenNode ? (
+                    <>
+                      <b>{chosenNode}</b> en {cityLabel}: {NUMBER.format(chosenPlaces)}{' '}
+                      {chosenPlaces === 1 ? 'lugar' : 'lugares'}, {NUMBER.format(chosenRegulated)}{' '}
+                      de actividad regulada.
+                    </>
+                  ) : chosen ? (
+                    <>
+                      <b>{label(chosen.entityFamily)}</b> en {cityLabel}:{' '}
+                      {NUMBER.format(chosen.places)} lugares, {NUMBER.format(chosen.regulated)} de
+                      actividad regulada.
+                    </>
+                  ) : family.size ? (
+                    <>
+                      <b>{family.size} familias</b> en {cityLabel}: {NUMBER.format(chosenPlaces)}{' '}
+                      lugares, {NUMBER.format(chosenRegulated)} de actividad regulada.
+                    </>
+                  ) : (
+                    <>
+                      <b>Todas las familias</b> de {cityLabel}: {NUMBER.format(cityTotals.places)}{' '}
+                      lugares, {NUMBER.format(cityTotals.regulated)} de actividad regulada.
+                    </>
+                  )}{' '}
+                  {failed ? null : truncated ? (
+                    <>
+                      El mapa dibuja {NUMBER.format(places.length)} de {NUMBER.format(total)}, los
+                      de mayor confianza: dibujarlos todos deja una mancha, no un mapa. Elegí una
+                      familia para verla completa, descargá el CSV, que trae los{' '}
+                      {NUMBER.format(total)}, o{' '}
+                      <button
+                        type="button"
+                        className="callout-link"
+                        onClick={() => setShowAll(true)}
+                      >
+                        dibujá los {NUMBER.format(total)} de una vez
+                      </button>
+                      .
+                    </>
+                  ) : (
+                    <>
+                      Se dibujan los {NUMBER.format(places.length)}, y la tabla los lista enteros.
+                    </>
+                  )}{' '}
+                  La marca de actividad regulada señala qué debe verificarse con su regulador
+                  boliviano; no es una verificación.
                 </>
-              ) : chosen ? (
-                <>
-                  <b>{label(chosen.entityFamily)}</b> en {cityLabel}: {NUMBER.format(chosen.places)}{' '}
-                  lugares, {NUMBER.format(chosen.regulated)} de actividad regulada.
-                </>
-              ) : family.size ? (
-                <>
-                  <b>{family.size} familias</b> en {cityLabel}: {NUMBER.format(chosenPlaces)}{' '}
-                  lugares, {NUMBER.format(chosenRegulated)} de actividad regulada.
-                </>
-              ) : (
-                <>
-                  <b>Todas las familias</b> de {cityLabel}: {NUMBER.format(cityTotals.places)}{' '}
-                  lugares, {NUMBER.format(cityTotals.regulated)} de actividad regulada.
-                </>
-              )}{' '}
-              {failed ? null : truncated ? (
-                <>
-                  El mapa dibuja {NUMBER.format(places.length)} de {NUMBER.format(total)}, los de
-                  mayor confianza: dibujarlos todos deja una mancha, no un mapa. Elegí una familia
-                  para verla completa, descargá el CSV, que trae los {NUMBER.format(total)}, o{' '}
-                  <button type="button" className="callout-link" onClick={() => setShowAll(true)}>
-                    dibujá los {NUMBER.format(total)} de una vez
-                  </button>
-                  .
-                </>
-              ) : (
-                <>Se dibujan los {NUMBER.format(places.length)}, y la tabla los lista enteros.</>
-              )}
-            </p>
-            <p className="card-note-source">
-              Overture Maps Foundation, entrega 2026-08-19.0, filtrada a confianza ≥ 0,60 y acotada
-              a los polígonos municipales que la propia fuente publica. La marca de actividad
-              regulada señala qué debe verificarse con su regulador boliviano; no es una
-              verificación.
-            </p>
-          </div>
-
+              }
+              source={PLACES_SOURCE}
+              extraDownloads={[
+                {
+                  etiqueta: `Todos los lugares de la selección (${NUMBER.format(total)})`,
+                  nota: 'CSV',
+                  href: `/api/export?${fileQuery.toString()}&format=csv`,
+                },
+                {
+                  etiqueta: 'Todos los lugares de la selección',
+                  nota: 'JSON',
+                  href: `/api/export?${fileQuery.toString()}&format=json`,
+                },
+              ]}
+            >
+              <PlacesMap places={places} />
+            </Panel>
+          )}
           {/*
             El registro, fila a fila, debajo del dibujo.
 
@@ -858,16 +868,19 @@ function PlacesTable({ places, total }: { places: Place[]; total: number }) {
   if (places.length === 0) return null;
 
   return (
-    <section className="places-table">
-      <div className="tile-head">
-        <Icon name="cajas" size={14} />
-        <h3 className="tile-title">Detalle de los lugares</h3>
-        <span className="places-table-count">
+    <Panel
+      id="detalle-de-lugares"
+      title="Detalle de los lugares (registros)"
+      meta={
+        <>
           {NUMBER.format(places.length)}
           {total > places.length ? <> de {NUMBER.format(total)}</> : null} registros
-        </span>
-      </div>
-
+        </>
+      }
+      source={PLACES_SOURCE}
+      data={() => placesDataset(places)}
+      className="places-table"
+    >
       {/* Dicho antes de la tabla y no solo en cada fila: quien exporta o cuenta
           tiene que saber cuántas de las filas no confirmó nadie. */}
       {doubtful > 0 ? (
@@ -1003,7 +1016,7 @@ function PlacesTable({ places, total }: { places: Place[]; total: number }) {
         where="abajo"
         noun="lugares"
       />
-    </section>
+    </Panel>
   );
 }
 

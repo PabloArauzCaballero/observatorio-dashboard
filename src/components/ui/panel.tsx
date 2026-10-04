@@ -37,6 +37,8 @@ export interface PanelProps {
    * sus propias cifras al panel que los envuelve.
    */
   data?: DatosDePanel | (() => DatosDePanel | undefined);
+  /** Descargas que ya existen en otro sitio, p. ej. el archivo completo que arma el servidor. */
+  extraDownloads?: ReadonlyArray<{ etiqueta: string; nota?: string; href: string }>;
   /** Para un panel que no se baja (una cabecera, un aviso): sin menú. */
   downloadable?: boolean;
   children: ReactNode;
@@ -66,6 +68,7 @@ export function Panel({
   updated,
   data,
   downloadable = true,
+  extraDownloads,
   children,
   className,
 }: PanelProps) {
@@ -115,6 +118,8 @@ export function Panel({
               entradilla={entradilla}
               fuente={source}
               datos={cifras}
+              imagenPropia={() => almacen.imagen()}
+              extra={extraDownloads}
             />
           ) : null}
         </div>

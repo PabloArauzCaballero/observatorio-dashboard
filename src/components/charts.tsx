@@ -1689,7 +1689,7 @@ export function ShareBars({
            * measures the longest label it actually has to draw and gives the
            * rest of the width to the bars.
            */}
-          <YAxis type="category" dataKey="name" width="auto" {...AXIS} />
+          <YAxis type="category" interval={0} dataKey="name" width="auto" {...AXIS} />
           <Tooltip content={renderTooltip} cursor={{ fill: 'var(--rule-soft)' }} />
           <Bar
             dataKey="value"
@@ -1789,7 +1789,7 @@ export function ReachChart({
             margin={{ top: 4, right: 64, bottom: 0, left: 4 }}
           >
             <XAxis type="number" hide />
-            <YAxis type="category" dataKey="platform" width={96} {...AXIS} />
+            <YAxis type="category" interval={0} dataKey="platform" width={96} {...AXIS} />
             <Tooltip content={renderTooltip} cursor={{ fill: 'var(--rule-soft)' }} />
             {ceiling === null ? null : (
               <ReferenceLine
@@ -1910,7 +1910,7 @@ export function StackedBars({ data, height = 200 }: { data: StackedRow[]; height
           >
             <CartesianGrid {...GRID} horizontal={false} vertical />
             <XAxis type="number" tickFormatter={(value: number) => number(value, 0)} {...AXIS} />
-            <YAxis type="category" dataKey="name" width={128} {...AXIS} />
+            <YAxis type="category" interval={0} dataKey="name" width={128} {...AXIS} />
             <Tooltip content={renderTooltip} cursor={{ fill: 'var(--rule-soft)' }} />
             {/*
              * Informal, mixto, formal es una escala CON orden: cambiar los tres
@@ -2042,7 +2042,7 @@ export function DivergingBars({
               tickFormatter={(value: number) => `${value > 0 ? '+' : ''}${number(value, 0)}`}
               {...AXIS}
             />
-            <YAxis type="category" dataKey="name" width={210} {...AXIS} />
+            <YAxis type="category" interval={0} dataKey="name" width={210} {...AXIS} />
             <Tooltip content={renderTooltip} cursor={{ fill: 'var(--rule-soft)' }} />
             {/* El cero es la referencia del gráfico: una regla del eje, sólida. */}
             <ReferenceLine x={0} stroke="var(--axis-rule)" strokeWidth={1} />
