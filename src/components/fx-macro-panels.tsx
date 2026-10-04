@@ -8,7 +8,8 @@ import { DatedLines } from './charts';
 import type { DatedBand, DatedLinePoint, DatedLineSeries } from './charts';
 import { Icon } from './icons';
 import type { IconName } from './icons';
-import { LevelCandles } from './level-candles';
+import { LevelCandles, ShapeToggle } from './level-candles';
+import { Panel } from '@/components/ui/panel';
 import type { CandleSession } from '@/lib/candles';
 import type { MacroPoint, RegimeSegment } from '@/lib/fx-macro';
 import type { FxConclusion, FxSnapshot, StablecoinReading } from '@/lib/fx-snapshot';
@@ -82,54 +83,58 @@ export function FxConclusions({ conclusions }: { conclusions: readonly FxConclus
   const [open, setOpen] = useState(false);
   if (!conclusions.length) return null;
   return (
-    <div className={open ? 'analysis' : 'analysis analysis-folded'}>
-      <div className="tile-head card-head">
-        <Icon name="sigma" size={17} />
-        <h2>Qué dicen estos datos</h2>
-        <span className="tile-hint">
-          {open
-            ? 'derivado, no redactado'
-            : `${conclusions.length} lectura${conclusions.length === 1 ? '' : 's'}`}
-        </span>
+    <Panel
+      id="lecturas-del-dolar"
+      title="Qué dicen los datos del tipo de cambio (lecturas derivadas)"
+      lede={
+        open
+          ? 'Cada frase sale de las series de esta misma sección y se recalcula con cada carga. Dice qué nivel hay, contra qué referencia y bajo qué régimen, y qué vale esa cifra en bolivianos para quien tiene que decidir algo con ella; no dice por qué pasó ni qué va a pasar.'
+          : 'Frases derivadas de las mismas series que se dibujan más abajo, cada una con la cifra que la sostiene.'
+      }
+      meta={
         <button
           type="button"
-          className={open ? 'card-toggle card-toggle-on' : 'card-toggle'}
+          className="menu-btn"
           onClick={() => setOpen(!open)}
-          title={open ? 'Plegar la lectura de los datos' : 'Ver qué dicen estos datos'}
           aria-expanded={open}
+          title={open ? 'Plegar la lectura de los datos' : 'Ver qué dicen estos datos'}
         >
-          <Icon name={open ? 'plegar' : 'desplegar'} size={16} />
+          {open
+            ? 'Plegar'
+            : `Ver ${conclusions.length} lectura${conclusions.length === 1 ? '' : 's'}`}
         </button>
-      </div>
-      {!open ? null : (
-        <>
-          <p className="analysis-note">
-            Cada frase sale de las series de esta misma sección y se recalcula con cada carga. Dice
-            qué nivel hay, contra qué referencia y bajo qué régimen, y qué vale esa cifra en
-            bolivianos para quien tiene que decidir algo con ella; no dice por qué pasó ni qué va a
-            pasar.
-          </p>
-          <ul className="bullets">
-            {conclusions.map((conclusion) => (
-              <li className="bullet" key={conclusion.key}>
-                <span className={`bullet-mark bullet-mark-${toneClass(conclusion.tone)}`}>
-                  <Icon name={CONCLUSION_ICON[conclusion.key] ?? 'info'} size={16} />
-                </span>
-                <div className="bullet-body">
-                  <div className="bullet-line">
-                    <b className="bullet-label">{conclusion.claim}</b>
-                    <span className={`bullet-value bullet-value-${toneClass(conclusion.tone)}`}>
-                      {conclusion.figure}
-                    </span>
-                  </div>
-                  <p className="bullet-detail">{conclusion.detail}</p>
+      }
+      source="Banco Central de Bolivia, mercados P2P en bolivianos y cálculo del Observatorio sobre las series de esta sección"
+      data={{
+        columnas: ['Lectura', 'Cifra', 'Detalle'],
+        filas: conclusions.map((conclusion) => [
+          conclusion.claim,
+          conclusion.figure,
+          conclusion.detail,
+        ]),
+      }}
+    >
+      {open ? (
+        <ul className="bullets">
+          {conclusions.map((conclusion) => (
+            <li className="bullet" key={conclusion.key}>
+              <span className={`bullet-mark bullet-mark-${toneClass(conclusion.tone)}`}>
+                <Icon name={CONCLUSION_ICON[conclusion.key] ?? 'info'} size={16} />
+              </span>
+              <div className="bullet-body">
+                <div className="bullet-line">
+                  <b className="bullet-label">{conclusion.claim}</b>
+                  <span className={`bullet-value bullet-value-${toneClass(conclusion.tone)}`}>
+                    {conclusion.figure}
+                  </span>
                 </div>
-              </li>
-            ))}
-          </ul>
-        </>
-      )}
-    </div>
+                <p className="bullet-detail">{conclusion.detail}</p>
+              </div>
+            </li>
+          ))}
+        </ul>
+      ) : null}
+    </Panel>
   );
 }
 
@@ -254,7 +259,7 @@ export function FxMacroPanels({
   const plotted = tokens.filter((entry) => isPlottable(entry.token));
   const tokenSeries: DatedLineSeries[] = plotted.map((entry) => ({
     key: entry.token,
-    label: `${entry.token} (Bs/USD)`,
+    label: `${entry.token} (Bs por USD)`,
     tone: TOKEN_TONE[entry.token] ?? 'var(--series-rest)',
     emphasis: entry.token === 'USDT',
   }));
@@ -294,6 +299,9 @@ export function FxMacroPanels({
     })),
   }));
 
+  const realLede = `Lo que la inflación le quitó al dólar: el paralelo deflactado por la UFV, con su nivel de ${sayShort(snapshot.real?.base)} = 100.`;
+  const tokenChart = tokenRows.length >= TOKEN_CHART_MINIMUM;
+
   return (
     <>
       <FxConclusions conclusions={snapshot.conclusions} />
@@ -308,88 +316,98 @@ export function FxMacroPanels({
        * cuando la pregunta que resuelven juntas es si el dólar sube por sí
        * mismo o porque suben todos los precios. Lado a lado, el eje de fechas
        * de las dos empieza a la misma altura y la comparación se hace con los
-       * ojos. Desde que se sumó el de los bancos son tres, en `grid-three`: dos
-       * columnas por debajo de 1100 px y una en el móvil. El de los bancos es
-       * el tercero y no va debajo porque es el mismo dibujo que los otros dos
-       * —bolivianos por dólar contra el calendario— y se lee contra ellos.
+       * ojos.
+       *
+       * Hasta ahora eran cuatro en `grid-three`, y a un tercio de la columna una
+       * serie de ochocientas jornadas no se lee: el eje se queda sin sitio y la
+       * leyenda de tres fichas pasa a dos renglones. Con la prosa plegada bajo
+       * cada figura ya no hay razón para tanta estrechez, así que son dos
+       * parejas. La segunda reúne lo que mira al mismo mercado desde el lado de
+       * los bancos —el volumen que declara el BCB y lo que cobra cada banco—.
        */}
-      <div className="grid-three">
-        <div className="panel">
-          <div className="panel-head card-head">
-            <button
-              type="button"
-              className={realCandles ? 'card-toggle card-toggle-on' : 'card-toggle'}
-              onClick={() => setRealCandles(!realCandles)}
-              title={
-                realCandles ? 'Ver el índice como línea' : 'Ver una vela por jornada del índice'
-              }
-              aria-pressed={realCandles}
-            >
-              <Icon name={realCandles ? 'linea' : 'velas'} size={16} />
-            </button>
-            <h2>Dólar paralelo descontada la inflación (índice, base 100)</h2>
-            <p className="panel-sub">
-              Lo que la inflación le quitó al dólar: el paralelo deflactado por la UFV, con su nivel
-              de {sayShort(snapshot.real?.base)} = <b>100</b>. Más abajo, «Tipo de cambio en
-              bolivianos por dólar» dibuja el mismo dólar en bolivianos corrientes; esta línea lo
-              dibuja en poder de compra, que es lo único que el nivel nominal no puede decir. Por
-              encima de 100 el dólar se encareció de verdad; por debajo, su subida no alcanzó a los
-              precios y hoy cuesta menos que al empezar. La franja sombreada es el tramo en que el
-              oficial estuvo fijo.
-            </p>
-          </div>
+      <div className="grid-pair fx-par">
+        <Panel
+          id="dolar-paralelo-real"
+          title="Dólar paralelo descontada la inflación (índice, base 100)"
+          lede={realLede}
+          source="Mercados P2P en bolivianos (paralelo), UFV del Banco Central de Bolivia y cálculo del Observatorio"
+        >
           {realRows.length > 1 && realCandles ? (
-            <LevelCandles sessions={realSessions} unit="puntos del índice" decimals={1} />
-          ) : realRows.length > 1 ? (
-            <DatedLines
-              data={realRows}
-              series={REAL_SERIES}
-              unit="índice"
+            <LevelCandles
+              sessions={realSessions}
+              unit="puntos del índice"
               decimals={1}
-              referenceLine={100}
-              referenceLabel="nivel del inicio"
-              bands={bands}
+              lead={<ShapeToggle candles={realCandles} onChange={setRealCandles} />}
             />
+          ) : realRows.length > 1 ? (
+            <>
+              <div className="fx-filters">
+                <ShapeToggle candles={realCandles} onChange={setRealCandles} />
+              </div>
+              <DatedLines
+                data={realRows}
+                series={REAL_SERIES}
+                unit="índice"
+                decimals={1}
+                referenceLine={100}
+                referenceLabel="nivel del inicio"
+                bands={bands}
+              />
+            </>
           ) : (
             <div className="callout">
               Hace falta que el tipo de cambio y la UFV coincidan en al menos dos jornadas.
             </div>
           )}
-        </div>
-
-        <div className="panel">
-          <div className="panel-head card-head">
-            <button
-              type="button"
-              className={tokenCandles ? 'card-toggle card-toggle-on' : 'card-toggle'}
-              onClick={() => setTokenCandles(!tokenCandles)}
-              title={
-                tokenCandles
-                  ? 'Ver las fichas como líneas'
-                  : 'Ver una vela por jornada de cada ficha'
-              }
-              aria-pressed={tokenCandles}
-            >
-              <Icon name={tokenCandles ? 'linea' : 'velas'} size={16} />
-            </button>
-            <h2>Precio del dólar por ficha estable (Bs/USD)</h2>
-            <p className="panel-sub">
-              El dólar por cada riel: punto medio en bolivianos por dólar de cada ficha estable, que
-              es la vía por la que se compran dólares cuando el mercado formal no los da. Están
-              ancladas al mismo dólar, de modo que la diferencia entre ellas es el costo del riel y
-              no otro precio.
-              {labelledFrom ? (
-                <>
-                  {' '}
-                  Antes del {sayLong(labelledFrom)} el archivo no anotaba el instrumento, y lo que
-                  cotizaba era USDT: hasta esa fecha la línea es el punto medio del paralelo, y{' '}
-                  <b>la franja sombreada</b> es el tramo en que cada lectura ya viene con el nombre
-                  de su ficha.
-                </>
-              ) : null}
+          <details className="panel-note">
+            <summary>Cómo leer este panel</summary>
+            <p>
+              Más abajo, «Dólar oficial y paralelo (Bs por USD)» dibuja el mismo dólar en bolivianos
+              corrientes; esta línea lo dibuja en poder de compra, que es lo único que el nivel
+              nominal no puede decir. Por encima de 100 el dólar se encareció de verdad; por debajo,
+              su subida no alcanzó a los precios y hoy cuesta menos que al empezar. La franja
+              sombreada es el tramo en que el oficial estuvo fijo.
             </p>
-          </div>
-          {tokenRows.length >= TOKEN_CHART_MINIMUM && tokenCandles ? (
+          </details>
+        </Panel>
+
+        <Panel
+          id="dolar-por-ficha"
+          title="Precio del dólar por ficha estable (Bs por USD)"
+          lede="El punto medio en bolivianos por dólar de cada ficha estable, la vía por la que se compran dólares cuando el mercado formal no los da."
+          source="Mercados P2P en bolivianos, lecturas por ficha del Observatorio"
+          data={() =>
+            tokenChart
+              ? undefined
+              : {
+                  unidad: 'Bs por USD',
+                  columnas: [
+                    'Ficha',
+                    'Punto medio (Bs por USD)',
+                    'Compra (Bs)',
+                    'Venta (Bs)',
+                    'Ida y vuelta (%)',
+                    'Costo de comprar sobre el punto medio (%)',
+                    'Plazas',
+                  ],
+                  filas: snapshot.stablecoins.map((reading) => [
+                    reading.token,
+                    reading.mid,
+                    reading.bid,
+                    reading.ask,
+                    reading.spreadPercent,
+                    reading.premiumAskPercent,
+                    reading.venues,
+                  ]),
+                }
+          }
+        >
+          {tokenChart ? (
+            <div className="fx-filters">
+              <ShapeToggle candles={tokenCandles} onChange={setTokenCandles} />
+            </div>
+          ) : null}
+          {tokenChart && tokenCandles ? (
             /*
              * Una pila de velas por ficha y no una sola con las dos: una vela
              * es un precio en el tiempo, y dos fichas superpuestas serían dos
@@ -400,16 +418,15 @@ export function FxMacroPanels({
             <div className="chart-stack">
               {tokenSessions.map((entry) => (
                 <div key={entry.token} className="candle-token">
-                  <div className="tile-head">
-                    <Icon name="chip" size={15} />
-                    <h3>{entry.token} (Bs/USD)</h3>
-                    <span className="tile-hint">
+                  <h4 className="candle-token-title">
+                    {entry.token} (Bs por USD)
+                    <span className="candle-token-hint">
                       {entry.sessions.length.toLocaleString('es-BO')} jornadas
                     </span>
-                  </div>
+                  </h4>
                   <LevelCandles
                     sessions={entry.sessions}
-                    unit="Bs/USD"
+                    unit="Bs por USD"
                     decimals={3}
                     sidesNote="la compra y la venta medianas de la jornada"
                     defaultRange="90d"
@@ -417,18 +434,37 @@ export function FxMacroPanels({
                 </div>
               ))}
             </div>
-          ) : tokenRows.length >= TOKEN_CHART_MINIMUM ? (
+          ) : tokenChart ? (
             <DatedLines
               data={tokenRows}
               series={tokenSeries}
-              unit="Bs/USD"
+              unit="Bs por USD"
               decimals={3}
               bands={labelledBand(labelledFrom, tokenDates)}
             />
           ) : (
             <StablecoinTable readings={snapshot.stablecoins} />
           )}
-        </div>
+          <details className="panel-note">
+            <summary>Cómo leer este panel</summary>
+            <p>
+              Las fichas están ancladas al mismo dólar, de modo que la diferencia entre ellas es el
+              costo del riel y no otro precio.
+              {labelledFrom ? (
+                <>
+                  {' '}
+                  Antes del {sayLong(labelledFrom)} el archivo no anotaba el instrumento, y lo que
+                  cotizaba era USDT: hasta esa fecha la línea es el punto medio del paralelo, y{' '}
+                  <b>la franja sombreada</b> es el tramo en que cada lectura ya viene con el nombre
+                  de su ficha.
+                </>
+              ) : null}
+            </p>
+          </details>
+        </Panel>
+      </div>
+
+      <div className="grid-pair fx-par">
         <BcbUsdtMarket />
         <BankQuotesPanel />
       </div>

@@ -8872,3 +8872,145 @@ button.download-btn {
 .panel-extremes span {
   white-space: nowrap;
 }
+
+/* Tipo de cambio ---------------------------------------------------------- */
+
+/*
+ * La pila de la pestaña es propia: la regla móvil `.stack > .workspace` manda los
+ * carriles de filtros al final de la pila de la página, detrás de la tabla de bancos.
+ * Aquí el orden de lectura es el del documento.
+ */
+.fx-tab {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s4);
+  min-width: 0;
+}
+
+/* Lo que va dentro de un panel de la pestaña se reparte con el mismo aire entre sí. */
+.fx-tab .panel-body,
+.fx-econ .panel-body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s2);
+  min-width: 0;
+}
+
+/* Un panel plegado no deja un hueco donde iría su cuerpo. */
+.fx-tab .panel-body:empty,
+.fx-econ .panel-body:empty {
+  display: none;
+}
+
+/*
+ * La fila de filtros de un panel: pastillas, una sola fila que envuelve en pantallas
+ * estrechas. Línea | Velas, la ventana de las velas, la medida del mercado del BCB.
+ */
+.fx-filters {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--s1) var(--s3);
+}
+
+/*
+ * Una pareja de paneles de la pestaña. El cuerpo crece para que el pie de fuente de los
+ * dos quede a la misma altura, y el que se queda solo (el otro no tiene datos y no se
+ * dibuja) ocupa la fila entera en vez de la mitad con un hueco al lado.
+ */
+.fx-par > .panel-x {
+  min-width: 0;
+}
+
+.fx-par > .panel-x > .panel-body {
+  flex: 1 1 auto;
+}
+
+.fx-par > .panel-x:only-child {
+  grid-column: 1 / -1;
+}
+
+.fx-par:empty {
+  display: none;
+}
+
+/* El subtítulo de una ficha dentro de la pila de velas. */
+.candle-token-title {
+  display: flex;
+  align-items: baseline;
+  gap: var(--s2);
+  margin: 0 0 var(--s1);
+  font-family: var(--serif);
+  font-size: var(--text-base);
+  font-weight: 600;
+}
+
+.candle-token-hint {
+  margin-left: auto;
+  color: var(--ink-soft);
+  font-family: var(--sans);
+  font-size: var(--text-xs);
+  font-weight: 400;
+}
+
+/*
+ * La explicación de un gráfico, plegada bajo la figura. La entradilla del panel dice qué
+ * muestra en una frase; esto es la lectura detallada, para quien la quiere. Texto de
+ * lectura, sobrio, sin caja. También sirve de nota suelta (`p.panel-note`).
+ */
+.panel-note {
+  margin: 0;
+  color: var(--ink-soft);
+  font-size: var(--text-sm);
+  line-height: 1.55;
+}
+
+.panel-note > summary {
+  display: inline-block;
+  cursor: pointer;
+  color: var(--ink-soft);
+  font-size: var(--text-sm);
+}
+
+.panel-note > summary:hover {
+  color: var(--ink);
+}
+
+.panel-note > summary:focus-visible {
+  outline: 2px solid var(--official);
+  outline-offset: 2px;
+  border-radius: var(--radius-sm);
+}
+
+.panel-note > :not(summary) {
+  max-width: 72ch;
+  margin: var(--s1) 0 0;
+}
+
+.panel-note ul {
+  padding-left: 1.2rem;
+}
+
+.panel-note b,
+.panel-note strong {
+  color: var(--ink);
+  font-weight: 600;
+}
+
+/*
+ * La lectura del tramo de las velas, en media pantalla: cuatro cifras con 240 px de
+ * mínimo salen dos por dos y no tres más una con la casilla sobrante pintada de gris.
+ */
+.fx-par .candle-reading {
+  grid-template-columns: repeat(auto-fit, minmax(min(240px, 100%), 1fr));
+}
+
+/*
+ * El «meta» del panel (804 jornadas · fecha → fecha) más el menú no caben en una línea en
+ * un teléfono: envuelven en vez de empujar la página hacia la derecha.
+ */
+.fx-tab .panel-top-side {
+  flex: 0 1 auto;
+  flex-wrap: wrap;
+  min-width: 0;
+}

@@ -4,6 +4,7 @@ import { DatedLines, seriesTone } from './charts';
 import type { DatedLineSeries } from './charts';
 import { useBankBoard } from './bank-board';
 import { sayLong } from './bank-format';
+import { Panel } from '@/components/ui/panel';
 
 /**
  * Lo que cada banco cobra por un dólar digital, como tercer gráfico de la fila
@@ -34,17 +35,21 @@ export function BankQuotesPanel() {
   if (!quotes.length || !series.length || failed) return null;
 
   return (
-    <div className="panel">
-      <div className="panel-head">
-        <h2>Cotización de cada banco (Bs por ficha)</h2>
-        <p className="panel-sub">
-          Lo que el cliente paga por cada USDT o USDC en cada banco. BISA publica esa cifra en su sitio
-          y se lee cada día; los demás bancos la muestran solo dentro de su aplicación, así que su
-          línea aparece cuando alguien la anota
+    <Panel
+      id="cotizacion-por-banco"
+      title="Cotización de cada banco (Bs por ficha)"
+      lede="Lo que el cliente paga por cada USDT o USDC en cada banco."
+      source="BISA (archivo público de su sitio) y cotizaciones anotadas de la aplicación de cada banco"
+    >
+      <DatedLines data={quotes} series={series} unit="Bs" decimals={2} yearTicks />
+      <details className="panel-note">
+        <summary>Cómo leer este gráfico</summary>
+        <p>
+          BISA publica esa cifra en su sitio y se lee cada día; los demás bancos la muestran solo
+          dentro de su aplicación, así que su línea aparece cuando alguien la anota
           {latest ? ` (última cifra, del ${sayLong(latest)})` : ''}.
         </p>
-      </div>
-      <DatedLines data={quotes} series={series} unit="Bs" decimals={2} yearTicks />
-    </div>
+      </details>
+    </Panel>
   );
 }
