@@ -1,6 +1,5 @@
 import { Sparkline } from './charts';
-import { Icon } from './icons';
-import type { IconName } from './icons';
+import { Panel } from '@/components/ui/panel';
 import type { DollarQuote, DollarQuotes, QuoteKey } from '@/lib/dollar-quotes';
 
 /**
@@ -14,10 +13,10 @@ import type { DollarQuote, DollarQuotes, QuoteKey } from '@/lib/dollar-quotes';
  * leían chicas.
  */
 
-const TONE: Record<QuoteKey, { accent: string; icon: IconName }> = {
-  USDT: { accent: 'var(--parallel)', icon: 'monedas' },
-  USDC: { accent: 'var(--gap)', icon: 'monedas' },
-  OFICIAL: { accent: 'var(--official)', icon: 'banco' },
+const TONE: Record<QuoteKey, { accent: string }> = {
+  USDT: { accent: 'var(--parallel)' },
+  USDC: { accent: 'var(--gap)' },
+  OFICIAL: { accent: 'var(--official)' },
 };
 
 const bs = (value: number, decimals = 2): string =>
@@ -45,7 +44,8 @@ function Change({ quote }: { quote: DollarQuote }) {
   const arrow = flat ? '=' : quote.change > 0 ? '▲' : '▼';
   return (
     <span className={`quote-change ${tone}`} title={`Contra el ${quote.previousDate ?? ''}`}>
-      <span aria-hidden="true">{arrow}</span> {flat ? 'sin cambio' : `${bs(Math.abs(quote.change))} Bs`}
+      <span aria-hidden="true">{arrow}</span>{' '}
+      {flat ? 'sin cambio' : `${bs(Math.abs(quote.change))} Bs`}
       {flat ? null : (
         <span className="quote-change-pct">
           ({quote.changePercent > 0 ? '+' : ''}
@@ -65,7 +65,7 @@ function Quote({ quote }: { quote: DollarQuote }) {
       aria-label={`${quote.label}: ${bs(quote.value)} bolivianos por dólar`}
     >
       <div className="quote-head">
-        <Icon name={tone.icon} size={14} />
+        <span className="quote-dot" aria-hidden="true" />
         <span className="quote-name">{quote.label}</span>
         <span className="quote-date">{shortDate(quote.date)}</span>
       </div>
@@ -101,6 +101,33 @@ function Quote({ quote }: { quote: DollarQuote }) {
   );
 }
 
+/** Las tres cotizaciones como tabla: lo que se baja es lo que se ve. */
+function quotesRows(data: DollarQuotes) {
+  return {
+    unidad: 'Bs por USD',
+    columnas: [
+      'Cotización',
+      'Fecha',
+      'Valor (Bs por USD)',
+      'Compra (Bs)',
+      'Venta (Bs)',
+      'Cambio (Bs)',
+      'Cambio (%)',
+      'Plazas',
+    ],
+    filas: data.quotes.map((quote) => [
+      quote.label,
+      quote.date,
+      quote.value,
+      quote.buy,
+      quote.sell,
+      quote.change,
+      quote.changePercent,
+      quote.venues,
+    ]),
+  };
+}
+
 export function DollarQuotesCard({ data }: { data: DollarQuotes }) {
   if (!data.quotes.length) {
     return (
@@ -119,13 +146,13 @@ export function DollarQuotesCard({ data }: { data: DollarQuotes }) {
   const stale = data.ageDays !== null && data.ageDays >= 2;
 
   return (
-    <section className="quotes" aria-labelledby="quotes-title">
-      <div className="quotes-head">
-        <Icon name="monedas" size={17} />
-        <h2 id="quotes-title">Cotización del dólar</h2>
-        <span className="tile-hint">Bs por dólar</span>
-      </div>
-
+    <Panel
+      id="cotizacion-dolar"
+      title="Cotización del dólar (Bs por USD)"
+      source="mercados P2P en bolivianos (mediana de las plazas) y Banco Central de Bolivia (oficial)"
+      data={quotesRows(data)}
+      className="quotes"
+    >
       <div className="quotes-grid">
         {data.quotes.map((quote) => (
           <Quote quote={quote} key={quote.key} />
@@ -151,6 +178,6 @@ export function DollarQuotesCard({ data }: { data: DollarQuotes }) {
         ) : null}
         <span>Compra y venta: mediana de las plazas P2P · detalle en «Tipo de cambio»</span>
       </p>
-    </section>
+    </Panel>
   );
 }

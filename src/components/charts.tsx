@@ -24,6 +24,7 @@ import {
 } from 'recharts';
 import type { TooltipContentProps } from 'recharts';
 import type { NameType, ValueType } from 'recharts/types/component/DefaultTooltipContent';
+import { fittedDomain } from '@/lib/chart-axis';
 
 /**
  * One chart language for the whole report.
@@ -405,16 +406,6 @@ export function ZoomExit({
       {say(zoom.bounds.from)} → {say(zoom.bounds.to)} · ver todo
     </button>
   );
-}
-
-/** Padding that keeps a line off the frame without inventing headroom. */
-function fittedDomain(values: number[]): [number, number] {
-  const clean = values.filter((value) => Number.isFinite(value));
-  if (!clean.length) return [0, 1];
-  const min = Math.min(...clean);
-  const max = Math.max(...clean);
-  const pad = Math.max((max - min) * 0.12, Math.abs(max) * 0.01, 0.02);
-  return [Number((min - pad).toFixed(4)), Number((max + pad).toFixed(4))];
 }
 
 /**

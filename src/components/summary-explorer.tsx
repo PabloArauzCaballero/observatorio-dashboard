@@ -1,10 +1,11 @@
 'use client';
 
 import { useMemo, useState } from 'react';
-import { GapChart, Sparkline } from './charts';
+import { ChartLegend, GapChart, Sparkline } from './charts';
 import type { GapChartPoint } from './charts';
 import { Icon } from './icons';
 import type { IconName } from './icons';
+import { Panel } from '@/components/ui/panel';
 import type { AnalysisBullet } from '@/lib/daily-analysis';
 
 /**
@@ -229,39 +230,64 @@ export function SummaryExplorer({
       <div className="workspace-main" id="tablero" tabIndex={-1}>
         {board ?? null}
 
-        <div className="figures">
-          {figures.map((figure) => (
-            <div className="figure" key={figure.label}>
-              <div className="label">
-                <Icon name={figure.icon} size={12} /> {figure.label}
+        <Panel
+          id="indicadores-hoy"
+          title="Indicadores de hoy: cotización, brecha y UFV"
+          source="Banco Central de Bolivia, mercados P2P en bolivianos y cálculo del Observatorio"
+          data={{
+            columnas: ['Indicador', 'Valor', 'Unidad', 'Detalle'],
+            filas: figures.map((figure) => [
+              figure.label,
+              figure.value,
+              figure.unit ?? null,
+              figure.meta ?? null,
+            ]),
+          }}
+        >
+          <div className="figures">
+            {figures.map((figure) => (
+              <div className="figure" key={figure.label}>
+                <div className="label">{figure.label}</div>
+                <div>
+                  <span className="value">{figure.value}</span>
+                  {figure.unit ? <span className="unit">{figure.unit}</span> : null}
+                </div>
+                {figure.meta ? <div className="meta">{figure.meta}</div> : null}
+                {figure.spark && figure.spark.length > 1 ? (
+                  <Sparkline data={figure.spark} tone={figure.tone ?? 'var(--ink-faint)'} />
+                ) : null}
               </div>
-              <div>
-                <span className="value">{figure.value}</span>
-                {figure.unit ? <span className="unit">{figure.unit}</span> : null}
-              </div>
-              {figure.meta ? <div className="meta">{figure.meta}</div> : null}
-              {figure.spark && figure.spark.length > 1 ? (
-                <Sparkline data={figure.spark} tone={figure.tone ?? 'var(--ink-faint)'} />
-              ) : null}
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
+        </Panel>
 
         {markets ?? null}
 
-        <div className="panel">
-          <div className="tile-head">
-            <Icon name="area" size={17} />
-            <h2>Brecha cambiaria</h2>
-            <span className="tile-hint">
-              {shown.length.toLocaleString('es-BO')} días con ambas cotizaciones
-            </span>
-          </div>
-          <p className="panel-sub" style={{ marginBottom: 'var(--s2)' }}>
-            Porcentaje sobre el oficial, contra el punto medio del paralelo
-          </p>
+        <Panel
+          id="brecha-cambiaria"
+          title="Brecha cambiaria (% sobre el oficial)"
+          lede="Distancia porcentual entre el punto medio del dólar paralelo y el tipo de cambio oficial."
+          meta={`${shown.length.toLocaleString('es-BO')} días con ambas cotizaciones`}
+          source="Banco Central de Bolivia (oficial) y mercados P2P en bolivianos (paralelo)"
+          data={() => ({
+            unidad: '% sobre el oficial',
+            columnas: ['Fecha', 'Brecha cambiaria (% sobre el oficial)'],
+            filas: shown.map((point) => [point.date, point.gapPercent]),
+          })}
+        >
           {shown.length >= 2 ? (
-            <GapChart data={shown} tall />
+            <>
+              <GapChart data={shown} tall />
+              <ChartLegend
+                items={[
+                  {
+                    label: 'Brecha cambiaria (% sobre el oficial)',
+                    color: 'var(--gap)',
+                    shape: 'line',
+                  },
+                ]}
+              />
+            </>
           ) : (
             <div className="callout">
               {gapUnread
@@ -270,26 +296,16 @@ export function SummaryExplorer({
             </div>
           )}
           {peak && trough && peak.date !== trough.date ? (
-            <div
-              style={{
-                display: 'flex',
-                flexWrap: 'wrap',
-                gap: '0.2rem 1rem',
-                marginTop: '0.5rem',
-                fontFamily: 'var(--mono)',
-                fontSize: '0.72rem',
-                color: 'var(--ink-faint)',
-              }}
-            >
-              <span style={{ whiteSpace: 'nowrap' }}>
-                máx {percent(peak.gapPercent)} · {peak.date}
+            <p className="panel-extremes">
+              <span>
+                máxima {percent(peak.gapPercent)} · {peak.date}
               </span>
-              <span style={{ marginLeft: 'auto', whiteSpace: 'nowrap' }}>
-                mín {percent(trough.gapPercent)} · {trough.date}
+              <span>
+                mínima {percent(trough.gapPercent)} · {trough.date}
               </span>
-            </div>
+            </p>
           ) : null}
-        </div>
+        </Panel>
 
         {news ?? null}
 
@@ -297,56 +313,58 @@ export function SummaryExplorer({
           El análisis va plegado, como la lectura de cada capítulo (`DerivedReading`
           y `FxConclusions`): abierto era una lista entera de puntos debajo de la
           brecha, y en un teléfono el lector tenía que pasar por todos para llegar
-          al final de la portada. La cabecera dice cuántas lecturas hay y el botón las abre; el
-          estado no se recuerda entre cargas, la respuesta para quien llega es
-          siempre la misma: cerrado.
+          al final de la portada. El encabezado dice cuántas lecturas hay y el botón
+          las abre; el estado no se recuerda entre cargas, la respuesta para quien
+          llega es siempre la misma: cerrado.
         */}
-        <div className={analysisOpen ? 'analysis' : 'analysis analysis-folded'}>
-          <div className="tile-head card-head">
-            <Icon name="sigma" size={17} />
-            <h2>Análisis del día</h2>
-            <span className="tile-hint">
-              {analysisOpen
-                ? 'derivado, no redactado'
-                : `${analysis.length} lectura${analysis.length === 1 ? '' : 's'}`}
-            </span>
+        <Panel
+          id="analisis-del-dia"
+          title="Análisis del día: lecturas derivadas de las series"
+          lede={
+            analysisOpen
+              ? 'Derivado de las observaciones, no redactado: cada cifra procede de las series de este informe y se recalcula con cada carga.'
+              : undefined
+          }
+          meta={
             <button
               type="button"
-              className={analysisOpen ? 'card-toggle card-toggle-on' : 'card-toggle'}
+              className="menu-btn"
               onClick={() => setAnalysisOpen(!analysisOpen)}
-              title={analysisOpen ? 'Plegar el análisis del día' : 'Ver el análisis del día'}
               aria-expanded={analysisOpen}
             >
-              <Icon name={analysisOpen ? 'plegar' : 'desplegar'} size={16} />
+              {analysisOpen
+                ? 'Plegar'
+                : `Ver ${analysis.length} lectura${analysis.length === 1 ? '' : 's'}`}
             </button>
-          </div>
-          {!analysisOpen ? null : (
-            <>
-              <p className="analysis-note">
-                Derivado de las observaciones, no redactado: cada cifra procede de las series de
-                este informe y se recalcula con cada carga.
-              </p>
-              <ul className="bullets">
-                {analysis.map((bullet) => (
-                  <li className="bullet" key={bullet.key}>
-                    <span className={`bullet-mark bullet-mark-${bullet.tone}`}>
-                      <Icon name={bullet.icon as IconName} size={16} />
-                    </span>
-                    <div className="bullet-body">
-                      <div className="bullet-line">
-                        <b className="bullet-label">{bullet.label}</b>
-                        <span className={`bullet-value bullet-value-${bullet.tone}`}>
-                          {bullet.value}
-                        </span>
-                      </div>
-                      <p className="bullet-detail">{bullet.detail}</p>
+          }
+          source="series de este informe, recalculadas con cada carga"
+          data={{
+            columnas: ['Lectura', 'Cifra', 'Detalle'],
+            filas: analysis.map((bullet) => [bullet.label, bullet.value, bullet.detail]),
+          }}
+          className="day-analysis"
+        >
+          {analysisOpen ? (
+            <ul className="bullets">
+              {analysis.map((bullet) => (
+                <li className="bullet" key={bullet.key}>
+                  <span className={`bullet-mark bullet-mark-${bullet.tone}`}>
+                    <Icon name={bullet.icon as IconName} size={16} />
+                  </span>
+                  <div className="bullet-body">
+                    <div className="bullet-line">
+                      <b className="bullet-label">{bullet.label}</b>
+                      <span className={`bullet-value bullet-value-${bullet.tone}`}>
+                        {bullet.value}
+                      </span>
                     </div>
-                  </li>
-                ))}
-              </ul>
-            </>
-          )}
-        </div>
+                    <p className="bullet-detail">{bullet.detail}</p>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          ) : null}
+        </Panel>
       </div>
     </div>
   );

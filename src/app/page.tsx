@@ -13,6 +13,7 @@ import { BoardNews, TodayBoardPanel } from '@/components/today-board';
 import type { SummaryFigure } from '@/components/summary-explorer';
 import { Tabs } from '@/components/tabs';
 import { ThemeToggle } from '@/components/theme-toggle';
+import { TabHeader } from '@/components/ui/tab-header';
 import { THEME_BOOT } from '@/lib/theme';
 // Las pestañas que se leen al abrirse, en su propio trozo de JavaScript.
 import {
@@ -651,6 +652,11 @@ export default function Page() {
         icons={['diana', 'linea', 'globo', 'edificio', 'mapa', 'camion', 'ventana', 'info']}
       >
         <section className="stack">
+          <TabHeader
+            id="hoy"
+            title="Bolivia hoy"
+            lede="La cotización del dólar y cinco lecturas de la economía, cada una con su fecha, su fuente y la regla que decide su veredicto."
+          />
           <Suspense fallback={<Armando que="el resumen de hoy" />}>
             <TodaySection />
           </Suspense>

@@ -47,7 +47,10 @@ function fechaDos(fecha: Date): { dia: number; hora: number } {
 }
 
 /** Un zip sin comprimir. Los nombres van en UTF-8 (bit 11). */
-export function zipStore(archivos: ReadonlyArray<ArchivoZip>, ahora: Date = new Date()): Uint8Array {
+export function zipStore(
+  archivos: ReadonlyArray<ArchivoZip>,
+  ahora: Date = new Date(),
+): Uint8Array {
   const { dia, hora } = fechaDos(ahora);
   const locales: Uint8Array[] = [];
   const centrales: Uint8Array[] = [];
@@ -138,7 +141,10 @@ export function columnaExcel(indice: number): string {
 
 /** Excel limita el nombre de una hoja a 31 caracteres y le prohíbe `[]:*?/\`. */
 export function nombreDeHoja(nombre: string): string {
-  const limpio = nombre.replace(/[[\]:*?/\\]/g, ' ').trim().slice(0, 31);
+  const limpio = nombre
+    .replace(/[[\]:*?/\\]/g, ' ')
+    .trim()
+    .slice(0, 31);
   return limpio || 'Hoja';
 }
 
@@ -167,7 +173,9 @@ function hojaDatos(columnas: string[], filas: Celda[][]): string {
   const cabecera = columnas.map((c, j) => celda(`${columnaExcel(j)}1`, c, 1)).join('');
   const cuerpo = filas
     .map((fila, i) => {
-      const celdas = columnas.map((_, j) => celda(`${columnaExcel(j)}${i + 2}`, fila[j] ?? null)).join('');
+      const celdas = columnas
+        .map((_, j) => celda(`${columnaExcel(j)}${i + 2}`, fila[j] ?? null))
+        .join('');
       return `<row r="${i + 2}">${celdas}</row>`;
     })
     .join('');

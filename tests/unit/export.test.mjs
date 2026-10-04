@@ -8,13 +8,7 @@ import { crc32 as crcDeNode } from 'node:zlib';
 import { test } from 'node:test';
 
 import { aCsv, campoCsv, filasDeSeries, nombreDeArchivo } from '../../src/lib/export/datos.ts';
-import {
-  aXlsx,
-  columnaExcel,
-  crc32,
-  nombreDeHoja,
-  zipStore,
-} from '../../src/lib/export/xlsx.ts';
+import { aXlsx, columnaExcel, crc32, nombreDeHoja, zipStore } from '../../src/lib/export/xlsx.ts';
 
 const datos = {
   id: 'dolar-paralelo',
@@ -106,7 +100,13 @@ test('el libro lleva Datos y Fuente, con números como números y cabecera en ne
 
 test('el libro escapa XML y descarta caracteres de control', () => {
   const zip = aXlsx(
-    { ...datos, filas: [['a & <b>', 1, 2], ['bell\u0007', 3, 4]] },
+    {
+      ...datos,
+      filas: [
+        ['a & <b>', 1, 2],
+        ['bell\u0007', 3, 4],
+      ],
+    },
     { consultado: '2026-10-03' },
   );
   const hoja = leerZip(zip)['xl/worksheets/sheet1.xml'];
@@ -115,7 +115,14 @@ test('el libro escapa XML y descarta caracteres de control', () => {
 });
 
 test('columnaExcel y nombreDeHoja siguen las reglas de Excel', () => {
-  assert.deepEqual([0, 25, 26, 27, 701, 702].map(columnaExcel), ['A', 'Z', 'AA', 'AB', 'ZZ', 'AAA']);
+  assert.deepEqual([0, 25, 26, 27, 701, 702].map(columnaExcel), [
+    'A',
+    'Z',
+    'AA',
+    'AB',
+    'ZZ',
+    'AAA',
+  ]);
   assert.equal(nombreDeHoja('a/b:c*d?'), 'a b c d');
   assert.equal(nombreDeHoja('x'.repeat(40)).length, 31);
   assert.equal(nombreDeHoja('///'), 'Hoja');
@@ -169,4 +176,3 @@ test('filasDeSeries usa los nombres legibles y no inventa ceros', () => {
     ['2026-10-03', null, 6.96],
   ]);
 });
-

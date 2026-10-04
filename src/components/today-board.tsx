@@ -1,6 +1,7 @@
 import { Sparkline } from './charts';
 import { Icon } from './icons';
 import type { IconName } from './icons';
+import { Panel } from '@/components/ui/panel';
 import type { BoardBlock, TodayBoard, Verdict } from '@/lib/today-board';
 
 /**
@@ -49,7 +50,7 @@ function Block({ block }: { block: BoardBlock }) {
         <span className="board-card-icon">
           <Icon name={block.icon as IconName} size={16} />
         </span>
-        <h3>{block.title}</h3>
+        <h4>{block.title}</h4>
         <span className="board-verdict">
           <span className="board-dot" aria-hidden="true" />
           {VERDICT_LABEL[block.verdict]}
@@ -80,7 +81,9 @@ function Block({ block }: { block: BoardBlock }) {
       */}
       <details className="board-rule">
         <summary>
-          {block.facts.length ? 'Cifras de apoyo y por qué este veredicto' : '¿Por qué este veredicto?'}
+          {block.facts.length
+            ? 'Cifras de apoyo y por qué este veredicto'
+            : '¿Por qué este veredicto?'}
         </summary>
         {block.facts.length ? (
           <dl className="board-facts">
@@ -127,16 +130,30 @@ function Block({ block }: { block: BoardBlock }) {
  */
 export function BoardNews({ board }: { board: TodayBoard }) {
   if (!board.changes.length) return null;
+  const outlets = board.changesOutlets;
   return (
-    <div className="board-news">
-      <div className="board-news-head">
-        <Icon name="campana" size={15} />
-        <h3>Lo que cambió</h3>
-        <span className="tile-hint">
-          {board.changesDate ? `último día del archivo: ${board.changesDate}` : ''}
-          {board.changesOutlets ? ` · ${board.changesOutlets} medios` : ''}
-        </span>
-      </div>
+    <Panel
+      id="lo-que-cambio"
+      title="Lo que cambió en la prensa (titulares del último día archivado)"
+      meta={board.changesDate ? `día ${board.changesDate}` : undefined}
+      source={
+        outlets
+          ? `${outlets} medios de prensa boliviana, leídos por el Observatorio`
+          : 'prensa boliviana, leída por el Observatorio'
+      }
+      data={{
+        unidad: 'titulares',
+        columnas: ['Titular', 'Tema', 'Medio', 'Resumen', 'Dirección'],
+        filas: board.changes.map((change) => [
+          change.headline,
+          change.topic,
+          change.outlet,
+          change.summary ?? null,
+          change.url,
+        ]),
+      }}
+      className="board-news"
+    >
       <ul className="board-news-list">
         {board.changes.map((change) => (
           <li key={change.id}>
@@ -151,7 +168,7 @@ export function BoardNews({ board }: { board: TodayBoard }) {
           </li>
         ))}
       </ul>
-    </div>
+    </Panel>
   );
 }
 
@@ -166,36 +183,53 @@ export function TodayBoardPanel({ board, lead }: { board: TodayBoard; lead?: Rea
 
   const adverse = board.blocks.filter((block) => block.verdict === 'adverso').length;
   const judged = board.blocks.filter((block) => block.verdict !== 'sin-lectura').length;
+  const publishers = [...new Set(board.blocks.map((block) => block.publisher).filter(Boolean))];
 
   return (
-    <section className="board" aria-labelledby="board-title">
-      <div className="tile-head board-head">
-        <Icon name="diana" size={17} />
-        <h2 id="board-title">Bolivia hoy</h2>
-      </div>
-
+    <section className="board" aria-label="Bolivia hoy">
       {lead ?? null}
 
       {board.blocks.length ? (
-        <>
-          <div className="board-trends-head">
-            <Icon name="tendencia" size={15} />
-            <h3>Tendencias</h3>
-            <span className="tile-hint">
-              {adverse} de {judged} lecturas en rojo
-            </span>
-          </div>
-          <p className="board-intro">
-            Cada lectura lleva la cifra publicada, su fecha y una regla fija que decide su color; la
-            regla se abre en cada tarjeta. El detalle está en las pestañas de arriba.
-          </p>
-
+        <Panel
+          id="lecturas-economia"
+          title="Cinco lecturas de la economía de Bolivia (último dato publicado)"
+          lede="Cada lectura lleva la cifra publicada, su fecha y una regla fija que decide su color; la regla se abre en cada tarjeta. El detalle está en las pestañas de arriba."
+          meta={`${adverse} de ${judged} lecturas en rojo`}
+          source={publishers.length ? publishers.join(', ') : 'las que cita cada tarjeta'}
+          data={{
+            columnas: [
+              'Lectura',
+              'Veredicto',
+              'Cifra',
+              'Unidad',
+              'Qué mide',
+              'Periodo',
+              'Regla aplicada',
+              'Editor',
+              'Dirección de la fuente',
+              'Detalle en',
+            ],
+            filas: board.blocks.map((block) => [
+              block.title,
+              VERDICT_LABEL[block.verdict],
+              block.value,
+              block.unit,
+              block.measure,
+              block.asOf,
+              block.rule,
+              block.publisher,
+              block.sourceUrl,
+              block.goesTo,
+            ]),
+          }}
+          className="board-panel"
+        >
           <div className="board-grid">
             {board.blocks.map((block) => (
               <Block block={block} key={block.key} />
             ))}
           </div>
-        </>
+        </Panel>
       ) : null}
     </section>
   );

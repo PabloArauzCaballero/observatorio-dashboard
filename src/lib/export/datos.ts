@@ -85,6 +85,9 @@ export function filasDeSeries(
     typeof v === 'number' && Number.isFinite(v) ? v : typeof v === 'string' ? v : null;
   return {
     columnas: [ejeX.label, ...series.map((s) => s.label)],
-    filas: datos.map((punto) => [numero(punto[ejeX.key]), ...series.map((s) => numero(punto[s.key]))]),
+    filas: datos.map((punto) => [
+      numero(punto[ejeX.key]),
+      ...series.map((s) => numero(punto[s.key])),
+    ]),
   };
 }
