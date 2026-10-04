@@ -232,7 +232,7 @@ export function SummaryExplorer({
 
         <Panel
           id="indicadores-hoy"
-          title="Indicadores de hoy: cotización, brecha y UFV"
+          title="Indicadores de hoy (Bs por USD, % y Bs por UFV)"
           source="Banco Central de Bolivia, mercados P2P en bolivianos y cálculo del Observatorio"
           data={{
             columnas: ['Indicador', 'Valor', 'Unidad', 'Detalle'],
@@ -319,7 +319,7 @@ export function SummaryExplorer({
         */}
         <Panel
           id="analisis-del-dia"
-          title="Análisis del día: lecturas derivadas de las series"
+          title="Análisis del día (lecturas derivadas de las series)"
           lede={
             analysisOpen
               ? 'Derivado de las observaciones, no redactado: cada cifra procede de las series de este informe y se recalcula con cada carga.'
