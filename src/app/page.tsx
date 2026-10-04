@@ -11,7 +11,7 @@ import { BankQuoteCards } from '@/components/bank-quote-cards';
 import { DollarQuotesCard } from '@/components/dollar-quotes';
 import { BoardNews, TodayBoardPanel } from '@/components/today-board';
 import type { SummaryFigure } from '@/components/summary-explorer';
-import { Tabs } from '@/components/tabs';
+import { SiteLayout } from '@/components/site-layout';
 import { ThemeToggle } from '@/components/theme-toggle';
 import { TabHeader } from '@/components/ui/tab-header';
 import { THEME_BOOT } from '@/lib/theme';
@@ -638,19 +638,7 @@ export default function Page() {
         <Donate />
       </header>
 
-      <Tabs
-        labels={[
-          'Hoy',
-          'Tipo de cambio',
-          'Macroeconomía',
-          'Empresas',
-          'Ciudades',
-          'Transporte',
-          'Prensa',
-          'Método',
-        ]}
-        icons={['diana', 'linea', 'globo', 'edificio', 'mapa', 'camion', 'ventana', 'info']}
-      >
+      <SiteLayout>
         <section className="stack">
           <TabHeader
             id="hoy"
@@ -703,7 +691,7 @@ export default function Page() {
         <section className="stack">
           <SourcesSection />
         </section>
-      </Tabs>
+      </SiteLayout>
 
       {/* El chat que contesta con los datos de estas pestañas; no lee nada hasta que se abre. */}
       <Asistente />

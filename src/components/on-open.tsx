@@ -5,7 +5,7 @@ import { useEffect, useState } from 'react';
 /**
  * Lo que una pestaña pide cuando alguien la abre.
  *
- * `Tabs` dibuja **sólo la pestaña activa** —a propósito: un gráfico medido
+ * `SiteLayout` monta cada bloque **sólo al acercarse** —a propósito: un gráfico medido
  * dentro de un contenedor escondido sale de ancho cero y nunca recibe el
  * redimensionado que lo arreglaría—. Pero eso vale en el navegador, no en el
  * servidor: las siete se dibujaban en el servidor y las siete viajaban en el

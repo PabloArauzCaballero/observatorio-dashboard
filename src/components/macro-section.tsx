@@ -12,7 +12,7 @@ import { MacroExplorer } from './macro-explorer';
 import { OnOpenNotice, useOnOpen } from './on-open';
 import { PanelSection } from './panel-section';
 import { ResourcesSection } from './resources-section';
-import { SubTabs } from './tabs';
+import { SubSections } from './site-layout';
 import { TradeRecordsSection } from './trade-records-section';
 import { WorldExplorer } from './world-explorer';
 import { TabHeader } from '@/components/ui/tab-header';
@@ -47,8 +47,8 @@ import type { MacroBundle } from '@/lib/macro-transport';
  * departamento y mes. Ambas pertenecen aquí porque describen el sector
  * externo de la economía, no el registro o la reputación de las empresas.
  *
- * Las páginas se piden solas al abrirse. `SubTabs` monta únicamente la página
- * activa, así que abrir «Macroeconomía» pide las medidas de Bolivia y nada más:
+ * Las páginas se piden solas al acercarse. `SubSections` monta únicamente la página
+ * que el lector alcanza, así que abrir «Macroeconomía» pide las medidas de Bolivia y nada más:
  * el panel del Banco Mundial y el tablero mundial esperan a que alguien los
  * elija, como ya hacían, y ahora las medidas también.
  */
@@ -60,7 +60,7 @@ export function MacroSection() {
         title="Macroeconomía"
         lede="Las series anuales de Bolivia, su comparación con el mundo y su comercio exterior. Cada cifra dice quién la publica; lo que calcula el Observatorio se dice aparte."
       />
-      <SubTabs
+      <SubSections
         enlace
         labels={[
           'Series de Bolivia',
@@ -82,7 +82,7 @@ export function MacroSection() {
         <BcbSection />
         <ForeignTradeSection />
         <TradeRecordsSection />
-      </SubTabs>
+      </SubSections>
     </>
   );
 }

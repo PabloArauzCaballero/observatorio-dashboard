@@ -302,7 +302,6 @@ export function Asistente() {
     evento?.preventDefault();
     navegar(destino);
     if (window.matchMedia('(max-width: 720px)').matches) setAbierto(false);
-    document.querySelector('nav.tabs')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   };
 
   const reiniciar = () => {

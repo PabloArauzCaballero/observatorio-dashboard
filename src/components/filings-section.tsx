@@ -7,7 +7,7 @@ import { ReputationSection } from './exporters-section';
 import { FilingExplorer } from './filing-explorer';
 import { LargestCompaniesSection } from './largest-companies-section';
 import { OnOpenNotice, useOnOpen } from './on-open';
-import { SubTabs } from './tabs';
+import { SubSections } from './site-layout';
 import { TabHeader } from '@/components/ui/tab-header';
 import type { CompanyFiling } from '@/lib/series';
 
@@ -37,8 +37,8 @@ import type { CompanyFiling } from '@/lib/series';
  * estimación del observatorio, construida con el patrimonio de cada empresa y
  * la participación que los documentos públicos atribuyen a cada accionista.
  *
- * `SubTabs` monta sólo la página activa, así que abrir «Empresas» pide sólo el
- * tejido empresarial; las demás esperan a que alguien las elija.
+ * `SubSections` monta cada página al acercarse, así que abrir «Empresas» pide sólo el
+ * tejido empresarial; las demás esperan a que el lector llegue a ellas.
  */
 export function FilingsSection() {
   return (
@@ -48,7 +48,7 @@ export function FilingsSection() {
         title="Empresas"
         lede="Cuántas empresas hay, cuáles son las más grandes, quiénes son sus dueños, qué comunican a la bolsa, cómo las ve el público y qué publican en sus redes. Cada página dice quién mide y cuánto confiar."
       />
-      <SubTabs
+      <SubSections
         enlace
         labels={[
           'Tejido empresarial',
@@ -66,7 +66,7 @@ export function FilingsSection() {
         <FilingsPage />
         <ReputationSection />
         <CompanySocialSection />
-      </SubTabs>
+      </SubSections>
     </>
   );
 }

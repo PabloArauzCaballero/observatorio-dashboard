@@ -1,16 +1,20 @@
 import AxeBuilder from '@axe-core/playwright';
-import { expect, test } from '@playwright/test';
+import { expect, test, type Page } from '@playwright/test';
+import { LUGARES, SECCIONES, abrirTablero, irALugar, irA } from './support/sitio';
+import { SITE } from '../../src/lib/site-map';
 
 /**
  * The public counterpart of UI-02/UI-03.
  *
  * `admin-visual.spec.ts` already walks every admin screen at this same set of
- * widths; the report the public reads — seven tabs, two of them with their own
- * sub-tabs — had no equivalent. It is a single URL rather than nine routes, so
- * each screen here is reached by activating a tab instead of navigating to a
- * path, but the two checks that matter are identical: nothing pushes the
- * document wider than its own viewport, and nothing fails a serious or
- * critical WCAG 2 A/AA rule.
+ * widths; the report the public reads — one long page with a fixed index, eight
+ * sections and, inside four of them, their own pages — had no equivalent. Each
+ * place is reached through the index, as a reader does, but the two checks that
+ * matter are identical: nothing pushes the document wider than its own
+ * viewport, and nothing fails a serious or critical WCAG 2 A/AA rule.
+ *
+ * The places come from the site map, not from a list written here: a list
+ * written by hand ages with every new chapter.
  */
 const VIEWPORTS = [
   { name: '1440x900', width: 1440, height: 900 },
@@ -19,71 +23,39 @@ const VIEWPORTS = [
   { name: '390x844', width: 390, height: 844 },
 ] as const;
 
-const TABS = [
-  { label: 'Hoy', slug: 'hoy' },
-  { label: 'Tipo de cambio', slug: 'tipo-de-cambio' },
-  { label: 'Macroeconomía', slug: 'macroeconomia' },
-  { label: 'Empresas', slug: 'empresas' },
-  { label: 'Ciudades', slug: 'ciudades' },
-  { label: 'Transporte', slug: 'transporte' },
-  { label: 'Prensa', slug: 'prensa' },
-  { label: 'Método', slug: 'metodo' },
-] as const;
-
-/**
- * Las páginas interiores de la pestaña abierta, tal como las ofrece la propia
- * página. Una lista escrita a mano envejece con cada capítulo nuevo (ya se
- * había quedado sin «Transporte» ni «Variables exógenas»); la primera barra
- * `.subtabs` del panel activo es la verdad.
- */
-async function subTabsOf(page: import('@playwright/test').Page): Promise<string[]> {
-  const bar = page.locator('nav.subtabs').first();
-  if ((await bar.count()) === 0) return [];
-  return (await bar.getByRole('tab').allInnerTexts()).map((text) => text.trim()).filter(Boolean);
-}
+const nombreDeArchivo = (texto: string): string =>
+  texto
+    .normalize('NFD')
+    .replace(/[̀-ͯ]/g, '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-|-$/g, '');
 
 test('UI-00 · comercio exterior y detalle aduanero pertenecen a Macroeconomía', async ({
   page,
 }) => {
-  await page.goto('/');
+  await abrirTablero(page);
+  const paginasDe = (seccion: string) =>
+    SITE.find((s) => s.label === seccion)?.pages.map((p) => p.label) ?? [];
+  expect(paginasDe('Macroeconomía')).toEqual(
+    expect.arrayContaining(['Comercio exterior', 'Detalle aduanero (INE)']),
+  );
+  expect(paginasDe('Empresas')).not.toEqual(expect.arrayContaining(['Comercio exterior']));
 
-  await page.getByRole('tab', { name: 'Macroeconomía', exact: true }).click();
-  await expect(page.getByRole('tab', { name: 'Comercio exterior', exact: true })).toBeVisible();
-  await expect(page.getByRole('tab', { name: 'Detalle aduanero (INE)', exact: true })).toBeVisible();
-
-  await page.getByRole('tab', { name: 'Empresas', exact: true }).click();
-  await expect(page.getByRole('tab', { name: 'Comercio exterior', exact: true })).toHaveCount(0);
-  await expect(page.getByRole('tab', { name: 'Detalle aduanero (INE)', exact: true })).toHaveCount(0);
+  // Y el índice lo muestra: abierta una sección, enseña las páginas de esa y no las de otra.
+  if (await page.locator('.site-bar').isVisible()) await page.locator('.site-bar-btn').click();
+  await page.locator('nav.site-index .site-link', { hasText: 'Macroeconomía' }).click();
+  const paginas = page.locator('nav.site-index .site-page');
+  await expect(paginas.filter({ hasText: 'Comercio exterior' })).toHaveCount(1);
+  await expect(paginas.filter({ hasText: 'Detalle aduanero (INE)' })).toHaveCount(1);
+  if (await page.locator('.site-bar').isVisible()) await page.locator('.site-bar-btn').click();
+  await page.locator('nav.site-index .site-link', { hasText: 'Empresas' }).click();
+  await expect(
+    page.locator('nav.site-index .site-page', { hasText: 'Comercio exterior' }),
+  ).toHaveCount(0);
 });
 
-/**
- * Una pestaña abierta no esta lista hasta que su aviso desaparece.
- *
- * Desde que la portada dejo de leer las siete pestañas, seis piden lo suyo al
- * montarse y la septima —el tipo de cambio— llega por el flujo detras de un
- * `Suspense`. Medir el desbordamiento o pasar axe sobre el aviso de «Cargando»
- * comprueba la disposicion de un parrafo, no la del capitulo, y ese es
- * justamente el caso que UI-02 existe para atrapar.
- */
-async function settle(page: import('@playwright/test').Page): Promise<void> {
-  // El giro con `role=status` de las que se piden al abrirse, y el aviso de las
-  // que llegan por el flujo detras de un `Suspense`.
-  await expect(page.locator('.loading-note')).toHaveCount(0, { timeout: 120_000 });
-  await expect(page.locator('.callout').filter({ hasText: /^Armando / })).toHaveCount(0, {
-    timeout: 120_000,
-  });
-}
-
-async function openTab(page: import('@playwright/test').Page, label: string): Promise<void> {
-  await page.getByRole('tab', { name: label, exact: true }).click();
-  await expect(page.getByRole('tab', { name: label, exact: true })).toHaveAttribute(
-    'aria-selected',
-    'true',
-  );
-  await settle(page);
-}
-
-function overflowOf(page: import('@playwright/test').Page): Promise<number> {
+function overflowOf(page: Page): Promise<number> {
   return page.evaluate(
     () => document.documentElement.scrollWidth - document.documentElement.clientWidth,
   );
@@ -91,69 +63,74 @@ function overflowOf(page: import('@playwright/test').Page): Promise<number> {
 
 test.describe('sitio público · revisión visual y de accesibilidad', () => {
   for (const viewport of VIEWPORTS) {
-    test(`UI-02 · ${viewport.name}: ninguna pestaña desborda el documento`, async ({ page }) => {
+    test(`UI-02 · ${viewport.name}: ningún lugar del informe desborda el documento`, async ({
+      page,
+    }) => {
+      test.setTimeout(900_000);
       await page.setViewportSize({ width: viewport.width, height: viewport.height });
-      await page.goto('/');
-      await expect(page.getByRole('tablist', { name: 'Secciones del informe' })).toBeVisible();
+      await abrirTablero(page);
 
-      for (const tab of TABS) {
-        await openTab(page, tab.label);
+      for (const lugar of LUGARES) {
+        await irALugar(page, lugar);
         await page.screenshot({
-          path: `artifacts/e2e/screenshots/${viewport.name}-publico-${tab.slug}.png`,
-          fullPage: true,
+          path: `artifacts/e2e/screenshots/${viewport.name}-publico-${nombreDeArchivo(lugar.nombre)}.png`,
         });
         const overflow = await overflowOf(page);
-        expect(overflow, `pestaña «${tab.label}» desborda ${overflow}px en ${viewport.name}`).toBeLessThanOrEqual(1);
-
-        for (const subLabel of await subTabsOf(page)) {
-          await page.getByRole('tab', { name: subLabel, exact: true }).first().click();
-          await expect(
-            page.getByRole('tab', { name: subLabel, exact: true }).first(),
-          ).toHaveAttribute('aria-selected', 'true');
-          await settle(page);
-          const subOverflow = await overflowOf(page);
-          expect(
-            subOverflow,
-            `«${tab.label} → ${subLabel}» desborda ${subOverflow}px en ${viewport.name}`,
-          ).toBeLessThanOrEqual(1);
-        }
+        expect(
+          overflow,
+          `«${lugar.nombre}» desborda ${overflow}px en ${viewport.name}`,
+        ).toBeLessThanOrEqual(1);
       }
     });
   }
 
   test('UI-02 · el zoom al 200 % no rompe la disposición del sitio público', async ({ page }) => {
+    test.setTimeout(900_000);
     // Emulated by halving the viewport, which is what a 200 % zoom does to the
     // CSS pixel budget a layout has to fit in — same technique as the admin spec.
     await page.setViewportSize({ width: 720, height: 450 });
-    await page.goto('/');
-    await expect(page.getByRole('tablist', { name: 'Secciones del informe' })).toBeVisible();
-    for (const tab of TABS) {
-      await openTab(page, tab.label);
+    await abrirTablero(page);
+    for (const seccion of SECCIONES) {
+      await irA(page, seccion);
       const overflow = await overflowOf(page);
-      expect(overflow, `pestaña «${tab.label}» desborda al 200 %`).toBeLessThanOrEqual(1);
+      expect(overflow, `sección «${seccion}» desborda al 200 %`).toBeLessThanOrEqual(1);
     }
-    await page.screenshot({
-      path: 'artifacts/e2e/screenshots/zoom-200-publico-resumen.png',
-      fullPage: true,
-    });
+    await page.screenshot({ path: 'artifacts/e2e/screenshots/zoom-200-publico-resumen.png' });
   });
 
-  test('UI-03 · ninguna pestaña tiene incumplimientos serios de accesibilidad', async ({
-    page,
-  }) => {
+  test('UI-03 · ningún lugar tiene incumplimientos serios de accesibilidad', async ({ page }) => {
+    test.setTimeout(900_000);
     await page.setViewportSize({ width: 1280, height: 800 });
-    await page.goto('/');
-    await expect(page.getByRole('tablist', { name: 'Secciones del informe' })).toBeVisible();
+    await abrirTablero(page);
     const failures: string[] = [];
-    for (const tab of TABS) {
-      await openTab(page, tab.label);
-      const result = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa']).analyze();
+    for (const lugar of LUGARES) {
+      const id = await irALugar(page, lugar);
+      const result = await new AxeBuilder({ page })
+        .include(`[data-site-id="${id}"]`)
+        .withTags(['wcag2a', 'wcag2aa'])
+        .analyze();
       for (const violation of result.violations) {
         if (violation.impact === 'critical' || violation.impact === 'serious') {
-          failures.push(`${tab.label}: ${violation.id} — ${violation.help}`);
+          failures.push(`${lugar.nombre}: ${violation.id} — ${violation.help}`);
         }
       }
     }
     expect(failures, failures.join('\n')).toHaveLength(0);
+  });
+
+  test('un enlace profundo ?pestana=&pagina= lleva a la página y se queda en ella', async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width: 1280, height: 800 });
+    await page.goto('/?pestana=macroeconomia&pagina=variables-exogenas');
+    const destino = page.locator('[data-site-id="macroeconomia--variables-exogenas"]');
+    await expect(destino).toHaveAttribute('data-montado', 'si', { timeout: 60_000 });
+    await expect
+      .poll(async () => Math.round((await destino.boundingBox())?.y ?? 9999), { timeout: 15_000 })
+      .toBeLessThan(120);
+    await expect(page).toHaveURL(/pestana=macroeconomia&pagina=variables-exogenas/);
+    await expect(page.locator('nav.site-index [aria-current="location"]')).toHaveText(
+      'Variables exógenas',
+    );
   });
 });

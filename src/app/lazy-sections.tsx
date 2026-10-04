@@ -11,7 +11,7 @@ import { OnOpenNotice } from '@/components/on-open';
  * mismo `page.js` que el resumen —419 KB sin comprimir, medidos el 2026-09-23—,
  * y el navegador lo descargaba y analizaba entero antes de que «Hoy» respondiera
  * a un clic. Aquí cada una se parte en su propio trozo, que se pide cuando
- * `Tabs` monta la pestaña.
+ * `SiteLayout` monta la sección.
  *
  * Tiene que ser un módulo de cliente. `next/dynamic` llamado desde la página,
  * que es un componente de servidor, compila y no parte nada: el componente sigue

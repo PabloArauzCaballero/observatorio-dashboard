@@ -571,74 +571,6 @@ a:hover {
   margin-bottom: var(--s1);
 }
 
-.tabs {
-  display: flex;
-  flex-wrap: wrap;
-  border-bottom: 1px solid var(--rule);
-  margin: 0 0 var(--s4);
-}
-
-/*
- * En un telefono las siete secciones envuelven en tres filas y se comen 135px
- * —una sexta parte de la pantalla— antes de que empiece el informe. En una sola
- * fila que se desliza ocupan una, que es como se navega en movil.
- */
-@media (max-width: 720px) {
-  .tabs {
-    flex-wrap: nowrap;
-    overflow-x: auto;
-    overscroll-behavior-x: contain;
-    scrollbar-width: none;
-    scroll-snap-type: x proximity;
-    margin-bottom: var(--s3);
-  }
-
-  .tabs::-webkit-scrollbar {
-    display: none;
-  }
-
-  .tab {
-    flex: 0 0 auto;
-    scroll-snap-align: start;
-    padding-inline: 0.8rem;
-  }
-}
-
-.tab {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.45rem;
-  appearance: none;
-  background: none;
-  border: none;
-  border-bottom: 2px solid transparent;
-  margin-bottom: -1px;
-  padding: 0.65rem 1rem;
-  font: inherit;
-  font-size: var(--text-sm);
-  color: var(--ink-soft);
-  cursor: pointer;
-  transition:
-    color var(--fast) var(--ease),
-    border-color var(--fast) var(--ease);
-}
-
-.tab:hover {
-  color: var(--ink);
-}
-
-.tab-active {
-  color: var(--ink);
-  font-weight: 600;
-  border-bottom-color: var(--official);
-}
-
-.tab:focus-visible {
-  outline: 2px solid var(--official);
-  outline-offset: -2px;
-  border-radius: 4px 4px 0 0;
-}
-
 /* Layout ---------------------------------------------------------------- */
 
 .stack {
@@ -8897,7 +8829,6 @@ button.download-btn {
 
 @media print {
   .topbar,
-  .tabs,
   nav.subtabs,
   .rail,
   .skip-link,
@@ -9610,4 +9541,241 @@ button.download-btn {
 /* Los paneles de «Bolivia y sus vecinos» respiran como los de una pestaña. */
 .panel-group > .panel-x {
   margin-top: var(--s3);
+}
+
+/* === Una sola página: el índice fijo y las secciones una debajo de otra === */
+
+.site {
+  display: block;
+}
+
+.site-content {
+  min-width: 0;
+}
+
+/* Cada sección y cada página lleva su ancla; el borde alto se salta la barra de móvil. */
+.site-block {
+  scroll-margin-top: var(--s5);
+}
+
+.site-block-seccion + .site-block-seccion {
+  margin-top: var(--s6);
+  padding-top: var(--s5);
+  border-top: 1px solid var(--rule);
+}
+
+.site-block-pagina {
+  margin-top: var(--s5);
+}
+
+.sub-sections > .site-block-pagina:first-child {
+  margin-top: var(--s4);
+}
+
+.sub-title {
+  display: flex;
+  align-items: center;
+  gap: var(--s1);
+  margin: 0 0 var(--s3);
+  padding-bottom: var(--s1);
+  border-bottom: 1px solid var(--rule-soft);
+  font-family: var(--serif);
+  font-size: var(--text-lg);
+  font-weight: 600;
+  letter-spacing: -0.015em;
+  color: var(--ink);
+}
+
+.sub-title .ic {
+  color: var(--ink-soft);
+}
+
+.site-wait {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  min-height: 70vh;
+  padding: var(--s3) 0;
+  color: var(--ink-faint);
+  font-size: var(--text-sm);
+}
+
+.site-wait b {
+  font-weight: 600;
+  color: var(--ink-soft);
+}
+
+/* El índice: fijo a la izquierda en pantallas anchas; en estrechas, un cajón. */
+.site-bar {
+  position: sticky;
+  top: 0;
+  z-index: var(--z-sticky-corner);
+  display: flex;
+  align-items: center;
+  gap: var(--s2);
+  min-height: var(--control-h-md);
+  margin: 0 calc(var(--s3) * -1) var(--s3);
+  padding: 0 var(--s3);
+  background: var(--paper);
+  border-bottom: 1px solid var(--rule);
+}
+
+.site-bar-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  appearance: none;
+  border: 1px solid var(--rule);
+  border-radius: var(--radius-pill);
+  background: var(--panel);
+  color: var(--ink);
+  font: inherit;
+  font-size: var(--text-sm);
+  padding: 0.3rem 0.8rem;
+  cursor: pointer;
+}
+
+.site-bar-btn:focus-visible,
+.site-link:focus-visible,
+.site-page:focus-visible {
+  outline: 2px solid var(--official);
+  outline-offset: 2px;
+}
+
+.site-bar-here {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--ink-soft);
+  font-size: var(--text-sm);
+}
+
+.site-index {
+  display: none;
+}
+
+.site-index ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.site-link,
+.site-page {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  border-radius: var(--radius-sm);
+  color: var(--ink-soft);
+  font-size: var(--text-sm);
+  text-decoration: none;
+  transition:
+    color var(--fast) var(--ease),
+    background var(--fast) var(--ease);
+}
+
+.site-link {
+  padding: 0.4rem 0.6rem;
+}
+
+.site-page {
+  padding: 0.25rem 0.6rem 0.25rem 2.1rem;
+  font-size: var(--text-xs);
+}
+
+.site-link:hover,
+.site-page:hover {
+  color: var(--ink);
+  background: var(--rule-soft);
+}
+
+.site-link-on {
+  color: var(--ink);
+  font-weight: 600;
+}
+
+.site-link[aria-current='location'],
+.site-page-on {
+  color: var(--official);
+  font-weight: 600;
+}
+
+.site-pages {
+  margin: 0.1rem 0 0.4rem !important;
+  border-left: 1px solid var(--rule);
+  margin-left: 1.05rem !important;
+}
+
+.site-pages .site-page {
+  padding-left: 0.8rem;
+}
+
+/* Cajón de móvil. */
+.site-index-open {
+  display: block;
+  position: fixed;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  z-index: var(--z-overlay);
+  width: min(19rem, 86vw);
+  overflow-y: auto;
+  padding: var(--s3);
+  background: var(--panel);
+  border-right: 1px solid var(--rule);
+  box-shadow: var(--shadow-float);
+}
+
+.site-scrim {
+  position: fixed;
+  inset: 0;
+  z-index: calc(var(--z-overlay) - 1);
+  background: rgb(0 0 0 / 0.35);
+}
+
+@media (min-width: 1100px) {
+  .site {
+    display: grid;
+    grid-template-columns: 13.5rem minmax(0, 1fr);
+    column-gap: var(--s4);
+    align-items: start;
+  }
+
+  .site-bar,
+  .site-scrim {
+    display: none;
+  }
+
+  .site-index,
+  .site-index-open {
+    display: block;
+    position: sticky;
+    top: var(--s3);
+    z-index: auto;
+    width: auto;
+    max-height: calc(100vh - var(--s5));
+    overflow-y: auto;
+    padding: 0;
+    background: transparent;
+    border: 0;
+    box-shadow: none;
+  }
+
+  .site-block {
+    scroll-margin-top: var(--s3);
+  }
+}
+
+@media print {
+  .site {
+    display: block;
+  }
+
+  .site-index,
+  .site-bar,
+  .site-scrim,
+  .site-wait {
+    display: none !important;
+  }
 }

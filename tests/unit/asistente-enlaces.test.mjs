@@ -4,12 +4,13 @@
  * Correr con: node --test tests/unit/
  */
 import assert from 'node:assert/strict';
-import { readFileSync, readdirSync } from 'node:fs';
+import { readFileSync } from 'node:fs';
 import { test } from 'node:test';
 
 import { DESTINO_DE_PAQUETE, PESTANAS, enlacesPara } from '../../src/lib/asistente/guia.ts';
 import { MAX_FILAS, aCsv, aMarkdown, nombreDeArchivo, tabla } from '../../src/lib/asistente/tabla.ts';
 import { hrefDe, indicePorSlug, slug } from '../../src/lib/enlace-tablero.ts';
+import { SITE } from '../../src/lib/site-map.ts';
 
 const leer = (ruta) => readFileSync(new URL(`../../${ruta}`, import.meta.url), 'utf8');
 
@@ -30,23 +31,40 @@ test('una dirección escrita a mano también encuentra su pestaña', () => {
   assert.equal(indicePorSlug(rotulos, null), -1);
 });
 
-test('cada destino del asistente nombra una pestaña y una página que existen en el tablero', () => {
-  const pagina = leer('src/app/page.tsx');
-  // Las páginas son las de toda barra que sigue la dirección, esté en el archivo que esté.
-  const secciones = readdirSync(new URL('../../src/components/', import.meta.url))
-    .filter((f) => f.endsWith('.tsx'))
-    .map((f) => leer(`src/components/${f}`))
-    .filter((codigo) => /<SubTabs[^>]*\benlace\b/.test(codigo))
-    .join('\n');
-  for (const p of PESTANAS) assert.ok(pagina.includes(`'${p}'`), `la pestaña «${p}» está en page.tsx`);
+test('cada destino del asistente nombra una sección y una página que existen en el tablero', () => {
+  const secciones = SITE.map((s) => s.label);
+  for (const p of PESTANAS) assert.ok(secciones.includes(p), `la sección «${p}» está en el mapa del tablero`);
   for (const [paquete, destino] of Object.entries(DESTINO_DE_PAQUETE)) {
     assert.ok(PESTANAS.includes(destino.pestana), paquete);
-    if (destino.pagina) assert.ok(secciones.includes(`'${destino.pagina}'`), `la página «${destino.pagina}» de ${paquete} existe`);
+    if (destino.pagina) {
+      const seccion = SITE.find((s) => s.label === destino.pestana);
+      assert.ok(
+        seccion.pages.some((p) => p.label === destino.pagina),
+        `la página «${destino.pagina}» de ${paquete} existe en «${destino.pestana}»`,
+      );
+    }
   }
-  // Solo las barras de primer nivel siguen la dirección; la anidada de Automotor no.
-  const barraConEnlace = /<SubTabs[^>]*\benlace\b/u;
-  assert.match(leer('src/components/macro-section.tsx'), barraConEnlace);
-  assert.doesNotMatch(leer('src/components/road-transport-explorer.tsx'), barraConEnlace);
+});
+
+test('el mapa del tablero nombra lo mismo que dibujan las secciones', () => {
+  const pagina = leer('src/app/page.tsx');
+  assert.match(pagina, /<SiteLayout>/u, 'la página usa el índice fijo');
+  // Las páginas de cada sección salen de su `SubSections`, en el mismo orden que el mapa.
+  const archivos = {
+    Macroeconomía: 'macro-section',
+    Empresas: 'filings-section',
+    Transporte: 'transport-section',
+    Prensa: 'press-section',
+  };
+  for (const [seccion, archivo] of Object.entries(archivos)) {
+    const codigo = leer(`src/components/${archivo}.tsx`);
+    assert.match(codigo, /<SubSections/u, `«${seccion}» usa SubSections`);
+    const rotulos = [...codigo.match(/labels=\{\[([^\]]*)\]\}/su)[1].matchAll(/'([^']+)'/gu)].map((m) => m[1]);
+    const esperados = SITE.find((s) => s.label === seccion).pages.map((p) => p.label);
+    assert.deepEqual(rotulos, esperados, `las páginas de «${seccion}» coinciden con el mapa`);
+  }
+  // La barra anidada de Automotor no es del primer nivel: sigue siendo `SubTabs`.
+  assert.match(leer('src/components/road-transport-explorer.tsx'), /<SubTabs/u);
 });
 
 test('los enlaces no se repiten y siguen el orden del tablero', () => {

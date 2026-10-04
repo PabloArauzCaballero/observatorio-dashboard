@@ -1,10 +1,11 @@
 import { expect, test, type Locator, type Page } from '@playwright/test';
 import { parseCsv } from './support/csv';
+import { LUGARES, SECCIONES, abrirTablero, bloque, irA, irALugar } from './support/sitio';
 
 /**
  * Todo panel del tablero público se puede bajar.
  *
- * Recorre cada pestaña y cada página interior, y en cada una comprueba tres cosas
+ * Recorre cada sección y cada página del informe, y en cada una comprueba tres cosas
  * sobre los paneles que usan `Panel`:
  *   1. el menú «Descargar» abre y ofrece lo que corresponde (enlace siempre; datos
  *      si hay cifras o una tabla; imagen si hay un gráfico);
@@ -17,33 +18,11 @@ import { parseCsv } from './support/csv';
  * descarga contra datos de mentira prueba que el botón existe, no que lo que baja
  * es lo que se ve.
  */
-const TABS = [
-  'Hoy',
-  'Tipo de cambio',
-  'Macroeconomía',
-  'Empresas',
-  'Ciudades',
-  'Transporte',
-  'Prensa',
-  'Método',
-] as const;
-
 async function settle(page: Page): Promise<void> {
   await expect(page.locator('.loading-note')).toHaveCount(0, { timeout: 120_000 });
   await expect(page.locator('.callout').filter({ hasText: /^Armando / })).toHaveCount(0, {
     timeout: 120_000,
   });
-}
-
-async function openTab(page: Page, label: string): Promise<void> {
-  await page.getByRole('tab', { name: label, exact: true }).first().click();
-  await settle(page);
-}
-
-async function subTabs(page: Page): Promise<string[]> {
-  const bar = page.locator('nav.subtabs').first();
-  if ((await bar.count()) === 0) return [];
-  return (await bar.getByRole('tab').allInnerTexts()).map((text) => text.trim()).filter(Boolean);
 }
 
 async function openMenu(panel: Locator): Promise<string[]> {
@@ -58,55 +37,43 @@ async function closeMenu(page: Page): Promise<void> {
 }
 
 /** Los paneles de primer nivel con menú. */
-function panelsOf(page: Page): Locator {
-  return page.locator('[data-panel-id]:has(> .panel-top .menu-btn[aria-haspopup="menu"])');
+function panelsOf(page: Page, id: string): Locator {
+  return bloque(page, id).locator(
+    '[data-panel-id]:has(> .panel-top .menu-btn[aria-haspopup="menu"])',
+  );
 }
 
 test.describe('descargas de los paneles', () => {
-  test('cada panel de cada pestaña ofrece el menú y lo que le corresponde', async ({ page }) => {
+  test('cada panel de cada sección ofrece el menú y lo que le corresponde', async ({ page }) => {
     test.setTimeout(900_000);
-    await page.goto('/');
-    await expect(page.getByRole('tablist', { name: 'Secciones del informe' })).toBeVisible();
+    await abrirTablero(page);
+    await expect(page.locator('nav.site-index')).toBeVisible();
 
     const problemas: string[] = [];
     let revisados = 0;
 
-    for (const tab of TABS) {
-      await openTab(page, tab);
-      const paginas = await subTabs(page);
-      for (const pagina of paginas.length ? paginas : [null]) {
-        if (pagina) {
-          await page
-            .locator('nav.subtabs')
-            .first()
-            .getByRole('tab', { name: pagina, exact: true })
-            .click();
-          await settle(page);
-        }
-        const donde = pagina ? `${tab} › ${pagina}` : tab;
-        const paneles = panelsOf(page);
-        const total = await paneles.count();
-        for (let i = 0; i < total; i += 1) {
-          const panel = paneles.nth(i);
-          const id = (await panel.getAttribute('data-panel-id')) ?? `#${i}`;
-          const titulo = (
-            (await panel.locator('.panel-top h3').first().textContent()) ?? ''
-          ).trim();
-          const hayGrafico = (await panel.locator('svg:not(.ic)').count()) > 0;
-          const hayTabla = (await panel.locator('table').count()) > 0;
-          const items = await openMenu(panel);
-          await closeMenu(page);
-          revisados += 1;
+    for (const lugar of LUGARES) {
+      const id = await irALugar(page, lugar);
+      const paneles = panelsOf(page, id);
+      const total = await paneles.count();
+      for (let i = 0; i < total; i += 1) {
+        const panel = paneles.nth(i);
+        const panelId = (await panel.getAttribute('data-panel-id')) ?? `#${i}`;
+        const titulo = ((await panel.locator('.panel-top h3').first().textContent()) ?? '').trim();
+        const hayTabla = (await panel.locator('table').count()) > 0;
+        const items = await openMenu(panel);
+        await closeMenu(page);
+        revisados += 1;
 
-          if (!items.some((t) => /^Copiar enlace/.test(t)))
-            problemas.push(`${donde} · ${id}: sin «Copiar enlace»`);
-          if (hayTabla && !items.some((t) => /^Datos/.test(t))) {
-            problemas.push(`${donde} · ${id} («${titulo}»): tiene tabla y el menú no ofrece datos`);
-          }
-          if (!/\(.+\)/.test(titulo))
-            problemas.push(`${donde} · ${id}: el título «${titulo}» no lleva unidad`);
-          void hayGrafico;
+        if (!items.some((t) => /^Copiar enlace/.test(t)))
+          problemas.push(`${lugar.nombre} · ${panelId}: sin «Copiar enlace»`);
+        if (hayTabla && !items.some((t) => /^Datos/.test(t))) {
+          problemas.push(
+            `${lugar.nombre} · ${panelId} («${titulo}»): tiene tabla y el menú no ofrece datos`,
+          );
         }
+        if (!/\(.+\)/.test(titulo))
+          problemas.push(`${lugar.nombre} · ${panelId}: el título «${titulo}» no lleva unidad`);
       }
     }
     expect(revisados, 'la prueba no encontró ningún panel con menú').toBeGreaterThan(0);
@@ -183,14 +150,15 @@ test.describe('descargas de los paneles', () => {
     expect(text).toContain('datosbolivia.com');
   });
 
-  test('la cabecera de cada pestaña ofrece el informe (PDF)', async ({ page }) => {
-    await page.goto('/');
-    await settle(page);
-    for (const tab of TABS) {
-      await openTab(page, tab);
+  test('la cabecera de cada sección ofrece el informe (PDF)', async ({ page }) => {
+    await abrirTablero(page);
+    for (const seccion of SECCIONES) {
+      const id = await irA(page, seccion);
       await expect(
-        page.getByRole('button', { name: /Descargar informe/ }),
-        `«${tab}» no tiene el botón del informe`,
+        bloque(page, id)
+          .getByRole('button', { name: /Descargar informe/ })
+          .first(),
+        `«${seccion}» no tiene el botón del informe`,
       ).toBeVisible();
     }
   });

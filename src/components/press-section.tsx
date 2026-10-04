@@ -3,7 +3,7 @@
 import { OnOpenNotice, useOnOpen } from './on-open';
 import { PressExplorer } from './press-explorer';
 import { SubjectsExplorer } from './subjects-explorer';
-import { SubTabs } from './tabs';
+import { SubSections } from './site-layout';
 import { TabHeader } from '@/components/ui/tab-header';
 import type { PressArticle, PressCube, TermMonth, TermTotal } from '@/lib/series';
 
@@ -15,8 +15,8 @@ import type { PressArticle, PressCube, TermMonth, TermTotal } from '@/lib/series
  * 2026-09-22, y de ellos 1,85 los temas, que es la sección más pesada de las
  * siete pestañas— para un capítulo que hay que abrir a propósito.
  *
- * Cada página se pide al montarse, y `SubTabs` monta sólo la activa: abrir
- * «Prensa» trae la cobertura, y los temas esperan al segundo clic. Los que nunca
+ * Cada página se pide al montarse, y `SubSections` monta cada una al acercarse: abrir
+ * «Prensa» trae la cobertura, y los temas esperan a que el lector baje. Los que nunca
  * lo dan no los descargan nunca.
  */
 export function PressSection() {
@@ -27,10 +27,10 @@ export function PressSection() {
         title="Prensa"
         lede="Lo que publicaron los medios bolivianos y de qué hablaron. Es reporte, no medición: ninguna cifra de aquí entra a una serie, y el tema y el tono los deriva el Observatorio con listas de palabras. En «Temas» se cuentan menciones, no notas."
       />
-      <SubTabs enlace labels={['Cobertura', 'Temas']} icons={['ventana', 'etiqueta']}>
+      <SubSections enlace labels={['Cobertura', 'Temas']} icons={['ventana', 'etiqueta']}>
         <CoveragePanel />
         <SubjectsPanel />
-      </SubTabs>
+      </SubSections>
     </>
   );
 }
