@@ -65,6 +65,7 @@ export const SITE: readonly SiteSection[] = [
       'Redes sociales',
     ),
   },
+  { label: 'Personalidades', icon: 'personas', pages: [] },
   { label: 'Ciudades', icon: 'mapa', pages: [] },
   {
     label: 'Transporte',

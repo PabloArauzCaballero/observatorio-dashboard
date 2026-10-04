@@ -30,7 +30,7 @@ test('las anclas son únicas y no chocan entre secciones y páginas', () => {
   );
 });
 
-test('el tablero tiene las ocho secciones, en el orden de siempre', () => {
+test('el tablero enumera las secciones en el mismo orden que la vista', () => {
   assert.deepEqual(
     SITE.map((s) => s.label),
     [
@@ -38,6 +38,7 @@ test('el tablero tiene las ocho secciones, en el orden de siempre', () => {
       'Tipo de cambio',
       'Macroeconomía',
       'Empresas',
+      'Personalidades',
       'Ciudades',
       'Transporte',
       'Prensa',
