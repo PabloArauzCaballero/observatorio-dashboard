@@ -15,6 +15,7 @@ import { ResourcesSection } from './resources-section';
 import { SubTabs } from './tabs';
 import { TradeRecordsSection } from './trade-records-section';
 import { WorldExplorer } from './world-explorer';
+import { TabHeader } from '@/components/ui/tab-header';
 import type { InstitutionsBoard } from '@/lib/institutions-board';
 import type { MacroBundle } from '@/lib/macro-transport';
 
@@ -53,29 +54,36 @@ import type { MacroBundle } from '@/lib/macro-transport';
  */
 export function MacroSection() {
   return (
-    <SubTabs
-      enlace
-      labels={[
-        'Series de Bolivia',
-        'Social Info',
-        'Bolivia ante el mundo',
-        'Variables exógenas',
-        'Series del BCB',
-        'Comercio exterior',
-        'Detalle aduanero (INE)',
-      ]}
-      icons={['linea', 'capas', 'globo', 'monedas', 'banco', 'globo', 'cajas']}
-    >
-      <MeasuresPanel />
-      <PanelSection
-        guests={[{ label: 'Instituciones', icon: 'escudo', panel: <InstitutionsPanel /> }]}
+    <>
+      <TabHeader
+        id="macroeconomia"
+        title="Macroeconomía"
+        lede="Las series anuales de Bolivia, su comparación con el mundo y su comercio exterior. Cada cifra dice quién la publica; lo que calcula el Observatorio se dice aparte."
       />
-      <WorldExplorer />
-      <ExogenousSection />
-      <BcbSection />
-      <ForeignTradeSection />
-      <TradeRecordsSection />
-    </SubTabs>
+      <SubTabs
+        enlace
+        labels={[
+          'Series de Bolivia',
+          'Social Info',
+          'Bolivia ante el mundo',
+          'Variables exógenas',
+          'Series del BCB',
+          'Comercio exterior',
+          'Detalle aduanero (INE)',
+        ]}
+        icons={['linea', 'capas', 'globo', 'monedas', 'banco', 'globo', 'cajas']}
+      >
+        <MeasuresPanel />
+        <PanelSection
+          guests={[{ label: 'Instituciones', icon: 'escudo', panel: <InstitutionsPanel /> }]}
+        />
+        <WorldExplorer />
+        <ExogenousSection />
+        <BcbSection />
+        <ForeignTradeSection />
+        <TradeRecordsSection />
+      </SubTabs>
+    </>
   );
 }
 

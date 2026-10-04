@@ -1,9 +1,10 @@
 'use client';
 
 import { useMemo, useState } from 'react';
-import { ChipPicker, SelectField, YearSlider, useFloor } from './accounts-controls';
+import { ChipPicker, SOURCE, SelectField, YearSlider, useFloor } from './accounts-controls';
 import { DatedLines, WorldLines, seriesTone } from './charts';
 import type { DatedLinePoint } from './charts';
+import { Panel } from '@/components/ui/panel';
 import {
   PERIMETERS,
   SPNF_CONCEPTS,
@@ -59,7 +60,8 @@ export function AccountsBudget({ accounts }: { accounts: AccountsPayload }) {
   const chosen = available.filter((concept) => concepts.has(concept.key));
   const firstDate = index.get(spnfCode(place, 'INGRESOS_TOTALES'))?.points[0]?.[0] ?? '2018-01-01';
   const firstYear = Number(firstDate.slice(0, 4));
-  const lastYear = closedYears(index, spnfCode(place, 'INGRESOS_TOTALES')).at(-1)?.year ?? firstYear;
+  const lastYear =
+    closedYears(index, spnfCode(place, 'INGRESOS_TOTALES')).at(-1)?.year ?? firstYear;
   const floor = useFloor(firstYear);
   const [picked, setPicked] = useState(firstYear);
   const from = Math.max(picked, floor);
@@ -99,17 +101,35 @@ export function AccountsBudget({ accounts }: { accounts: AccountsPayload }) {
     };
   });
 
+  const perimeterName = PERIMETERS.find((one) => one.key === place)?.label ?? '';
+  const unitName =
+    view === 'month' ? 'millones de Bs' : measure === 'pib' ? '% del PIB' : 'millones de Bs';
+  const lineSeries = chosen.map((concept, position) => ({
+    key: concept.key,
+    label: concept.label,
+    tone: seriesTone(position),
+    emphasis: position === 0,
+  }));
+
   return (
     <>
-      <div className="panel">
-        <div className="panel-head">
-          <h2>Ingresos y gastos, concepto por concepto</h2>
-          <p className="panel-sub">
-            Armá tu propia comparación con las cuentas mensuales del Ministerio de Economía:
-            elegí el perímetro, los conceptos y si querés verlos mes a mes o año a año. Mes a mes
-            se ven las estaciones que un año cerrado esconde.
-          </p>
-        </div>
+      <header className="page-intro">
+        <h3 className="page-intro-title">Ingresos y gastos, concepto por concepto</h3>
+        <p className="page-intro-lede">
+          Armá tu propia comparación con las cuentas mensuales del Ministerio de Economía: elegí el
+          perímetro, los conceptos y si querés verlos mes a mes o año a año. Mes a mes se ven las
+          estaciones que un año cerrado esconde.
+        </p>
+      </header>
+
+      <Panel
+        id="cuentas-conceptos"
+        title={`Conceptos de ingreso y gasto, ${view === 'month' ? 'mes a mes' : 'año a año'} (${unitName})`}
+        lede={`${perimeterName}. Cifras preliminares, en millones de bolivianos corrientes. ${
+          view === 'year' ? 'Solo años cerrados.' : 'El último mes es el último publicado.'
+        }`}
+        source={SOURCE.ministry}
+      >
         <div className="slicer-row">
           <ChipPicker
             label="Qué parte del Estado"
@@ -137,14 +157,25 @@ export function AccountsBudget({ accounts }: { accounts: AccountsPayload }) {
               onChange={(next) => setMeasure(next === 'pib' ? 'pib' : 'bs')}
             />
           ) : null}
-          <YearSlider label="Desde" value={from} min={Math.max(firstYear, floor)} max={lastYear} onChange={setPicked} />
+          <YearSlider
+            label="Desde"
+            value={from}
+            min={Math.max(firstYear, floor)}
+            max={lastYear}
+            onChange={setPicked}
+          />
         </div>
         <ChipPicker
           label="Conceptos"
           options={available.map((concept) => ({
             key: concept.key,
             label: concept.label,
-            hint: concept.side === 'ingreso' ? 'Ingreso' : concept.side === 'gasto' ? 'Gasto' : 'Resultado',
+            hint:
+              concept.side === 'ingreso'
+                ? 'Ingreso'
+                : concept.side === 'gasto'
+                  ? 'Gasto'
+                  : 'Resultado',
           }))}
           value={concepts}
           onChange={setConcepts}
@@ -152,16 +183,11 @@ export function AccountsBudget({ accounts }: { accounts: AccountsPayload }) {
           base={new Set(DEFAULT)}
         />
         {chosen.length === 0 ? (
-          <p className="panel-sub">Elegí al menos un concepto.</p>
+          <div className="callout">Elegí al menos un concepto.</div>
         ) : view === 'month' ? (
           <DatedLines
             data={monthly}
-            series={chosen.map((concept, position) => ({
-              key: concept.key,
-              label: concept.label,
-              tone: seriesTone(position),
-              emphasis: position === 0,
-            }))}
+            series={lineSeries}
             unit="millones de Bs"
             decimals={0}
             monthly
@@ -170,31 +196,40 @@ export function AccountsBudget({ accounts }: { accounts: AccountsPayload }) {
         ) : (
           <WorldLines
             data={yearRows}
-            series={chosen.map((concept, position) => ({
-              key: concept.key,
-              label: concept.label,
-              tone: seriesTone(position),
-              emphasis: position === 0,
-            }))}
+            series={lineSeries}
             format={(value) => (measure === 'pib' ? percent(value) : millions(value))}
             tick={(value) => number(value, 0)}
           />
         )}
-        <p className="panel-sub">
-          Cifras preliminares del Ministerio de Economía y Finanzas Públicas, en millones de
-          bolivianos corrientes.{' '}
-          {view === 'year' ? 'Solo años cerrados.' : 'El último mes es el último publicado.'}
-        </p>
-      </div>
+      </Panel>
 
-      <div className="panel">
-        <div className="panel-head">
-          <h2>Las cuentas del último año cerrado</h2>
-          <p className="panel-sub">
-            {PERIMETERS.find((one) => one.key === place)?.label}, año {lastYear}, con la variación
-            frente al año anterior y la proporción del PIB.
-          </p>
-        </div>
+      <Panel
+        id="cuentas-ultimo-anio-conceptos"
+        title={`Las cuentas del último año cerrado, ${lastYear} (millones de Bs)`}
+        lede={`${perimeterName}, con la variación frente al año anterior y la proporción del PIB. El PIB es el nominal del Banco Mundial. Un resultado negativo es déficit.`}
+        source={`${SOURCE.ministry}; PIB: Banco Mundial`}
+        data={{
+          unidad: 'millones de Bs',
+          columnas: [
+            'Concepto',
+            `Millones de Bs (${lastYear})`,
+            'Frente al año anterior',
+            '% del PIB',
+          ],
+          filas: table.flatMap((row) =>
+            row.value === undefined
+              ? []
+              : [
+                  [
+                    row.concept.label,
+                    row.value,
+                    change(row.concept.side, row.value, row.before),
+                    row.share,
+                  ],
+                ],
+          ),
+        }}
+      >
         <div className="table-wrap">
           <table className="grid-table accounts-table">
             <thead>
@@ -219,10 +254,7 @@ export function AccountsBudget({ accounts }: { accounts: AccountsPayload }) {
             </tbody>
           </table>
         </div>
-        <p className="panel-sub">
-          El PIB es el nominal del Banco Mundial. Un resultado negativo es déficit.
-        </p>
-      </div>
+      </Panel>
     </>
   );
 }

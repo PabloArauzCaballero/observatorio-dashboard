@@ -1,14 +1,6 @@
 'use client';
 
-import {
-  Bar,
-  BarChart,
-  CartesianGrid,
-  ResponsiveContainer,
-  Tooltip,
-  XAxis,
-  YAxis,
-} from 'recharts';
+import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import {
   AXIS,
   BAR_CAP,
@@ -21,6 +13,7 @@ import {
   type TooltipRender,
 } from './charts';
 import type { LegendItem } from './charts';
+import { celda, useDatosDeFigura } from '@/components/ui/panel-data';
 
 /**
  * Barras apiladas por año, con las partes que el lector eligió.
@@ -50,6 +43,7 @@ export function StackedYearBars({
   series,
   format,
   tick,
+  unit,
   height = 260,
   note,
 }: {
@@ -57,17 +51,30 @@ export function StackedYearBars({
   series: readonly StackSeries[];
   format: (value: number) => string;
   tick: (value: number) => string;
+  /** La unidad en que están las barras, para el título de cada columna que se baja. */
+  unit: string;
   height?: number;
   /** Una línea bajo el gráfico: qué significa la marca `*` u otra salvedad. */
   note?: string | undefined;
 }) {
+  useDatosDeFigura(
+    () => ({
+      unidad: unit,
+      columnas: ['Periodo', ...series.map((one) => `${one.label} (${unit})`)],
+      filas: data.map((row) => [row.label, ...series.map((one) => celda(row[one.key]))]),
+      ...(note ? { nota: note } : {}),
+    }),
+    [data, series, unit, note],
+  );
   const renderTooltip = ({ active, payload, label }: TooltipRender) => {
     if (!active || !payload?.length) return null;
     const point = payload[0]?.payload as StackRow | undefined;
     if (!point) return null;
     const rows = series
       .map((one) => ({ one, value: point[one.key] }))
-      .filter((entry): entry is { one: StackSeries; value: number } => typeof entry.value === 'number');
+      .filter(
+        (entry): entry is { one: StackSeries; value: number } => typeof entry.value === 'number',
+      );
     const total = rows.reduce((sum, entry) => sum + entry.value, 0);
     return (
       <TooltipShell
@@ -101,7 +108,9 @@ export function StackedYearBars({
                 stackId="partes"
                 fill={one.tone}
                 maxBarSize={BAR_CAP * 2}
-                {...(position === series.length - 1 ? { radius: [4, 4, 0, 0] as [number, number, number, number] } : {})}
+                {...(position === series.length - 1
+                  ? { radius: [4, 4, 0, 0] as [number, number, number, number] }
+                  : {})}
                 {...STACK_GAP}
                 animationDuration={position === 0 ? MOTION.duration : 0}
                 animationEasing={MOTION.easing}

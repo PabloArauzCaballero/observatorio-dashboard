@@ -2,8 +2,9 @@
 
 import { useState } from 'react';
 import { ChipPicker, SelectField } from './accounts-controls';
-import { ShareBars } from './charts';
+import { ChartLegend, ShareBars } from './charts';
 import type { ShareSlice } from './charts';
+import { Panel } from '@/components/ui/panel';
 import { domesticSale, importedGood, payroll, TARIFF_NOW } from '@/lib/tax-norms';
 import type { Breakdown } from '@/lib/tax-norms';
 import { number, percent } from '@/lib/public-accounts-board';
@@ -22,11 +23,22 @@ type Mode = 'venta' | 'importacion' | 'sueldo';
 
 const MODES = [
   { key: 'venta', label: 'Algo que se compra en el país', hint: 'IVA e IT sobre el precio final' },
-  { key: 'importacion', label: 'Algo que se importa', hint: 'Arancel e IVA de importación en la frontera' },
-  { key: 'sueldo', label: 'Un sueldo', hint: 'Aportes a pensiones y salud, del trabajador y del empleador' },
+  {
+    key: 'importacion',
+    label: 'Algo que se importa',
+    hint: 'Arancel e IVA de importación en la frontera',
+  },
+  {
+    key: 'sueldo',
+    label: 'Un sueldo',
+    hint: 'Aportes a pensiones y salud, del trabajador y del empleador',
+  },
 ] as const;
 
 const bs = (value: number): string => `Bs ${number(value, 2)}`;
+
+const SALE_KEPT = 'Queda para quien lo produce y vende';
+const ENTRY_KEPT = 'Valor de la mercadería (CIF)';
 
 function amountOf(text: string, fallback: number): number {
   const value = Number(text.replace(/\./gu, '').replace(',', '.'));
@@ -42,6 +54,17 @@ function Tile({ label, value, hint }: { label: string; value: string; hint: stri
     </div>
   );
 }
+
+/**
+ * La clave de las barras de reparto: la que queda con el color y todo lo demás en gris.
+ *
+ * `ShareBars` pinta con el color de la serie solo la fila marcada y deja el resto en el gris de
+ * contexto, y sin esta clave el lector tiene que adivinar qué significa cada tono.
+ */
+const shareKey = (keptLabel: string) => [
+  { color: 'var(--official)', label: keptLabel },
+  { color: 'var(--series-rest)', label: 'Impuestos y aportes' },
+];
 
 function slices(result: Breakdown, keptLabel: string): ShareSlice[] {
   return [
@@ -63,16 +86,12 @@ export function AccountsCalculator() {
   const pay = payroll(amount);
 
   return (
-    <div className="panel">
-      <div className="panel-head">
-        <h2>¿Cuánto de esto es impuesto?</h2>
-        <p className="panel-sub">
-          Cambiá el monto y lo que se aplica; las cuentas usan las alícuotas de la tabla de abajo.
-          Son una ilustración de lo que dice la norma sobre un caso simple, no la declaración de
-          nadie: no incluyen el IUE de la empresa, el ICE ni los créditos fiscales de cada
-          contribuyente.
-        </p>
-      </div>
+    <Panel
+      id="cuentas-calculadora"
+      title="¿Cuánto de esto es impuesto? (Bs)"
+      lede="Cambiá el monto y lo que se aplica; las cuentas usan las alícuotas de la tabla de abajo. Son una ilustración de lo que dice la norma sobre un caso simple, no la declaración de nadie: no incluyen el IUE de la empresa, el ICE ni los créditos fiscales de cada contribuyente."
+      source="cálculo del Observatorio con las alícuotas de «Cada impuesto, con su norma» (leyes y decretos de Bolivia)"
+    >
       <div className="slicer-row">
         <ChipPicker
           label="Qué querés calcular"
@@ -86,7 +105,11 @@ export function AccountsCalculator() {
         />
         <label className="slicer">
           <span className="slicer-label">
-            {kind === 'venta' ? 'Precio final, con IVA (Bs)' : kind === 'importacion' ? 'Valor CIF (Bs)' : 'Sueldo bruto por mes (Bs)'}
+            {kind === 'venta'
+              ? 'Precio final, con IVA (Bs)'
+              : kind === 'importacion'
+                ? 'Valor CIF (Bs)'
+                : 'Sueldo bruto por mes (Bs)'}
           </span>
           <input
             type="text"
@@ -124,12 +147,27 @@ export function AccountsCalculator() {
       {kind === 'venta' ? (
         <>
           <div className="stat-strip">
-            <Tile label="Es impuesto" value={bs(sale.taxTotal)} hint={`${percent(sale.taxShare)} del precio de ${bs(sale.total)}`} />
-            <Tile label="IVA" value={bs(sale.taxes[0]?.value ?? 0)} hint="13 % del precio final: es el mismo con cualquier número de ventas" />
-            <Tile label="IT" value={bs(sale.taxes[1]?.value ?? 0)} hint={`Se acumula: 3 % de cada una de las ${steps} ventas`} />
+            <Tile
+              label="Es impuesto"
+              value={bs(sale.taxTotal)}
+              hint={`${percent(sale.taxShare)} del precio de ${bs(sale.total)}`}
+            />
+            <Tile
+              label="IVA"
+              value={bs(sale.taxes[0]?.value ?? 0)}
+              hint="13 % del precio final: es el mismo con cualquier número de ventas"
+            />
+            <Tile
+              label="IT"
+              value={bs(sale.taxes[1]?.value ?? 0)}
+              hint={`Se acumula: 3 % de cada una de las ${steps} ventas`}
+            />
           </div>
-          <ShareBars data={slices(sale, 'Queda para quien lo produce y vende')} unit="Bs" height={150} />
-          <p className="panel-sub">
+          <div className="chart-stack">
+            <ShareBars data={slices(sale, SALE_KEPT)} unit="Bs" height={150} />
+            <ChartLegend items={shareKey(SALE_KEPT)} />
+          </div>
+          <p className="chart-note">
             Se supone que cada venta agrega la misma parte del precio. El IVA se paga una vez en
             toda la cadena porque cada eslabón descuenta el de la compra; el IT no se descuenta, y
             por eso pesa más cuanto más largo es el camino. Una empresa con utilidades puede
@@ -141,11 +179,22 @@ export function AccountsCalculator() {
       {kind === 'importacion' ? (
         <>
           <div className="stat-strip">
-            <Tile label="Se paga al entrar" value={bs(entry.taxTotal)} hint={`${percent((entry.taxTotal / amount) * 100)} del valor CIF`} />
-            <Tile label="Costo nacionalizado" value={bs(entry.total)} hint={`${percent(entry.taxShare)} de eso es impuesto`} />
+            <Tile
+              label="Se paga al entrar"
+              value={bs(entry.taxTotal)}
+              hint={`${percent((entry.taxTotal / amount) * 100)} del valor CIF`}
+            />
+            <Tile
+              label="Costo nacionalizado"
+              value={bs(entry.total)}
+              hint={`${percent(entry.taxShare)} de eso es impuesto`}
+            />
           </div>
-          <ShareBars data={slices(entry, 'Valor de la mercadería (CIF)')} unit="Bs" height={150} />
-          <p className="panel-sub">
+          <div className="chart-stack">
+            <ShareBars data={slices(entry, ENTRY_KEPT)} unit="Bs" height={150} />
+            <ChartLegend items={shareKey(ENTRY_KEPT)} />
+          </div>
+          <p className="chart-note">
             El IVA de importación es crédito fiscal del importador: se recupera al vender, y la
             venta paga después su propio IVA e IT como en el caso anterior. El arancel es el que
             rige desde el 6 de julio de 2026, cinco puntos más bajo en cada tramo.
@@ -156,28 +205,43 @@ export function AccountsCalculator() {
       {kind === 'sueldo' ? (
         <>
           <div className="stat-strip">
-            <Tile label="Líquido del trabajador" value={bs(pay.net)} hint={`De ${bs(pay.gross)} brutos`} />
-            <Tile label="Costo para el empleador" value={bs(pay.employerCost)} hint="Sueldo más aportes patronales" />
-            <Tile label="Aportes sobre el costo" value={percent(pay.wedge)} hint="Los de ambos lados, como parte de lo que cuesta el puesto" />
+            <Tile
+              label="Líquido del trabajador"
+              value={bs(pay.net)}
+              hint={`De ${bs(pay.gross)} brutos`}
+            />
+            <Tile
+              label="Costo para el empleador"
+              value={bs(pay.employerCost)}
+              hint="Sueldo más aportes patronales"
+            />
+            <Tile
+              label="Aportes sobre el costo"
+              value={percent(pay.wedge)}
+              hint="Los de ambos lados, como parte de lo que cuesta el puesto"
+            />
           </div>
-          <ShareBars
-            data={[
-              { name: 'Líquido del trabajador', value: pay.net, emphasis: true },
-              { name: 'Aporte del trabajador a pensiones', value: pay.workerPension },
-              { name: 'Aporte solidario del trabajador', value: pay.solidarity },
-              { name: 'Aporte patronal a pensiones', value: pay.employerPension },
-              { name: 'Aporte patronal a salud', value: pay.employerHealth },
-            ]}
-            unit="Bs"
-            height={190}
-          />
-          <p className="panel-sub">
-            Solo aportes a pensiones y salud. No incluye el RC-IVA, que depende de las facturas
-            que presente cada persona. Las alícuotas de aportes solo se confirmaron en parte en el
-            texto de la ley: la tabla de abajo marca cuáles.
+          <div className="chart-stack">
+            <ShareBars
+              data={[
+                { name: 'Líquido del trabajador', value: pay.net, emphasis: true },
+                { name: 'Aporte del trabajador a pensiones', value: pay.workerPension },
+                { name: 'Aporte solidario del trabajador', value: pay.solidarity },
+                { name: 'Aporte patronal a pensiones', value: pay.employerPension },
+                { name: 'Aporte patronal a salud', value: pay.employerHealth },
+              ]}
+              unit="Bs"
+              height={190}
+            />
+            <ChartLegend items={shareKey('Líquido del trabajador')} />
+          </div>
+          <p className="chart-note">
+            Solo aportes a pensiones y salud. No incluye el RC-IVA, que depende de las facturas que
+            presente cada persona. Las alícuotas de aportes solo se confirmaron en parte en el texto
+            de la ley: la tabla de abajo marca cuáles.
           </p>
         </>
       ) : null}
-    </div>
+    </Panel>
   );
 }

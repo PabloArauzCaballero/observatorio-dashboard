@@ -28,7 +28,13 @@ export function AccountsSection() {
 
   return (
     <SubTabs
-      labels={['Panorama', 'Qué dicen las normas', 'Recaudación', 'Ingresos y gastos', 'Deuda y combustibles']}
+      labels={[
+        'Panorama',
+        'Qué dicen las normas',
+        'Recaudación',
+        'Ingresos y gastos',
+        'Deuda y combustibles',
+      ]}
       icons={['balanza', 'escudo', 'monedas', 'barras', 'banco']}
     >
       <Loaded accounts={accounts} failed={failed}>
@@ -62,8 +68,8 @@ function Loaded({
     return (
       <div className="callout">
         Todavía no hay cuentas públicas cargadas en esta base. El núcleo las siembra al arrancar:
-        recaudación por impuesto, ingresos y gastos del Estado, deuda y subvenciones. «Qué dicen
-        las normas» no depende de ellas.
+        recaudación por impuesto, ingresos y gastos del Estado, deuda y subvenciones. «Qué dicen las
+        normas» no depende de ellas.
       </div>
     );
   }

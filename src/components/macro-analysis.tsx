@@ -1,6 +1,7 @@
 'use client';
 
 import { useMemo, useRef, useState } from 'react';
+import { ChipPicker } from './accounts-controls';
 import { MacroChart } from './charts';
 import { Icon } from './icons';
 import {
@@ -10,16 +11,13 @@ import {
   VariationHeat,
   ViolinPlot,
   compactNumber,
+  titleWithUnit,
+  unitName,
 } from './macro-analysis-charts';
 import type { ScatterDatum, VariationCell } from './macro-analysis-charts';
-import {
-  headlineValue,
-  number,
-  sectorIcon,
-  sectorLabel,
-  sectorTone,
-  unitLabel,
-} from './macro-vocabulary';
+import { headlineValue, number, sectorIcon, sectorLabel, sectorTone } from './macro-vocabulary';
+import { Panel } from '@/components/ui/panel';
+import { celda } from '@/components/ui/panel-data';
 import { DEFINITION_AUTHOR, GLOSSARY, UNIT_MEANING } from '@/lib/indicator-glossary';
 import { captureBlock, captureFigure, printAnalysis } from '@/lib/analysis-pdf';
 import type { PdfFigure } from '@/lib/analysis-pdf';
@@ -66,7 +64,7 @@ export function MacroAnalysis({
   series: MacroPoint[];
   onBack: () => void;
 }) {
-  const unit = unitLabel(point.unit);
+  const unit = unitName(point.unit);
   const tone = sectorTone();
   const definition = GLOSSARY[point.indicatorCode];
 
@@ -312,8 +310,139 @@ export function MacroAnalysis({
     });
   };
 
+  /** Una clave estable por indicador: da nombre a los archivos y ancla a cada panel. */
+  const key = point.indicatorCode.toLowerCase().replace(/[^a-z0-9]+/g, '-');
+  const name = point.name ?? point.indicatorCode;
+  /** Quién publica la serie, y que el resto lo calculó el observatorio. */
+  const source = `${point.publisher ?? 'la fuente citada'}; estadísticos calculados por el Observatorio`;
+  const sourceRaw = point.publisher ?? 'la fuente citada';
+
+  /** Las medidas de la serie, que son lo que se ve en las casillas y lo que se baja. */
+  const measures: MeasureGroup[] = [
+    {
+      heading: 'Medidas de tendencia central',
+      tiles: [
+        {
+          label: 'Media',
+          raw: stats.mean,
+          value: headlineValue(stats.mean, point.unit),
+          hint: unit,
+        },
+        {
+          label: 'Mediana',
+          raw: stats.median,
+          value: headlineValue(stats.median, point.unit),
+          hint: unit,
+        },
+        {
+          label: 'Media recortada',
+          raw: stats.trimmedMean,
+          value: headlineValue(stats.trimmedMean, point.unit),
+          hint: 'sin el 10 % de cada cola',
+        },
+        {
+          label: 'Moda',
+          raw: stats.mode,
+          value: stats.mode === null ? '—' : headlineValue(stats.mode, point.unit),
+          hint: 'centro del intervalo más poblado',
+        },
+      ],
+    },
+    {
+      heading: 'Medidas de dispersión',
+      tiles: [
+        {
+          label: 'Desviación estándar',
+          raw: stats.sd,
+          value: headlineValue(stats.sd, point.unit),
+          hint: unit,
+        },
+        {
+          label: 'Varianza',
+          raw: stats.variance,
+          value: compactNumber(stats.variance),
+          hint: `${unit} al cuadrado`,
+        },
+        {
+          label: 'Coef. de variación',
+          raw: stats.cv === null ? null : stats.cv * 100,
+          value: stats.cv === null ? '—' : `${number(stats.cv * 100, 1)} %`,
+          hint: 'σ sobre la media',
+        },
+        {
+          label: 'RIC',
+          raw: stats.iqr,
+          value: headlineValue(stats.iqr, point.unit),
+          hint: 'Q3 − Q1',
+        },
+        {
+          label: 'Recorrido',
+          raw: stats.range,
+          value: headlineValue(stats.range, point.unit),
+          hint: 'máximo − mínimo',
+        },
+        {
+          label: 'MAD',
+          raw: stats.mad,
+          value: headlineValue(stats.mad, point.unit),
+          hint: 'desviación absoluta mediana',
+        },
+      ],
+    },
+    {
+      heading: 'Medidas de forma y extremos',
+      tiles: [
+        {
+          label: 'Asimetría',
+          raw: stats.skewness,
+          value: number(stats.skewness, 2),
+          hint: skewWord(stats.skewness),
+        },
+        {
+          label: 'Curtosis (exceso)',
+          raw: stats.kurtosis,
+          value: number(stats.kurtosis, 2),
+          hint: kurtosisWord(stats.kurtosis),
+        },
+        {
+          label: 'Máximo',
+          raw: stats.max.value,
+          value: headlineValue(stats.max.value, point.unit),
+          hint: `en ${stats.max.period}`,
+          tone: 'var(--down)',
+        },
+        {
+          label: 'Mínimo',
+          raw: stats.min.value,
+          value: headlineValue(stats.min.value, point.unit),
+          hint: `en ${stats.min.period}`,
+          tone: 'var(--up)',
+        },
+        {
+          label: 'Atípicos',
+          raw: stats.outliers.length,
+          value: String(stats.outliers.length),
+          hint: `fuera de ${headlineValue(stats.lowFence, point.unit)} – ${headlineValue(stats.highFence, point.unit)}`,
+          ...(stats.outliers.length ? { tone: 'var(--up)' } : {}),
+        },
+        {
+          label: 'Observaciones',
+          raw: stats.n,
+          value: String(stats.n),
+          hint: `${stats.firstPeriod}–${stats.lastPeriod}`,
+        },
+      ],
+    },
+  ];
+
+  /** Las cifras de los años atípicos, tal como las dibuja la tabla. */
+  const outlierRows = stats.outliers.map((row) => ({
+    row,
+    change: ordered.find((item) => item.period === row.period)?.changePercent,
+  }));
+
   return (
-    <div className="analysis">
+    <div className="analysis-view">
       <div className="analysis-bar">
         <button type="button" className="download-btn" onClick={onBack}>
           <Icon name="plegar" size={13} /> Volver a la tabla
@@ -332,7 +461,7 @@ export function MacroAnalysis({
       </div>
 
       <header className="analysis-head">
-        <h2>{point.name ?? point.indicatorCode}</h2>
+        <h3 className="analysis-title">{name}</h3>
         <p className="analysis-sub">
           <code>{point.indicatorCode}</code> · {UNIT_MEANING[point.unit] ?? unit} ·{' '}
           {point.publisher ?? 'fuente citada'}
@@ -348,200 +477,179 @@ export function MacroAnalysis({
         <p className="analysis-reading">{reading}</p>
       </header>
 
-      <StatBlock heading="Medidas de tendencia central" icon="diana">
-        <StatTile label="Media" value={headlineValue(stats.mean, point.unit)} hint={unit} />
-        <StatTile label="Mediana" value={headlineValue(stats.median, point.unit)} hint={unit} />
-        <StatTile
-          label="Media recortada"
-          value={headlineValue(stats.trimmedMean, point.unit)}
-          hint="sin el 10 % de cada cola"
-        />
-        <StatTile
-          label="Moda"
-          value={stats.mode === null ? '—' : headlineValue(stats.mode, point.unit)}
-          hint="centro del intervalo más poblado"
-        />
-      </StatBlock>
+      <Panel
+        id={`analisis-${key}-medidas`}
+        title={`Medidas de la serie (${unit})`}
+        lede={`Resumen de ${stats.n} observaciones, ${stats.firstPeriod}–${stats.lastPeriod}: dónde está el centro, cuánto se dispersa y qué extremos tiene.`}
+        source={source}
+        data={{
+          unidad: unit,
+          columnas: ['Grupo', 'Medida', 'Valor', 'Nota'],
+          filas: measures.flatMap((group) =>
+            group.tiles.map((tile) => [group.heading, tile.label, celda(tile.raw), tile.hint]),
+          ),
+          nota: `Valores en ${unit}, salvo el coeficiente de variación (%), la asimetría, la curtosis y los conteos.`,
+        }}
+        className="stat-panel"
+      >
+        {measures.map((group) => (
+          <StatBlock key={group.heading} heading={group.heading}>
+            {group.tiles.map((tile) => (
+              <StatTile
+                key={tile.label}
+                label={tile.label}
+                value={tile.value}
+                hint={tile.hint}
+                {...(tile.tone ? { tone: tile.tone } : {})}
+              />
+            ))}
+          </StatBlock>
+        ))}
+      </Panel>
 
-      <StatBlock heading="Medidas de dispersión" icon="balanza">
-        <StatTile
-          label="Desviación estándar"
-          value={headlineValue(stats.sd, point.unit)}
-          hint={unit}
-        />
-        <StatTile
-          label="Varianza"
-          value={compactNumber(stats.variance)}
-          hint={`${unit} al cuadrado`}
-        />
-        <StatTile
-          label="Coef. de variación"
-          value={stats.cv === null ? '—' : `${number(stats.cv * 100, 1)} %`}
-          hint="σ sobre la media"
-        />
-        <StatTile label="RIC" value={headlineValue(stats.iqr, point.unit)} hint="Q3 − Q1" />
-        <StatTile
-          label="Recorrido"
-          value={headlineValue(stats.range, point.unit)}
-          hint="máximo − mínimo"
-        />
-        <StatTile
-          label="MAD"
-          value={headlineValue(stats.mad, point.unit)}
-          hint="desviación absoluta mediana"
-        />
-      </StatBlock>
-
-      <StatBlock heading="Medidas de forma y extremos" icon="sigma">
-        <StatTile
-          label="Asimetría"
-          value={number(stats.skewness, 2)}
-          hint={skewWord(stats.skewness)}
-        />
-        <StatTile
-          label="Curtosis (exceso)"
-          value={number(stats.kurtosis, 2)}
-          hint={kurtosisWord(stats.kurtosis)}
-        />
-        <StatTile
-          label="Máximo"
-          value={headlineValue(stats.max.value, point.unit)}
-          hint={`en ${stats.max.period}`}
-          tone="var(--down)"
-        />
-        <StatTile
-          label="Mínimo"
-          value={headlineValue(stats.min.value, point.unit)}
-          hint={`en ${stats.min.period}`}
-          tone="var(--up)"
-        />
-        <StatTile
-          label="Atípicos"
-          value={String(stats.outliers.length)}
-          hint={`fuera de ${headlineValue(stats.lowFence, point.unit)} – ${headlineValue(stats.highFence, point.unit)}`}
-          {...(stats.outliers.length ? { tone: 'var(--up)' } : {})}
-        />
-        <StatTile
-          label="Observaciones"
-          value={String(stats.n)}
-          hint={`${stats.firstPeriod}–${stats.lastPeriod}`}
-        />
-      </StatBlock>
-
-      <section className="analysis-figure" ref={trendBox}>
-        <div className="strap">
-          <Icon name="linea" size={17} />
-          <h2>La serie</h2>
-          <span className="tile-hint">
-            máximo en {stats.max.period} · mínimo en {stats.min.period}
-          </span>
+      <Panel
+        id={`analisis-${key}-serie`}
+        title={titleWithUnit(name, point.unit)}
+        lede={`Máximo en ${stats.max.period}, mínimo en ${stats.min.period}.`}
+        source={sourceRaw}
+      >
+        <div ref={trendBox}>
+          <MacroChart
+            data={ordered.map((row) => ({ period: row.period, value: row.value }))}
+            unit={unit}
+            tone={tone}
+            label={point.unit === 'NATIVE' ? 'Valor' : name}
+          />
         </div>
-        <MacroChart
-          data={ordered.map((row) => ({ period: row.period, value: row.value }))}
-          unit={point.unit}
-          tone={tone}
-        />
-      </section>
+      </Panel>
 
       <div className="analysis-pair">
-        <section className="analysis-figure" ref={densityBox}>
-          <div className="strap">
-            <Icon name="barras" size={17} />
-            <h2>Densidad e histograma</h2>
-            <span className="tile-hint">dónde se acumulan los años</span>
+        <Panel
+          id={`analisis-${key}-densidad`}
+          title="Dónde se acumulan los años (años por intervalo)"
+          lede="Las barras cuentan años por intervalo; la curva es la densidad en la misma escala."
+          source={source}
+        >
+          <div ref={densityBox}>
+            <DensityHistogram bins={bins} curve={curve} stats={stats} unit={unit} />
           </div>
-          <DensityHistogram bins={bins} curve={curve} stats={stats} unit={unit} />
-        </section>
+        </Panel>
 
-        <section className="analysis-figure" ref={violinBox}>
-          <div className="strap">
-            <Icon name="area" size={17} />
-            <h2>Violín</h2>
-            <span className="tile-hint">densidad, caja y atípicos</span>
+        <Panel
+          id={`analisis-${key}-violin`}
+          title={`Violín de la distribución (${unit})`}
+          lede="La misma distribución de pie, con su caja intercuartílica y los años atípicos."
+          source={source}
+        >
+          <div ref={violinBox}>
+            <ViolinPlot curve={curve} stats={stats} unit={unit} tone={tone} />
           </div>
-          <ViolinPlot curve={curve} stats={stats} unit={unit} tone={tone} />
-        </section>
+        </Panel>
       </div>
 
-      <section className="analysis-figure">
-        <div className="strap">
-          <Icon name="pulso" size={17} />
-          <h2>Correlación</h2>
-          <span className="tile-hint">
-            la serie contra el tiempo y contra sí misma
-            {/*
-              La retícula es por década y no por mes a propósito: estas series
-              son anuales y no existe un eje mensual que rellenar. Decirlo aquí
-              evita que un lector busque un desglose que la fuente no publica.
-            */}
-          </span>
-          <div className="download">
-            {(
-              [
-                ['nivel', 'Nivel ↔ año'],
-                ['variacion', 'Variación ↔ año previo'],
-                ['rezagos', 'Autocorrelación'],
-                ['reticula', 'Retícula por década'],
-              ] as const
-            ).map(([key, label]) => (
-              <button
-                key={key}
-                type="button"
-                className={angle === key ? 'download-btn download-btn-on' : 'download-btn'}
-                onClick={() => setAngle(key)}
-                aria-pressed={angle === key}
-              >
-                {label}
-              </button>
-            ))}
+      <Panel
+        id={`analisis-${key}-correlacion`}
+        title="Correlación de la serie (coeficiente r, de −1 a 1)"
+        lede="La serie contra el tiempo y contra sí misma. La retícula es por década porque estas series son anuales."
+        source={source}
+      >
+        <ChipPicker
+          label="Ver"
+          options={ANGLES}
+          value={new Set([angle])}
+          onChange={(next) => setAngle(([...next][0] ?? 'nivel') as typeof angle)}
+        />
+        {/*
+          Las cuatro lecturas están montadas a la vez y se apartan con
+          `analysis-pane-off`: el PDF copia lo que hay dibujado. La que no se
+          ve no entrega sus cifras al panel ni sale en la imagen.
+        */}
+        <div className="analysis-panes">
+          <div
+            className={pane(angle, 'nivel')}
+            aria-hidden={angle !== 'nivel'}
+            ref={levelBox}
+            {...skip(angle, 'nivel')}
+          >
+            <ScatterTrend
+              points={levelPoints}
+              fit={levelFit}
+              xLabel="Año"
+              yLabel="Valor"
+              xScale="año"
+              tone={tone}
+              etiqueta="Nivel contra año"
+              declarar={angle === 'nivel'}
+            />
+          </div>
+          <div
+            className={pane(angle, 'variacion')}
+            aria-hidden={angle !== 'variacion'}
+            ref={changeBox}
+            {...skip(angle, 'variacion')}
+          >
+            <ScatterTrend
+              points={changePoints}
+              fit={changeFit}
+              xLabel="Var. del año anterior"
+              yLabel="Var. del año"
+              xScale="porcentaje"
+              yScale="porcentaje"
+              tone={tone}
+              etiqueta="Variación contra la del año anterior"
+              declarar={angle === 'variacion'}
+            />
+          </div>
+          <div
+            className={pane(angle, 'rezagos')}
+            aria-hidden={angle !== 'rezagos'}
+            ref={lagBox}
+            {...skip(angle, 'rezagos')}
+          >
+            <LagBars
+              lags={lags}
+              band={band}
+              label="Autocorrelación"
+              declarar={angle === 'rezagos'}
+            />
+            <p className="chart-note">
+              Banda de ruido a ±{number(band, 3)}. Una barra que no la supera no distingue la serie
+              de un sorteo.
+            </p>
+          </div>
+          <div
+            className={pane(angle, 'reticula')}
+            aria-hidden={angle !== 'reticula'}
+            ref={heatBox}
+            {...skip(angle, 'reticula')}
+          >
+            <VariationHeat cells={heatCells} unit={unit} declarar={angle === 'reticula'} />
           </div>
         </div>
+      </Panel>
 
-        <div className={pane(angle, 'nivel')} aria-hidden={angle !== 'nivel'} ref={levelBox}>
-          <ScatterTrend
-            points={levelPoints}
-            fit={levelFit}
-            xLabel="Año"
-            yLabel="Valor"
-            xScale="año"
-            tone={tone}
-          />
-        </div>
-        <div
-          className={pane(angle, 'variacion')}
-          aria-hidden={angle !== 'variacion'}
-          ref={changeBox}
-        >
-          <ScatterTrend
-            points={changePoints}
-            fit={changeFit}
-            xLabel="Var. del año anterior"
-            yLabel="Var. del año"
-            xScale="porcentaje"
-            yScale="porcentaje"
-            tone={tone}
-          />
-        </div>
-        <div className={pane(angle, 'rezagos')} aria-hidden={angle !== 'rezagos'} ref={lagBox}>
-          <LagBars lags={lags} band={band} label="Autocorrelación" />
-          <p className="chart-note">
-            Banda de ruido a ±{number(band, 3)}. Una barra que no la supera no distingue la serie de
-            un sorteo.
-          </p>
-        </div>
-        <div className={pane(angle, 'reticula')} aria-hidden={angle !== 'reticula'} ref={heatBox}>
-          <VariationHeat cells={heatCells} unit={unit} />
-        </div>
-      </section>
-
-      <section className="analysis-figure">
-        <div className="strap">
-          <Icon name="campana" size={17} />
-          <h2>Años atípicos</h2>
-          <span className="tile-hint">
-            fuera de los bigotes de Tukey · {stats.outliers.length} de {stats.n}
-          </span>
-        </div>
+      <Panel
+        id={`analisis-${key}-atipicos`}
+        title={`Años atípicos de la serie (${unit})`}
+        lede={`Fuera de los bigotes de Tukey: ${stats.outliers.length} de ${stats.n} años.`}
+        source={source}
+        data={() =>
+          stats.outliers.length
+            ? {
+                unidad: unit,
+                columnas: ['Año', `Valor (${unit})`, 'Lado', 'Desvíos (σ)', 'Var. anual (%)'],
+                filas: outlierRows.map(({ row, change }) => [
+                  row.period,
+                  celda(row.value),
+                  row.side === 'alto' ? 'por encima' : 'por debajo',
+                  celda(row.z),
+                  celda(change),
+                ]),
+                nota: `Bigotes de Tukey: por debajo de ${headlineValue(stats.lowFence, point.unit)} o por encima de ${headlineValue(stats.highFence, point.unit)} ${unit}.`,
+              }
+            : undefined
+        }
+      >
         {stats.outliers.length ? (
           <div className="table-wrap">
             <table className="grid-table">
@@ -555,34 +663,31 @@ export function MacroAnalysis({
                 </tr>
               </thead>
               <tbody>
-                {stats.outliers.map((row) => {
-                  const change = ordered.find((item) => item.period === row.period)?.changePercent;
-                  return (
-                    <tr key={row.period}>
-                      <td className="num">{row.period}</td>
-                      <td className="num">
-                        {headlineValue(row.value, point.unit)}{' '}
-                        <span className="cell-code">{unit}</span>
-                      </td>
-                      <td>
-                        <span className={row.side === 'alto' ? 'delta-up' : 'delta-down'}>
-                          {row.side === 'alto' ? 'por encima' : 'por debajo'}
+                {outlierRows.map(({ row, change }) => (
+                  <tr key={row.period}>
+                    <td className="num">{row.period}</td>
+                    <td className="num">
+                      {headlineValue(row.value, point.unit)}{' '}
+                      <span className="cell-code">{unit}</span>
+                    </td>
+                    <td>
+                      <span className={row.side === 'alto' ? 'delta-up' : 'delta-down'}>
+                        {row.side === 'alto' ? 'por encima' : 'por debajo'}
+                      </span>
+                    </td>
+                    <td className="num">{number(row.z, 2)}</td>
+                    <td className="num">
+                      {change === null || change === undefined ? (
+                        '—'
+                      ) : (
+                        <span className={change >= 0 ? 'delta-up' : 'delta-down'}>
+                          {change > 0 ? '+' : ''}
+                          {number(change, 2)} %
                         </span>
-                      </td>
-                      <td className="num">{number(row.z, 2)}</td>
-                      <td className="num">
-                        {change === null || change === undefined ? (
-                          '—'
-                        ) : (
-                          <span className={change >= 0 ? 'delta-up' : 'delta-down'}>
-                            {change > 0 ? '+' : ''}
-                            {number(change, 2)} %
-                          </span>
-                        )}
-                      </td>
-                    </tr>
-                  );
-                })}
+                      )}
+                    </td>
+                  </tr>
+                ))}
               </tbody>
               <tfoot>
                 <tr>
@@ -600,7 +705,7 @@ export function MacroAnalysis({
             explica por su propia dispersión.
           </div>
         )}
-      </section>
+      </Panel>
 
       {definition ? (
         <div className="card-note analysis-note">
@@ -637,21 +742,35 @@ export function MacroAnalysis({
 const pane = (angle: string, key: string): string =>
   angle === key ? 'analysis-pane' : 'analysis-pane analysis-pane-off';
 
-function StatBlock({
-  heading,
-  icon,
-  children,
-}: {
+/** La lectura apartada no sale en la imagen del panel: se marca para que el afiche la salte. */
+const skip = (angle: string, key: string): { 'data-export'?: string } =>
+  angle === key ? {} : { 'data-export': 'skip' };
+
+const ANGLES = [
+  { key: 'nivel', label: 'Nivel ↔ año' },
+  { key: 'variacion', label: 'Variación ↔ año previo' },
+  { key: 'rezagos', label: 'Autocorrelación' },
+  { key: 'reticula', label: 'Retícula por década' },
+] as const;
+
+interface MeasureTile {
+  label: string;
+  /** El valor sin redondear, para el archivo que se baja. */
+  raw: number | null;
+  value: string;
+  hint: string;
+  tone?: string;
+}
+
+interface MeasureGroup {
   heading: string;
-  icon: Parameters<typeof Icon>[0]['name'];
-  children: React.ReactNode;
-}) {
+  tiles: MeasureTile[];
+}
+
+function StatBlock({ heading, children }: { heading: string; children: React.ReactNode }) {
   return (
     <section className="stat-block">
-      <div className="stat-block-head">
-        <Icon name={icon} size={14} />
-        {heading}
-      </div>
+      <div className="stat-block-head">{heading}</div>
       <div className="stat-grid">{children}</div>
     </section>
   );
