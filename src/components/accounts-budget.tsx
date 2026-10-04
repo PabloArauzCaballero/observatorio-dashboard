@@ -255,6 +255,7 @@ export function AccountsBudget({ accounts }: { accounts: AccountsPayload }) {
           chart={
             <MacroViewChart shown={accountBars.length} total={accountRows.length}>
               <DivergingBars
+                signed
                 data={accountBars}
                 unit="millones de Bs"
                 height={Math.max(140, accountBars.length * 28 + 56)}

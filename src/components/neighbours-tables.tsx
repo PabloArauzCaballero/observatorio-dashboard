@@ -195,6 +195,7 @@ function LatestChart({
       >
         {signed ? (
           <DivergingBars
+            signed
             data={readings.map(({ place, reading }) => ({
               name: place.label,
               value: reading.value,

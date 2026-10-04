@@ -2020,16 +2020,25 @@ export interface DivergingRow {
  * daltónico no puede separar, y aquí el color es la mitad de la lectura, así
  * que el frío pasó a verde azulado: misma lectura, y los dos polos se
  * distinguen bajo protanopía y deuteranopía.
+ *
+ * Con `signed` el signo es solo signo —ingreso o gasto, sube o baja—, no una distancia a una
+ * referencia: se dibuja en dos tonos de la paleta de series y la leyenda dice «Positivo» y
+ * «Negativo». El cálido/frío de arriba dice «por encima de lo que se mide», y para una cuenta
+ * pública o una variación eso pinta los ingresos de rojo.
  */
 export function DivergingBars({
   data,
   unit = 'puntos',
   height = 260,
+  signed = false,
 }: {
   data: DivergingRow[];
   unit?: string;
   height?: number;
+  signed?: boolean;
 }) {
+  const plus = signed ? 'var(--series-1)' : 'var(--up)';
+  const minus = signed ? 'var(--series-2)' : 'var(--down)';
   useDatosDeFigura(
     () => ({
       etiqueta: 'Comparación',
@@ -2055,9 +2064,15 @@ export function DivergingBars({
         label={point.name}
         rows={[
           {
-            name: point.value >= 0 ? 'Por encima' : 'Por debajo',
+            name: signed
+              ? point.value >= 0
+                ? 'Positivo'
+                : 'Negativo'
+              : point.value >= 0
+                ? 'Por encima'
+                : 'Por debajo',
             value: `${point.value > 0 ? '+' : ''}${number(point.value, 1)} ${unit}`,
-            color: point.value >= 0 ? 'var(--up)' : 'var(--down)',
+            color: point.value >= 0 ? plus : minus,
           },
         ]}
         {...(point.meta ? { note: point.meta } : {})}
@@ -2093,7 +2108,7 @@ export function DivergingBars({
             <Bar
               dataKey="above"
               stackId="cero"
-              fill="var(--up)"
+              fill={plus}
               maxBarSize={BAR_CAP}
               radius={[0, 4, 4, 0]}
               animationDuration={MOTION.duration}
@@ -2102,7 +2117,7 @@ export function DivergingBars({
             <Bar
               dataKey="below"
               stackId="cero"
-              fill="var(--down)"
+              fill={minus}
               maxBarSize={BAR_CAP}
               radius={[4, 0, 0, 4]}
               animationDuration={MOTION.duration}
@@ -2111,10 +2126,15 @@ export function DivergingBars({
           </BarChart>
         </ResponsiveContainer>
       </div>
-      <ChartLegend items={DISTANCE_KEY(unit)} />
+      <ChartLegend items={signed ? SIGN_KEY(unit) : DISTANCE_KEY(unit)} />
     </div>
   );
 }
+
+const SIGN_KEY = (unit: string): ReadonlyArray<LegendItem> => [
+  { color: 'var(--series-1)', label: `Positivo, en ${unit}` },
+  { color: 'var(--series-2)', label: `Negativo, en ${unit}` },
+];
 
 /**
  * Los dos lados del cero, dichos con palabras.

@@ -97,6 +97,7 @@ function ChangeChart({ rows }: { rows: readonly ExogenousSeries[] }) {
       {shown.length ? (
         <MacroViewChart shown={shown.length} total={moves.length}>
           <DivergingBars
+            signed
             data={shown.map(({ one, summary, value }) => ({
               name: one.name,
               value,

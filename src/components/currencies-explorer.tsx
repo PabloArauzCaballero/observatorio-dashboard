@@ -119,6 +119,7 @@ function CoinChangeChart({ rows }: { rows: readonly CoinRow[] }) {
       {shown.length ? (
         <MacroViewChart shown={shown.length} total={moved.length}>
           <DivergingBars
+            signed
             data={shown.map(({ row, value }) => ({
               name: row.one.label,
               value,
