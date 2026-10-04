@@ -427,7 +427,7 @@ export function CompanySocialExplorer({ board }: { board: CompanySocialBoard }) 
 
           <Panel
             id="empresas-redes-reparto-comentarios"
-            title="Sentimiento expresado en los comentarios visibles"
+            title="Sentimiento expresado en los comentarios visibles (% de comentarios clasificados)"
             lede="Porcentaje de comentarios clasificados en los perfiles de las empresas y redes elegidas. La ironía se mide aparte."
             source={SOCIAL_SOURCE}
           >
