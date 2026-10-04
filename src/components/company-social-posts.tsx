@@ -14,10 +14,11 @@ import {
   type TooltipRender,
 } from './charts';
 import { SOCIAL_SOURCE } from './company-social-source';
+import { CommentSentimentSummary } from './company-social-insights';
 import { Panel } from '@/components/ui/panel';
 import { celda, useDatosDeFigura } from '@/components/ui/panel-data';
 import { PLATFORM_LABEL, type SocialCompany } from '@/lib/company-social-board';
-import type { MonthPoint, PostPage, PostSort } from '@/lib/company-social-posts-view';
+import type { CommentTone, MonthPoint, PostPage, PostSort } from '@/lib/company-social-posts-view';
 
 /**
  * «Posts a fondo»: todos los posts leídos de las empresas y redes que el panel ya tiene elegidas,
@@ -41,6 +42,7 @@ const SORTS: ReadonlyArray<{ value: PostSort; label: string }> = [
   { value: 'interactions', label: 'Más interacciones' },
   { value: 'views', label: 'Más vistas' },
   { value: 'comments', label: 'Más comentarios' },
+  { value: 'analyzed', label: 'Más comentarios analizados' },
   { value: 'date', label: 'Más recientes' },
 ];
 const FORMAT_LABEL: Record<string, string> = {
@@ -55,8 +57,6 @@ const PAGE = 25;
 const TONE = 'var(--official)';
 
 const count = (value: number): string => value.toLocaleString('es-BO');
-const signed = (value: number): string =>
-  `${value > 0 ? '+' : ''}${value.toLocaleString('es-BO', { maximumFractionDigits: 1 })}`;
 const compact = (value: number): string =>
   value >= 1_000_000
     ? `${(value / 1_000_000).toLocaleString('es-BO', { maximumFractionDigits: 1 })} M`
@@ -83,6 +83,7 @@ export function CompanySocialPosts({ slugs, platforms, companies }: Props) {
   const [format, setFormat] = useState<string | null>(null);
   const [text, setText] = useState('');
   const [sort, setSort] = useState<PostSort>('interactions');
+  const [commentTone, setCommentTone] = useState<CommentTone>('all');
   const [metric, setMetric] = useState<Metric>('posts');
   const [page, setPage] = useState<PostPage | null>(null);
   const [rows, setRows] = useState<PostPage['rows']>([]);
@@ -107,6 +108,7 @@ export function CompanySocialPosts({ slugs, platforms, companies }: Props) {
         to: to || null,
         format,
         text,
+        commentTone,
         sort,
         offset,
         limit: PAGE,
@@ -141,7 +143,7 @@ export function CompanySocialPosts({ slugs, platforms, companies }: Props) {
       controller.abort();
     };
     // `request` lee los mismos filtros que esta lista de dependencias.
-  }, [slugKey, platformKey, from, to, format, text, sort]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [slugKey, platformKey, from, to, format, text, commentTone, sort]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const more = (): void => {
     const controller = new AbortController();
@@ -154,7 +156,7 @@ export function CompanySocialPosts({ slugs, platforms, companies }: Props) {
 
   const series: MonthPoint[] = page?.series ?? [];
   const label = METRICS.find((one) => one.value === metric)?.label ?? '';
-  const filtered = Boolean(from || to || format || text);
+  const filtered = Boolean(from || to || format || text || commentTone !== 'all');
 
   const unitName =
     metric === 'posts'
@@ -272,6 +274,18 @@ export function CompanySocialPosts({ slugs, platforms, companies }: Props) {
         ))}
       </div>
 
+      <div className="rail-pills" role="group" aria-label="Sentimiento de comentarios del post">
+        {([
+          ['all', 'Todos los posts'],
+          ['analyzed', 'Con comentarios analizados'],
+          ['positive', 'Saldo positivo'],
+          ['negative', 'Saldo negativo'],
+        ] as const).map(([value, label]) => (
+          <button key={value} type="button" className={commentTone === value ? 'chip chip-on' : 'chip'}
+            aria-pressed={commentTone === value} onClick={() => setCommentTone(value)}>{label}</button>
+        ))}
+      </div>
+
       <div className="rail-field emp-fields">
         <label>
           Desde{' '}
@@ -309,6 +323,7 @@ export function CompanySocialPosts({ slugs, platforms, companies }: Props) {
               setTo('');
               setFormat(null);
               setText('');
+              setCommentTone('all');
             }}
           >
             Quitar filtros de esta lista
@@ -349,12 +364,7 @@ export function CompanySocialPosts({ slugs, platforms, companies }: Props) {
                 {post.comments !== null ? <span>{count(post.comments)} comentarios</span> : null}
                 {post.shares !== null ? <span>{count(post.shares)} compartidos</span> : null}
                 {post.views !== null ? <span>{count(post.views)} vistas</span> : null}
-                {post.sentiment ? (
-                  <span>
-                    neto {signed(post.sentiment.netScore)} ({post.sentiment.analyzed} comentarios
-                    leídos)
-                  </span>
-                ) : null}
+                {post.sentiment ? <CommentSentimentSummary sentiment={post.sentiment} /> : null}
                 <a href={post.url} target="_blank" rel="noopener noreferrer">
                   Ver el post
                 </a>

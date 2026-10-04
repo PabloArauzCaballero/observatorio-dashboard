@@ -8,7 +8,7 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 
-import { buildCompanySocialBoard, followersOf } from '../../src/lib/company-social-board.ts';
+import { buildCompanySocialBoard, commentBreakdown, followersOf } from '../../src/lib/company-social-board.ts';
 
 const profile = (overrides) => ({
   slug: 'ENTEL',
@@ -93,6 +93,29 @@ test('los términos viajan recortados por empresa, ámbito y clase', () => {
   assert.deepEqual(board.terms[0], ['ENTEL', 'COMPANY', 'WORD', 'palabra0', 100]);
 });
 
+test('el reparto de sentimiento pondera cada red por comentarios leídos', () => {
+  const board = buildCompanySocialBoard(
+    [
+      profile({
+        comment_sentiment: { analyzed: 10, positivePct: 80, neutralPct: 10, negativePct: 10, ironyPct: 20, netScore: 70, topEmotion: null },
+      }),
+      profile({
+        platform: 'youtube',
+        comment_sentiment: { analyzed: 30, positivePct: 20, neutralPct: 50, negativePct: 30, ironyPct: 10, netScore: -10, topEmotion: null },
+      }),
+    ],
+    [], [], [], [],
+  );
+  const companies = board.companies;
+  const all = commentBreakdown(companies, new Set());
+  assert.equal(all.analyzed, 40);
+  assert.equal(all.positivePct, 35);
+  assert.equal(all.neutralPct, 40);
+  assert.equal(all.negativePct, 25);
+  assert.equal(all.ironyPct, 12.5);
+  assert.equal(commentBreakdown(companies, new Set(['instagram'])), null);
+});
+
 import { parseQuery, queryPosts } from '../../src/lib/company-social-posts-view.ts';
 
 const post = (overrides) => ({
@@ -155,6 +178,22 @@ test('«Posts a fondo» ordena, pagina y deja el reparto por formato sin recorta
   assert.deepEqual(videos.formats, [{ format: 'VIDEO', posts: 3 }, { format: 'TEXT', posts: 1 }]);
 });
 
+test('«Posts a fondo» encuentra los posts con comentarios analizados y su tono', () => {
+  const sentiment = (analyzed, netScore) => ({ analyzed, netScore });
+  const all = [
+    post({ url: 'a', sentiment: sentiment(12, -50) }),
+    post({ url: 'b', sentiment: sentiment(3, 67) }),
+    post({ url: 'c', sentiment: null }),
+    post({ url: 'd', sentiment: sentiment(20, 0) }),
+  ];
+  assert.deepEqual(
+    queryPosts(all, parseQuery({ commentTone: 'analyzed', sort: 'analyzed' })).rows.map((row) => row.url),
+    ['d', 'a', 'b'],
+  );
+  assert.deepEqual(queryPosts(all, parseQuery({ commentTone: 'negative' })).rows.map((row) => row.url), ['a']);
+  assert.deepEqual(queryPosts(all, parseQuery({ commentTone: 'positive' })).rows.map((row) => row.url), ['b']);
+});
+
 test('«Posts a fondo» no se fía de lo que llega en la petición', () => {
   const query = parseQuery({
     slugs: ['OK_1', "'; DROP TABLE x;--", 7],
@@ -163,6 +202,7 @@ test('«Posts a fondo» no se fía de lo que llega en la petición', () => {
     format: 'video',
     text: 'x'.repeat(500),
     sort: 'inventado',
+    commentTone: 'inventado',
     offset: -5,
     limit: 100_000,
   });
@@ -172,6 +212,7 @@ test('«Posts a fondo» no se fía de lo que llega en la petición', () => {
   assert.equal(query.format, null);
   assert.equal(query.text.length, 80);
   assert.equal(query.sort, 'interactions');
+  assert.equal(query.commentTone, 'all');
   assert.equal(query.offset, 0);
   assert.equal(query.limit, 60);
 });

@@ -290,3 +290,36 @@ export function followersOf(company: SocialCompany, platforms?: ReadonlySet<stri
   );
   return counted.length ? counted.reduce((sum, account) => sum + (account.followers ?? 0), 0) : null;
 }
+
+/** Reparto de comentarios visibles, ponderado por la muestra de cada cuenta. */
+export function commentBreakdown(companies: readonly SocialCompany[], platforms: ReadonlySet<string>) {
+  let analyzed = 0;
+  let positive = 0;
+  let neutral = 0;
+  let negative = 0;
+  let ironic = 0;
+  let ironyBase = 0;
+  for (const company of companies) {
+    for (const account of company.accounts) {
+      if (platforms.size && !platforms.has(account.platform)) continue;
+      const sentiment = account.sentiment;
+      if (!sentiment || sentiment.analyzed <= 0) continue;
+      analyzed += sentiment.analyzed;
+      positive += sentiment.positivePct * sentiment.analyzed;
+      neutral += sentiment.neutralPct * sentiment.analyzed;
+      negative += sentiment.negativePct * sentiment.analyzed;
+      if (sentiment.ironyPct !== null) {
+        ironic += sentiment.ironyPct * sentiment.analyzed;
+        ironyBase += sentiment.analyzed;
+      }
+    }
+  }
+  if (!analyzed) return null;
+  return {
+    analyzed,
+    positivePct: positive / analyzed,
+    neutralPct: neutral / analyzed,
+    negativePct: negative / analyzed,
+    ironyPct: ironyBase ? ironic / ironyBase : null,
+  };
+}
