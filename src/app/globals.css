@@ -9553,3 +9553,49 @@ button.download-btn {
   flex: 0 1 auto;
   min-width: 0;
 }
+
+/* === Empresas · Principales empresas, Bolsa de valores, Reputación y Redes sociales === */
+
+/* Un panel de resumen (cifras y, a veces, podio) separa sus piezas por el mismo paso. */
+.emp-hero > .panel-body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s3);
+}
+
+/* Los campos de fecha y búsqueda de «Posts a fondo» envuelven en una fila con aire. */
+.emp-fields {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s1) var(--s3);
+}
+
+/*
+ * Las barras de rubro y de tipo de hecho son una sola serie: el tono de interfaz, y la elegida
+ * en tinta. Antes el color iba en línea en cada barra.
+ */
+#empresas-bbv-tipos .barlist-fill,
+#empresas-bbv-rubros .barlist-fill {
+  background: var(--official);
+}
+
+#empresas-bbv-tipos .barlist-row-on .barlist-fill,
+#empresas-bbv-rubros .barlist-row-on .barlist-fill {
+  background: var(--ink);
+}
+
+/* Los hechos relevantes son filas de una lista dentro del panel: sin sombra, sin elevarse ni entrar animados. */
+#empresas-bbv-hechos .filing-card,
+#empresas-bbv-hechos .filing-card:hover {
+  box-shadow: none;
+  transform: none;
+  animation: none;
+}
+
+/* Dentro de un panel, el nombre de cada sector del ránking es un h4 con el estilo del antiguo h3. */
+.rep-sector h4 {
+  margin: 0 0 0.55rem;
+  font-size: var(--text-xs);
+  letter-spacing: 0.01em;
+  color: var(--ink-soft);
+}

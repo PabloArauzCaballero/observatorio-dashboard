@@ -2,7 +2,20 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
-import { sayDate } from './charts';
+import {
+  AXIS,
+  BAR_CAP,
+  ChartLegend,
+  GRID,
+  MOTION,
+  TooltipShell,
+  framed,
+  sayDate,
+  type TooltipRender,
+} from './charts';
+import { SOCIAL_SOURCE } from './company-social-source';
+import { Panel } from '@/components/ui/panel';
+import { celda, useDatosDeFigura } from '@/components/ui/panel-data';
 import { PLATFORM_LABEL, type SocialCompany } from '@/lib/company-social-board';
 import type { MonthPoint, PostPage, PostSort } from '@/lib/company-social-posts-view';
 
@@ -38,6 +51,8 @@ const FORMAT_LABEL: Record<string, string> = {
   POST: 'Publicación',
 };
 const PAGE = 25;
+/** Una sola serie, un solo color: el de interfaz. */
+const TONE = 'var(--official)';
 
 const count = (value: number): string => value.toLocaleString('es-BO');
 const signed = (value: number): string =>
@@ -73,7 +88,10 @@ export function CompanySocialPosts({ slugs, platforms, companies }: Props) {
   const [rows, setRows] = useState<PostPage['rows']>([]);
   const [failed, setFailed] = useState(false);
   const [loading, setLoading] = useState(false);
-  const names = useMemo(() => new Map(companies.map((company) => [company.slug, company.name])), [companies]);
+  const names = useMemo(
+    () => new Map(companies.map((company) => [company.slug, company.name])),
+    [companies],
+  );
 
   const slugKey = slugs.join(',');
   const platformKey = platforms.join(',');
@@ -138,15 +156,63 @@ export function CompanySocialPosts({ slugs, platforms, companies }: Props) {
   const label = METRICS.find((one) => one.value === metric)?.label ?? '';
   const filtered = Boolean(from || to || format || text);
 
+  const unitName =
+    metric === 'posts'
+      ? 'cantidad de posts'
+      : metric === 'interactions'
+        ? 'cantidad de interacciones'
+        : 'cantidad de vistas';
+
   return (
-    <div className="panel">
-      <div className="panel-head">
-        <h2>Posts a fondo: cada post leído, con su fecha y sus cifras</h2>
-        <p className="panel-sub">
-          Los de las empresas y redes elegidas arriba, sin el recorte de seis por cuenta. Filtra por fecha de
-          publicación, formato o texto; la serie por mes y la lista se recuentan con el mismo filtro.
+    <Panel
+      id="empresas-redes-posts"
+      title={`Posts a fondo: ${label.toLowerCase()} por mes y cada post leído (${unitName})`}
+      lede="Los posts de las empresas y redes elegidas arriba, sin el recorte de seis por cuenta, con su fecha y sus cifras."
+      source={SOCIAL_SOURCE}
+      data={() => ({
+        etiqueta: 'Posts',
+        unidad: 'interacciones',
+        columnas: [
+          'Empresa',
+          'Red',
+          'Fecha',
+          'Formato',
+          'Texto',
+          'Interacciones',
+          'Me gusta',
+          'Comentarios',
+          'Compartidos',
+          'Vistas',
+          'Sentimiento neto',
+          'Comentarios leídos',
+          'Enlace',
+        ],
+        filas: rows.map((post) => [
+          names.get(post.slug) ?? post.slug,
+          PLATFORM_LABEL[post.platform],
+          post.date,
+          post.format ? (FORMAT_LABEL[post.format] ?? post.format) : null,
+          post.text,
+          post.interactions,
+          post.likes,
+          post.comments,
+          post.shares,
+          post.views,
+          post.sentiment ? post.sentiment.netScore : null,
+          post.sentiment ? post.sentiment.analyzed : null,
+          post.url,
+        ]),
+        nota: 'Solo los posts cargados en pantalla; «Ver más» trae los siguientes.',
+      })}
+    >
+      <details className="panel-note">
+        <summary>Cómo leerlo</summary>
+        <p>
+          Los de las empresas y redes elegidas arriba, sin el recorte de seis por cuenta. Filtra por
+          fecha de publicación, formato o texto; la serie por mes y la lista se recuentan con el
+          mismo filtro.
         </p>
-      </div>
+      </details>
 
       <div className="rail-pills" role="group" aria-label="Qué medir por mes">
         {METRICS.map((option) => (
@@ -163,73 +229,33 @@ export function CompanySocialPosts({ slugs, platforms, companies }: Props) {
       </div>
 
       {series.length ? (
-        <>
-          <div className="chart-frame" style={{ height: 220 }} role="img" aria-label={`${label} por mes de publicación`}>
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={series} margin={{ top: 8, right: 8, bottom: 0, left: 0 }}>
-                <CartesianGrid stroke="var(--grid)" vertical={false} />
-                <XAxis
-                  dataKey="month"
-                  tickFormatter={sayMonth}
-                  tick={{ fill: 'var(--axis-ink)', fontSize: 11 }}
-                  stroke="var(--axis-rule)"
-                  minTickGap={18}
-                />
-                <YAxis
-                  tickFormatter={compact}
-                  tick={{ fill: 'var(--axis-ink)', fontSize: 11 }}
-                  stroke="var(--axis-rule)"
-                  width={48}
-                />
-                <Tooltip
-                  cursor={{ fill: 'var(--panel-tint)' }}
-                  contentStyle={{
-                    background: 'var(--chart-surface)',
-                    border: '1px solid var(--rule)',
-                    borderRadius: 8,
-                    color: 'var(--ink)',
-                    fontSize: 12,
-                  }}
-                  labelFormatter={(value) => sayMonth(String(value))}
-                  formatter={(value) => [count(Number(value)), label]}
-                />
-                <Bar dataKey={metric} fill="var(--official)" maxBarSize={28} radius={[3, 3, 0, 0]} isAnimationActive={false} />
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
-          <ul className="chart-legend">
-            <li>
-              <span className="chart-legend-mark" style={{ background: 'var(--official)' }} />
-              {label} por mes de publicación
-            </li>
-          </ul>
-        </>
+        <MonthBars series={series} metric={metric} label={label} />
       ) : loading ? null : (
-        <div className="callout">Sin posts con fecha para este filtro: la serie por mes necesita la fecha de publicación.</div>
+        <div className="callout">
+          Sin posts con fecha para este filtro: la serie por mes necesita la fecha de publicación.
+        </div>
       )}
 
-      <div className="rail-sec">
-        <div className="rail-pills" role="group" aria-label="Formato del post">
+      <div className="rail-pills" role="group" aria-label="Formato del post">
+        <button
+          type="button"
+          className={format === null ? 'chip chip-on' : 'chip'}
+          aria-pressed={format === null}
+          onClick={() => setFormat(null)}
+        >
+          Todos los formatos
+        </button>
+        {(page?.formats ?? []).map((one) => (
           <button
+            key={one.format}
             type="button"
-            className={format === null ? 'chip chip-on' : 'chip'}
-            aria-pressed={format === null}
-            onClick={() => setFormat(null)}
+            className={format === one.format ? 'chip chip-on' : 'chip'}
+            aria-pressed={format === one.format}
+            onClick={() => setFormat(format === one.format ? null : one.format)}
           >
-            Todos los formatos
+            {FORMAT_LABEL[one.format] ?? one.format} · {count(one.posts)}
           </button>
-          {(page?.formats ?? []).map((one) => (
-            <button
-              key={one.format}
-              type="button"
-              className={format === one.format ? 'chip chip-on' : 'chip'}
-              aria-pressed={format === one.format}
-              onClick={() => setFormat(format === one.format ? null : one.format)}
-            >
-              {FORMAT_LABEL[one.format] ?? one.format} · {count(one.posts)}
-            </button>
-          ))}
-        </div>
+        ))}
       </div>
 
       <div className="rail-pills" role="group" aria-label="Orden de la lista">
@@ -246,14 +272,26 @@ export function CompanySocialPosts({ slugs, platforms, companies }: Props) {
         ))}
       </div>
 
-      <div className="rail-field" style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem 1rem', margin: '0.8rem 0' }}>
+      <div className="rail-field emp-fields">
         <label>
           Desde{' '}
-          <input type="date" value={from} min={page?.dates.min ?? undefined} max={to || page?.dates.max || undefined} onChange={(event) => setFrom(event.target.value)} />
+          <input
+            type="date"
+            value={from}
+            min={page?.dates.min ?? undefined}
+            max={to || page?.dates.max || undefined}
+            onChange={(event) => setFrom(event.target.value)}
+          />
         </label>
         <label>
           Hasta{' '}
-          <input type="date" value={to} min={from || page?.dates.min || undefined} max={page?.dates.max ?? undefined} onChange={(event) => setTo(event.target.value)} />
+          <input
+            type="date"
+            value={to}
+            min={from || page?.dates.min || undefined}
+            max={page?.dates.max ?? undefined}
+            onChange={(event) => setTo(event.target.value)}
+          />
         </label>
         <input
           type="search"
@@ -278,11 +316,18 @@ export function CompanySocialPosts({ slugs, platforms, companies }: Props) {
         ) : null}
       </div>
 
-      {failed ? <div className="callout">No se pudieron leer los posts. Vuelve a intentarlo en un momento.</div> : null}
+      {failed ? (
+        <div className="callout">
+          No se pudieron leer los posts. Vuelve a intentarlo en un momento.
+        </div>
+      ) : null}
       {page ? (
-        <p className="panel-sub" aria-live="polite">
+        <p className="panel-note" aria-live="polite">
           {count(page.total)} post{page.total === 1 ? '' : 's'}
-          {page.dates.min && page.dates.max ? ` publicados entre el ${sayDate(page.dates.min)} y el ${sayDate(page.dates.max)}` : ''}.
+          {page.dates.min && page.dates.max
+            ? ` publicados entre el ${sayDate(page.dates.min)} y el ${sayDate(page.dates.max)}`
+            : ''}
+          .
         </p>
       ) : null}
 
@@ -306,7 +351,8 @@ export function CompanySocialPosts({ slugs, platforms, companies }: Props) {
                 {post.views !== null ? <span>{count(post.views)} vistas</span> : null}
                 {post.sentiment ? (
                   <span>
-                    neto {signed(post.sentiment.netScore)} ({post.sentiment.analyzed} comentarios leídos)
+                    neto {signed(post.sentiment.netScore)} ({post.sentiment.analyzed} comentarios
+                    leídos)
                   </span>
                 ) : null}
                 <a href={post.url} target="_blank" rel="noopener noreferrer">
@@ -322,9 +368,75 @@ export function CompanySocialPosts({ slugs, platforms, companies }: Props) {
 
       {page && rows.length < page.total ? (
         <button type="button" className="chip" disabled={loading} onClick={more}>
-          {loading ? 'Cargando…' : `Ver ${Math.min(PAGE, page.total - rows.length)} más (${count(page.total - rows.length)} restantes)`}
+          {loading
+            ? 'Cargando…'
+            : `Ver ${Math.min(PAGE, page.total - rows.length)} más (${count(page.total - rows.length)} restantes)`}
         </button>
       ) : null}
+    </Panel>
+  );
+}
+
+/**
+ * La serie por mes de los posts, con el mismo tooltip, tope de barra y ejes que el resto del
+ * tablero (antes era un `BarChart` suelto con estilos propios).
+ */
+function MonthBars({
+  series,
+  metric,
+  label,
+}: {
+  series: MonthPoint[];
+  metric: Metric;
+  label: string;
+}) {
+  useDatosDeFigura(
+    () => ({
+      etiqueta: label,
+      unidad: label,
+      columnas: ['Mes', label],
+      filas: series.map((point) => [point.month, celda(point[metric])]),
+    }),
+    [series, metric, label],
+  );
+  const renderTooltip = ({ active, payload, label: month }: TooltipRender) => {
+    if (!active || !payload?.length) return null;
+    const point = payload[0]?.payload as MonthPoint | undefined;
+    if (!point) return null;
+    return (
+      <TooltipShell
+        label={sayMonth(String(month))}
+        rows={[{ name: label, value: count(point[metric]), color: TONE }]}
+      />
+    );
+  };
+
+  return (
+    <div className="chart-stack">
+      <div
+        className="chart-frame"
+        style={{ height: framed(220) }}
+        role="img"
+        aria-label={`${label} por mes de publicación`}
+      >
+        <ResponsiveContainer width="100%" height="100%">
+          <BarChart data={series} margin={{ top: 8, right: 8, bottom: 0, left: 0 }}>
+            <CartesianGrid {...GRID} />
+            <XAxis dataKey="month" tickFormatter={sayMonth} minTickGap={18} {...AXIS} />
+            <YAxis tickFormatter={compact} width={48} {...AXIS} />
+            <Tooltip content={renderTooltip} cursor={{ fill: 'var(--rule-soft)' }} />
+            <Bar
+              dataKey={metric}
+              fill={TONE}
+              maxBarSize={BAR_CAP}
+              radius={[4, 4, 0, 0]}
+              animationDuration={MOTION.duration}
+              animationEasing={MOTION.easing}
+            />
+          </BarChart>
+        </ResponsiveContainer>
+      </div>
+      <ChartLegend items={[{ color: TONE, label: `${label} por mes de publicación` }]} />
     </div>
   );
 }

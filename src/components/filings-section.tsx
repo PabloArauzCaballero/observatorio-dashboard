@@ -8,6 +8,7 @@ import { FilingExplorer } from './filing-explorer';
 import { LargestCompaniesSection } from './largest-companies-section';
 import { OnOpenNotice, useOnOpen } from './on-open';
 import { SubTabs } from './tabs';
+import { TabHeader } from '@/components/ui/tab-header';
 import type { CompanyFiling } from '@/lib/series';
 
 /**
@@ -41,25 +42,32 @@ import type { CompanyFiling } from '@/lib/series';
  */
 export function FilingsSection() {
   return (
-    <SubTabs
-      enlace
-      labels={[
-        'Tejido empresarial',
-        'Principales empresas',
-        'Empresarios',
-        'Bolsa de valores (BBV)',
-        'Reputación empresarial',
-        'Redes sociales',
-      ]}
-      icons={['capas', 'barras', 'maletin', 'velas', 'escudo', 'personas']}
-    >
-      <BusinessFabricSection />
-      <LargestCompaniesSection />
-      <BusinessOwnersSection />
-      <FilingsPage />
-      <ReputationSection />
-      <CompanySocialSection />
-    </SubTabs>
+    <>
+      <TabHeader
+        id="empresas"
+        title="Empresas"
+        lede="Cuántas empresas hay, cuáles son las más grandes, quiénes son sus dueños, qué comunican a la bolsa, cómo las ve el público y qué publican en sus redes. Cada página dice quién mide y cuánto confiar."
+      />
+      <SubTabs
+        enlace
+        labels={[
+          'Tejido empresarial',
+          'Principales empresas',
+          'Empresarios',
+          'Bolsa de valores (BBV)',
+          'Reputación empresarial',
+          'Redes sociales',
+        ]}
+        icons={['capas', 'barras', 'maletin', 'velas', 'escudo', 'personas']}
+      >
+        <BusinessFabricSection />
+        <LargestCompaniesSection />
+        <BusinessOwnersSection />
+        <FilingsPage />
+        <ReputationSection />
+        <CompanySocialSection />
+      </SubTabs>
+    </>
   );
 }
 

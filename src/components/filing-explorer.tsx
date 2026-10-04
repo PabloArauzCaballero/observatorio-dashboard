@@ -14,9 +14,11 @@ import {
   without,
 } from '@/lib/choice';
 import type { Choice } from '@/lib/choice';
+import { ChartLegend } from './charts';
 import { FilterHint, PickedCount } from './filters';
 import { Icon } from './icons';
 import type { IconName } from './icons';
+import { Panel } from '@/components/ui/panel';
 import type { CompanyFiling } from '@/lib/series';
 
 /**
@@ -127,6 +129,10 @@ const CATEGORY_ICON: Record<string, IconName> = {
  * tono, lo que queda pintado es el único dato que hay: el largo de la barra.
  */
 const BAR_TONE = 'var(--official)';
+
+/** Quién publica: el rubro y el tipo los deriva el Observatorio y el pie lo dice. */
+const SOURCE =
+  'Bolsa Boliviana de Valores (hechos relevantes de sus emisores); rubro y tipo derivados por el Observatorio';
 
 /** One page of the register. The whole register is already in the browser, so
  * paging it costs nothing but the state that says where the reader is. */
@@ -518,20 +524,22 @@ export function FilingExplorer({ filings }: { filings: CompanyFiling[] }) {
       </aside>
 
       <div className="workspace-main" id="tablero" tabIndex={-1}>
-        <div className="briefcard">
-          <span className="briefcard-mark">
-            <Icon name="edificio" size={20} />
-          </span>
-          <div>
-            <h2>Hechos relevantes de la Bolsa Boliviana de Valores</h2>
+        <header className="page-intro">
+          <h3 className="page-intro-title">Hechos relevantes de la Bolsa Boliviana de Valores</h3>
+          <p className="page-intro-lede">
+            Lo que las empresas que cotizan o emiten deuda en la BBV están obligadas a comunicar: no
+            es el universo de empresas del país.
+          </p>
+          <details className="panel-note">
+            <summary>Qué es y qué no es este registro</summary>
             <p>
-              Comunicados que los emisores registran en la <strong>Bolsa Boliviana de Valores</strong>{' '}
-              (BBV), que es la bolsa de valores de Bolivia y la única fuente de este registro.
-              Aquí no está el universo de empresas del país: están{' '}
-              <strong>las que cotizan o emiten deuda en la BBV</strong> y, de ellas, sólo lo que la
-              normativa las obliga a comunicar. Una empresa grande que no acude al mercado de
-              valores no aparece en ninguna de estas filas, y su ausencia no dice nada sobre ella.
-              Elegí un rubro a la izquierda para leer sólo ese sector, o sumá varios con{' '}
+              Comunicados que los emisores registran en la{' '}
+              <strong>Bolsa Boliviana de Valores</strong> (BBV), que es la bolsa de valores de
+              Bolivia y la única fuente de este registro. Aquí no está el universo de empresas del
+              país: están <strong>las que cotizan o emiten deuda en la BBV</strong> y, de ellas,
+              sólo lo que la normativa las obliga a comunicar. Una empresa grande que no acude al
+              mercado de valores no aparece en ninguna de estas filas, y su ausencia no dice nada
+              sobre ella. Elegí un rubro a la izquierda para leer sólo ese sector, o sumá varios con{' '}
               <strong>Ctrl+clic</strong>; la bolsa no publica una clasificación sectorial propia,
               así que el rubro se <strong>deriva de la razón social</strong> del emisor.
             </p>
@@ -564,37 +572,21 @@ export function FilingExplorer({ filings }: { filings: CompanyFiling[] }) {
                 </div>
               </div>
             </div>
-          </div>
-        </div>
-
-        <div className="strap">
-          <Icon name={SECTOR_ICON[list(sector)[0] ?? ''] ?? 'cajas'} size={17} />
-          <h2>
-            {describe(sector, (value) => SECTOR_LABEL[value] ?? value, 'Todos los rubros')}
-          </h2>
-          <span className="tile-hint">
-            {selected.length} hecho{selected.length === 1 ? '' : 's'}
-          </span>
-          <div className="download">
-            <a className="download-btn" href={`/api/export?${query.toString()}&format=csv`}>
-              CSV
-            </a>
-            <a className="download-btn" href={`/api/export?${query.toString()}&format=json`}>
-              JSON
-            </a>
-          </div>
-        </div>
+          </details>
+        </header>
 
         {categories.length > 1 ? (
-          <div className="panel">
-            <div className="tile-head">
-              <Icon name="etiqueta" size={17} />
-              <h2>Análisis por tipo de hecho</h2>
-              <span className="tile-hint">
-                {categoryTotal.toLocaleString('es-BO')} comunicados, sin filtrar por tipo · el
-                asunto leído por su redacción, no una clasificación de la bolsa
-              </span>
-            </div>
+          <Panel
+            id="empresas-bbv-tipos"
+            title="Análisis por tipo de hecho (cantidad de comunicados)"
+            lede={`${categoryTotal.toLocaleString('es-BO')} comunicados, sin filtrar por tipo: el asunto leído por su redacción, no una clasificación de la bolsa.`}
+            source={SOURCE}
+            data={() => ({
+              unidad: 'comunicados',
+              columnas: ['Tipo de hecho', 'Comunicados'],
+              filas: categories.map(([key, count]) => [CATEGORY_LABEL[key] ?? key, count]),
+            })}
+          >
             <div className="barlist">
               {categories.map(([key, count]) => {
                 const on = picked(category, key);
@@ -612,10 +604,7 @@ export function FilingExplorer({ filings }: { filings: CompanyFiling[] }) {
                     <span className="barlist-track">
                       <span
                         className="barlist-fill"
-                        style={{
-                          width: `${(count / categoryPeak) * 100}%`,
-                          background: on ? 'var(--ink)' : BAR_TONE,
-                        }}
+                        style={{ width: `${(count / categoryPeak) * 100}%` }}
                       />
                     </span>
                     <span className="barlist-n">{count.toLocaleString('es-BO')}</span>
@@ -623,19 +612,24 @@ export function FilingExplorer({ filings }: { filings: CompanyFiling[] }) {
                 );
               })}
             </div>
-          </div>
+            <ChartLegend
+              items={[{ color: BAR_TONE, label: 'Comunicados con ese tipo de hecho' }]}
+            />
+          </Panel>
         ) : null}
 
         {sectors.length > 1 ? (
-          <div className="panel">
-            <div className="tile-head">
-              <Icon name="barras" size={17} />
-              <h2>Actividad por rubro</h2>
-              <span className="tile-hint">
-                {sectors.reduce((sum, [, count]) => sum + count, 0).toLocaleString('es-BO')}{' '}
-                comunicados, sin filtrar por rubro
-              </span>
-            </div>
+          <Panel
+            id="empresas-bbv-rubros"
+            title="Actividad por rubro (cantidad de comunicados)"
+            lede={`${sectors.reduce((sum, [, count]) => sum + count, 0).toLocaleString('es-BO')} comunicados, sin filtrar por rubro.`}
+            source={SOURCE}
+            data={() => ({
+              unidad: 'comunicados',
+              columnas: ['Rubro del emisor', 'Comunicados'],
+              filas: sectors.map(([key, count]) => [SECTOR_LABEL[key] ?? key, count]),
+            })}
+          >
             <div className="barlist">
               {sectors.map(([key, count]) => {
                 const on = picked(sector, key);
@@ -653,10 +647,7 @@ export function FilingExplorer({ filings }: { filings: CompanyFiling[] }) {
                     <span className="barlist-track">
                       <span
                         className="barlist-fill"
-                        style={{
-                          width: `${(count / peak) * 100}%`,
-                          background: on ? 'var(--ink)' : BAR_TONE,
-                        }}
+                        style={{ width: `${(count / peak) * 100}%` }}
                       />
                     </span>
                     <span className="barlist-n">{count.toLocaleString('es-BO')}</span>
@@ -664,98 +655,136 @@ export function FilingExplorer({ filings }: { filings: CompanyFiling[] }) {
                 );
               })}
             </div>
-          </div>
+            <ChartLegend items={[{ color: BAR_TONE, label: 'Comunicados del rubro del emisor' }]} />
+          </Panel>
         ) : null}
 
-        {shown.length ? (
-          <div className="filing-grid">
-            {shown.map((filing, index) => {
-              const isOpen = open.has(filing.factClaimId);
-              return (
-                <article
-                  className={
-                    isOpen ? 'filing-card filing-card-open' : 'filing-card filing-card-tight'
-                  }
-                  key={filing.factClaimId}
-                  style={{ animationDelay: `${Math.min(index, 12) * 40}ms` }}
-                >
-                  <div className="filing-top">
-                    <Icon name={SECTOR_ICON[filing.sector] ?? 'cajas'} size={13} />
-                    <span>{SECTOR_LABEL[filing.sector] ?? filing.sector}</span>
-                    <span className="filing-date">{filing.eventDate}</span>
-                  </div>
-                  {leadWithSubject ? (
-                    <>
-                      <p className="filing-kicker">{filing.filer}</p>
-                      <h4>{filing.subject}</h4>
-                    </>
-                  ) : (
-                    <>
-                      <p className="filing-kicker">{filing.subject}</p>
-                      <h4>{filing.filer}</h4>
-                    </>
-                  )}
-                  {filing.summary ? <p className="filing-summary">{filing.summary}</p> : null}
-                  {isOpen && !filing.summaryIsComplete ? (
-                    <p className="filing-partial">
-                      <Icon name="info" size={12} /> La bolsa publica este hecho resumido en su
-                      registro; el texto íntegro está en la ficha.
-                    </p>
-                  ) : null}
-                  <p className="filing-foot">
-                    <button
-                      type="button"
-                      className="filing-toggle"
-                      onClick={() => toggle(filing.factClaimId)}
-                      aria-expanded={isOpen}
-                    >
-                      <Icon name={isOpen ? 'plegar' : 'desplegar'} size={13} />
-                      {isOpen ? 'Plegar' : 'Ver completo'}
-                    </button>
-                    <span style={{ color: 'var(--ink-faint)' }}>
-                      {filing.instantStatedInDocument
-                        ? 'Confirmado por la ficha'
-                        : 'Según el registro'}
-                      {filing.filerCode ? ` · ${filing.filerCode}` : ''}
-                    </span>
-                    {filing.sourceUrl ? (
-                      <a href={filing.sourceUrl} target="_blank" rel="noreferrer noopener">
-                        ficha completa
-                      </a>
+        <Panel
+          id="empresas-bbv-hechos"
+          title={`${describe(sector, (value) => SECTOR_LABEL[value] ?? value, 'Todos los rubros')}: hechos relevantes (cantidad de comunicados)`}
+          lede={`${selected.length.toLocaleString('es-BO')} hecho${selected.length === 1 ? '' : 's'} de ${issuers} emisor${issuers === 1 ? '' : 'es'}, con los filtros puestos.`}
+          source={SOURCE}
+          data={() => ({
+            unidad: 'comunicados',
+            columnas: [
+              'Fecha',
+              'Emisor',
+              'Rubro del emisor',
+              'Tipo de hecho',
+              'Asunto',
+              'Resumen',
+              'Ficha',
+            ],
+            filas: selected.map((filing) => [
+              filing.eventDate,
+              filing.filer,
+              SECTOR_LABEL[filing.sector] ?? filing.sector,
+              CATEGORY_LABEL[filing.category] ?? filing.category,
+              filing.subject,
+              filing.summary,
+              filing.sourceUrl,
+            ]),
+          })}
+          extraDownloads={[
+            {
+              etiqueta: 'Todos los hechos del filtro (CSV)',
+              href: `/api/export?${query.toString()}&format=csv`,
+            },
+            {
+              etiqueta: 'Todos los hechos del filtro (JSON)',
+              href: `/api/export?${query.toString()}&format=json`,
+            },
+          ]}
+        >
+          {shown.length ? (
+            <div className="filing-grid">
+              {shown.map((filing) => {
+                const isOpen = open.has(filing.factClaimId);
+                return (
+                  <article
+                    className={
+                      isOpen ? 'filing-card filing-card-open' : 'filing-card filing-card-tight'
+                    }
+                    key={filing.factClaimId}
+                  >
+                    <div className="filing-top">
+                      <Icon name={SECTOR_ICON[filing.sector] ?? 'cajas'} size={13} />
+                      <span>{SECTOR_LABEL[filing.sector] ?? filing.sector}</span>
+                      <span className="filing-date">{filing.eventDate}</span>
+                    </div>
+                    {leadWithSubject ? (
+                      <>
+                        <p className="filing-kicker">{filing.filer}</p>
+                        <h4>{filing.subject}</h4>
+                      </>
+                    ) : (
+                      <>
+                        <p className="filing-kicker">{filing.subject}</p>
+                        <h4>{filing.filer}</h4>
+                      </>
+                    )}
+                    {filing.summary ? <p className="filing-summary">{filing.summary}</p> : null}
+                    {isOpen && !filing.summaryIsComplete ? (
+                      <p className="filing-partial">
+                        <Icon name="info" size={12} /> La bolsa publica este hecho resumido en su
+                        registro; el texto íntegro está en la ficha.
+                      </p>
                     ) : null}
-                  </p>
-                </article>
-              );
-            })}
-          </div>
-        ) : (
-          <div className="callout">Ningún hecho relevante coincide con esta selección.</div>
-        )}
+                    <p className="filing-foot">
+                      <button
+                        type="button"
+                        className="filing-toggle"
+                        onClick={() => toggle(filing.factClaimId)}
+                        aria-expanded={isOpen}
+                      >
+                        <Icon name={isOpen ? 'plegar' : 'desplegar'} size={13} />
+                        {isOpen ? 'Plegar' : 'Ver completo'}
+                      </button>
+                      <span>
+                        {filing.instantStatedInDocument
+                          ? 'Confirmado por la ficha'
+                          : 'Según el registro'}
+                        {filing.filerCode ? ` · ${filing.filerCode}` : ''}
+                      </span>
+                      {filing.sourceUrl ? (
+                        <a href={filing.sourceUrl} target="_blank" rel="noreferrer noopener">
+                          ficha completa
+                        </a>
+                      ) : null}
+                    </p>
+                  </article>
+                );
+              })}
+            </div>
+          ) : (
+            <div className="callout">Ningún hecho relevante coincide con esta selección.</div>
+          )}
 
-        {pages > 1 ? (
-          <nav className="pager" aria-label="Páginas del registro">
-            <button
-              type="button"
-              className="pager-step"
-              onClick={() => setOffset(Math.max(0, offset - PAGE_SIZE))}
-              disabled={page <= 1}
-            >
-              <Icon name="plegar" size={14} /> Más recientes
-            </button>
-            <span className="pager-where">
-              Página <b>{page}</b> de <b>{pages.toLocaleString('es-BO')}</b> ·{' '}
-              {selected.length.toLocaleString('es-BO')} hechos
-            </span>
-            <button
-              type="button"
-              className="pager-step"
-              onClick={() => setOffset(offset + PAGE_SIZE)}
-              disabled={page >= pages}
-            >
-              Más antiguos <Icon name="desplegar" size={14} />
-            </button>
-          </nav>
-        ) : null}
+          {pages > 1 ? (
+            <nav className="pager" aria-label="Páginas del registro">
+              <button
+                type="button"
+                className="pager-step"
+                onClick={() => setOffset(Math.max(0, offset - PAGE_SIZE))}
+                disabled={page <= 1}
+              >
+                <Icon name="plegar" size={14} /> Más recientes
+              </button>
+              <span className="pager-where">
+                Página <b>{page}</b> de <b>{pages.toLocaleString('es-BO')}</b> ·{' '}
+                {selected.length.toLocaleString('es-BO')} hechos
+              </span>
+              <button
+                type="button"
+                className="pager-step"
+                onClick={() => setOffset(offset + PAGE_SIZE)}
+                disabled={page >= pages}
+              >
+                Más antiguos <Icon name="desplegar" size={14} />
+              </button>
+            </nav>
+          ) : null}
+        </Panel>
       </div>
     </div>
   );

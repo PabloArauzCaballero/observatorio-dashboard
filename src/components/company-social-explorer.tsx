@@ -1,16 +1,22 @@
 'use client';
 
 import { useMemo, useState } from 'react';
-import { DivergingBars, ShareBars, sayDate } from './charts';
+import { ChartLegend, DivergingBars, ShareBars, sayDate } from './charts';
 import { CompanySocialMix } from './company-social-mix';
 import { CompanySocialPosts } from './company-social-posts';
+import { SOCIAL_SOURCE } from './company-social-source';
 import { CompanySocialTable } from './company-social-table';
 import { FilterHint, PickedCount } from './filters';
 import { Icon } from './icons';
 import { OnOpenNotice, useOnOpen } from './on-open';
+import { Panel } from '@/components/ui/panel';
 import { ANY, additive, picked, toggle } from '@/lib/choice';
 import type { Choice } from '@/lib/choice';
-import { PLATFORM_LABEL, SOCIAL_PLATFORMS, type CompanySocialBoard } from '@/lib/company-social-board';
+import {
+  PLATFORM_LABEL,
+  SOCIAL_PLATFORMS,
+  type CompanySocialBoard,
+} from '@/lib/company-social-board';
 import {
   MIN_COMMENTS,
   companyEngagement,
@@ -54,18 +60,12 @@ const signed = (value: number): string =>
   `${value > 0 ? '+' : ''}${value.toLocaleString('es-BO', { maximumFractionDigits: 1 })}`;
 
 /** La clave de color bajo cada gráfico de barras: siempre, también con una sola serie. */
-function BarLegend({ label }: { label: string }) {
-  return (
-    <ul className="chart-legend">
-      <li>
-        <span className="chart-legend-mark" style={{ background: 'var(--official)' }} />
-        {label}
-      </li>
-    </ul>
-  );
-}
+const barsKey = (label: string) => <ChartLegend items={[{ color: 'var(--official)', label }]} />;
+
 const millions = (value: number): string =>
-  value >= 1_000_000 ? `${(value / 1_000_000).toLocaleString('es-BO', { maximumFractionDigits: 1 })} M` : count(value);
+  value >= 1_000_000
+    ? `${(value / 1_000_000).toLocaleString('es-BO', { maximumFractionDigits: 1 })} M`
+    : count(value);
 
 export function CompanySocialExplorer({ board }: { board: CompanySocialBoard }) {
   const [platforms, setPlatforms] = useState<Choice>(ANY);
@@ -78,23 +78,49 @@ export function CompanySocialExplorer({ board }: { board: CompanySocialBoard }) 
   const [kind, setKind] = useState<TermKind>('WORD');
 
   const filters: SocialFilters = { platforms, sectors, query, topOnly, tone };
-  const companies = useMemo(() => filterCompanies(board, filters), [board, platforms, sectors, query, topOnly, tone]); // eslint-disable-line react-hooks/exhaustive-deps
-  const sectorList = useMemo(() => sectorChoices(board, filters), [board, platforms, query, topOnly, tone]); // eslint-disable-line react-hooks/exhaustive-deps
+  const companies = useMemo(
+    () => filterCompanies(board, filters),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [board, platforms, sectors, query, topOnly, tone],
+  );
+  const sectorList = useMemo(
+    () => sectorChoices(board, filters),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [board, platforms, query, topOnly, tone],
+  );
   const chosen = focus.size ? companies.filter((company) => focus.has(company.slug)) : companies;
   const slugs = useMemo(() => new Set(chosen.map((company) => company.slug)), [chosen]);
   const covered = coverage(chosen);
 
-  const followers = chosen.reduce((sum, company) => sum + (followersOf(company, platforms) ?? 0), 0);
-  const postsRead = chosen.flatMap((company) => company.accounts).reduce((sum, account) => sum + account.postsRead, 0);
-  const sentiments = chosen.map((company) => companySentiment(company, platforms)).filter((one) => one !== null);
+  const followers = chosen.reduce(
+    (sum, company) => sum + (followersOf(company, platforms) ?? 0),
+    0,
+  );
+  const postsRead = chosen
+    .flatMap((company) => company.accounts)
+    .reduce((sum, account) => sum + account.postsRead, 0);
+  const sentiments = chosen
+    .map((company) => companySentiment(company, platforms))
+    .filter((one) => one !== null);
   const analyzed = sentiments.reduce((sum, one) => sum + one.analyzed, 0);
-  const net = analyzed ? sentiments.reduce((sum, one) => sum + one.net * one.analyzed, 0) / analyzed : null;
+  const net = analyzed
+    ? sentiments.reduce((sum, one) => sum + one.net * one.analyzed, 0) / analyzed
+    : null;
 
   const byPlatform = covered
     .filter((row) => (platforms.size === 0 || platforms.has(row.platform)) && row.followers > 0)
-    .map((row) => ({ name: row.label, value: row.followers, pick: row.platform, emphasis: platforms.has(row.platform) }));
+    .map((row) => ({
+      name: row.label,
+      value: row.followers,
+      pick: row.platform,
+      emphasis: platforms.has(row.platform),
+    }));
   const engagement = chosen
-    .map((company) => ({ name: company.name, value: companyEngagement(company, platforms), pick: company.slug }))
+    .map((company) => ({
+      name: company.name,
+      value: companyEngagement(company, platforms),
+      pick: company.slug,
+    }))
     .filter((row): row is { name: string; value: number; pick: string } => row.value !== null)
     .sort((left, right) => right.value - left.value)
     .slice(0, 15)
@@ -119,38 +145,69 @@ export function CompanySocialExplorer({ board }: { board: CompanySocialBoard }) 
     setTone('all');
     setFocus(ANY);
   };
-  const active = (platforms.size ? 1 : 0) + (sectors.size ? 1 : 0) + (query.trim() ? 1 : 0) + (topOnly ? 1 : 0) + (tone !== 'all' ? 1 : 0) + (focus.size ? 1 : 0);
+  const active =
+    (platforms.size ? 1 : 0) +
+    (sectors.size ? 1 : 0) +
+    (query.trim() ? 1 : 0) +
+    (topOnly ? 1 : 0) +
+    (tone !== 'all' ? 1 : 0) +
+    (focus.size ? 1 : 0);
 
   if (!board.companies.length) {
     return (
       <div className="callout">
-        Todavía no hay lectura de redes sociales cargada. La página se llena sola cuando el núcleo siembre la
-        primera corrida (migración 0094).
+        Todavía no hay lectura de redes sociales cargada. La página se llena sola cuando el núcleo
+        siembre la primera corrida (migración 0094).
       </div>
     );
   }
 
   return (
     <>
-      <div className="panel rep-hero">
-        <div className="panel-head">
-          <h2>
-            Redes sociales de las empresas Merco: seguidores, interacción y sentimiento (lectura del{' '}
-            {board.readingDate ? sayDate(board.readingDate) : '—'})
-          </h2>
-          <p className="panel-sub">
-            Las cuentas oficiales que cada empresa enlaza desde su propia web, leídas sin iniciar sesión. Las
-            cifras son las que <strong>cada red declara</strong> ese día: no son personas únicas ni se suman
-            entre redes sin duplicar a quien sigue en dos. El sentimiento sale de los comentarios que la red
-            muestra sin sesión, clasificados con un modelo entrenado en español de redes; la ironía se cuenta
-            aparte y no se suma a lo positivo.
-          </p>
-        </div>
+      <Panel
+        id="empresas-redes-resumen"
+        className="emp-hero"
+        title={`Redes sociales de las empresas Merco: seguidores, interacción y sentimiento (lectura del ${board.readingDate ? sayDate(board.readingDate) : '—'})`}
+        lede="Las cuentas oficiales que cada empresa enlaza desde su propia web, leídas sin iniciar sesión."
+        source={SOCIAL_SOURCE}
+        data={() => ({
+          unidad: 'seguidores',
+          columnas: ['Cifra', 'Valor', 'Detalle'],
+          filas: [
+            ['Empresas', chosen.length, `de ${board.companies.length} con alguna cuenta hallada`],
+            [
+              'Seguidores declarados',
+              followers,
+              'suma de cuentas leídas, con duplicados entre redes',
+            ],
+            ['Posts leídos', postsRead, 'en la ventana de 90 días y la grilla visible'],
+            [
+              'Sentimiento neto',
+              net === null ? null : Number(net.toFixed(1)),
+              `${analyzed} comentarios clasificados (% pos − % neg)`,
+            ],
+            ...covered.map((row) => [
+              `Cobertura: ${row.label}`,
+              row.read,
+              [
+                `${row.read} leídas`,
+                row.restricted ? `${row.restricted} con restricción de edad` : '',
+                row.blocked ? `${row.blocked} bloqueadas` : '',
+                row.missing ? `${row.missing} no encontradas` : '',
+              ]
+                .filter(Boolean)
+                .join(' · '),
+            ]),
+          ],
+        })}
+      >
         <div className="stat-strip">
           <div className="stat">
             <span className="stat-label">Empresas</span>
             <span className="stat-value">{count(chosen.length)}</span>
-            <span className="stat-hint">de {count(board.companies.length)} con alguna cuenta hallada</span>
+            <span className="stat-hint">
+              de {count(board.companies.length)} con alguna cuenta hallada
+            </span>
           </div>
           <div className="stat">
             <span className="stat-label">Seguidores declarados</span>
@@ -165,7 +222,9 @@ export function CompanySocialExplorer({ board }: { board: CompanySocialBoard }) 
           <div className="stat">
             <span className="stat-label">Sentimiento neto</span>
             <span className="stat-value">{net === null ? '—' : signed(net)}</span>
-            <span className="stat-hint">{count(analyzed)} comentarios clasificados (% pos − % neg)</span>
+            <span className="stat-hint">
+              {count(analyzed)} comentarios clasificados (% pos − % neg)
+            </span>
           </div>
         </div>
         <ul className="social-coverage" aria-label="Cobertura de la lectura por red">
@@ -178,14 +237,25 @@ export function CompanySocialExplorer({ board }: { board: CompanySocialBoard }) 
             </li>
           ))}
         </ul>
-      </div>
+        <details className="panel-note">
+          <summary>Cómo leerlo</summary>
+          <p>
+            Las cifras son las que <strong>cada red declara</strong> ese día: no son personas únicas
+            ni se suman entre redes sin duplicar a quien sigue en dos. El sentimiento sale de los
+            comentarios que la red muestra sin sesión, clasificados con un modelo entrenado en
+            español de redes; la ironía se cuenta aparte y no se suma a lo positivo.
+          </p>
+        </details>
+      </Panel>
 
       <div className="workspace">
         <aside className="rail" id="redes-filtros">
           <div className="rail-top">
             <Icon name="filtro" size={15} />
             <span className="rail-title">Filtros</span>
-            <span className="rail-count">{active ? `${active} activo${active === 1 ? '' : 's'}` : 'sin filtro'}</span>
+            <span className="rail-count">
+              {active ? `${active} activo${active === 1 ? '' : 's'}` : 'sin filtro'}
+            </span>
           </div>
           <div className="rail-sec">
             <div className="rail-head">
@@ -199,7 +269,9 @@ export function CompanySocialExplorer({ board }: { board: CompanySocialBoard }) 
                   type="button"
                   className={picked(platforms, platform) ? 'chip chip-on' : 'chip'}
                   aria-pressed={picked(platforms, platform)}
-                  onClick={(event) => setPlatforms((current) => toggle(current, platform, additive(event)))}
+                  onClick={(event) =>
+                    setPlatforms((current) => toggle(current, platform, additive(event)))
+                  }
                 >
                   {PLATFORM_LABEL[platform]}
                 </button>
@@ -240,7 +312,11 @@ export function CompanySocialExplorer({ board }: { board: CompanySocialBoard }) 
           </div>
           <div className="rail-sec">
             <label className="rep-toggle">
-              <input type="checkbox" checked={topOnly} onChange={(event) => setTopOnly(event.target.checked)} />
+              <input
+                type="checkbox"
+                checked={topOnly}
+                onChange={(event) => setTopOnly(event.target.checked)}
+              />
               <span>
                 <Icon name="escudo" size={13} /> Sólo el top 50 de Merco
               </span>
@@ -259,7 +335,9 @@ export function CompanySocialExplorer({ board }: { board: CompanySocialBoard }) 
                     type="button"
                     className={on ? 'rail-item rail-item-on' : 'rail-item'}
                     aria-pressed={on}
-                    onClick={(event) => setSectors((current) => toggle(current, option.value, additive(event)))}
+                    onClick={(event) =>
+                      setSectors((current) => toggle(current, option.value, additive(event)))
+                    }
                   >
                     <span className="rail-name">{option.value}</span>
                     <span className="rail-n">{option.count}</span>
@@ -285,13 +363,12 @@ export function CompanySocialExplorer({ board }: { board: CompanySocialBoard }) 
             onFocus={(slug, add) => setFocus((current) => toggle(current, slug, add))}
           />
 
-          <div className="panel">
-            <div className="panel-head">
-              <h2>Seguidores declarados por red (suma de las empresas elegidas, cuentas)</h2>
-              <p className="panel-sub">
-                Toca una red para filtrar por ella. Una persona que sigue a la empresa en dos redes cuenta dos veces.
-              </p>
-            </div>
+          <Panel
+            id="empresas-redes-seguidores"
+            title="Seguidores declarados por red (suma de las empresas elegidas, cuentas)"
+            lede="Toca una red para filtrar por ella. Una persona que sigue a la empresa en dos redes cuenta dos veces."
+            source={SOCIAL_SOURCE}
+          >
             {byPlatform.length ? (
               <>
                 <ShareBars
@@ -299,23 +376,31 @@ export function CompanySocialExplorer({ board }: { board: CompanySocialBoard }) 
                   unit=" seguidores"
                   decimals={0}
                   height={220}
-                  onPick={(platform, add) => setPlatforms((current) => toggle(current, platform, add))}
+                  onPick={(platform, add) =>
+                    setPlatforms((current) => toggle(current, platform, add))
+                  }
                 />
-                <BarLegend label="Seguidores declarados por la red, sumados entre las empresas elegidas" />
+                {barsKey('Seguidores declarados por la red, sumados entre las empresas elegidas')}
               </>
             ) : (
               <div className="callout">Ninguna cuenta leída con los filtros puestos.</div>
             )}
-          </div>
+          </Panel>
 
-          <div className="panel">
-            <div className="panel-head">
-              <h2>Interacción por post (% de los seguidores, mediana de las cuentas de cada empresa)</h2>
-              <p className="panel-sub">
-                Likes, comentarios y compartidos de cada post de los últimos 90 días dividido por los seguidores de
-                la cuenta. Mide cuánto responde la audiencia, no su tamaño. Las 15 más altas; toca una para aislarla.
+          <Panel
+            id="empresas-redes-interaccion"
+            title="Interacción por post (% de los seguidores, mediana de las cuentas de cada empresa)"
+            lede="Cuánto responde la audiencia, no su tamaño: las 15 más altas; toca una para aislarla."
+            source={SOCIAL_SOURCE}
+          >
+            <details className="panel-note">
+              <summary>Cómo leerlo</summary>
+              <p>
+                Likes, comentarios y compartidos de cada post de los últimos 90 días dividido por
+                los seguidores de la cuenta. Mide cuánto responde la audiencia, no su tamaño. Las 15
+                más altas; toca una para aislarla.
               </p>
-            </div>
+            </details>
             {engagement.length ? (
               <>
                 <ShareBars
@@ -325,49 +410,69 @@ export function CompanySocialExplorer({ board }: { board: CompanySocialBoard }) 
                   height={Math.max(220, engagement.length * 26)}
                   onPick={(slug, add) => setFocus((current) => toggle(current, slug, add))}
                 />
-                <BarLegend label="Mediana de (likes + comentarios + compartidos) ÷ seguidores, en %" />
+                {barsKey('Mediana de (likes + comentarios + compartidos) ÷ seguidores, en %')}
               </>
             ) : (
-              <div className="callout">Sin posts con cifras de interacción para las empresas elegidas.</div>
+              <div className="callout">
+                Sin posts con cifras de interacción para las empresas elegidas.
+              </div>
             )}
-          </div>
+          </Panel>
 
-          <div className="panel">
-            <div className="panel-head">
-              <h2>Sentimiento neto de los comentarios (puntos: % positivos − % negativos)</h2>
-              <p className="panel-sub">
-                Sólo empresas con {MIN_COMMENTS} o más comentarios clasificados. Sin sesión, Instagram, TikTok y
-                LinkedIn no muestran comentarios: la base es sobre todo YouTube y el comentario destacado de Facebook.
+          <Panel
+            id="empresas-redes-sentimiento"
+            title="Sentimiento neto de los comentarios (puntos: % positivos − % negativos)"
+            lede={`Solo empresas con ${MIN_COMMENTS} o más comentarios clasificados.`}
+            source={SOCIAL_SOURCE}
+          >
+            <details className="panel-note">
+              <summary>Cómo leerlo</summary>
+              <p>
+                Sin sesión, Instagram, TikTok y LinkedIn no muestran comentarios: la base es sobre
+                todo YouTube y el comentario destacado de Facebook.
               </p>
-            </div>
+            </details>
             {tones.length ? (
               <DivergingBars data={tones} unit="puntos" height={Math.max(220, tones.length * 26)} />
             ) : (
-              <div className="callout">Ninguna empresa elegida tiene {MIN_COMMENTS} comentarios clasificados.</div>
+              <div className="callout">
+                Ninguna empresa elegida tiene {MIN_COMMENTS} comentarios clasificados.
+              </div>
             )}
-          </div>
+          </Panel>
 
           <CompanySocialMix board={board} companies={chosen} slugs={slugs} platforms={platforms} />
 
-          <div className="panel">
-            <div className="panel-head">
-              <h2>
-                Lo más repetido en {scope === 'COMPANY' ? 'lo que publican' : 'lo que les comentan'}:{' '}
-                {kindLabel?.label.toLowerCase()} (menciones)
-              </h2>
-              <p className="panel-sub">
-                Sin artículos, preposiciones, muletillas de redes ni el nombre de la propia empresa. Un mismo texto
-                publicado en dos redes cuenta una vez.
-              </p>
-            </div>
+          <Panel
+            id="empresas-redes-terminos"
+            title={`Lo más repetido en ${scope === 'COMPANY' ? 'lo que publican' : 'lo que les comentan'}: ${kindLabel?.label.toLowerCase()} (menciones)`}
+            lede="Sin artículos, preposiciones, muletillas de redes ni el nombre de la propia empresa."
+            source={SOCIAL_SOURCE}
+          >
+            <details className="panel-note">
+              <summary>Cómo leerlo</summary>
+              <p>Un mismo texto publicado en dos redes cuenta una vez.</p>
+            </details>
             <div className="social-term-switch">
               {(['COMPANY', 'AUDIENCE'] as const).map((value) => (
-                <button key={value} type="button" className={scope === value ? 'chip chip-on' : 'chip'} aria-pressed={scope === value} onClick={() => setScope(value)}>
+                <button
+                  key={value}
+                  type="button"
+                  className={scope === value ? 'chip chip-on' : 'chip'}
+                  aria-pressed={scope === value}
+                  onClick={() => setScope(value)}
+                >
                   {value === 'COMPANY' ? 'Lo que publican' : 'Lo que les comentan'}
                 </button>
               ))}
               {KINDS.map((option) => (
-                <button key={option.value} type="button" className={kind === option.value ? 'chip chip-on' : 'chip'} aria-pressed={kind === option.value} onClick={() => setKind(option.value)}>
+                <button
+                  key={option.value}
+                  type="button"
+                  className={kind === option.value ? 'chip chip-on' : 'chip'}
+                  aria-pressed={kind === option.value}
+                  onClick={() => setKind(option.value)}
+                >
                   {option.label}
                 </button>
               ))}
@@ -384,21 +489,62 @@ export function CompanySocialExplorer({ board }: { board: CompanySocialBoard }) 
                   decimals={0}
                   height={Math.max(220, terms.length * 24)}
                 />
-                <BarLegend label={`Veces que aparece en ${scope === 'COMPANY' ? 'los posts de las empresas' : 'los comentarios'}`} />
+                {barsKey(
+                  `Veces que aparece en ${scope === 'COMPANY' ? 'los posts de las empresas' : 'los comentarios'}`,
+                )}
               </>
             ) : (
               <div className="callout">Sin términos repetidos para esta combinación.</div>
             )}
-          </div>
+          </Panel>
 
-          <div className="panel">
-            <div className="panel-head">
-              <h2>Posts con más interacciones (likes + comentarios + compartidos)</h2>
-              <p className="panel-sub">
-                Los de las empresas y redes elegidas. Los videos de TikTok llegan por buscador, no por la grilla del
-                perfil, y se marcan así.
+          <Panel
+            id="empresas-redes-mejores-posts"
+            title="Posts con más interacciones (cantidad de interacciones por post)"
+            lede="Los de las empresas y redes elegidas."
+            source={SOCIAL_SOURCE}
+            data={() => ({
+              etiqueta: 'Posts',
+              unidad: 'interacciones',
+              columnas: [
+                'Empresa',
+                'Red',
+                'Fecha',
+                'Texto',
+                'Interacciones',
+                'Me gusta',
+                'Comentarios',
+                'Compartidos',
+                'Vistas',
+                'Sentimiento neto',
+                'Comentarios leídos',
+                'Cómo se halló',
+                'Enlace',
+              ],
+              filas: posts.map((post) => [
+                board.companies.find((one) => one.slug === post.slug)?.name ?? post.slug,
+                PLATFORM_LABEL[post.platform],
+                post.date,
+                post.text,
+                post.interactions,
+                post.likes,
+                post.comments,
+                post.shares,
+                post.views,
+                post.sentiment ? post.sentiment.netScore : null,
+                post.sentiment ? post.sentiment.analyzed : null,
+                post.discovery === 'SEARCH' ? 'buscador' : 'perfil',
+                post.url,
+              ]),
+            })}
+          >
+            <details className="panel-note">
+              <summary>Cómo leerlo</summary>
+              <p>
+                Likes, comentarios y compartidos suman las interacciones. Los videos de TikTok
+                llegan por buscador, no por la grilla del perfil, y se marcan así.
               </p>
-            </div>
+            </details>
             {posts.length ? (
               <ol className="social-posts">
                 {posts.map((post) => {
@@ -408,7 +554,8 @@ export function CompanySocialExplorer({ board }: { board: CompanySocialBoard }) 
                       <div className="social-post-head">
                         <b>{company?.name ?? post.slug}</b>
                         <span className="social-post-meta">
-                          {PLATFORM_LABEL[post.platform]} · {post.date ? sayDate(post.date) : 'sin fecha'}
+                          {PLATFORM_LABEL[post.platform]} ·{' '}
+                          {post.date ? sayDate(post.date) : 'sin fecha'}
                           {post.discovery === 'SEARCH' ? ' · hallado por buscador' : ''}
                         </span>
                       </div>
@@ -416,12 +563,17 @@ export function CompanySocialExplorer({ board }: { board: CompanySocialBoard }) 
                       <div className="social-post-figures">
                         <span>{count(post.interactions ?? 0)} interacciones</span>
                         {post.likes !== null ? <span>{count(post.likes)} me gusta</span> : null}
-                        {post.comments !== null ? <span>{count(post.comments)} comentarios</span> : null}
-                        {post.shares !== null ? <span>{count(post.shares)} compartidos</span> : null}
+                        {post.comments !== null ? (
+                          <span>{count(post.comments)} comentarios</span>
+                        ) : null}
+                        {post.shares !== null ? (
+                          <span>{count(post.shares)} compartidos</span>
+                        ) : null}
                         {post.views !== null ? <span>{count(post.views)} vistas</span> : null}
                         {post.sentiment ? (
                           <span>
-                            neto {signed(post.sentiment.netScore)} ({post.sentiment.analyzed} comentarios)
+                            neto {signed(post.sentiment.netScore)} ({post.sentiment.analyzed}{' '}
+                            comentarios)
                           </span>
                         ) : null}
                         <a href={post.url} target="_blank" rel="noopener noreferrer">
@@ -435,10 +587,12 @@ export function CompanySocialExplorer({ board }: { board: CompanySocialBoard }) 
             ) : (
               <div className="callout">Sin posts leídos para las empresas y redes elegidas.</div>
             )}
-          </div>
+          </Panel>
 
           <CompanySocialPosts
-            slugs={chosen.length === board.companies.length ? [] : chosen.map((company) => company.slug)}
+            slugs={
+              chosen.length === board.companies.length ? [] : chosen.map((company) => company.slug)
+            }
             platforms={[...platforms]}
             companies={board.companies}
           />
