@@ -12,6 +12,7 @@ import {
 } from '@/lib/choice';
 import type { Choice } from '@/lib/choice';
 import { ChartLegend, MacroChart, ShareBars, WorldLines, seriesTone } from './charts';
+import { TOP_TEN, TopTen } from './top-ten';
 import { BarsKey, ChartKindSwitch, ShareSquares } from './chart-kind';
 import type { ChartKind } from './chart-kind';
 import { WorldTradeMap } from './world-trade-map';
@@ -918,42 +919,78 @@ function ExportersRanking({ board }: { board: ExportersBoard }) {
 
   const marked = bars.filter((bar) => 'emphasis' in bar).length;
   const topTen = concentration(board, 10);
+  const topRows = board.exporters.slice(0, TOP_TEN).map((row) => ({
+    key: row.slug,
+    rank: row.rank,
+    name: row.name,
+    detail: board.crossings.some((cross) => cross.slug === row.slug)
+      ? 'También en el monitor Merco'
+      : undefined,
+    value: row.share,
+    shown: `${row.share.toLocaleString('es-BO', { minimumFractionDigits: 1, maximumFractionDigits: 1 })} %`,
+    logo: true,
+  }));
 
   return (
-    <Panel
-      id="comercio-exportadoras"
-      title={`Quién exporta más (% de las exportaciones, gestión ${board.exportYear ?? '—'})`}
-      lede={`Orden y cuota de las cien primeras exportadoras; las diez primeras concentran el ${percent(topTen)} de lo exportado.`}
-      source={SOURCE_EXPORTERS}
-    >
-      <div className="callout">
-        <strong>Bolivia no publica sus exportaciones por empresa.</strong> El INE llega a producto,
-        departamento y país de destino —el panorama de arriba—; la Aduana Nacional publica
-        agregados; el Anuario de Minería separa por actor productivo —estatal, privado, cooperativo—
-        pero nunca por razón social, porque la declaración aduanera individual está amparada por
-        reserva. Esta lista viene de un agregador comercial de registros aduaneros, y de ella se
-        publica <strong>el orden y la cuota, no los dólares</strong>: el total que esa misma fuente
-        declara para {board.exportYear ?? 'la gestión'} no cuadra con el del INE y no dice sobre qué
-        base está calculado.
-      </div>
-      <ShareBars data={bars} unit="%" height={520} />
-      <ChartLegend
-        items={
-          marked
-            ? [
-                { color: 'var(--official)', label: 'Cuota (%) de las que también midió Merco' },
-                { color: 'var(--series-rest)', label: 'Cuota (%) del resto' },
-              ]
-            : [{ color: 'var(--official)', label: 'Cuota de las exportaciones (%)' }]
-        }
-      />
-      <p className="chart-note">
-        Se dibujan las {Math.min(SHOWN_EXPORTERS, board.exporters.length)} primeras de{' '}
-        {board.exporters.length}. Las barras marcadas son las que además midió el monitor de
-        reputación Merco en alguna de sus ediciones: {marked} aquí, {board.crossings.length} en la
-        lista entera. El cruce completo está en la pestaña «Reputación empresarial».
-      </p>
-    </Panel>
+    <>
+      {topRows.length ? (
+        <Panel
+          id="comercio-exportadoras-top"
+          title={`Las ${topRows.length} mayores exportadoras, gestión ${board.exportYear ?? '—'} (% de las exportaciones)`}
+          lede={`Juntas suman el ${percent(topTen)} de lo exportado. La fuente publica una sola gestión, así que no hay puesto del año anterior con qué comparar ni cintas año a año.`}
+          ledeText={`Las diez primeras suman el ${percent(topTen)} de lo exportado en ${board.exportYear ?? 'la gestión'}.`}
+          source={SOURCE_EXPORTERS}
+          data={() => ({
+            unidad: '% de las exportaciones',
+            columnas: ['Puesto', 'Empresa', 'Cuota (%)'],
+            filas: board.exporters.slice(0, TOP_TEN).map((row) => [row.rank, row.name, row.share]),
+          })}
+        >
+          <TopTen
+            rows={topRows}
+            periods={board.exportYear === null ? [] : [board.exportYear]}
+            period={board.exportYear ?? 0}
+            onPeriod={() => undefined}
+            previous={null}
+            legend="Cuota de las exportaciones (%)"
+          />
+        </Panel>
+      ) : null}
+      <Panel
+        id="comercio-exportadoras"
+        title={`Quién exporta más (% de las exportaciones, gestión ${board.exportYear ?? '—'})`}
+        lede={`Orden y cuota de las cien primeras exportadoras; las diez primeras concentran el ${percent(topTen)} de lo exportado.`}
+        source={SOURCE_EXPORTERS}
+      >
+        <div className="callout">
+          <strong>Bolivia no publica sus exportaciones por empresa.</strong> El INE llega a
+          producto, departamento y país de destino —el panorama de arriba—; la Aduana Nacional
+          publica agregados; el Anuario de Minería separa por actor productivo —estatal, privado,
+          cooperativo— pero nunca por razón social, porque la declaración aduanera individual está
+          amparada por reserva. Esta lista viene de un agregador comercial de registros aduaneros, y
+          de ella se publica <strong>el orden y la cuota, no los dólares</strong>: el total que esa
+          misma fuente declara para {board.exportYear ?? 'la gestión'} no cuadra con el del INE y no
+          dice sobre qué base está calculado.
+        </div>
+        <ShareBars data={bars} unit="%" height={520} />
+        <ChartLegend
+          items={
+            marked
+              ? [
+                  { color: 'var(--official)', label: 'Cuota (%) de las que también midió Merco' },
+                  { color: 'var(--series-rest)', label: 'Cuota (%) del resto' },
+                ]
+              : [{ color: 'var(--official)', label: 'Cuota de las exportaciones (%)' }]
+          }
+        />
+        <p className="chart-note">
+          Se dibujan las {Math.min(SHOWN_EXPORTERS, board.exporters.length)} primeras de{' '}
+          {board.exporters.length}. Las barras marcadas son las que además midió el monitor de
+          reputación Merco en alguna de sus ediciones: {marked} aquí, {board.crossings.length} en la
+          lista entera. El cruce completo está en la pestaña «Reputación empresarial».
+        </p>
+      </Panel>
+    </>
   );
 }
 

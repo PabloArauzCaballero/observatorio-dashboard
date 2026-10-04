@@ -2,6 +2,8 @@
 
 import { useMemo, useState } from 'react';
 import { RankLines, seriesTone } from './charts';
+import { RankRibbons, shortCompanyName } from './rank-ribbons';
+import { TOP_TEN, TopTen } from './top-ten';
 import type { RankLine } from './charts';
 import { CompanyLogo } from './company-logo';
 import { FilterHint, PickedCount } from './filters';
@@ -144,6 +146,7 @@ export function ReputationExplorer({ board }: { board: ExportersBoard }) {
   const [onlyExporters, setOnlyExporters] = useState(false);
   const [offset, setOffset] = useState(0);
   const [followed, setFollowed] = useState<string[]>([]);
+  const [highlighted, setHighlighted] = useState<string | null>(null);
 
   const edition = useEdition(board, year);
   const exporters = useMemo(
@@ -248,12 +251,131 @@ export function ReputationExplorer({ board }: { board: ExportersBoard }) {
     }))
     .filter((card) => card.seats.length);
 
+  /** Las que alguna vez estuvieron entre las diez primeras del ránking general: una cinta cada una. */
+  const ribbons = useMemo(() => {
+    const bySlug = new Map<
+      string,
+      { key: string; name: string; points: Array<{ period: number; rank: number }> }
+    >();
+    for (const seat of board.general) {
+      const one = bySlug.get(seat.slug) ?? { key: seat.slug, name: seat.name, points: [] };
+      one.points.push({ period: seat.year, rank: seat.rank });
+      bySlug.set(seat.slug, one);
+    }
+    return [...bySlug.values()].filter((one) => one.points.some((point) => point.rank <= TOP_TEN));
+  }, [board]);
+  const scoreOf = useMemo(
+    () => new Map(board.general.map((seat) => [`${seat.slug}@${seat.year}`, seat.score])),
+    [board],
+  );
+  const topRows = [...edition.seats]
+    .sort((left, right) => left.rank - right.rank)
+    .filter((seat) => seat.rank <= TOP_TEN)
+    .map((seat) => ({
+      key: seat.slug,
+      rank: seat.rank,
+      name: seat.name,
+      detail: edition.sectorOf.get(seat.slug)
+        ? sectorLabel(edition.sectorOf.get(seat.slug) ?? '')
+        : undefined,
+      value: (seat.score ?? FLOOR_SCORE) - FLOOR_SCORE,
+      shown: seat.score !== null ? `${points(seat.score)} pts` : '—',
+      before: edition.before.get(seat.slug),
+      logo: true,
+    }));
+
   if (!edition.seats.length) {
     return <div className="callout">Todavía no hay ránking general de reputación cargado.</div>;
   }
 
   return (
     <>
+      {topRows.length ? (
+        <Panel
+          id="empresas-reputacion-top"
+          title={`Las ${topRows.length} empresas con mejor reputación, Merco ${editionLabel(year)} (puntos Merco)`}
+          lede={`Puesto entre las ${edition.seats.length} empresas que mide Merco, y cuánto se movió cada una frente a ${edition.previous === null ? 'la edición anterior' : editionLabel(edition.previous)}. Toca un nombre para resaltar su cinta.`}
+          ledeText={`Puesto entre las ${edition.seats.length} empresas que mide Merco en ${editionLabel(year)}.`}
+          source={SOURCE}
+          data={() => ({
+            unidad: 'puesto y puntos',
+            columnas: ['Edición', 'Puesto', 'Empresa', 'Puntos Merco'],
+            filas: [...board.general]
+              .filter((seat) => seat.rank <= TOP_TEN)
+              .sort((left, right) => right.year - left.year || left.rank - right.rank)
+              .map((seat) => [editionLabel(seat.year), seat.rank, seat.name, seat.score]),
+          })}
+        >
+          <TopTen
+            rows={topRows}
+            periods={board.editions}
+            period={year}
+            onPeriod={(when) => {
+              setYear(when);
+              setSector(ANY);
+              setOffset(0);
+            }}
+            label={editionLabel}
+            previous={edition.previous}
+            selected={highlighted}
+            onPick={(slug) => setHighlighted((current) => (current === slug ? null : slug))}
+            legend={`Puntos Merco por encima de ${points(FLOOR_SCORE)}, el centésimo (10.000 = primera)`}
+          />
+          <details className="panel-note">
+            <summary>Cómo leerlo</summary>
+            <p>
+              La barra arranca en {points(FLOOR_SCORE)} puntos, lo que saca el centésimo, y llega a
+              10.000 con la primera. ▲ y ▼ dicen cuántos puestos subió o bajó frente a la edición
+              anterior; «nuevo», que no estaba entre las cien. Mide reputación percibida, no tamaño.
+            </p>
+          </details>
+        </Panel>
+      ) : null}
+
+      {ribbons.length && years.length > 1 ? (
+        <Panel
+          id="empresas-reputacion-cintas"
+          title={`Puesto de cada empresa entre las ${TOP_TEN} de mejor reputación, ${years[0] ?? ''}–${editionLabel(years.at(-1) ?? 0)} (puesto por edición)`}
+          lede="Cada cinta es una empresa: sube cuando mejora su puesto y se corta la edición en que queda fuera de las diez. Pasa por encima para ver la edición; toca una cinta para resaltarla."
+          ledeText="Cada cinta es una empresa; se corta la edición en que queda fuera de las diez."
+          source={SOURCE}
+          data={() => ({
+            unidad: 'puesto',
+            columnas: ['Empresa', 'Edición', 'Puesto', 'Puntos Merco'],
+            filas: ribbons.flatMap((one) =>
+              one.points.map((point) => [
+                one.name,
+                editionLabel(point.period),
+                point.rank,
+                scoreOf.get(`${one.key}@${point.period}`) ?? null,
+              ]),
+            ),
+          })}
+        >
+          <RankRibbons
+            series={ribbons}
+            periods={years}
+            places={TOP_TEN}
+            selected={highlighted}
+            onSelect={(slug, when) => {
+              setHighlighted(slug);
+              setYear(when);
+              setSector(ANY);
+              setOffset(0);
+            }}
+            label={editionLabel}
+            shorten={shortCompanyName}
+            describe={(slug, when) => {
+              const score = scoreOf.get(`${slug}@${when}`);
+              return score !== null && score !== undefined ? [`${points(score)} puntos Merco`] : [];
+            }}
+            subject="empresa"
+            highlight="Empresa resaltada"
+            others="Las demás empresas"
+          />
+        </Panel>
+      ) : null}
+
       <Panel
         id="empresas-reputacion-resumen"
         className="emp-hero rep-hero"
@@ -316,30 +438,6 @@ export function ReputationExplorer({ board }: { board: ExportersBoard }) {
             </span>
           </div>
         </div>
-
-        <ol className="rep-podium" aria-label={`Las tres primeras de ${year}`}>
-          {podium.map((seat) => (
-            <li key={seat.slug} className={`rep-podium-card rep-podium-${seat.rank}`}>
-              <span className="rep-podium-rank" aria-label={`Puesto ${seat.rank}`}>
-                {seat.rank}
-              </span>
-              <CompanyLogo slug={seat.slug} name={seat.name} size={64} />
-              <span className="rep-podium-name">{seat.name}</span>
-              <span className="rep-podium-meta">
-                {seat.score !== null ? <b>{points(seat.score)} pts</b> : null}
-                <MoveBadge
-                  move={moveOf(seat.rank, edition.before.get(seat.slug))}
-                  previous={edition.previous}
-                />
-              </span>
-              {edition.sectorOf.get(seat.slug) ? (
-                <span className="rep-podium-sector">
-                  {sectorLabel(edition.sectorOf.get(seat.slug) ?? '')}
-                </span>
-              ) : null}
-            </li>
-          ))}
-        </ol>
 
         <details className="panel-note">
           <summary>Cómo leerlo</summary>

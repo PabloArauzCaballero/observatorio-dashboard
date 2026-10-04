@@ -7,6 +7,8 @@ import { CompanyLogo } from './company-logo';
 import { FilterHint, PickedCount } from './filters';
 import { Icon } from './icons';
 import { Pager } from './pager';
+import { RankRibbons, shortCompanyName } from './rank-ribbons';
+import { TOP_TEN, TopTen } from './top-ten';
 import styles from './business.module.css';
 import { Panel } from '@/components/ui/panel';
 import { ANY, additive, picked, toggle } from '@/lib/choice';
@@ -218,6 +220,35 @@ export function LargestCompaniesExplorer({
     };
   });
 
+  /** Las que alguna vez estuvieron entre las diez primeras con esta vara: una cinta cada una. */
+  const ribbons = board.companies
+    .map((company) => ({
+      key: company.slug,
+      name: company.name,
+      points: company.years
+        .filter((row) => row[measure] !== undefined && row[spec.rank] !== undefined)
+        .map((row) => ({ period: row.year, rank: row[spec.rank] as number })),
+    }))
+    .filter((one) => one.points.some((point) => point.rank <= TOP_TEN));
+  /** Los años con puesto publicado: un año con cifras y sin orden no es una columna de las cintas. */
+  const ribbonYears = [
+    ...new Set(ribbons.flatMap((one) => one.points.map((point) => point.period))),
+  ].sort((a, b) => a - b);
+  const topRows = ranked
+    .filter((row) => row.rank !== undefined && row.rank <= TOP_TEN)
+    .map((row) => ({
+      key: row.company.slug,
+      rank: row.rank as number,
+      name: row.company.name,
+      detail: [row.company.attributes.sector, row.company.attributes.departamento]
+        .filter(Boolean)
+        .join(' · '),
+      value: row.value,
+      shown: money(row.value, unit),
+      before: before.get(row.company.slug),
+      logo: true,
+    }));
+
   const sheet = open ? byslug.get(open) : null;
   const sheetSeries: WorldLineSeries[] = sheet
     ? MEASURES.filter((one) => sheet.years.some((row) => row[one.value] !== undefined)).map(
@@ -259,8 +290,132 @@ export function LargestCompaniesExplorer({
     : '';
   const span = `${rankYears[0]}–${rankYears.at(-1)}`;
 
+  const listName = spec.source === 'TAXTOP' ? 'mayores contribuyentes' : 'mayores empresas';
+
   return (
     <>
+      {topRows.length ? (
+        <Panel
+          id="empresas-principales-top"
+          title={`Los ${topRows.length} ${listName} por ${spec.label.toLowerCase()}, ${year} (${unitName})`}
+          lede={`Puesto entre las ${ranked.length} empresas de la lista de ${year}, y cuánto se movió cada una frente a ${previousYear ?? 'el año anterior'}. Toca un nombre para abrir su ficha y resaltar su cinta.`}
+          ledeText={`Puesto entre las ${ranked.length} empresas de la lista de ${year}.`}
+          source={source}
+          data={() => ({
+            unidad: unitName,
+            columnas: ['Año', 'Puesto', 'Empresa', 'Sector', 'Departamento', spec.label, 'Unidad'],
+            filas: [...rankYears].reverse().flatMap((when) =>
+              board.companies
+                .map((company) => ({
+                  company,
+                  rank: valueIn(company, when, spec.rank),
+                  value: valueIn(company, when, measure),
+                }))
+                .filter((row) => row.rank !== undefined && row.rank <= TOP_TEN)
+                .sort((left, right) => (left.rank as number) - (right.rank as number))
+                .map((row) => [
+                  when,
+                  row.rank ?? null,
+                  row.company.name,
+                  row.company.attributes.sector ?? '',
+                  row.company.attributes.departamento ?? '',
+                  row.value ?? null,
+                  unit ?? '',
+                ]),
+            ),
+          })}
+        >
+          {measures.length > 1 ? (
+            <div className="rail-pills">
+              {measures.map((one) => (
+                <button
+                  key={one.value}
+                  type="button"
+                  className={measure === one.value ? 'chip chip-on' : 'chip'}
+                  aria-pressed={measure === one.value}
+                  onClick={() => {
+                    setMeasure(one.value);
+                    setOffset(0);
+                  }}
+                >
+                  {one.label}
+                </button>
+              ))}
+            </div>
+          ) : null}
+          <TopTen
+            rows={topRows}
+            periods={years}
+            period={year}
+            onPeriod={(when) => {
+              setYear(when);
+              setOffset(0);
+            }}
+            previous={previousYear}
+            selected={open}
+            onPick={(slug) => setOpen((current) => (current === slug ? null : slug))}
+            legend={`${spec.label} (${unitName})`}
+          />
+          <details className="panel-note">
+            <summary>Cómo leerlo</summary>
+            <p>
+              La barra es la cifra frente a la primera. ▲ y ▼ dicen cuántos puestos subió o bajó
+              frente al año anterior publicado; «nuevo», que ese año no estaba entre las diez.{' '}
+              {spec.source === 'TAXTOP'
+                ? 'Mide impuesto pagado, no ventas: un banco rentable paga más que un comercio que factura el doble.'
+                : null}
+            </p>
+          </details>
+        </Panel>
+      ) : null}
+
+      {ribbons.length && ribbonYears.length > 1 ? (
+        <Panel
+          id="empresas-principales-cintas"
+          title={`Puesto de cada empresa entre las ${TOP_TEN} ${listName}, ${ribbonYears[0]}–${ribbonYears.at(-1)} (puesto por año)`}
+          lede={`Cada cinta es una empresa: sube cuando mejora su puesto y se corta el año en que queda fuera de las diez. Pasa por encima para ver el año; toca una cinta para resaltarla y abrir su ficha.`}
+          ledeText="Cada cinta es una empresa; se corta el año en que queda fuera de las diez."
+          source={source}
+          data={() => ({
+            unidad: 'puesto',
+            columnas: ['Empresa', 'Año', 'Puesto', spec.label, 'Unidad'],
+            filas: ribbons.flatMap((one) =>
+              one.points.map((point) => [
+                one.name,
+                point.period,
+                point.rank,
+                valueIn(byslug.get(one.key) as LargestCompany, point.period, measure) ?? null,
+                unit ?? '',
+              ]),
+            ),
+          })}
+        >
+          <RankRibbons
+            series={ribbons}
+            periods={ribbonYears}
+            places={TOP_TEN}
+            selected={open}
+            onSelect={(slug, when) => {
+              setOpen(slug);
+              setYear(when);
+              setOffset(0);
+            }}
+            shorten={shortCompanyName}
+            describe={(slug, when) => {
+              const company = byslug.get(slug);
+              const value = company ? valueIn(company, when, measure) : undefined;
+              return [
+                ...(value !== undefined ? [`${spec.label}: ${money(value, unit)}`] : []),
+                ...(company?.attributes.sector ? [company.attributes.sector] : []),
+              ];
+            }}
+            subject="empresa"
+            highlight="Empresa resaltada"
+            others="Las demás empresas"
+          />
+        </Panel>
+      ) : null}
+
       <Panel
         id="empresas-principales-resumen"
         className="emp-hero"
