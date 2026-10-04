@@ -3,13 +3,15 @@
 import { useCallback, useMemo, useState } from 'react';
 import { ANY, accepts, describe } from '@/lib/choice';
 import type { Choice } from '@/lib/choice';
-import { WorldLines } from './charts';
+import { ChartLegend, ShareBars, WorldLines, seriesTone } from './charts';
 import type { WorldLinePoint } from './charts';
 import { FilterHint } from './filters';
 import { Icon } from './icons';
 import { NetworkMap } from './network-map';
 import { Pager } from './pager';
 import { Panel } from '@/components/ui/panel';
+import { SinDeclarar, TOP, TopNote, uniqueNames } from './transport-views';
+import { ViewToggle } from '@/components/ui/view-toggle';
 import type { MapLine, MapPoint } from './network-map';
 import { FilterGroup, km, squash } from './transport-filters';
 import { departmentName } from '@/lib/roads-board';
@@ -179,6 +181,14 @@ export function RailExplorer({ board }: { board: RailBoard }) {
       where={at}
       noun="líneas"
     />
+  );
+  /* Las líneas más largas como barras; tocar una la aísla en el mapa, igual que en la tabla. */
+  const longest = rows.slice(0, TOP);
+  const barNames = uniqueNames(
+    longest.map((row) => ({
+      name: (row.line ?? 'Vías sin nombre en el mapa').replace(/^(Ferrocarril|FFCC) (de )?/u, ''),
+      qualifier: NETWORK[row.network].label,
+    })),
   );
   const filtered = department.size + network.size + status.size > 0 || Boolean(query);
   const pickLine = (next: string): void => setLine((current) => (current === next ? null : next));
@@ -438,63 +448,100 @@ export function RailExplorer({ board }: { board: RailBoard }) {
               nota: 'Son todas las líneas del recorte, no solo la página que se ve.',
             })}
           >
-            {pager('arriba')}
             {rows.length === 0 ? (
               <div className="callout">Ninguna línea coincide con el recorte y la búsqueda.</div>
             ) : (
-              <div className="table-wrap">
-                <table className="grid-table roads-table">
-                  <thead>
-                    <tr>
-                      <th>Línea</th>
-                      <th>Red</th>
-                      <th>Estado</th>
-                      <th>Departamentos</th>
-                      <th className="num">En servicio km</th>
-                      <th className="num">Total km</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {shown.map((row) => {
-                      const on = row.line !== null && row.line === liveLine;
-                      return (
-                        <tr
-                          key={`${row.network}|${row.line}`}
-                          className={on ? 'roads-row-on' : undefined}
-                        >
-                          <td>
-                            {row.line ? (
-                              <button
-                                type="button"
-                                className="table-link"
-                                aria-pressed={on}
-                                onClick={() => pickLine(row.line!)}
+              <ViewToggle
+                chart={
+                  <>
+                    <SinDeclarar>
+                      <ShareBars
+                        data={longest.map((row, index) => ({
+                          name: barNames[index] ?? '',
+                          value: row.km,
+                          ...(liveLine !== null ? { emphasis: row.line === liveLine } : {}),
+                          ...(row.line ? { pick: row.line } : {}),
+                          parts: [{ name: 'En servicio', value: row.service, unit: 'km' }],
+                          note: `${row.line ?? 'Vías sin nombre en el mapa'} · ${NETWORK[row.network].label} · ${[
+                            ...row.statuses,
+                          ]
+                            .map((one) => STATUS[one as RailLine['status']].label)
+                            .join(', ')}`,
+                        }))}
+                        unit="km"
+                        decimals={1}
+                        tone={seriesTone(0)}
+                        height={Math.max(190, longest.length * 34 + 16)}
+                        onPick={pickLine}
+                      />
+                    </SinDeclarar>
+                    <ChartLegend
+                      items={[
+                        { color: seriesTone(0), label: `Km por línea ferroviaria, ${where} (km)` },
+                      ]}
+                    />
+                    <TopNote shown={longest.length} total={rows.length} noun="líneas" />
+                  </>
+                }
+                table={
+                  <>
+                    {pager('arriba')}
+                    <div className="table-wrap">
+                      <table className="grid-table roads-table">
+                        <thead>
+                          <tr>
+                            <th>Línea</th>
+                            <th>Red</th>
+                            <th>Estado</th>
+                            <th>Departamentos</th>
+                            <th className="num">En servicio km</th>
+                            <th className="num">Total km</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {shown.map((row) => {
+                            const on = row.line !== null && row.line === liveLine;
+                            return (
+                              <tr
+                                key={`${row.network}|${row.line}`}
+                                className={on ? 'roads-row-on' : undefined}
                               >
-                                {row.line}
-                              </button>
-                            ) : (
-                              'Vías sin nombre en el mapa'
-                            )}
-                          </td>
-                          <td>{NETWORK[row.network].label}</td>
-                          <td>
-                            {[...row.statuses]
-                              .map((one) => STATUS[one as RailLine['status']].label)
-                              .join(', ')}
-                          </td>
-                          <td>{[...row.departments].map(departmentName).join(', ')}</td>
-                          <td className="num">{row.service ? km(row.service, 1) : '—'}</td>
-                          <td className="num">
-                            <b>{km(row.km, 1)}</b>
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </div>
+                                <td>
+                                  {row.line ? (
+                                    <button
+                                      type="button"
+                                      className="table-link"
+                                      aria-pressed={on}
+                                      onClick={() => pickLine(row.line!)}
+                                    >
+                                      {row.line}
+                                    </button>
+                                  ) : (
+                                    'Vías sin nombre en el mapa'
+                                  )}
+                                </td>
+                                <td>{NETWORK[row.network].label}</td>
+                                <td>
+                                  {[...row.statuses]
+                                    .map((one) => STATUS[one as RailLine['status']].label)
+                                    .join(', ')}
+                                </td>
+                                <td>{[...row.departments].map(departmentName).join(', ')}</td>
+                                <td className="num">{row.service ? km(row.service, 1) : '—'}</td>
+                                <td className="num">
+                                  <b>{km(row.km, 1)}</b>
+                                </td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
+                    {pager('abajo')}
+                  </>
+                }
+              />
             )}
-            {pager('abajo')}
           </Panel>
         </div>
       </div>
