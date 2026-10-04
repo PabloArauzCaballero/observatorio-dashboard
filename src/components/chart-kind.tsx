@@ -3,8 +3,11 @@
 import { ResponsiveContainer, Tooltip, Treemap } from 'recharts';
 import type { TreemapNode } from 'recharts';
 import { additive } from '@/lib/choice';
+import { ChartLegend } from './charts';
+import type { LegendItem } from './charts';
 import { Icon } from './icons';
 import type { IconName } from './icons';
+import { celda, useDatosDeFigura } from '@/components/ui/panel-data';
 
 /**
  * El mismo dato en otra forma, a elección de quien lee.
@@ -77,7 +80,10 @@ const STEPS = [
 ] as const;
 
 const say = (value: number, decimals: number): string =>
-  value.toLocaleString('es-BO', { minimumFractionDigits: decimals, maximumFractionDigits: decimals });
+  value.toLocaleString('es-BO', {
+    minimumFractionDigits: decimals,
+    maximumFractionDigits: decimals,
+  });
 
 /**
  * Un gráfico de cuadrados: cada fila es un rectángulo con área proporcional
@@ -102,6 +108,21 @@ export function ShareSquares({
   const peak = rows[0]?.value ?? 0;
   const marked = rows.some((row) => row.emphasis);
   const decimals = peak >= 100 ? 0 : 1;
+
+  /* Las cifras que el panel baja son las de los cuadrados, con su parte de lo dibujado. */
+  useDatosDeFigura(
+    () => ({
+      etiqueta: 'Cuadrados',
+      unidad: unit,
+      columnas: ['Categoría', `Valor (${unit})`, 'Parte de lo dibujado (%)'],
+      filas: rows.map((row) => [
+        row.name,
+        celda(row.value),
+        celda(total > 0 ? (row.value / total) * 100 : 0),
+      ]),
+    }),
+    [data, unit],
+  );
 
   if (!rows.length) return <div className="callout">Sin valores positivos para dibujar.</div>;
 
@@ -154,45 +175,71 @@ export function ShareSquares({
     );
   };
 
+  /*
+   * La clave de la escala: el área ya dice cuánto y el tono lo repite en cinco
+   * tramos, cada uno una quinta parte del recorrido hasta el mayor.
+   */
+  const span = peak / STEPS.length;
+  const key: LegendItem[] = [
+    ...STEPS.map((step, index) => ({
+      color: step.fill,
+      label: `${say(span * index, decimals)} a ${say(span * (index + 1), decimals)} ${unit.trim()}`,
+    })),
+    ...(marked ? [{ color: 'var(--parallel)', label: 'Elegido en el filtro' }] : []),
+  ];
+
   return (
-    <div className="chart-frame" style={{ height }}>
-      <ResponsiveContainer width="100%" height="100%">
-        <Treemap
-          data={rows.map((row) => ({ ...row }))}
-          dataKey="value"
-          nameKey="name"
-          aspectRatio={4 / 3}
-          isAnimationActive={false}
-          content={renderCell}
-        >
-          <Tooltip
-            content={({ active, payload }) => {
-              if (!active || !payload?.length) return null;
-              const point = payload[0]?.payload as SquareSlice | undefined;
-              if (!point) return null;
-              const share = total > 0 ? (point.value / total) * 100 : 0;
-              return (
-                <div className="tooltip">
-                  <div className="t-date">{point.name}</div>
-                  <div className="t-row">
-                    <span>Valor</span>
-                    <strong>
-                      {say(point.value, 1)} {unit}
-                    </strong>
+    <div className="chart-stack">
+      <div className="chart-frame" style={{ height }}>
+        <ResponsiveContainer width="100%" height="100%">
+          <Treemap
+            data={rows.map((row) => ({ ...row }))}
+            dataKey="value"
+            nameKey="name"
+            aspectRatio={4 / 3}
+            isAnimationActive={false}
+            content={renderCell}
+          >
+            <Tooltip
+              content={({ active, payload }) => {
+                if (!active || !payload?.length) return null;
+                const point = payload[0]?.payload as SquareSlice | undefined;
+                if (!point) return null;
+                const share = total > 0 ? (point.value / total) * 100 : 0;
+                return (
+                  <div className="tooltip">
+                    <div className="t-date">{point.name}</div>
+                    <div className="t-row">
+                      <span>Valor</span>
+                      <strong>
+                        {say(point.value, 1)} {unit}
+                      </strong>
+                    </div>
+                    <div className="t-row">
+                      <span>Parte de lo dibujado</span>
+                      <strong>{say(share, 1)} %</strong>
+                    </div>
+                    {point.pick && onPick ? (
+                      <div className="t-note">Tocá para filtrar por este.</div>
+                    ) : null}
                   </div>
-                  <div className="t-row">
-                    <span>Parte de lo dibujado</span>
-                    <strong>{say(share, 1)} %</strong>
-                  </div>
-                  {point.pick && onPick ? (
-                    <div className="t-note">Tocá para filtrar por este.</div>
-                  ) : null}
-                </div>
-              );
-            }}
-          />
-        </Treemap>
-      </ResponsiveContainer>
+                );
+              }}
+            />
+          </Treemap>
+        </ResponsiveContainer>
+      </div>
+      <ChartLegend items={key} />
     </div>
   );
+}
+
+/**
+ * La clave de unas barras de un solo color: qué mide la barra y en qué unidad.
+ *
+ * `ShareBars` no dibuja leyenda; todo gráfico la lleva, también con una sola
+ * serie, y esta es la lista de un renglón que cada panel de barras ponía a mano.
+ */
+export function BarsKey({ label, tone = 'var(--official)' }: { label: string; tone?: string }) {
+  return <ChartLegend items={[{ color: tone, label }]} />;
 }

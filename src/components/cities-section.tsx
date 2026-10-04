@@ -2,6 +2,7 @@
 
 import { CityPlacesExplorer } from './city-places-explorer';
 import { OnOpenNotice, useOnOpen } from './on-open';
+import { TabHeader } from '@/components/ui/tab-header';
 import type { PlaceFamily } from '@/lib/places';
 
 /**
@@ -15,7 +16,18 @@ import type { PlaceFamily } from '@/lib/places';
 export function CitiesSection() {
   const { payload, failed } = useOnOpen<{ families: PlaceFamily[] }>('/api/familias');
 
-  if (!payload) return <OnOpenNotice what="el catálogo de lugares" failed={failed} />;
-
-  return <CityPlacesExplorer families={payload.families} />;
+  return (
+    <>
+      <TabHeader
+        id="ciudades"
+        title="Ciudades"
+        lede="Qué hay en las ciudades de Bolivia y dónde está: comercios, servicios y otros sitios sobre el mapa, con la fuente y la confianza de cada registro."
+      />
+      {payload ? (
+        <CityPlacesExplorer families={payload.families} />
+      ) : (
+        <OnOpenNotice what="el catálogo de lugares" failed={failed} />
+      )}
+    </>
+  );
 }

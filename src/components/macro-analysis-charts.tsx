@@ -15,8 +15,10 @@ import {
   XAxis,
   YAxis,
 } from 'recharts';
-import type { TooltipContentProps } from 'recharts';
-import type { NameType, ValueType } from 'recharts/types/component/DefaultTooltipContent';
+import { AXIS, ChartLegend, GRID, MOTION, TooltipShell } from './charts';
+import type { LegendItem, TooltipRender } from './charts';
+import { UNIT_LABEL } from './macro-vocabulary';
+import { celda, useDatosDeFigura } from '@/components/ui/panel-data';
 import type { DensityPoint, Fit, HistoBin, LagPoint, MacroStats } from '@/lib/macro-stats';
 
 /**
@@ -29,30 +31,32 @@ import type { DensityPoint, Fit, HistoBin, LagPoint, MacroStats } from '@/lib/ma
  * masa, cuan larga es la cola, que años se salen y cuanto arrastra la serie su
  * propio pasado— y son las mismas que se llevan al PDF.
  *
- * Comparten el lenguaje grafico del resto del tablero: los mismos ejes sin
- * linea, la misma rejilla horizontal, el mismo tooltip y las mismas variables
- * de color, para que moverse entre secciones no parezca cambiar de producto.
+ * Comparten el lenguaje grafico del resto del tablero porque lo importan de
+ * `charts.tsx`: los mismos ejes sin linea, la misma rejilla horizontal, el
+ * mismo tooltip, la misma animacion y las mismas variables de color, para que
+ * moverse entre secciones no parezca cambiar de producto. Cada figura declara
+ * sus cifras al `Panel` que la envuelve, que es lo que hace que se pueda bajar.
  */
-
-type TooltipRender = TooltipContentProps<ValueType, NameType>;
-
-const MOTION = { duration: 700, easing: 'ease-out' } as const;
-/* Mismos ejes y misma rejilla que el resto del tablero, desde los mismos
-   tokens: `--axis-ink` es el gris de rotulo a 4,6:1 y `--grid` el pelo de la
-   rejilla, un paso por encima de la superficie. */
-const AXIS = {
-  stroke: 'var(--axis-ink)',
-  fontSize: 11,
-  tickLine: false,
-  axisLine: false,
-} as const;
-const GRID = { stroke: 'var(--grid)', vertical: false } as const;
 
 const number = (value: number, decimals = 2): string =>
   value.toLocaleString('es-BO', {
     minimumFractionDigits: decimals,
     maximumFractionDigits: decimals,
   });
+
+/**
+ * La unidad como se dice en pantalla y en los archivos que se bajan.
+ *
+ * `NATIVE` son las series del catálogo del Banco Mundial: cada una viene en la unidad que su
+ * publicador quiso y la base no la guarda aparte, así que decir «NATIVE» no le dice nada a un
+ * lector. Lo honesto es decir que es la de la fuente; casi siempre ya está en el nombre.
+ */
+export const unitName = (unit: string): string =>
+  unit === 'NATIVE' ? 'unidad de la fuente' : (UNIT_LABEL[unit] ?? unit);
+
+/** El título de un panel de indicador, con su unidad; si el nombre ya trae una, no se repite. */
+export const titleWithUnit = (name: string, unit: string): string =>
+  unit === 'NATIVE' && /([^)]+)/.test(name) ? name : `${name} (${unitName(unit)})`;
 
 /** Un valor con los decimales que su magnitud justifica. */
 export const compactNumber = (value: number): string => {
@@ -63,32 +67,6 @@ export const compactNumber = (value: number): string => {
   if (magnitude >= 10) return number(value, 1);
   return number(value, 2);
 };
-
-function TooltipShell({
-  label,
-  rows,
-  note,
-}: {
-  label: string;
-  rows: Array<{ name: string; value: string; color?: string }>;
-  note?: string;
-}) {
-  return (
-    <div className="tooltip">
-      <div className="t-date">{label}</div>
-      {rows.map((row) => (
-        <div className="t-row" key={row.name}>
-          <span>
-            {row.color ? <i className="t-key" style={{ color: row.color }} /> : null}
-            {row.name}
-          </span>
-          <strong>{row.value}</strong>
-        </div>
-      ))}
-      {note ? <div className="t-note">{note}</div> : null}
-    </div>
-  );
-}
 
 /* Densidad e histograma -------------------------------------------------- */
 
@@ -106,33 +84,19 @@ function TooltipShell({
  * Las lineas verticales son la media y la mediana. Verlas separadas es la
  * manera mas rapida de entender el signo de la asimetria que la tabla reporta.
  */
-export function DensityHistogram({
-  bins,
-  curve,
-  stats,
-  unit,
-}: {
-  bins: HistoBin[];
-  curve: DensityPoint[];
-  stats: MacroStats;
-  unit: string;
-}) {
-  if (bins.length < 2) {
-    return <p className="analysis-empty">Faltan observaciones para estimar una distribución.</p>;
-  }
-
+/**
+ * Cada intervalo con su cuenta y la densidad evaluada en su centro, llevada a años.
+ *
+ * Una densidad integra uno y un histograma suma n, asi que dibujadas contra
+ * el mismo eje la curva seria una linea pegada al cero. Multiplicar por n y
+ * por el ancho del intervalo es el cambio de unidad que las vuelve
+ * comparables, y evita el segundo eje —un eje derecho rotulado «densidad» no
+ * le dice nada a nadie que no venga a buscarlo.
+ */
+function densityRows(bins: HistoBin[], curve: DensityPoint[], stats: MacroStats) {
   const width = (bins[0]?.to ?? 0) - (bins[0]?.from ?? 0);
-  /**
-   * La densidad evaluada en el centro de cada intervalo y llevada a años.
-   *
-   * Una densidad integra uno y un histograma suma n, asi que dibujadas contra
-   * el mismo eje la curva seria una linea pegada al cero. Multiplicar por n y
-   * por el ancho del intervalo es el cambio de unidad que las vuelve
-   * comparables, y evita el segundo eje —un eje derecho rotulado «densidad» no
-   * le dice nada a nadie que no venga a buscarlo.
-   */
   const scale = stats.n * width;
-  const data = bins.map((bin) => {
+  return bins.map((bin) => {
     let nearest = curve[0];
     for (const point of curve) {
       if (Math.abs(point.x - bin.centre) < Math.abs((nearest?.x ?? Infinity) - bin.centre)) {
@@ -146,6 +110,49 @@ export function DensityHistogram({
       tail: bin.centre < stats.lowFence || bin.centre > stats.highFence,
     };
   });
+}
+
+export function DensityHistogram({
+  bins,
+  curve,
+  stats,
+  unit,
+}: {
+  bins: HistoBin[];
+  curve: DensityPoint[];
+  stats: MacroStats;
+  unit: string;
+}) {
+  useDatosDeFigura(
+    () =>
+      bins.length < 2
+        ? undefined
+        : {
+            unidad: 'años por intervalo',
+            etiqueta: 'Histograma y densidad',
+            columnas: [
+              `Desde (${unit})`,
+              `Hasta (${unit})`,
+              'Años en el intervalo',
+              'Densidad (llevada a años)',
+              'Fuera de los bigotes',
+            ],
+            filas: densityRows(bins, curve, stats).map((row) => [
+              celda(row.from),
+              celda(row.to),
+              celda(row.count),
+              celda(row.curve),
+              row.tail ? 'sí' : 'no',
+            ]),
+          },
+    [bins, curve, stats, unit],
+  );
+
+  if (bins.length < 2) {
+    return <p className="analysis-empty">Faltan observaciones para estimar una distribución.</p>;
+  }
+
+  const data = densityRows(bins, curve, stats);
 
   // Dónde caen la media y la mediana sobre un eje que es de categorías: el
   // intervalo que las contiene. Cuando caen en el mismo, solo se rotula la
@@ -247,40 +254,18 @@ export function DensityHistogram({
         cola, o pasar el puntero por encima. Quien imprime la pagina no podia
         deducirlo nunca.
       */}
-      <ul className="chart-legend">
-        <li>
-          <span className="chart-legend-mark" style={{ background: 'var(--official)' }} />
-          años por intervalo
-        </li>
-        <li>
-          <span className="chart-legend-mark" style={{ background: 'var(--up)' }} />
-          fuera de los bigotes
-        </li>
-        <li>
-          <span
-            className="chart-legend-mark chart-legend-mark-line"
-            style={{ color: 'var(--gap)' }}
-          />
-          densidad
-        </li>
-        <li>
-          <span
-            className="chart-legend-mark chart-legend-mark-line chart-legend-mark-dashed"
-            style={{ color: 'var(--parallel)' }}
-          />
-          media
-        </li>
-        <li>
-          <span
-            className="chart-legend-mark chart-legend-mark-line"
-            style={{ color: 'var(--ink)' }}
-          />
-          mediana
-        </li>
-      </ul>
+      <ChartLegend items={DENSITY_KEY} />
     </div>
   );
 }
+
+const DENSITY_KEY: ReadonlyArray<LegendItem> = [
+  { color: 'var(--official)', label: 'años por intervalo' },
+  { color: 'var(--up)', label: 'fuera de los bigotes' },
+  { color: 'var(--gap)', label: 'densidad', shape: 'line' },
+  { color: 'var(--parallel)', label: 'media', shape: 'line', dashed: true },
+  { color: 'var(--ink)', label: 'mediana', shape: 'line' },
+];
 
 /** El intervalo en cuyo centro cae un valor, para marcarlo sobre un eje de categorías. */
 function nearestLabel(bins: ReadonlyArray<HistoBin>, value: number): string | undefined {
@@ -315,6 +300,31 @@ export function ViolinPlot({
   unit: string;
   tone?: string;
 }) {
+  useDatosDeFigura(() => {
+    if (curve.length < 3) return undefined;
+    const inside = stats.spark.filter(
+      (value) => value >= stats.lowFence && value <= stats.highFence,
+    );
+    const whiskerLow = inside.length ? Math.min(...inside) : stats.min.value;
+    const whiskerHigh = inside.length ? Math.max(...inside) : stats.max.value;
+    return {
+      unidad: unit,
+      etiqueta: 'Violín',
+      columnas: ['Medida', `Valor (${unit})`],
+      filas: [
+        ['Mínimo', celda(stats.min.value)],
+        ['Bigote inferior', celda(whiskerLow)],
+        ['Primer cuartil (Q1)', celda(stats.q1)],
+        ['Mediana', celda(stats.median)],
+        ['Media', celda(stats.mean)],
+        ['Tercer cuartil (Q3)', celda(stats.q3)],
+        ['Bigote superior', celda(whiskerHigh)],
+        ['Máximo', celda(stats.max.value)],
+        ...stats.outliers.map((row) => [`Atípico ${row.period}`, celda(row.value)]),
+      ],
+    };
+  }, [curve, stats, unit]);
+
   if (curve.length < 3) {
     return <p className="analysis-empty">Faltan observaciones para dibujar un violín.</p>;
   }
@@ -372,7 +382,7 @@ export function ViolinPlot({
               textAnchor="end"
               fontSize={10}
               fill="var(--axis-ink)"
-              fontFamily="var(--mono)"
+              fontFamily="var(--sans)"
             >
               {compactNumber(tick)}
             </text>
@@ -465,24 +475,14 @@ export function ViolinPlot({
           {stats.n} observaciones · {outliers.size} atípica{outliers.size === 1 ? '' : 's'}
         </text>
       </svg>
-      <ul className="chart-legend">
-        <li>
-          <span className="chart-legend-mark" style={{ background: tone, opacity: 0.5 }} />
-          densidad
-        </li>
-        <li>
-          <span className="chart-legend-mark" style={{ background: 'var(--ink)' }} />
-          mediana y RIC
-        </li>
-        <li>
-          <span className="chart-legend-mark" style={{ background: 'var(--parallel)' }} />
-          media
-        </li>
-        <li>
-          <span className="chart-legend-mark" style={{ background: 'var(--up)' }} />
-          atípicos
-        </li>
-      </ul>
+      <ChartLegend
+        items={[
+          { color: tone, label: 'densidad' },
+          { color: 'var(--ink)', label: 'mediana y RIC' },
+          { color: 'var(--parallel)', label: 'media' },
+          { color: 'var(--up)', label: 'atípicos' },
+        ]}
+      />
     </div>
   );
 }
@@ -520,6 +520,8 @@ export function ScatterTrend({
   xScale = 'valor',
   yScale = 'valor',
   tone = 'var(--official)',
+  etiqueta,
+  declarar = true,
 }: {
   points: ScatterDatum[];
   fit: Fit;
@@ -533,7 +535,27 @@ export function ScatterTrend({
   xScale?: AxisScale;
   yScale?: AxisScale;
   tone?: string;
+  /** Cómo se llama esta figura en el archivo que se baja: «Nivel contra año». */
+  etiqueta?: string;
+  /**
+   * Si la figura entrega sus cifras al panel. Las cuatro lecturas de correlación
+   * están montadas a la vez (el PDF copia lo que hay en pantalla) y solo la que se
+   * ve debe bajarse.
+   */
+  declarar?: boolean;
 }) {
+  useDatosDeFigura(
+    () =>
+      declarar && points.length >= 3
+        ? {
+            etiqueta,
+            columnas: ['Periodo', xLabel, yLabel],
+            filas: points.map((point) => [point.period, celda(point.x), celda(point.y)]),
+            nota: `Recta de ajuste por mínimos cuadrados: r = ${number(fit.r, 3)}, R² = ${number(fit.r2, 3)}, ${fit.n} pares.`,
+          }
+        : undefined,
+    [points, xLabel, yLabel, etiqueta, declarar, fit],
+  );
   const xFormat = SCALE[xScale];
   const yFormat = SCALE[yScale];
 
@@ -580,42 +602,50 @@ export function ScatterTrend({
         salte mientras dibuja— así que el pie con la r va fuera de ella. Dentro,
         se salía por debajo del borde de la tarjeta.
       */}
-      <div className="chart-frame">
-        <ResponsiveContainer width="100%" height="100%">
-          <ComposedChart data={points} margin={{ top: 12, right: 18, bottom: 18, left: 4 }}>
-            <CartesianGrid {...GRID} />
-            <XAxis
-              type="number"
-              dataKey="x"
-              domain={['dataMin', 'dataMax']}
-              tickFormatter={xFormat}
-              minTickGap={26}
-              {...AXIS}
-            />
-            <YAxis
-              type="number"
-              dataKey="y"
-              domain={['auto', 'auto']}
-              tickFormatter={yFormat}
-              width={52}
-              {...AXIS}
-            />
-            <Tooltip content={renderTooltip} cursor={{ strokeDasharray: '3 3' }} />
-            <ReferenceLine
-              segment={segment}
-              stroke="var(--parallel)"
-              strokeWidth={1.8}
-              strokeDasharray="6 4"
-            />
-            <Scatter
-              dataKey="y"
-              fill={tone}
-              fillOpacity={0.72}
-              animationDuration={MOTION.duration}
-              animationEasing={MOTION.easing}
-            />
-          </ComposedChart>
-        </ResponsiveContainer>
+      <div className="chart-stack">
+        <div className="chart-frame">
+          <ResponsiveContainer width="100%" height="100%">
+            <ComposedChart data={points} margin={{ top: 12, right: 18, bottom: 18, left: 4 }}>
+              <CartesianGrid {...GRID} />
+              <XAxis
+                type="number"
+                dataKey="x"
+                domain={['dataMin', 'dataMax']}
+                tickFormatter={xFormat}
+                minTickGap={26}
+                {...AXIS}
+              />
+              <YAxis
+                type="number"
+                dataKey="y"
+                domain={['auto', 'auto']}
+                tickFormatter={yFormat}
+                width={52}
+                {...AXIS}
+              />
+              <Tooltip content={renderTooltip} cursor={{ strokeDasharray: '3 3' }} />
+              <ReferenceLine
+                segment={segment}
+                stroke="var(--parallel)"
+                strokeWidth={1.8}
+                strokeDasharray="6 4"
+              />
+              <Scatter
+                dataKey="y"
+                fill={tone}
+                fillOpacity={0.72}
+                animationDuration={MOTION.duration}
+                animationEasing={MOTION.easing}
+              />
+            </ComposedChart>
+          </ResponsiveContainer>
+        </div>
+        <ChartLegend
+          items={[
+            { color: tone, label: 'cada año' },
+            { color: 'var(--parallel)', label: 'recta de ajuste', shape: 'line', dashed: true },
+          ]}
+        />
       </div>
       <p className="chart-note">
         r = <b>{number(fit.r, 3)}</b> · R² = <b>{number(fit.r2, 3)}</b> · {fit.n} pares ·{' '}
@@ -637,7 +667,34 @@ export function ScatterTrend({
  * sorteo. Un stock de deuda mantiene barras altas diez años después; una
  * variación de precios suele apagarse al primero o al segundo.
  */
-export function LagBars({ lags, band, label }: { lags: LagPoint[]; band: number; label: string }) {
+export function LagBars({
+  lags,
+  band,
+  label,
+  declarar = true,
+}: {
+  lags: LagPoint[];
+  band: number;
+  label: string;
+  /** Si entrega sus cifras al panel; ver `ScatterTrend`. */
+  declarar?: boolean;
+}) {
+  useDatosDeFigura(
+    () =>
+      declarar && lags.length
+        ? {
+            etiqueta: label,
+            columnas: ['Rezago (años)', label, 'Fuera de la banda de ruido'],
+            filas: lags.map((point) => [
+              celda(point.lag),
+              celda(point.correlation),
+              Math.abs(point.correlation) > band ? 'sí' : 'no',
+            ]),
+            nota: `Banda de ruido a ±${number(band, 3)}.`,
+          }
+        : undefined,
+    [lags, band, label, declarar],
+  );
   if (!lags.length) {
     return <p className="analysis-empty">Faltan años para medir la autocorrelación.</p>;
   }
@@ -721,20 +778,13 @@ export function LagBars({ lags, band, label }: { lags: LagPoint[]; band: number;
           </ComposedChart>
         </ResponsiveContainer>
       </div>
-      <ul className="chart-legend">
-        <li>
-          <span className="chart-legend-mark" style={{ background: 'var(--up)' }} />
-          se parece (correlación positiva)
-        </li>
-        <li>
-          <span className="chart-legend-mark" style={{ background: 'var(--down)' }} />
-          se opone (correlación negativa)
-        </li>
-        <li>
-          <span className="chart-legend-mark" style={{ background: 'var(--series-rest)' }} />
-          dentro de la banda de ruido
-        </li>
-      </ul>
+      <ChartLegend
+        items={[
+          { color: 'var(--up)', label: 'se parece (correlación positiva)' },
+          { color: 'var(--down)', label: 'se opone (correlación negativa)' },
+          { color: 'var(--series-rest)', label: 'dentro de la banda de ruido' },
+        ]}
+      />
     </div>
   );
 }
@@ -753,7 +803,28 @@ export interface VariationCell {
  * de la variación, y una racha de crecimiento o un quiebre de régimen aparecen
  * como una banda de color antes de que nadie lea un número.
  */
-export function VariationHeat({ cells, unit }: { cells: VariationCell[]; unit: string }) {
+export function VariationHeat({
+  cells,
+  unit,
+  declarar = true,
+}: {
+  cells: VariationCell[];
+  unit: string;
+  /** Si entrega sus cifras al panel; ver `ScatterTrend`. */
+  declarar?: boolean;
+}) {
+  useDatosDeFigura(
+    () =>
+      declarar && cells.some((cell) => cell.change !== null)
+        ? {
+            unidad: '% anual',
+            etiqueta: 'Variación por año',
+            columnas: ['Periodo', `Variación anual (%) · ${unit}`],
+            filas: cells.map((cell) => [cell.period, celda(cell.change)]),
+          }
+        : undefined,
+    [cells, unit, declarar],
+  );
   const known = cells.filter((cell) => cell.change !== null);
   if (!known.length) {
     return (

@@ -3,7 +3,8 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { Icon } from './icons';
 import type { Place } from '@/lib/places';
-import { reportDownloadIntent } from '@/lib/analytics';
+import { celda, useDatosDeFigura, useImagenDeFigura } from '@/components/ui/panel-data';
+import type { DatosDeFigura } from '@/components/ui/panel-data';
 import {
   APPROXIMATE_POSITION_NOTE,
   LOW_CONFIDENCE_NOTE,
@@ -208,18 +209,46 @@ function at(sorted: number[], fraction: number): number {
   return sorted[index] as number;
 }
 
-export function PlacesMap({
-  places,
-  csvHref,
-  jsonHref,
-  fileName = 'lugares',
-}: {
-  places: Place[];
-  /** Where the same selection can be had as a file, if the caller offers one. */
-  csvHref?: string;
-  jsonHref?: string;
-  fileName?: string;
-}) {
+/** Todos los lugares dibujados, como tabla: lo que bajan el mapa y la tabla de detalle. */
+export function placesDataset(places: Place[]): DatosDeFigura {
+  return {
+    etiqueta: 'Lugares dibujados',
+    columnas: [
+      'Lugar',
+      'Identificador',
+      'Familia',
+      'Grupo',
+      'Marca',
+      'Dirección',
+      'Zona',
+      'Ciudad',
+      'Confianza (%)',
+      'Calidad',
+      'Actividad regulada',
+      'Fuente de validación',
+      'Latitud',
+      'Longitud',
+    ],
+    filas: places.map((place) => [
+      place.name,
+      place.placeId,
+      place.entityFamily,
+      place.entityGroup,
+      place.brand ?? null,
+      place.address ?? null,
+      place.zone ?? null,
+      place.city,
+      place.confidence === null ? null : celda(Math.round(place.confidence * 100)),
+      place.qualityGrade ?? null,
+      place.isRegulated ? 'sí' : 'no',
+      place.officialValidationSource ?? null,
+      celda(place.latitude),
+      celda(place.longitude),
+    ]),
+  };
+}
+
+export function PlacesMap({ places }: { places: Place[] }) {
   /**
    * Which place the pointer is over, held here rather than lifted to the
    * chapter above. Nothing outside this figure reacts to a hover, and a
@@ -892,15 +921,15 @@ export function PlacesMap({
    * stopped being. The squares are fetched with CORS and painted, then the
    * points on top of them.
    */
-  const savePng = useCallback(async () => {
-    if (!layout || !tiles) return;
+  const makePng = useCallback(async (): Promise<Blob | null> => {
+    if (!layout || !tiles) return null;
     const width = 1800;
     const height = Math.max(Math.round((width * view.height) / view.width), 1);
     const canvas = document.createElement('canvas');
     canvas.width = width;
     canvas.height = height;
     const context = canvas.getContext('2d');
-    if (!context) return;
+    if (!context) return null;
 
     const style = getComputedStyle(document.documentElement);
     const read = (name: string, fallback: string) =>
@@ -959,19 +988,19 @@ export function PlacesMap({
     context.fillStyle = '#333';
     context.fillText('© OpenStreetMap contributors', 8, height - 9);
 
-    canvas.toBlob((blob) => {
-      if (!blob) return;
-      reportDownloadIntent('mapa-png');
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = `${fileName}.png`;
-      document.body.append(link);
-      link.click();
-      link.remove();
-      setTimeout(() => URL.revokeObjectURL(url), 4000);
-    }, 'image/png');
-  }, [layout, tiles, view, radius, fileName]);
+    return new Promise<Blob | null>((resolve) =>
+      canvas.toBlob((blob) => resolve(blob), 'image/png'),
+    );
+  }, [layout, tiles, view, radius]);
+
+  /*
+   * El mapa ofrece su imagen y sus cifras al menú «Descargar» del panel que lo
+   * contiene. La imagen la compone él —con las teselas y la atribución—, porque
+   * el afiche común no puede cargar recursos externos; las cifras son todos los
+   * lugares dibujados, no la página de la tabla.
+   */
+  useImagenDeFigura(layout && tiles ? makePng : undefined);
+  useDatosDeFigura(() => placesDataset(places), [places]);
 
   if (!layout) {
     return <div className="callout">No hay lugares que dibujar con esta selección.</div>;
@@ -1088,23 +1117,6 @@ export function PlacesMap({
             >
               Todo
             </button>
-          ) : null}
-
-          <span className="places-map-sep" aria-hidden="true" />
-
-          <button type="button" className="download-btn" onClick={() => void savePng()}>
-            <Icon name="descarga" size={13} />
-            PNG
-          </button>
-          {csvHref ? (
-            <a className="download-btn" href={csvHref}>
-              CSV
-            </a>
-          ) : null}
-          {jsonHref ? (
-            <a className="download-btn" href={jsonHref}>
-              JSON
-            </a>
           ) : null}
         </div>
       </div>

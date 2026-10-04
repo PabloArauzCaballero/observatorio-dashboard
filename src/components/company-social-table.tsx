@@ -2,10 +2,22 @@
 
 import { useState } from 'react';
 import { CompanyLogo } from './company-logo';
+import { SOCIAL_SOURCE } from './company-social-source';
 import { Pager } from './pager';
+import { Panel } from '@/components/ui/panel';
 import type { Choice } from '@/lib/choice';
-import { PLATFORM_LABEL, SOCIAL_PLATFORMS, type SocialCompany, type SocialPlatform } from '@/lib/company-social-board';
-import { companyEngagement, companyPace, companySentiment, followersOf } from '@/lib/company-social-view';
+import {
+  PLATFORM_LABEL,
+  SOCIAL_PLATFORMS,
+  type SocialCompany,
+  type SocialPlatform,
+} from '@/lib/company-social-board';
+import {
+  companyEngagement,
+  companyPace,
+  companySentiment,
+  followersOf,
+} from '@/lib/company-social-view';
 
 /**
  * Las empresas, una fila cada una, con sus cuentas en columnas.
@@ -38,8 +50,8 @@ const count = (value: number): string =>
   value >= 1_000_000
     ? `${(value / 1_000_000).toLocaleString('es-BO', { maximumFractionDigits: 2 })} M`
     : value >= 10_000
-    ? `${(value / 1_000).toLocaleString('es-BO', { maximumFractionDigits: value >= 100_000 ? 0 : 1 })} mil`
-    : value.toLocaleString('es-BO');
+      ? `${(value / 1_000).toLocaleString('es-BO', { maximumFractionDigits: value >= 100_000 ? 0 : 1 })} mil`
+      : value.toLocaleString('es-BO');
 
 export function CompanySocialTable({
   companies,
@@ -54,7 +66,9 @@ export function CompanySocialTable({
 }) {
   const [sort, setSort] = useState<{ key: SortKey; down: boolean }>({ key: 'total', down: true });
   const [offset, setOffset] = useState(0);
-  const shownPlatforms = SOCIAL_PLATFORMS.filter((platform) => platforms.size === 0 || platforms.has(platform));
+  const shownPlatforms = SOCIAL_PLATFORMS.filter(
+    (platform) => platforms.size === 0 || platforms.has(platform),
+  );
 
   const valueOf = (company: SocialCompany, key: SortKey): number | null => {
     if (key === 'merco') return company.mercoRank === null ? null : -company.mercoRank;
@@ -79,7 +93,11 @@ export function CompanySocialTable({
   const head = (key: SortKey, numeric = true) => {
     const active = sort.key === key;
     return (
-      <th key={key} className={numeric ? 'num' : undefined} aria-sort={active ? (sort.down ? 'descending' : 'ascending') : 'none'}>
+      <th
+        key={key}
+        className={numeric ? 'num' : undefined}
+        aria-sort={active ? (sort.down ? 'descending' : 'ascending') : 'none'}
+      >
         <button
           type="button"
           className={active ? 'roads-sort roads-sort-on' : 'roads-sort'}
@@ -96,15 +114,51 @@ export function CompanySocialTable({
   };
 
   return (
-    <section className="panel">
-      <div className="panel-head">
-        <h2>Seguidores por red y empresa (cuentas declaradas; interacción en %, sentimiento en puntos)</h2>
-        <p className="panel-sub">
-          {rows.length} empresas con los filtros puestos. «Interacción» es la mediana de interacciones por post sobre
-          seguidores; «Sentimiento», % de comentarios positivos menos % negativos. Toca un encabezado para ordenar y
-          una empresa para aislarla abajo.
+    <Panel
+      id="empresas-redes-tabla"
+      title="Seguidores por red y empresa (cuentas declaradas; interacción en %, sentimiento en puntos)"
+      lede={`${rows.length} empresas con los filtros puestos.`}
+      source={SOCIAL_SOURCE}
+      data={() => ({
+        unidad: 'seguidores',
+        columnas: [
+          'Empresa',
+          'Puesto Merco',
+          ...shownPlatforms.map((platform) => `${PLATFORM_LABEL[platform]} (seguidores)`),
+          'Total de seguidores',
+          'Interacción por post (%)',
+          'Posts por semana',
+          'Sentimiento neto (puntos)',
+          'Comentarios clasificados',
+        ],
+        filas: rows.map((company) => {
+          const sentiment = companySentiment(company, platforms);
+          return [
+            company.name,
+            company.mercoRank,
+            ...shownPlatforms.map((platform) => {
+              const account = company.accounts.find((one) => one.platform === platform);
+              if (!account) return null;
+              if (account.status !== 'OK') return STATUS_LABEL[account.status] ?? account.status;
+              return account.followers;
+            }),
+            followersOf(company, platforms),
+            companyEngagement(company, platforms),
+            companyPace(company, platforms),
+            sentiment ? Math.round(sentiment.net) : null,
+            sentiment ? sentiment.analyzed : null,
+          ];
+        }),
+      })}
+    >
+      <details className="panel-note">
+        <summary>Cómo leerlo</summary>
+        <p>
+          «Interacción» es la mediana de interacciones por post sobre seguidores; «Sentimiento», %
+          de comentarios positivos menos % negativos. Toca un encabezado para ordenar y una empresa
+          para aislarla abajo.
         </p>
-      </div>
+      </details>
       <Pager
         page={page}
         pages={pages}
@@ -146,7 +200,9 @@ export function CompanySocialTable({
                         type="button"
                         className="social-company"
                         aria-pressed={on}
-                        onClick={(event) => onFocus(company.slug, event.ctrlKey || event.metaKey || event.shiftKey)}
+                        onClick={(event) =>
+                          onFocus(company.slug, event.ctrlKey || event.metaKey || event.shiftKey)
+                        }
                       >
                         <CompanyLogo slug={company.slug} name={company.name} size={24} />
                         <span>{company.name}</span>
@@ -155,17 +211,31 @@ export function CompanySocialTable({
                     <td className="num">{company.mercoRank ?? '—'}</td>
                     {shownPlatforms.map((platform) => {
                       const account = company.accounts.find((one) => one.platform === platform);
-                      if (!account) return <td key={platform} className="num social-none">—</td>;
+                      if (!account)
+                        return (
+                          <td key={platform} className="num social-none">
+                            —
+                          </td>
+                        );
                       if (account.status !== 'OK') {
                         return (
-                          <td key={platform} className="num social-unread" title={account.note ?? ''}>
+                          <td
+                            key={platform}
+                            className="num social-unread"
+                            title={account.note ?? ''}
+                          >
                             {STATUS_LABEL[account.status] ?? account.status}
                           </td>
                         );
                       }
                       return (
                         <td key={platform} className="num">
-                          <a href={account.url} target="_blank" rel="noopener noreferrer" title={`@${account.handle}`}>
+                          <a
+                            href={account.url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            title={`@${account.handle}`}
+                          >
                             {account.followers === null ? 's/d' : count(account.followers)}
                           </a>
                         </td>
@@ -174,10 +244,27 @@ export function CompanySocialTable({
                     <td className="num">
                       <b>{total === null ? '—' : count(total)}</b>
                     </td>
-                    <td className="num">{engagement === null ? '—' : `${engagement.toLocaleString('es-BO', { maximumFractionDigits: 2 })} %`}</td>
-                    <td className="num">{pace === null ? '—' : pace.toLocaleString('es-BO', { maximumFractionDigits: 1 })}</td>
-                    <td className="num" title={sentiment ? `${sentiment.analyzed} comentarios` : 'sin comentarios clasificados'}>
-                      {sentiment ? `${sentiment.net > 0 ? '+' : ''}${Math.round(sentiment.net)} (${sentiment.analyzed})` : '—'}
+                    <td className="num">
+                      {engagement === null
+                        ? '—'
+                        : `${engagement.toLocaleString('es-BO', { maximumFractionDigits: 2 })} %`}
+                    </td>
+                    <td className="num">
+                      {pace === null
+                        ? '—'
+                        : pace.toLocaleString('es-BO', { maximumFractionDigits: 1 })}
+                    </td>
+                    <td
+                      className="num"
+                      title={
+                        sentiment
+                          ? `${sentiment.analyzed} comentarios`
+                          : 'sin comentarios clasificados'
+                      }
+                    >
+                      {sentiment
+                        ? `${sentiment.net > 0 ? '+' : ''}${Math.round(sentiment.net)} (${sentiment.analyzed})`
+                        : '—'}
                     </td>
                   </tr>
                 );
@@ -186,6 +273,6 @@ export function CompanySocialTable({
           </table>
         </div>
       )}
-    </section>
+    </Panel>
   );
 }

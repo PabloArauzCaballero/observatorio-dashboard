@@ -8,7 +8,8 @@ import { Icon } from './icons';
 import { OnOpenNotice } from './on-open';
 import { AUTO_DRAWN, FREQUENCY_LABEL, MAX_SELECTED, PAGE, shortLabels } from '@/lib/bcb-board';
 import type { BcbCatalogPage, BcbSeriesData, BcbSeriesInfo } from '@/lib/bcb-board';
-import { reportDownloadIntent } from '@/lib/analytics';
+import { Panel } from '@/components/ui/panel';
+import { celda } from '@/components/ui/panel-data';
 
 /**
  * Las estadísticas del Banco Central, con la misma estructura que las otras pestañas.
@@ -49,25 +50,25 @@ async function getJson<T>(url: string): Promise<T> {
   return (await response.json()) as T;
 }
 
-function csvOf(series: readonly BcbSeriesData[]): string {
-  const quote = (text: string): string => `"${text.replace(/"/gu, '""')}"`;
-  const lines = ['codigo,nombre,unidad,fecha,valor'];
-  for (const one of series) {
-    for (const [date, value] of one.points) {
-      lines.push([one.code, quote(one.name), quote(one.unit ?? ''), date, value].join(','));
-    }
-  }
-  return `${lines.join('\n')}\n`;
-}
+/** Un texto como parte de un identificador: «Millones de Bs» → «millones-de-bs». */
+const slug = (text: string): string =>
+  text
+    .normalize('NFD')
+    .replace(/[̀-ͯ]/g, '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-|-$/g, '');
 
-function download(series: readonly BcbSeriesData[]): void {
-  reportDownloadIntent('bcb-csv');
-  const url = URL.createObjectURL(new Blob([csvOf(series)], { type: 'text/csv;charset=utf-8' }));
-  const link = document.createElement('a');
-  link.href = url;
-  link.download = 'series-bcb.csv';
-  link.click();
-  URL.revokeObjectURL(url);
+/** La unidad dentro de un paréntesis: «En millones de dólares» → «en millones de dólares». */
+const inParens = (unit: string): string =>
+  /^\p{Lu}\p{Ll}/u.test(unit) ? unit.charAt(0).toLowerCase() + unit.slice(1) : unit;
+
+/** El pie de un panel: el banco central y los cuadernos de los que salieron las series. */
+function sourceOf(series: readonly BcbSeriesData[]): string {
+  const titles = [...new Set(series.map((one) => one.workbookTitle))];
+  if (!titles.length) return 'Banco Central de Bolivia';
+  const shown = titles.slice(0, 2).join('; ');
+  return `Banco Central de Bolivia (${shown}${titles.length > 2 ? ` y ${titles.length - 2} más` : ''})`;
 }
 
 /** Las series de una misma unidad como filas de un gráfico, por fecha. */
@@ -151,6 +152,62 @@ function provenance(series: readonly BcbSeriesData[]) {
     byPlace.set(key, entry);
   }
   return [...byPlace.values()].map((entry) => ({ ...entry, where: entry.cells.join('; ') }));
+}
+
+/** Lo último de cada serie elegida y cuánto cambió contra el dato anterior. */
+function LatestReadings({ selected }: { selected: readonly BcbSeriesData[] }) {
+  const labels = shortLabels(selected.map((entry) => entry.name));
+  const rows = selected.flatMap((one, position) => {
+    const last = one.points.at(-1);
+    const before = one.points.at(-2);
+    if (!last) return [];
+    const change =
+      before && before[1] !== 0 ? ((last[1] - before[1]) / Math.abs(before[1])) * 100 : null;
+    return [{ one, short: labels[position] ?? one.name, last, change }];
+  });
+  if (!rows.length) return null;
+  return (
+    <Panel
+      id="bcb-ultimo"
+      title="Último dato de las series elegidas (cada una en su unidad)"
+      lede="La cifra más reciente de cada serie y cuánto cambió contra el dato anterior."
+      source={sourceOf(rows.map((row) => row.one))}
+      data={() => ({
+        unidad: 'cada serie en su unidad; la variación en %',
+        columnas: [
+          'Serie',
+          'Código',
+          'Unidad',
+          'Fecha',
+          'Último',
+          'Variación contra el dato anterior (%)',
+        ],
+        filas: rows.map(({ one, last, change }) => [
+          one.name,
+          one.code,
+          one.unit,
+          last[0],
+          celda(last[1]),
+          celda(change),
+        ]),
+      })}
+    >
+      <div className="stat-strip">
+        {rows.map(({ one, short, last, change }) => (
+          <div className="stat" key={one.code} title={`${one.workbookTitle} · ${one.sheet}`}>
+            <span className="stat-label">{short}</span>
+            <span className="stat-value">{figure(last[1])}</span>
+            <span className="stat-hint">
+              {one.unit ?? 'sin unidad declarada'} · {sayMonth(last[0])}
+              {change === null
+                ? ''
+                : ` · ${change >= 0 ? '+' : ''}${figure(change)} % contra el dato anterior`}
+            </span>
+          </div>
+        ))}
+      </div>
+    </Panel>
+  );
 }
 
 export function BcbSection() {
@@ -288,16 +345,19 @@ export function BcbSection() {
 
   return (
     <>
-      <div className="panel">
-        <div className="panel-head">
-          <h2>Estadísticas del Banco Central de Bolivia</h2>
-          <p className="panel-sub">
-            Las series que el BCB publica en sus cuadernos de Excel: reservas, dinero y bancos,
-            precios, tasas de interés, sector externo y sistema de pagos. Entrá por el informe y la
-            hoja en el riel de la izquierda; los filtros se recortan entre sí. Cada serie guarda el
-            cuaderno, la hoja y la celda de la que salió.
+      <header className="page-intro">
+        <h3 className="page-intro-title">Estadísticas del Banco Central de Bolivia</h3>
+        <p className="page-intro-lede">
+          Las series que el BCB publica en sus cuadernos de Excel: reservas, dinero y bancos,
+          precios, tasas de interés, sector externo y sistema de pagos.
+        </p>
+        <details className="panel-note">
+          <summary>Cómo leerlo</summary>
+          <p>
+            Entrá por el informe y la hoja en el riel de la izquierda; los filtros se recortan entre
+            sí. Cada serie guarda el cuaderno, la hoja y la celda de la que salió.
           </p>
-        </div>
+        </details>
         <div className="chips" role="tablist" aria-label="Familia">
           <button
             type="button"
@@ -344,7 +404,7 @@ export function BcbSection() {
             <span className="stat-hint">entre las series a la vista</span>
           </div>
         </div>
-      </div>
+      </header>
 
       <div className="workspace workspace-filters-first">
         <aside className="rail" id="bcb-filtros">
@@ -467,36 +527,29 @@ export function BcbSection() {
           ) : null}
 
           {selected.length ? (
-            <div className="stat-strip">
-              {selected.map((one, position) => {
-                const short =
-                  shortLabels(selected.map((entry) => entry.name))[position] ?? one.name;
-                const last = one.points.at(-1);
-                const before = one.points.at(-2);
-                if (!last) return null;
-                const change =
-                  before && before[1] !== 0
-                    ? ((last[1] - before[1]) / Math.abs(before[1])) * 100
-                    : null;
-                return (
-                  <div
-                    className="stat"
-                    key={one.code}
-                    title={`${one.workbookTitle} · ${one.sheet}`}
-                  >
-                    <span className="stat-label">{short}</span>
-                    <span className="stat-value">{figure(last[1])}</span>
-                    <span className="stat-hint">
-                      {one.unit ?? 'sin unidad declarada'} · {sayMonth(last[0])}
-                      {change === null
-                        ? ''
-                        : ` · ${change >= 0 ? '+' : ''}${figure(change)} % contra el dato anterior`}
-                    </span>
-                  </div>
-                );
-              })}
+            <div className="list-bar">
+              <div className="list-bar-text">
+                <h3>Series elegidas</h3>
+                <span className="tile-hint">
+                  {selected.length} de hasta {MAX_SELECTED}; cada gráfico se baja desde su menú
+                </span>
+              </div>
+              <div className="download">
+                <button
+                  type="button"
+                  className="download-btn"
+                  onClick={() => {
+                    setManual(true);
+                    setPicked([]);
+                  }}
+                >
+                  Quitar todas
+                </button>
+              </div>
             </div>
           ) : null}
+
+          {selected.length ? <LatestReadings selected={selected} /> : null}
 
           {[...groups.entries()].map(([unit, group]) => {
             const labels = shortLabels(group.map((one) => one.name));
@@ -509,16 +562,16 @@ export function BcbSection() {
             const firstYear = Math.min(...group.map((one) => Number(one.firstPeriod.slice(0, 4))));
             const lastYear = Math.max(...group.map((one) => Number(one.lastPeriod.slice(0, 4))));
             return (
-              <div className="panel" key={unit}>
-                <div className="panel-head">
-                  <h2>{unit}</h2>
-                  <p className="panel-sub">
-                    {group
-                      .map((one) => `${one.workbookTitle} · ${one.sheet}`)
-                      .filter((t, i, all) => all.indexOf(t) === i)
-                      .join(' — ')}
-                  </p>
-                </div>
+              <Panel
+                key={unit}
+                id={`bcb-grafico-${slug(unit)}`}
+                title={`Series del Banco Central (${inParens(unit)})`}
+                lede={group
+                  .map((one) => `${one.workbookTitle} · ${one.sheet}`)
+                  .filter((t, i, all) => all.indexOf(t) === i)
+                  .join(' — ')}
+                source={sourceOf(group)}
+              >
                 <DatedLines
                   data={rowsOf(group)}
                   series={lines}
@@ -527,38 +580,61 @@ export function BcbSection() {
                   yearTicks={lastYear - firstYear >= 2}
                   {...floor(group)}
                 />
-              </div>
+                <details className="panel-note">
+                  <summary>De dónde salió</summary>
+                  <p>
+                    {provenance(group).map((entry, index) => (
+                      <span key={entry.key}>
+                        {index ? ' · ' : ''}
+                        {entry.url ? (
+                          <a href={entry.url} target="_blank" rel="noreferrer">
+                            {entry.title}
+                          </a>
+                        ) : (
+                          entry.title
+                        )}
+                        {`, hoja «${entry.sheet}», ${entry.where}`}
+                      </span>
+                    ))}
+                    .
+                  </p>
+                </details>
+              </Panel>
             );
           })}
 
-          {selected.length ? (
-            <p className="panel-sub">
-              <button type="button" className="chip" onClick={() => download(selected)}>
-                <Icon name="descarga" size={13} /> Descargar las {selected.length} en CSV
-              </button>{' '}
-              <button
-                type="button"
-                className="chip"
-                onClick={() => {
-                  setManual(true);
-                  setPicked([]);
-                }}
-              >
-                Quitar todas
-              </button>
-            </p>
-          ) : null}
-
-          <div className="panel">
-            <div className="panel-head">
-              <h2>
-                Series de este recorte ({page.total.toLocaleString('es-BO')}){loading ? ' …' : ''}
-              </h2>
-              <p className="panel-sub">
-                Elegí hasta {MAX_SELECTED} para dibujarlas juntas. Las de distinta unidad van en
-                gráficos separados.
-              </p>
-            </div>
+          <Panel
+            id="bcb-series"
+            title={`Series de este recorte (${page.total.toLocaleString('es-BO')} series)`}
+            lede={`Elegí hasta ${MAX_SELECTED} para dibujarlas juntas. Las de distinta unidad van en gráficos separados.`}
+            meta={
+              loading ? 'Actualizando…' : `${shown.length} de ${page.total.toLocaleString('es-BO')}`
+            }
+            source="Banco Central de Bolivia (catálogo de cuadernos y hojas que recoge el Observatorio)"
+            data={() => ({
+              unidad: 'cada serie en su unidad; aquí solo el catálogo, sin los valores',
+              columnas: [
+                'Serie',
+                'Código',
+                'Informe',
+                'Hoja',
+                'Unidad',
+                'Frecuencia',
+                'Desde',
+                'Hasta',
+              ],
+              filas: shown.map((one) => [
+                one.name,
+                one.code,
+                one.workbookTitle,
+                one.sheet,
+                one.unit,
+                FREQUENCY_LABEL[one.frequency] ?? one.frequency,
+                celda(one.firstPeriod),
+                celda(one.lastPeriod),
+              ]),
+            })}
+          >
             <div className="table-wrap">
               <table className="grid-table">
                 <thead>
@@ -608,27 +684,7 @@ export function BcbSection() {
                 </button>
               </p>
             ) : null}
-          </div>
-
-          {selected.length ? (
-            <p className="panel-sub">
-              <Icon name="info" size={12} /> De dónde salió lo dibujado:{' '}
-              {provenance(selected).map((entry, index) => (
-                <span key={entry.key}>
-                  {index ? ' · ' : ''}
-                  {entry.url ? (
-                    <a href={entry.url} target="_blank" rel="noreferrer">
-                      {entry.title}
-                    </a>
-                  ) : (
-                    entry.title
-                  )}
-                  {`, hoja «${entry.sheet}», ${entry.where}`}
-                </span>
-              ))}
-              .
-            </p>
-          ) : null}
+          </Panel>
         </div>
       </div>
     </>

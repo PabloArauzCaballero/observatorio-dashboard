@@ -1,9 +1,10 @@
 'use client';
 
 import { useMemo, useState } from 'react';
-import { DivergingBars, ShareBars, WorldLines } from './charts';
+import { ChartLegend, DivergingBars, ShareBars, WorldLines } from './charts';
 import { indexBase, indexed, onOneAxis, trio } from './department-lines';
 import { Icon } from './icons';
+import { Panel } from '@/components/ui/panel';
 import {
   ACTIVITY_GROUPS,
   activityMoves,
@@ -38,6 +39,10 @@ import type { DepartmentBoard } from '@/lib/departments-board';
  * impuestos indirectos. Sin igualarlo, cualquier departamento parece menos
  * industrial que el país por una razón puramente contable.
  */
+
+/** Quién publica el producto de cada departamento abierto por actividad. */
+const SOURCE =
+  'Instituto Nacional de Estadística (INE), cuentas regionales por actividad económica';
 
 const number = (value: number, decimals = 1): string =>
   value.toLocaleString('es-BO', {
@@ -109,128 +114,103 @@ export function DepartmentActivities({ board, place }: { board: DepartmentBoard;
 
   if (!structure.length) {
     return (
-      <div className="panel">
-        <div className="panel-head">
-          <h2>El producto de {name} por actividad económica</h2>
-          <p className="panel-sub">
-            Todavía no hay cuadros por actividad cargados para {name}. El capítulo se llena solo
-            cuando el núcleo haya sembrado los cuadros del INE.
-          </p>
-        </div>
+      <div className="callout">
+        Todavía no hay cuadros por actividad cargados para {name}. El capítulo se llena solo cuando
+        el núcleo haya sembrado los cuadros del INE.
       </div>
     );
   }
 
+  const shownName = activityName(shown).toLocaleLowerCase('es');
+  /** ¿La actividad elegida es una de las barras? Entonces el gráfico la resalta y callan las demás. */
+  const marked = structure.some((slice) => slice.slug === shown);
+
   return (
     <>
-      <div className="panel">
-        <div className="tile-head">
-          <Icon name="fabrica" size={17} />
-          <h2>De qué vive {name}</h2>
-          <span className="tile-hint">cuentas regionales por actividad</span>
-        </div>
-        <p className="panel-sub">
-          Las once actividades en que el INE abre el producto departamental, desde 1988. La primera
-          figura dice la estructura, la segunda en qué se aparta del país y la tercera cuál creció
-          de verdad; abajo, cualquiera de ellas seguida en el tiempo contra Bolivia y Santa Cruz.
-        </p>
-      </div>
+      <section className="panel-group" aria-labelledby="dep-act-estructura-titulo">
+        <header className="panel-group-head">
+          <h3 id="dep-act-estructura-titulo">De qué vive {name}</h3>
+          <p>
+            Las once actividades en que el INE abre el producto departamental, desde 1988. La
+            primera figura dice la estructura, la segunda en qué se aparta del país y la tercera
+            cuál creció de verdad; abajo, cualquiera de ellas seguida en el tiempo contra Bolivia y
+            Santa Cruz.
+          </p>
+        </header>
 
-      <div className="grid-three">
-        <div className="panel">
-          <div className="panel-head">
-            <h2>
-              Reparto del producto de {name} por actividad (% del producto, {year ?? '—'})
-            </h2>
-            <p className="panel-sub">
-              De qué vive el departamento. Las once suman cien; los servicios bancarios imputados
-              —el cobro que los bancos no facturan y que la contabilidad resta
-              {imputed === null ? '' : ` (${number(Math.abs(imputed))} % del producto de ${name})`}—
-              quedan fuera del reparto porque son un descuento y no una actividad. Toca una barra
-              para seguirla en el tiempo, abajo.
-            </p>
-          </div>
-          <ShareBars
-            data={structure.map((slice) => ({
-              name: slice.name,
-              value: slice.value,
-              pick: slice.slug,
-              emphasis: slice.slug === shown,
-            }))}
-            unit=" %"
-            height={300}
-            onPick={(pick) => setChosen(pick)}
-          />
-        </div>
+        <div className="grid-three">
+          <Panel
+            id="dep-act-reparto"
+            title={`Reparto del producto de ${name} por actividad (% del producto, ${year ?? '—'})`}
+            lede={`De qué vive el departamento. Las once suman cien; los servicios bancarios imputados —el cobro que los bancos no facturan y que la contabilidad resta${
+              imputed === null ? '' : ` (${number(Math.abs(imputed))} % del producto de ${name})`
+            }— quedan fuera del reparto porque son un descuento y no una actividad. Toca una barra para seguirla en el tiempo, abajo.`}
+            source={SOURCE}
+          >
+            <ShareBars
+              data={structure.map((slice) => ({
+                name: slice.name,
+                value: slice.value,
+                pick: slice.slug,
+                emphasis: slice.slug === shown,
+              }))}
+              unit=" %"
+              height={300}
+              onPick={(pick) => setChosen(pick)}
+            />
+            <ChartLegend
+              items={
+                marked
+                  ? [
+                      { color: 'var(--official)', label: `${activityName(shown)} (la elegida)` },
+                      { color: 'var(--series-rest)', label: 'Las demás actividades' },
+                    ]
+                  : [{ color: 'var(--official)', label: 'Peso en el producto (%)' }]
+              }
+            />
+          </Panel>
 
-        <div className="panel">
-          <div className="panel-head">
-            <h2>
-              Distancia de {name} con Bolivia, por actividad (puntos porcentuales, {year ?? '—'})
-            </h2>
-            <p className="panel-sub">
-              En qué se aparta esta economía de la del país. Cada barra es la diferencia entre el
-              peso que la actividad tiene aquí y el que tiene en Bolivia, con el denominador
-              igualado: el cuadro departamental reparte sobre el producto a precios de mercado y el
-              nacional sobre el valor agregado, y compararlos en crudo haría parecer a cualquier
-              departamento menos industrial de lo que es.
-            </p>
-          </div>
-          <DivergingBars data={gap} unit="puntos" height={300} />
-        </div>
+          <Panel
+            id="dep-act-distancia"
+            title={`Distancia de ${name} con Bolivia, por actividad (puntos porcentuales, ${year ?? '—'})`}
+            lede="En qué se aparta esta economía de la del país. Cada barra es la diferencia entre el peso que la actividad tiene aquí y el que tiene en Bolivia, con el denominador igualado: el cuadro departamental reparte sobre el producto a precios de mercado y el nacional sobre el valor agregado, y compararlos en crudo haría parecer a cualquier departamento menos industrial de lo que es."
+            source={`${SOURCE} y cálculo del Observatorio`}
+          >
+            <DivergingBars data={gap} unit="puntos" height={300} />
+          </Panel>
 
-        <div className="panel">
-          <div className="panel-head">
-            <h2>
-              Crecimiento real por actividad en {name} ({moves.at(0)?.from ?? '—'}–
-              {moves.at(0)?.to ?? '—'}, % acumulado)
-            </h2>
-            <p className="panel-sub">
-              Cuál creció y cuál se encogió de verdad. Va sobre el nivel a precios constantes y no
-              sobre el reparto, porque el reparto es un juego de suma cero: una actividad puede
-              ganar peso sin crecer, sólo porque otra se hundió, y contarlo con el reparto lo
-              contaría al revés.
-            </p>
-          </div>
-          <DivergingBars
-            data={moves.map((row) => ({
-              name: row.name,
-              value: row.change,
-              meta: `${signed(row.change)} % entre ${row.from} y ${row.to}`,
-            }))}
-            unit="%"
-            height={300}
-          />
+          <Panel
+            id="dep-act-crecimiento-acumulado"
+            title={`Crecimiento real por actividad en ${name} (${moves.at(0)?.from ?? '—'}–${
+              moves.at(0)?.to ?? '—'
+            }, % acumulado)`}
+            lede="Cuál creció y cuál se encogió de verdad. Va sobre el nivel a precios constantes y no sobre el reparto, porque el reparto es un juego de suma cero: una actividad puede ganar peso sin crecer, sólo porque otra se hundió, y contarlo con el reparto lo contaría al revés."
+            source={`${SOURCE} y cálculo del Observatorio`}
+          >
+            <DivergingBars
+              data={moves.map((row) => ({
+                name: row.name,
+                value: row.change,
+                meta: `${signed(row.change)} % entre ${row.from} y ${row.to}`,
+              }))}
+              unit="%"
+              height={300}
+            />
+          </Panel>
         </div>
-      </div>
+      </section>
 
-      <div className="panel">
-        <div className="panel-head">
-          <h2>{activityName(shown)}</h2>
-          <p className="panel-sub">
+      <section className="panel-group" aria-labelledby="dep-act-elegida-titulo">
+        <header className="panel-group-head">
+          <h3 id="dep-act-elegida-titulo">{activityName(shown)}</h3>
+          <p>
             Elige la actividad; las tres figuras de abajo hablan de ella en {name}, en Santa Cruz y
             en Bolivia. Las ramas aparecen cuando el INE abre el grupo: son las que dicen si lo que
             se movió fue el gas o el mineral dentro de «minas y canteras».
           </p>
-        </div>
 
-        <div className="chips">
-          {ACTIVITY_GROUPS.map((one) => (
-            <button
-              key={one.slug}
-              type="button"
-              aria-pressed={one.slug === shown}
-              className={one.slug === shown ? 'chip chip-on' : 'chip'}
-              onClick={() => setChosen(one.slug)}
-            >
-              {one.name}
-            </button>
-          ))}
-        </div>
-
-        {branches.length ? (
           <div className="chips">
-            {branches.map((one) => (
+            {ACTIVITY_GROUPS.map((one) => (
               <button
                 key={one.slug}
                 type="button"
@@ -238,81 +218,84 @@ export function DepartmentActivities({ board, place }: { board: DepartmentBoard;
                 className={one.slug === shown ? 'chip chip-on' : 'chip'}
                 onClick={() => setChosen(one.slug)}
               >
-                <Icon name="capas" size={12} /> {one.name}
+                {one.name}
               </button>
             ))}
           </div>
-        ) : null}
-      </div>
 
-      <div className="grid-three">
-        <div className="panel">
-          <div className="panel-head">
-            <h2>
-              Peso de {activityName(shown).toLocaleLowerCase('es')} en su economía (% del producto)
-            </h2>
-            <p className="panel-sub">
-              La estructura, año a año. Es la figura en la que se ve un cambio de motor: una línea
-              que baja mientras las demás no se mueven es una economía que dejó de vivir de algo.
-            </p>
-          </div>
-          {weight.data.length > 1 ? (
-            <WorldLines
-              data={weight.data}
-              series={weight.series}
-              format={(value) => `${number(value)} %`}
-              tick={(value) => number(value, 0)}
-            />
-          ) : (
-            <div className="callout">El INE no publica esta actividad para {name}.</div>
-          )}
-        </div>
+          {branches.length ? (
+            <div className="chips">
+              {branches.map((one) => (
+                <button
+                  key={one.slug}
+                  type="button"
+                  aria-pressed={one.slug === shown}
+                  className={one.slug === shown ? 'chip chip-on' : 'chip'}
+                  onClick={() => setChosen(one.slug)}
+                >
+                  <Icon name="capas" size={12} /> {one.name}
+                </button>
+              ))}
+            </div>
+          ) : null}
+        </header>
 
-        <div className="panel">
-          <div className="panel-head">
-            <h2>Crecimiento anual de {activityName(shown).toLocaleLowerCase('es')} (% anual)</h2>
-            <p className="panel-sub">
-              La variación que el INE publica sobre el nivel a precios constantes de 1990. Donde el
-              cuadro nacional no publica el grupo —sí sus ramas— la línea de Bolivia sale del nivel
-              sumado, año contra año anterior: sumar variaciones no da la variación de la suma.
-            </p>
-          </div>
-          {growth.data.length > 1 ? (
-            <WorldLines
-              data={growth.data}
-              series={growth.series}
-              format={(value) => `${signed(value)} %`}
-              tick={(value) => number(value, 0)}
-            />
-          ) : (
-            <div className="callout">Sin variación publicada para esta actividad.</div>
-          )}
-        </div>
+        <div className="grid-three">
+          <Panel
+            id="dep-act-peso"
+            title={`Peso de ${shownName} en su economía (% del producto)`}
+            lede="La estructura, año a año. Es la figura en la que se ve un cambio de motor: una línea que baja mientras las demás no se mueven es una economía que dejó de vivir de algo."
+            source={SOURCE}
+          >
+            {weight.data.length > 1 ? (
+              <WorldLines
+                data={weight.data}
+                series={weight.series}
+                format={(value) => `${number(value)} %`}
+                tick={(value) => number(value, 0)}
+              />
+            ) : (
+              <div className="callout">El INE no publica esta actividad para {name}.</div>
+            )}
+          </Panel>
 
-        <div className="panel">
-          <div className="panel-head">
-            <h2>
-              Tamaño real de {activityName(shown).toLocaleLowerCase('es')} (índice,{' '}
-              {size.base ?? '—'} = 100)
-            </h2>
-            <p className="panel-sub">
-              En índice y no en bolivianos: el país es la suma de los nueve, así que en la escala de
-              Bolivia un departamento chico sería una raya pegada al cero. El nivel en miles de
-              bolivianos de 1990 sigue en la tabla de cifras del departamento.
-            </p>
-          </div>
-          {size.chart.data.length > 1 ? (
-            <WorldLines
-              data={size.chart.data}
-              series={size.chart.series}
-              format={(value) => number(value)}
-              tick={(value) => number(value, 0)}
-            />
-          ) : (
-            <div className="callout">Sin nivel publicado para esta actividad.</div>
-          )}
+          <Panel
+            id="dep-act-crecimiento-anual"
+            title={`Crecimiento anual de ${shownName} (% anual)`}
+            lede="La variación que el INE publica sobre el nivel a precios constantes de 1990. Donde el cuadro nacional no publica el grupo —sí sus ramas— la línea de Bolivia sale del nivel sumado, año contra año anterior: sumar variaciones no da la variación de la suma."
+            source={SOURCE}
+          >
+            {growth.data.length > 1 ? (
+              <WorldLines
+                data={growth.data}
+                series={growth.series}
+                format={(value) => `${signed(value)} %`}
+                tick={(value) => number(value, 0)}
+              />
+            ) : (
+              <div className="callout">Sin variación publicada para esta actividad.</div>
+            )}
+          </Panel>
+
+          <Panel
+            id="dep-act-tamano"
+            title={`Tamaño real de ${shownName} (índice, ${size.base ?? '—'} = 100)`}
+            lede="En índice y no en bolivianos: el país es la suma de los nueve, así que en la escala de Bolivia un departamento chico sería una raya pegada al cero. El nivel en miles de bolivianos de 1990 sigue en la tabla de cifras del departamento."
+            source={SOURCE}
+          >
+            {size.chart.data.length > 1 ? (
+              <WorldLines
+                data={size.chart.data}
+                series={size.chart.series}
+                format={(value) => number(value)}
+                tick={(value) => number(value, 0)}
+              />
+            ) : (
+              <div className="callout">Sin nivel publicado para esta actividad.</div>
+            )}
+          </Panel>
         </div>
-      </div>
+      </section>
     </>
   );
 }

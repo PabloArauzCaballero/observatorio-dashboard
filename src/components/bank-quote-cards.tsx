@@ -1,6 +1,6 @@
 'use client';
 
-import { Icon } from './icons';
+import { Panel } from '@/components/ui/panel';
 import { useBankBoard } from './bank-board';
 import { amount, price, sayLong, sayShort } from './bank-format';
 import type { BankProduct } from '@/lib/bank-assets-board';
@@ -43,9 +43,15 @@ const SHORT_NAME: Record<string, string> = {
  * rechaza las consultas—, así que va el anuncio.
  */
 const SERVICE_PAGE: Record<string, { url: string; label: string }> = {
-  FIE: { url: 'https://cuentacripto.bancofie.com.bo/apertura-cripto', label: 'Cotizar en su sitio' },
+  FIE: {
+    url: 'https://cuentacripto.bancofie.com.bo/apertura-cripto',
+    label: 'Cotizar en su sitio',
+  },
   GANADERO: { url: 'https://www.bg.com.bo/ganacripto/', label: 'Ver el servicio' },
-  BNB: { url: 'https://www.bnb.com.bo/PortalBNB/Documentos/Cuenta_Cripto.pdf', label: 'Ver el servicio' },
+  BNB: {
+    url: 'https://www.bnb.com.bo/PortalBNB/Documentos/Cuenta_Cripto.pdf',
+    label: 'Ver el servicio',
+  },
 };
 
 function state(bank: BankProduct): string {
@@ -65,7 +71,7 @@ function BankCard({ bank }: { bank: BankProduct }) {
       aria-label={`${bank.bankName}: ${bank.product}, ${bank.asset}, desde ${sayLong(bank.since)}`}
     >
       <div className="quote-head">
-        <Icon name="banco" size={14} />
+        <span className="quote-dot" aria-hidden="true" />
         <span className="quote-name">{name}</span>
         <span className="quote-date">{sayShort(bank.since)}</span>
       </div>
@@ -116,7 +122,9 @@ function OtherBanks({ banks, span }: { banks: readonly BankProduct[]; span: numb
     <div className={styles.others} style={{ '--others-span': span } as React.CSSProperties}>
       <div className={styles.othersHead}>
         <span className={styles.othersTitle}>Sin precio público</span>
-        <span className={styles.othersHint}>no la publican: se ve al operar, en su aplicación o su sitio</span>
+        <span className={styles.othersHint}>
+          no la publican: se ve al operar, en su aplicación o su sitio
+        </span>
       </div>
       <ul className={styles.list}>
         {banks.map((bank) => {
@@ -126,10 +134,16 @@ function OtherBanks({ banks, span }: { banks: readonly BankProduct[]; span: numb
             <li
               key={`${bank.bank}-${bank.asset}`}
               className={styles.row}
-              style={{ '--asset-tone': ACCENT[bank.asset] ?? 'var(--series-rest)' } as React.CSSProperties}
+              style={
+                {
+                  '--asset-tone': ACCENT[bank.asset] ?? 'var(--series-rest)',
+                } as React.CSSProperties
+              }
             >
               <span className={styles.name}>{SHORT_NAME[bank.bank] ?? bank.bankName}</span>
-              <span className={styles.product} title={bank.note}>{bank.product} · {state(bank)}</span>
+              <span className={styles.product} title={bank.note}>
+                {bank.product} · {state(bank)}
+              </span>
               <span className={styles.asset}>{bank.asset}</span>
               <span className={styles.since}>desde {sayShort(bank.since)}</span>
               {link ? (
@@ -159,12 +173,47 @@ export function BankQuoteCards() {
   const span = 3 - (priced.length % 3);
 
   return (
-    <section className="quotes" aria-labelledby="bank-quotes-title">
-      <div className="quotes-head">
-        <Icon name="banco" size={17} />
-        <h2 id="bank-quotes-title">Bancos con dólar digital</h2>
-        <span className="tile-hint">{priced.length ? 'precio que publica el banco' : 'desde cuándo lo ofrecen'}</span>
-      </div>
+    <Panel
+      id="bancos-dolar-digital"
+      title="Bancos con dólar digital (Bs por ficha)"
+      lede={
+        priced.length
+          ? 'Cuánto cuesta y cuánto paga cada banco que publica su precio; los demás se listan con desde cuándo lo ofrecen.'
+          : 'Los bancos que ofrecen dólar digital y desde cuándo lo hacen.'
+      }
+      meta={board.latestRead ? `última lectura: ${sayLong(board.latestRead)}` : undefined}
+      source="el archivo público de BISA, el precio anotado de la aplicación de otros bancos y las páginas y comunicados de cada banco (cada fila dice cuál)"
+      data={{
+        unidad: 'Bs por ficha',
+        columnas: [
+          'Banco',
+          'Ficha',
+          'Producto',
+          'Estado',
+          'Ofrecido desde',
+          'El cliente paga (Bs)',
+          'El cliente recibe (Bs)',
+          'Fecha del precio',
+          'Origen del precio',
+        ],
+        filas: board.banks.map((bank) => [
+          SHORT_NAME[bank.bank] ?? bank.bankName,
+          bank.asset,
+          bank.product,
+          state(bank),
+          bank.since,
+          bank.quote?.clientBuys ?? null,
+          bank.quote?.clientSells ?? null,
+          bank.quote?.date ?? null,
+          bank.quote
+            ? bank.quote.basis === 'OFFICIAL_FEED'
+              ? 'publicado por el banco'
+              : 'anotado de su aplicación'
+            : null,
+        ]),
+      }}
+      className="quotes"
+    >
       <div className="quotes-grid">
         {priced.map((bank) => (
           <BankCard bank={bank} key={`${bank.bank}-${bank.asset}`} />
@@ -172,9 +221,8 @@ export function BankQuoteCards() {
         {others.length ? <OtherBanks banks={others} span={span} /> : null}
       </div>
       <p className="quotes-foot">
-        {board.latestRead ? <span>Última lectura: {sayLong(board.latestRead)}</span> : null}
         <span>Detalle en «Tipo de cambio»</span>
       </p>
-    </section>
+    </Panel>
   );
 }

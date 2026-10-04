@@ -14,7 +14,7 @@
   min-width: 0;
   padding: var(--s2) var(--s2) var(--s1);
   border: 1px solid var(--rule);
-  border-radius: var(--radius);
+  border-radius: var(--radius-md);
   background: var(--panel);
 }
 
@@ -27,12 +27,12 @@
 }
 
 .othersTitle {
-  font-size: 0.8rem;
+  font-size: var(--text-sm);
   font-weight: 700;
 }
 
 .othersHint {
-  font-size: 0.7rem;
+  font-size: var(--text-xs);
   color: var(--ink-soft);
 }
 
@@ -53,7 +53,7 @@
   gap: 0.6rem;
   padding: 0.42rem 0;
   border-top: 1px solid var(--rule);
-  font-size: 0.76rem;
+  font-size: var(--text-xs);
 }
 
 .row:first-child {
@@ -80,8 +80,8 @@
   display: inline-flex;
   align-items: center;
   gap: 0.35rem;
-  font-family: var(--mono);
-  font-size: 0.72rem;
+  font-family: var(--sans);
+  font-size: var(--text-xs);
   font-weight: 600;
 }
 
@@ -94,8 +94,8 @@
 }
 
 .since {
-  font-family: var(--mono);
-  font-size: 0.7rem;
+  font-family: var(--sans);
+  font-size: var(--text-xs);
   font-variant-numeric: tabular-nums;
   color: var(--ink-soft);
   white-space: nowrap;
@@ -104,7 +104,7 @@
 .link {
   justify-self: end;
   white-space: nowrap;
-  font-size: 0.72rem;
+  font-size: var(--text-xs);
 }
 
 @media (max-width: 640px) {

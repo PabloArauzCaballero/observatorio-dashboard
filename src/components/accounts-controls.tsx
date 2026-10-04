@@ -16,6 +16,20 @@ import type { Choice } from '@/lib/choice';
  * todos los gráficos— en vez de dibujar series fijas.
  */
 
+/**
+ * Quién publica cada familia de cifras, tal como lo dicen sus propias series.
+ *
+ * Los paneles ponen esto en su pie. Sale de lo que la base guarda en `publisher` y de lo que
+ * cada página ya explicaba; ninguno es un proveedor nuevo.
+ */
+export const SOURCE = {
+  ministry: 'Ministerio de Economía y Finanzas Públicas (operaciones consolidadas del SPNF)',
+  oecd: 'Estadísticas tributarias de América Latina y el Caribe: OCDE · CEPAL · CIAT · BID',
+  bcb: 'Banco Central de Bolivia (Boletín Estadístico, cuadro 13.05)',
+  debt: 'Ministerio de Economía y Finanzas Públicas (Viceministerio de Tesoro y Crédito Público)',
+  imf: 'Fondo Monetario Internacional (estimación)',
+} as const;
+
 export interface Option {
   key: string;
   label: string;

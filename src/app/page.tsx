@@ -13,6 +13,7 @@ import { BoardNews, TodayBoardPanel } from '@/components/today-board';
 import type { SummaryFigure } from '@/components/summary-explorer';
 import { Tabs } from '@/components/tabs';
 import { ThemeToggle } from '@/components/theme-toggle';
+import { TabHeader } from '@/components/ui/tab-header';
 import { THEME_BOOT } from '@/lib/theme';
 // Las pestañas que se leen al abrirse, en su propio trozo de JavaScript.
 import {
@@ -651,6 +652,11 @@ export default function Page() {
         icons={['diana', 'linea', 'globo', 'edificio', 'mapa', 'camion', 'ventana', 'info']}
       >
         <section className="stack">
+          <TabHeader
+            id="hoy"
+            title="Bolivia hoy"
+            lede="La cotización del dólar y cinco lecturas de la economía, cada una con su fecha, su fuente y la regla que decide su veredicto."
+          />
           <Suspense fallback={<Armando que="el resumen de hoy" />}>
             <TodaySection />
           </Suspense>
@@ -663,6 +669,11 @@ export default function Page() {
             lee nada, así que no necesita su propio `Suspense`; el cálculo corre
             en `/api/econometria` cuando alguien pide el documento.
           */}
+          <TabHeader
+            id="tipo-de-cambio"
+            title="Tipo de cambio"
+            lede="El dólar oficial del Banco Central y el paralelo de los mercados P2P, en bolivianos y descontada la inflación, y el boliviano frente a otras monedas. El paralelo es una lectura de mercados abiertos, no una cotización oficial."
+          />
           <Suspense fallback={<Armando que="el capítulo del tipo de cambio" />}>
             <FxSection />
           </Suspense>

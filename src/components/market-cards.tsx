@@ -1,8 +1,7 @@
 'use client';
 
 import { Sparkline } from './charts';
-import { Icon } from './icons';
-import type { IconName } from './icons';
+import { Panel } from '@/components/ui/panel';
 import type { MarketCard } from '@/lib/market-transport';
 
 /**
@@ -33,22 +32,10 @@ import type { MarketCard } from '@/lib/market-transport';
  * además no cambiaban en modo oscuro, así que el lavado claro seguía ahí sobre
  * un panel negro. Derivado del token, el lavado sigue al acento a donde vaya.
  */
-const TONE: Record<string, { accent: string; tint: string; icon: IconName }> = {
-  XAU_USD: {
-    accent: 'var(--parallel)',
-    tint: 'color-mix(in srgb, var(--parallel) 8%, var(--panel))',
-    icon: 'gema',
-  },
-  BTC_USD: {
-    accent: 'var(--gap)',
-    tint: 'color-mix(in srgb, var(--gap) 8%, var(--panel))',
-    icon: 'monedas',
-  },
-  USDT_USD: {
-    accent: 'var(--official)',
-    tint: 'color-mix(in srgb, var(--official) 8%, var(--panel))',
-    icon: 'balanza',
-  },
+const TONE: Record<string, { accent: string }> = {
+  XAU_USD: { accent: 'var(--parallel)' },
+  BTC_USD: { accent: 'var(--gap)' },
+  USDT_USD: { accent: 'var(--official)' },
 };
 
 const CAPTION: Record<string, string> = {
@@ -80,52 +67,78 @@ export function MarketCards({ markets }: { markets: MarketCard[] }) {
   if (!markets.length) return null;
 
   return (
-    <div className="market-grid">
-      {markets.map((series) => {
-        const tone = TONE[series.code] ?? {
-          accent: 'var(--ink-soft)',
-          tint: 'transparent',
-          icon: 'monedas' as IconName,
-        };
-        const drift = deviation(series);
-        return (
-          <article
-            className="market-card"
-            key={series.code}
-            style={{ background: tone.tint, borderColor: tone.accent }}
-          >
-            <div className="market-top" style={{ color: tone.accent }}>
-              <Icon name={tone.icon} size={15} />
-              <span>{series.name}</span>
-              <span className="market-unit">{series.unit}</span>
-            </div>
-            <div className="market-figure">
-              <span className="market-value">{headline(series)}</span>
-              {series.changePercent === null ? null : (
-                <span className={series.changePercent >= 0 ? 'delta-up' : 'delta-down'}>
-                  {series.changePercent > 0 ? '+' : ''}
-                  {number(series.changePercent, 2)} %
-                </span>
-              )}
-            </div>
-            <div className="market-meta">
-              {drift ?? CAPTION[series.code] ?? ''}
-              {series.windowPercent === null ? null : (
-                <>
-                  <br />
-                  {series.days} días ·{' '}
-                  <b>
-                    {series.windowPercent > 0 ? '+' : ''}
-                    {number(series.windowPercent, 1)} %
-                  </b>{' '}
-                  desde {series.firstDate}
-                </>
-              )}
-            </div>
-            <Sparkline data={series.spark} tone={tone.accent} />
-          </article>
-        );
-      })}
-    </div>
+    <Panel
+      id="mercados-dolar"
+      title="Oro, bitcoin y estables frente al dólar (USD)"
+      lede="Tres mercados cotizados en dólares. No se suman ni se comparan entre sí: cada tarjeta se lee contra su propia historia."
+      source="cierre diario de cada mercado (mediana de las lecturas que guarda el Observatorio); el catálogo de fuentes está en «Método»"
+      data={{
+        unidad: 'USD',
+        columnas: [
+          'Mercado',
+          'Unidad',
+          'Último (USD)',
+          'Fecha',
+          'Cambio del día (%)',
+          'Cambio en la ventana (%)',
+          'Jornadas',
+          'Desde',
+        ],
+        filas: markets.map((series) => [
+          series.name,
+          series.unit,
+          series.latest,
+          series.latestDate,
+          series.changePercent,
+          series.windowPercent,
+          series.days,
+          series.firstDate,
+        ]),
+      }}
+    >
+      <div className="market-grid">
+        {markets.map((series) => {
+          const tone = TONE[series.code] ?? { accent: 'var(--ink-soft)' };
+          const drift = deviation(series);
+          return (
+            <article
+              className="market-card"
+              key={series.code}
+              style={{ '--quote-accent': tone.accent } as React.CSSProperties}
+            >
+              <div className="market-top">
+                <span className="quote-dot" aria-hidden="true" />
+                <span>{series.name}</span>
+                <span className="market-unit">{series.unit}</span>
+              </div>
+              <div className="market-figure">
+                <span className="market-value">{headline(series)}</span>
+                {series.changePercent === null ? null : (
+                  <span className={series.changePercent >= 0 ? 'delta-up' : 'delta-down'}>
+                    {series.changePercent > 0 ? '+' : ''}
+                    {number(series.changePercent, 2)} %
+                  </span>
+                )}
+              </div>
+              <div className="market-meta">
+                {drift ?? CAPTION[series.code] ?? ''}
+                {series.windowPercent === null ? null : (
+                  <>
+                    <br />
+                    {series.days} días ·{' '}
+                    <b>
+                      {series.windowPercent > 0 ? '+' : ''}
+                      {number(series.windowPercent, 1)} %
+                    </b>{' '}
+                    desde {series.firstDate}
+                  </>
+                )}
+              </div>
+              <Sparkline data={series.spark} tone={tone.accent} />
+            </article>
+          );
+        })}
+      </div>
+    </Panel>
   );
 }

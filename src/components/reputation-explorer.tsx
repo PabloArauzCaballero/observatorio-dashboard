@@ -7,6 +7,7 @@ import { CompanyLogo } from './company-logo';
 import { FilterHint, PickedCount } from './filters';
 import { Icon } from './icons';
 import { Pager } from './pager';
+import { Panel } from '@/components/ui/panel';
 import { ANY, additive, picked, toggle, without } from '@/lib/choice';
 import type { Choice } from '@/lib/choice';
 import { percent } from '@/lib/exporters-board';
@@ -38,6 +39,9 @@ import type { Exporter, ExportersBoard, ReputationSeat } from '@/lib/exporters-b
  * de sectores del carril cuenta lo que queda con los otros filtros puestos.
  */
 
+/** Quién publica el monitor: lo que va en el pie de cada panel y en cada archivo que se baja. */
+const SOURCE = 'Merco (Monitor Empresarial de Reputación Corporativa)';
+
 const PAGE = 20;
 const FOLLOWED_MAX = 6;
 const TOP_SCORE = 10_000;
@@ -66,10 +70,7 @@ function sectorLabel(sector: string): string {
 const editionLabel = (year: number): string => (year === 2026 ? '2025-26' : String(year));
 
 const plain = (value: string): string =>
-  value
-    .normalize('NFD')
-    .replace(/[̀-ͯ]/gu, '')
-    .toLocaleLowerCase('es');
+  value.normalize('NFD').replace(/[̀-ͯ]/gu, '').toLocaleLowerCase('es');
 
 const points = (value: number): string => value.toLocaleString('es-BO');
 
@@ -152,8 +153,7 @@ export function ReputationExplorer({ board }: { board: ExportersBoard }) {
 
   const needle = plain(query.trim());
   const matches = (seat: ReputationSeat): boolean =>
-    (!needle || plain(seat.name).includes(needle)) &&
-    (!onlyExporters || exporters.has(seat.slug));
+    (!needle || plain(seat.name).includes(needle)) && (!onlyExporters || exporters.has(seat.slug));
   const inSector = (slug: string): boolean =>
     sector.size === 0 || sector.has(edition.sectorOf.get(slug) ?? '');
   const moving = (seat: ReputationSeat): boolean => {
@@ -162,9 +162,7 @@ export function ReputationExplorer({ board }: { board: ExportersBoard }) {
     return move.kind === movement;
   };
 
-  const rows = edition.seats.filter(
-    (seat) => matches(seat) && inSector(seat.slug) && moving(seat),
-  );
+  const rows = edition.seats.filter((seat) => matches(seat) && inSector(seat.slug) && moving(seat));
   const page = Math.floor(offset / PAGE) + 1;
   const pages = Math.max(1, Math.ceil(rows.length / PAGE));
   const shown = rows.slice(offset, offset + PAGE);
@@ -196,7 +194,10 @@ export function ReputationExplorer({ board }: { board: ExportersBoard }) {
     setOffset(0);
   };
   const active =
-    (sector.size ? 1 : 0) + (needle ? 1 : 0) + (movement !== 'all' ? 1 : 0) + (onlyExporters ? 1 : 0);
+    (sector.size ? 1 : 0) +
+    (needle ? 1 : 0) +
+    (movement !== 'all' ? 1 : 0) +
+    (onlyExporters ? 1 : 0);
 
   /*
    * Las empresas de la trayectoria: las que el lector eligió o, mientras no
@@ -253,18 +254,40 @@ export function ReputationExplorer({ board }: { board: ExportersBoard }) {
 
   return (
     <>
-      <div className="panel rep-hero">
-        <div className="panel-head">
-          <h2>Reputación empresarial: ránking Merco {editionLabel(year)} (puesto y puntuación)</h2>
-          <p className="panel-sub">
-            Merco (Monitor Empresarial de Reputación Corporativa) mide cada año a cien empresas con
-            cinco evaluaciones, trece fuentes, más de mil seiscientas encuestas y revisión
-            independiente de KPMG bajo norma ISAE 3000. Mide <strong>reputación percibida</strong>: no
-            es tamaño, solvencia ni conducta. La puntuación va de 10.000 para la primera a 3.000
-            para la centésima y sólo se compara dentro de una misma edición.
-          </p>
-        </div>
-
+      <Panel
+        id="empresas-reputacion-resumen"
+        className="emp-hero rep-hero"
+        title={`Reputación empresarial: ránking Merco ${editionLabel(year)} (puesto y puntuación)`}
+        lede="Merco mide la reputación percibida de cien empresas cada año: no es tamaño, solvencia ni conducta."
+        source={SOURCE}
+        data={() => ({
+          unidad: 'puesto y puntos',
+          columnas: ['Cifra', 'Valor', 'Detalle'],
+          filas: [
+            [
+              'Edición',
+              editionLabel(year),
+              `${board.editions.length} publicadas, desde ${years[0] ?? '—'}`,
+            ],
+            ['Empresas medidas', edition.seats.length, `en ${sectorNames.length} sectores`],
+            [
+              'Nuevas en la lista',
+              newcomers,
+              edition.previous === null ? 'primera edición' : `no estaban en ${edition.previous}`,
+            ],
+            [
+              'También exportan',
+              exportersHere,
+              `de las ${board.exporters.length} mayores exportadoras de ${board.exportYear ?? '—'}`,
+            ],
+            ...podium.map((seat) => [
+              `Puesto ${seat.rank}`,
+              seat.name,
+              seat.score !== null ? `${points(seat.score)} pts` : null,
+            ]),
+          ],
+        })}
+      >
         <div className="stat-strip">
           <div className="stat">
             <span className="stat-label">Edición</span>
@@ -317,7 +340,18 @@ export function ReputationExplorer({ board }: { board: ExportersBoard }) {
             </li>
           ))}
         </ol>
-      </div>
+
+        <details className="panel-note">
+          <summary>Cómo leerlo</summary>
+          <p>
+            Merco (Monitor Empresarial de Reputación Corporativa) mide cada año a cien empresas con
+            cinco evaluaciones, trece fuentes, más de mil seiscientas encuestas y revisión
+            independiente de KPMG bajo norma ISAE 3000. Mide <strong>reputación percibida</strong>:
+            no es tamaño, solvencia ni conducta. La puntuación va de 10.000 para la primera a 3.000
+            para la centésima y sólo se compara dentro de una misma edición.
+          </p>
+        </details>
+      </Panel>
 
       <div className="workspace">
         <aside className="rail" id="reputacion-filtros">
@@ -465,20 +499,47 @@ export function ReputationExplorer({ board }: { board: ExportersBoard }) {
         </aside>
 
         <div className="workspace-main">
-          <div className="panel">
-            <div className="panel-head">
-              <h2>
-                Ránking general {editionLabel(year)}: puesto y puntuación Merco (10.000 = primera)
-              </h2>
-              <p className="panel-sub">
-                {rows.length === edition.seats.length
-                  ? `Las ${rows.length} empresas de la edición.`
-                  : `${rows.length} de ${edition.seats.length} empresas con los filtros puestos.`}{' '}
+          <Panel
+            id="empresas-reputacion-ranking"
+            title={`Ránking general ${editionLabel(year)}: puesto y puntuación Merco (10.000 = primera)`}
+            lede={
+              rows.length === edition.seats.length
+                ? `Las ${rows.length} empresas de la edición.`
+                : `${rows.length} de ${edition.seats.length} empresas con los filtros puestos.`
+            }
+            source={SOURCE}
+            data={() => ({
+              unidad: 'puesto y puntos',
+              columnas: ['Puesto', 'Empresa', 'Sector', 'Puntuación', 'Movimiento', 'Exportadora'],
+              filas: rows.map((seat) => {
+                const move = moveOf(seat.rank, edition.before.get(seat.slug));
+                const sectorName = edition.sectorOf.get(seat.slug);
+                const exporter = exporters.get(seat.slug);
+                return [
+                  seat.rank,
+                  seat.name,
+                  sectorName ? sectorLabel(sectorName) : null,
+                  seat.score,
+                  edition.previous === null
+                    ? null
+                    : move.kind === 'new'
+                      ? 'nueva'
+                      : move.kind === 'same'
+                        ? 'igual'
+                        : `${move.kind === 'up' ? 'sube' : 'baja'} ${move.by}`,
+                  exporter ? `puesto ${exporter.rank}` : null,
+                ];
+              }),
+            })}
+          >
+            <details className="panel-note">
+              <summary>Cómo leerlo</summary>
+              <p>
                 La barra es la puntuación sobre la escala de la edición; el marcador de la derecha,
                 el movimiento desde {edition.previous ?? 'la edición anterior'}. Pulsa{' '}
                 <Icon name="linea" size={12} /> para seguir una empresa en la trayectoria de abajo.
               </p>
-            </div>
+            </details>
 
             {shown.length ? (
               <ol className="rep-list">
@@ -488,10 +549,7 @@ export function ReputationExplorer({ board }: { board: ExportersBoard }) {
                   const width =
                     seat.score === null
                       ? 0
-                      : Math.max(
-                          2,
-                          ((seat.score - FLOOR_SCORE) / (TOP_SCORE - FLOOR_SCORE)) * 100,
-                        );
+                      : Math.max(2, ((seat.score - FLOOR_SCORE) / (TOP_SCORE - FLOOR_SCORE)) * 100);
                   const isFollowed = trail.includes(seat.slug);
                   return (
                     <li key={seat.slug} className="rep-row">
@@ -508,7 +566,10 @@ export function ReputationExplorer({ board }: { board: ExportersBoard }) {
                           ) : null}
                         </span>
                       </span>
-                      <span className="rep-score" aria-label={`Puntuación ${seat.score ?? 'sin dato'}`}>
+                      <span
+                        className="rep-score"
+                        aria-label={`Puntuación ${seat.score ?? 'sin dato'}`}
+                      >
                         <span className="rep-bar">
                           <span style={{ width: `${width}%` }} />
                         </span>
@@ -557,22 +618,25 @@ export function ReputationExplorer({ board }: { board: ExportersBoard }) {
               where="ránking de reputación"
               noun="empresas"
             />
-          </div>
+          </Panel>
 
-          <div className="panel">
-            <div className="panel-head">
-              <h2>
-                Trayectoria en el ránking general, {years[0] ?? '—'}–{years.at(-1) ?? '—'} (puesto,
-                1 = mejor)
-              </h2>
-              <p className="panel-sub">
-                {followed.length
-                  ? 'Las empresas que elegiste en el ránking.'
-                  : `Las cinco primeras de ${editionLabel(year)}; elige otras con el botón de cada fila.`}{' '}
+          <Panel
+            id="empresas-reputacion-trayectoria"
+            title={`Trayectoria en el ránking general, ${years[0] ?? '—'}–${years.at(-1) ?? '—'} (puesto, 1 = mejor)`}
+            lede={
+              followed.length
+                ? 'Las empresas que elegiste en el ránking.'
+                : `Las cinco primeras de ${editionLabel(year)}; elige otras con el botón de cada fila.`
+            }
+            source={SOURCE}
+          >
+            <details className="panel-note">
+              <summary>Cómo leerlo</summary>
+              <p>
                 El eje va invertido para que mejorar se lea como subir. Un hueco en la línea es una
                 edición en que la empresa no entró entre las cien.
               </p>
-            </div>
+            </details>
             <div className="rep-followed">
               {trail.map((slug, index) => (
                 <button
@@ -582,7 +646,11 @@ export function ReputationExplorer({ board }: { board: ExportersBoard }) {
                   onClick={() => follow(slug)}
                   title={`Quitar ${names.get(slug) ?? slug} de la trayectoria`}
                 >
-                  <i className="rep-key" style={{ background: seriesTone(index) }} aria-hidden="true" />
+                  <i
+                    className="rep-key"
+                    style={{ background: seriesTone(index) }}
+                    aria-hidden="true"
+                  />
                   <CompanyLogo slug={slug} name={names.get(slug) ?? slug} size={18} />
                   <span className="chip-text">{names.get(slug) ?? slug}</span>
                   <span aria-hidden="true">×</span>
@@ -595,23 +663,39 @@ export function ReputationExplorer({ board }: { board: ExportersBoard }) {
               ) : null}
             </div>
             <RankLines years={years} lines={lines} floor={floorOf(lines)} />
-          </div>
+          </Panel>
 
-          <div className="panel">
-            <div className="panel-head">
-              <h2>Ránking sectorial {editionLabel(year)}: puesto dentro de cada sector</h2>
-              <p className="panel-sub">
-                Vale más que el general para leer la economía: el general está dominado por marcas de
-                consumo, y aquí aparecen la primera minera, la primera aceitera, la primera
-                constructora y la primera aseguradora. Merco publica el orden dentro de cada sector,
-                no una puntuación.
+          <Panel
+            id="empresas-reputacion-sectores"
+            title={`Ránking sectorial ${editionLabel(year)}: puesto dentro de cada sector (puesto)`}
+            lede="Merco publica el orden dentro de cada sector, no una puntuación."
+            source={SOURCE}
+            data={() => ({
+              unidad: 'puesto',
+              columnas: ['Sector', 'Puesto', 'Empresa', 'Exportadora'],
+              filas: sectorCards.flatMap((card) =>
+                card.seats.map((seat) => [
+                  sectorLabel(card.name),
+                  seat.rank,
+                  seat.name,
+                  exporters.has(seat.slug) ? 'sí' : 'no',
+                ]),
+              ),
+            })}
+          >
+            <details className="panel-note">
+              <summary>Cómo leerlo</summary>
+              <p>
+                Vale más que el general para leer la economía: el general está dominado por marcas
+                de consumo, y aquí aparecen la primera minera, la primera aceitera, la primera
+                constructora y la primera aseguradora.
               </p>
-            </div>
+            </details>
             {sectorCards.length ? (
               <div className="rep-sectors">
                 {sectorCards.map((card) => (
                   <section key={card.name} className="rep-sector">
-                    <h3>{sectorLabel(card.name)}</h3>
+                    <h4>{sectorLabel(card.name)}</h4>
                     <ol>
                       {card.seats.map((seat) => (
                         <li key={seat.slug}>
@@ -619,7 +703,10 @@ export function ReputationExplorer({ board }: { board: ExportersBoard }) {
                           <CompanyLogo slug={seat.slug} name={seat.name} size={24} />
                           <span className="rep-sector-name">{seat.name}</span>
                           {exporters.has(seat.slug) ? (
-                            <span className="rep-tag-export" title="También está entre las mayores exportadoras">
+                            <span
+                              className="rep-tag-export"
+                              title="También está entre las mayores exportadoras"
+                            >
                               Exporta
                             </span>
                           ) : null}
@@ -630,28 +717,55 @@ export function ReputationExplorer({ board }: { board: ExportersBoard }) {
                 ))}
               </div>
             ) : (
-              <div className="callout">Ningún sector de {editionLabel(year)} tiene empresas con estos filtros.</div>
+              <div className="callout">
+                Ningún sector de {editionLabel(year)} tiene empresas con estos filtros.
+              </div>
             )}
-          </div>
+          </Panel>
 
-          <div className="panel">
-            <div className="panel-head">
-              <h2>
-                Las que están en las dos listas: reputación Merco y ránking exportador{' '}
-                {board.exportYear ?? ''}
-              </h2>
-              <p className="panel-sub">
+          <Panel
+            id="empresas-reputacion-cruce"
+            title={`Las que están en las dos listas: reputación Merco y ránking exportador ${board.exportYear ?? ''} (cantidad de empresas)`}
+            lede={`Son ${board.crossings.length} las que Merco midió en alguna edición y están entre las ${board.exporters.length} mayores exportadoras.`}
+            source={`${SOURCE}; ránking de exportadoras de «Comercio exterior»`}
+            data={() => ({
+              unidad: 'puesto',
+              columnas: [
+                'Empresa',
+                'Puesto exportador',
+                'Parte de las exportaciones (%)',
+                'Puesto Merco',
+                'Sector Merco',
+                'Edición Merco',
+              ],
+              filas: board.crossings.map((row) => [
+                row.name,
+                row.exportRank,
+                row.share,
+                row.reputationRank,
+                row.sector ? sectorLabel(row.sector) : null,
+                editionLabel(row.reputationYear),
+              ]),
+            })}
+          >
+            <details className="panel-note">
+              <summary>Cómo leerlo</summary>
+              <p>
                 Empresas que Merco midió en alguna edición y que además figuran entre las{' '}
                 {board.exporters.length} mayores exportadoras de «Comercio exterior». Son{' '}
                 <strong>{board.crossings.length}</strong>, y sólo{' '}
                 <strong>
-                  {board.crossings.filter((row) => row.reputationYear === board.reputationYear).length}
+                  {
+                    board.crossings.filter((row) => row.reputationYear === board.reputationYear)
+                      .length
+                  }
                 </strong>{' '}
-                siguen en la edición {board.reputationYear ? editionLabel(board.reputationYear) : ''}: lo que el país vende afuera lo
-                producen empresas que el público no reconoce, y lo que el público reconoce se vende
-                puertas adentro.
+                siguen en la edición{' '}
+                {board.reputationYear ? editionLabel(board.reputationYear) : ''}: lo que el país
+                vende afuera lo producen empresas que el público no reconoce, y lo que el público
+                reconoce se vende puertas adentro.
               </p>
-            </div>
+            </details>
             {board.crossings.length ? (
               <div className="rep-cross">
                 {board.crossings.map((row) => (
@@ -689,7 +803,7 @@ export function ReputationExplorer({ board }: { board: ExportersBoard }) {
                   : 'El cruce se llena cuando el núcleo haya sembrado también el registro de exportadoras.'}
               </div>
             )}
-          </div>
+          </Panel>
         </div>
       </div>
     </>

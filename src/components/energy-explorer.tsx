@@ -3,14 +3,14 @@
 import { MacroChart, WorldLines, seriesTone } from './charts';
 import type { WorldLinePoint, WorldLineSeries } from './charts';
 import { DerivedReading } from './derived-reading';
-import { Icon } from './icons';
 import type { IconName } from './icons';
+import { Panel } from '@/components/ui/panel';
+import { TabHeader } from '@/components/ui/tab-header';
 import {
   ENERGY_GROUP_LABEL,
   ENERGY_INDICATORS,
   ENERGY_PLACES,
   type EnergyBoard,
-  type EnergyGroup,
 } from '@/lib/energy-board';
 import { useSinceYear } from './year-floor';
 
@@ -111,14 +111,8 @@ function Latest({ code, board }: { code: string; board: EnergyBoard }) {
   );
 }
 
-function GroupHead({ group, children }: { group: EnergyGroup; children: string }) {
-  return (
-    <div className="panel-head">
-      <h2>{ENERGY_GROUP_LABEL[group]}</h2>
-      <p className="panel-sub">{children}</p>
-    </div>
-  );
-}
+/** Quién publica todas las cifras de este capítulo. */
+const SOURCE = 'Banco Mundial (Indicadores del Desarrollo Mundial)';
 
 const percent = (value: number): string => `${number(value, 1)} %`;
 const tick = (value: number): string => number(value, 0);
@@ -161,25 +155,18 @@ export function EnergyExplorer({ board: entire }: { board: EnergyBoard }) {
   }));
 
   return (
-    <>
-      <div className="panel">
-        <div className="panel-head">
-          <h2>Matriz energética</h2>
-          <p className="panel-sub">
-            De dónde sale la energía que Bolivia usa, cuánta vende y cuánta compra, y qué le deja el
-            subsuelo. Todas las cifras son del Banco Mundial, con la misma definición para Bolivia y
-            para cada vecino, así que se pueden poner en un mismo eje. El dato más reciente es de{' '}
-            {board.asOfYear ?? '—'}; las series de energía llegan con dos o tres años de retraso,
-            que es lo que tarda el compilador en cerrarlas.
-          </p>
-        </div>
-        <DerivedReading
-          title="Qué dicen estos datos"
-          note="Cada frase sale de las series de este capítulo y se recalcula con cada carga. Dice qué nivel hay y contra qué se compara; no dice por qué ni qué va a pasar."
-          conclusions={board.conclusions}
-          icons={CONCLUSION_ICON}
-        />
-      </div>
+    <div className="stack guest-board">
+      <TabHeader
+        id="energia"
+        title="Matriz energética"
+        lede={`De dónde sale la energía que Bolivia usa, cuánta vende y cuánta compra, y qué le deja el subsuelo. Todas las cifras son del Banco Mundial, con la misma definición para Bolivia y para cada vecino, así que se pueden poner en un mismo eje. El dato más reciente es de ${board.asOfYear ?? '—'}; las series de energía llegan con dos o tres años de retraso, que es lo que tarda el compilador en cerrarlas.`}
+      />
+      <DerivedReading
+        title="Qué dicen estos datos"
+        note="Cada frase sale de las series de este capítulo y se recalcula con cada carga. Dice qué nivel hay y contra qué se compara; no dice por qué ni qué va a pasar."
+        conclusions={board.conclusions}
+        icons={CONCLUSION_ICON}
+      />
 
       {/*
         Nueve gráficos, de tres en tres: tres filas justas.
@@ -189,12 +176,12 @@ export function EnergyExplorer({ board: entire }: { board: EnergyBoard }) {
         usa y quién la tiene— y cada fila junta tres que se leen seguidas.
       */}
       <div className="grid-three">
-        <div className="panel">
-          <GroupHead group="ELECTRICIDAD">
-            De dónde sale la electricidad: parte de la generación por fuente, año a año. Las cuatro
-            no suman cien porque el carbón y lo no clasificado quedan fuera; el gas y el agua son
-            casi todo.
-          </GroupHead>
+        <Panel
+          id="energia-electricidad"
+          title={ENERGY_GROUP_LABEL.ELECTRICIDAD}
+          lede="De dónde sale la electricidad: parte de la generación por fuente, año a año. Las cuatro no suman cien porque el carbón y lo no clasificado quedan fuera; el gas y el agua son casi todo."
+          source={SOURCE}
+        >
           <div className="stat-strip">
             <Latest code="EG.ELC.NGAS.ZS" board={board} />
             <Latest code="EG.ELC.HYRO.ZS" board={board} />
@@ -205,55 +192,54 @@ export function EnergyExplorer({ board: entire }: { board: EnergyBoard }) {
           {mix.data.length > 1 ? (
             <WorldLines data={mix.data} series={mix.series} format={percent} tick={tick} />
           ) : null}
-        </div>
-        <div className="panel">
-          <GroupHead group="COMERCIO">
-            Lo que se vende y lo que se compra: peso del combustible en lo que se exporta y en lo
-            que se importa. Donde la segunda línea cruza a la primera, el diésel que entra empieza a
-            pesar más que el gas que sale.
-          </GroupHead>
+        </Panel>
+        <Panel
+          id="energia-comercio"
+          title={ENERGY_GROUP_LABEL.COMERCIO}
+          lede="Lo que se vende y lo que se compra: peso del combustible en lo que se exporta y en lo que se importa. Donde la segunda línea cruza a la primera, el diésel que entra empieza a pesar más que el gas que sale."
+          source={SOURCE}
+        >
           {trade.data.length > 1 ? (
             <WorldLines data={trade.data} series={trade.series} format={percent} tick={tick} />
           ) : null}
-        </div>
-        <div className="panel">
-          <div className="panel-head">
-            <h2>Energía importada neta (% del uso total)</h2>
-            <p className="panel-sub">
-              Importaciones menos exportaciones de energía, como parte del uso. Por debajo de cero
-              el país exporta más de lo que consume; cuanto más abajo, más excedente.
-            </p>
-          </div>
+        </Panel>
+        <Panel
+          id="energia-importada-neta"
+          title="Energía importada neta (% del uso total)"
+          lede="Importaciones menos exportaciones de energía, como parte del uso. Por debajo de cero el país exporta más de lo que consume; cuanto más abajo, más excedente."
+          source={SOURCE}
+        >
           {net.length > 1 ? (
             <MacroChart data={net} unit="%" tone="var(--gap)" label="Energía importada neta" />
           ) : null}
-        </div>
+        </Panel>
 
-        <div className="panel">
-          <GroupHead group="RENTA">
-            Lo que el subsuelo deja: lo que cada recurso rinde por encima de su costo de extracción,
-            como parte del PIB. La renta cae con el precio y con la producción, y arrastra al fisco
-            con ella.
-          </GroupHead>
+        <Panel
+          id="energia-renta"
+          title={ENERGY_GROUP_LABEL.RENTA}
+          lede="Lo que el subsuelo deja: lo que cada recurso rinde por encima de su costo de extracción, como parte del PIB. La renta cae con el precio y con la producción, y arrastra al fisco con ella."
+          source={SOURCE}
+        >
           {rents.data.length > 1 ? (
             <WorldLines data={rents.data} series={rents.series} format={percent} tick={tick} />
           ) : null}
-        </div>
-        <div className="panel">
-          <GroupHead group="FUENTES">
-            Con qué se mueve el país: de toda la energía que se consume —no solo la eléctrica—, qué
-            parte es renovable, qué parte es leña y biomasa, y qué parte son hidro y otras
-            alternativas.
-          </GroupHead>
+        </Panel>
+        <Panel
+          id="energia-fuentes"
+          title={ENERGY_GROUP_LABEL.FUENTES}
+          lede="Con qué se mueve el país: de toda la energía que se consume —no solo la eléctrica—, qué parte es renovable, qué parte es leña y biomasa, y qué parte son hidro y otras alternativas."
+          source={SOURCE}
+        >
           {sources.data.length > 1 ? (
             <WorldLines data={sources.data} series={sources.series} format={percent} tick={tick} />
           ) : null}
-        </div>
-        <div className="panel">
-          <GroupHead group="CONSUMO">
-            Cuánta energía se usa: kilos de petróleo equivalente por habitante y año, Bolivia contra
-            sus vecinos. La línea gruesa es Bolivia; las demás dan la escala.
-          </GroupHead>
+        </Panel>
+        <Panel
+          id="energia-consumo"
+          title={ENERGY_GROUP_LABEL.CONSUMO}
+          lede="Cuánta energía se usa: kilos de petróleo equivalente por habitante y año, Bolivia contra sus vecinos. La línea gruesa es Bolivia; las demás dan la escala."
+          source={SOURCE}
+        >
           <div className="stat-strip">
             <Latest code="EG.USE.PCAP.KG.OE" board={board} />
             <Latest code="EG.USE.ELEC.KH.PC" board={board} />
@@ -266,17 +252,14 @@ export function EnergyExplorer({ board: entire }: { board: EnergyBoard }) {
               tick={tick}
             />
           ) : null}
-        </div>
+        </Panel>
 
-        <div className="panel">
-          <div className="panel-head">
-            <h2>Intensidad energética (MJ por dólar de PIB)</h2>
-            <p className="panel-sub">
-              Megajulios por dólar de PIB a paridad de compra. Baja cuando la misma producción
-              necesita menos energía; sube cuando la economía se mueve hacia sectores que queman
-              más.
-            </p>
-          </div>
+        <Panel
+          id="energia-intensidad"
+          title="Intensidad energética (MJ por dólar de PIB)"
+          lede="Megajulios por dólar de PIB a paridad de compra. Baja cuando la misma producción necesita menos energía; sube cuando la economía se mueve hacia sectores que queman más."
+          source={SOURCE}
+        >
           {intensity.length > 1 ? (
             <MacroChart
               data={intensity}
@@ -285,23 +268,23 @@ export function EnergyExplorer({ board: entire }: { board: EnergyBoard }) {
               label="Intensidad energética"
             />
           ) : null}
-        </div>
-        <div className="panel">
-          <GroupHead group="ACCESO">
-            Quién tiene energía: quién tiene conexión eléctrica y quién cocina con gas o
-            electricidad en vez de leña, en el país y en el campo. La distancia entre las dos líneas
-            de cada par es la brecha rural.
-          </GroupHead>
+        </Panel>
+        <Panel
+          id="energia-acceso"
+          title={ENERGY_GROUP_LABEL.ACCESO}
+          lede="Quién tiene energía: quién tiene conexión eléctrica y quién cocina con gas o electricidad en vez de leña, en el país y en el campo. La distancia entre las dos líneas de cada par es la brecha rural."
+          source={SOURCE}
+        >
           {access.data.length > 1 ? (
             <WorldLines data={access.data} series={access.series} format={percent} tick={tick} />
           ) : null}
-        </div>
-        <div className="panel">
-          <GroupHead group="EMISIONES">
-            Lo que se emite: dióxido de carbono del transporte y de las centrales eléctricas, en
-            millones de toneladas. Sin el cambio de uso del suelo, que en Bolivia pesa más que las
-            dos juntas.
-          </GroupHead>
+        </Panel>
+        <Panel
+          id="energia-emisiones"
+          title={ENERGY_GROUP_LABEL.EMISIONES}
+          lede="Lo que se emite: dióxido de carbono del transporte y de las centrales eléctricas, en millones de toneladas. Sin el cambio de uso del suelo, que en Bolivia pesa más que las dos juntas."
+          source={SOURCE}
+        >
           <div className="stat-strip">
             <Latest code="EN.GHG.CO2.PC.CE.AR5" board={board} />
             <Latest code="EN.GHG.CO2.RT.GDP.PP.KD" board={board} />
@@ -314,19 +297,19 @@ export function EnergyExplorer({ board: entire }: { board: EnergyBoard }) {
               tick={(value) => number(value, 0)}
             />
           ) : null}
-        </div>
+        </Panel>
       </div>
 
-      <p className="panel-sub">
-        <Icon name="info" size={12} /> El cuadro «Bolivia y sus vecinos» —el último dato de cada
-        país en las series que distinguen una matriz de otra— está ahora en la pestaña «Bolivia ante
-        el mundo», junto a los de recursos naturales y medio ambiente.
+      <p className="guest-note">
+        El cuadro «Bolivia y sus vecinos» —el último dato de cada país en las series que distinguen
+        una matriz de otra— está ahora en la pestaña «Bolivia ante el mundo», junto a los de
+        recursos naturales y medio ambiente.
       </p>
-      <p className="panel-sub">
-        <Icon name="info" size={12} /> Series del Banco Mundial (Indicadores del Desarrollo
-        Mundial), leídas del panel de treinta economías que recoge el núcleo del observatorio. Las
-        definiciones de cada serie están en «Social Info».
+      <p className="guest-note">
+        Series del Banco Mundial (Indicadores del Desarrollo Mundial), leídas del panel de treinta
+        economías que recoge el núcleo del observatorio. Las definiciones de cada serie están en
+        «Social Info».
       </p>
-    </>
+    </div>
   );
 }

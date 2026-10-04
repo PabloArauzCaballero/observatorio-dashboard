@@ -24,6 +24,8 @@ export interface Dataset {
   fuente: string;
   /** Una advertencia de lectura que no cabe en una columna. */
   nota?: string | undefined;
+  /** El nombre de la hoja de Excel cuando el libro lleva más de una figura. */
+  hoja?: string | undefined;
 }
 
 /** Una celda de CSV entre comillas solo cuando lo pide. Sin fórmulas inyectadas. */
@@ -85,6 +87,47 @@ export function filasDeSeries(
     typeof v === 'number' && Number.isFinite(v) ? v : typeof v === 'string' ? v : null;
   return {
     columnas: [ejeX.label, ...series.map((s) => s.label)],
-    filas: datos.map((punto) => [numero(punto[ejeX.key]), ...series.map((s) => numero(punto[s.key]))]),
+    filas: datos.map((punto) => [
+      numero(punto[ejeX.key]),
+      ...series.map((s) => numero(punto[s.key])),
+    ]),
   };
+}
+
+/**
+ * Un número escrito como se lee en Bolivia —«1.234,5», «−12,3», «2025»— o nada.
+ * Solo números puros: «12,3 %» o «Bs 5» siguen siendo texto, porque convertirlos
+ * en número tiraría la unidad, que es lo que los hace legibles.
+ */
+export function numeroDeTexto(texto: string): number | null {
+  const limpio = texto.replace(/ /g, ' ').replace(/−/g, '-').trim();
+  if (/^-?\d{1,3}(\.\d{3})+(,\d+)?$/.test(limpio) || /^-?\d+(,\d+)?$/.test(limpio)) {
+    return Number(limpio.replace(/\./g, '').replace(',', '.'));
+  }
+  return null;
+}
+
+/**
+ * Las celdas de una tabla leída de la pantalla, con números donde la columna
+ * entera lo es. Una columna con un solo texto distinto de un número queda como
+ * texto: mezclar tipos en una columna de una hoja de cálculo la rompe.
+ */
+export function tiparTabla(filas: ReadonlyArray<ReadonlyArray<string>>, ancho: number): Celda[][] {
+  const numericas = Array.from({ length: ancho }, (_, j) => {
+    let vistas = 0;
+    for (const fila of filas) {
+      const texto = (fila[j] ?? '').trim();
+      if (!texto || texto === '—' || texto === '–') continue;
+      if (numeroDeTexto(texto) === null) return false;
+      vistas += 1;
+    }
+    return vistas > 0;
+  });
+  return filas.map((fila) =>
+    Array.from({ length: ancho }, (_, j) => {
+      const texto = (fila[j] ?? '').trim();
+      if (!texto || texto === '—' || texto === '–') return null;
+      return numericas[j] ? numeroDeTexto(texto) : texto;
+    }),
+  );
 }

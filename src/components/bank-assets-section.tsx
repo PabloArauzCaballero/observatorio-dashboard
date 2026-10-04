@@ -4,6 +4,7 @@ import { Icon } from './icons';
 import { OnOpenNotice } from './on-open';
 import { useBankBoard } from './bank-board';
 import { amount, price, sayLong } from './bank-format';
+import { Panel } from '@/components/ui/panel';
 import type { BankProduct } from '@/lib/bank-assets-board';
 
 /**
@@ -39,15 +40,12 @@ export function BankAssetsTable() {
   if (!board.banks.length) return null;
 
   return (
-    <div className="panel">
-      <div className="panel-head">
-        <h2>Qué ofrece cada banco, desde cuándo y con qué límites</h2>
-        <p className="panel-sub">
-          Ordenados por fecha de arranque. «Anunciado» es el día que el banco o la prensa dan como
-          inicio; «a más tardar» es la fecha del primer documento oficial cuando el banco nunca dijo
-          cuándo empezó, así que el servicio pudo abrir antes.
-        </p>
-      </div>
+    <Panel
+      id="bancos-con-dolar-digital"
+      title="Qué ofrece cada banco, desde cuándo y con qué límites (Bs por ficha)"
+      lede="Ordenados por fecha de arranque."
+      source="Páginas y comunicados de cada banco y prensa (el enlace está en cada fecha); BISA publica su cotización en un archivo de su sitio"
+    >
       <div className="table-wrap">
         <table className="grid-table">
           <thead>
@@ -90,7 +88,9 @@ export function BankAssetsTable() {
                       <span className="stat-hint">
                         {' '}
                         · {sayLong(bank.quote.date)} ·{' '}
-                        {bank.quote.basis === 'OFFICIAL_FEED' ? 'la publica el banco' : 'anotada de su app'}
+                        {bank.quote.basis === 'OFFICIAL_FEED'
+                          ? 'la publica el banco'
+                          : 'anotada de su app'}
                       </span>
                     </>
                   ) : (
@@ -111,6 +111,14 @@ export function BankAssetsTable() {
           </tbody>
         </table>
       </div>
-    </div>
+      <details className="panel-note">
+        <summary>Cómo leer esta tabla</summary>
+        <p>
+          «Anunciado» es el día que el banco o la prensa dan como inicio; «a más tardar» es la fecha
+          del primer documento oficial cuando el banco nunca dijo cuándo empezó, así que el servicio
+          pudo abrir antes.
+        </p>
+      </details>
+    </Panel>
   );
 }

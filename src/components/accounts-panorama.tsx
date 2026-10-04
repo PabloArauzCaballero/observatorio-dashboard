@@ -2,11 +2,12 @@
 
 import { useMemo, useState } from 'react';
 import { StackedYearBars } from './accounts-charts';
-import { ChipPicker, SelectField, YearSlider, useFloor } from './accounts-controls';
+import { ChipPicker, SOURCE, SelectField, YearSlider, useFloor } from './accounts-controls';
 import { WorldLines, seriesTone } from './charts';
 import { DerivedReading } from './derived-reading';
 import { Icon } from './icons';
 import type { IconName } from './icons';
+import { Panel } from '@/components/ui/panel';
 import {
   PERIMETERS,
   buildConclusions,
@@ -47,18 +48,63 @@ const ICONS: Record<string, IconName> = {
 const spnf = (perimeter: string, concept: string): string => spnfCode(perimeter, concept);
 
 const incomeParts = (perimeter: string): Part[] => [
-  { key: 'tax', label: 'Impuestos', tone: seriesTone(0), codes: [spnf(perimeter, 'INGRESOS_TRIBUTARIOS')] },
-  { key: 'idh', label: 'IDH y regalías', tone: seriesTone(1), codes: [spnf(perimeter, 'IMPUESTOS_HIDROCARBUROS')] },
-  { key: 'gas', label: 'Venta de hidrocarburos', tone: seriesTone(2), codes: [spnf(perimeter, 'VENTA_HIDROCARBUROS')] },
-  { key: 'firms', label: 'Otras empresas públicas', tone: seriesTone(3), codes: [spnf(perimeter, 'OTRAS_EMPRESAS')] },
+  {
+    key: 'tax',
+    label: 'Impuestos',
+    tone: seriesTone(0),
+    codes: [spnf(perimeter, 'INGRESOS_TRIBUTARIOS')],
+  },
+  {
+    key: 'idh',
+    label: 'IDH y regalías',
+    tone: seriesTone(1),
+    codes: [spnf(perimeter, 'IMPUESTOS_HIDROCARBUROS')],
+  },
+  {
+    key: 'gas',
+    label: 'Venta de hidrocarburos',
+    tone: seriesTone(2),
+    codes: [spnf(perimeter, 'VENTA_HIDROCARBUROS')],
+  },
+  {
+    key: 'firms',
+    label: 'Otras empresas públicas',
+    tone: seriesTone(3),
+    codes: [spnf(perimeter, 'OTRAS_EMPRESAS')],
+  },
 ];
 
 const spendingParts = (perimeter: string): Part[] => [
-  { key: 'wages', label: 'Sueldos y salarios', tone: seriesTone(0), codes: [spnf(perimeter, 'SERVICIOS_PERSONALES')] },
-  { key: 'goods', label: 'Bienes y servicios', tone: seriesTone(1), codes: [spnf(perimeter, 'BIENES_SERVICIOS')] },
-  { key: 'interest', label: 'Intereses de la deuda', tone: seriesTone(2), codes: [spnf(perimeter, 'INTERESES_EXTERNOS'), spnf(perimeter, 'INTERESES_INTERNOS')] },
-  { key: 'transfers', label: 'Transferencias y subvenciones', tone: seriesTone(3), codes: [spnf(perimeter, 'TRANSFERENCIAS_CORRIENTES')] },
-  { key: 'capital', label: 'Inversión', tone: seriesTone(4), codes: [spnf(perimeter, 'EGRESOS_CAPITAL')] },
+  {
+    key: 'wages',
+    label: 'Sueldos y salarios',
+    tone: seriesTone(0),
+    codes: [spnf(perimeter, 'SERVICIOS_PERSONALES')],
+  },
+  {
+    key: 'goods',
+    label: 'Bienes y servicios',
+    tone: seriesTone(1),
+    codes: [spnf(perimeter, 'BIENES_SERVICIOS')],
+  },
+  {
+    key: 'interest',
+    label: 'Intereses de la deuda',
+    tone: seriesTone(2),
+    codes: [spnf(perimeter, 'INTERESES_EXTERNOS'), spnf(perimeter, 'INTERESES_INTERNOS')],
+  },
+  {
+    key: 'transfers',
+    label: 'Transferencias y subvenciones',
+    tone: seriesTone(3),
+    codes: [spnf(perimeter, 'TRANSFERENCIAS_CORRIENTES')],
+  },
+  {
+    key: 'capital',
+    label: 'Inversión',
+    tone: seriesTone(4),
+    codes: [spnf(perimeter, 'EGRESOS_CAPITAL')],
+  },
 ];
 
 function Tile({ label, value, hint }: { label: string; value: string; hint: string }) {
@@ -90,9 +136,19 @@ export function AccountsPanorama({ accounts }: { accounts: AccountsPayload }) {
   const lines = lineRows(
     index,
     [
-      { key: 'in', label: 'Ingresos', tone: seriesTone(0), codes: [spnf(place, 'INGRESOS_TOTALES')] },
+      {
+        key: 'in',
+        label: 'Ingresos',
+        tone: seriesTone(0),
+        codes: [spnf(place, 'INGRESOS_TOTALES')],
+      },
       { key: 'out', label: 'Gasto', tone: seriesTone(2), codes: [spnf(place, 'EGRESOS_TOTALES')] },
-      { key: 'bal', label: 'Resultado global', tone: seriesTone(3), codes: [spnf(place, 'RESULTADO_GLOBAL')] },
+      {
+        key: 'bal',
+        label: 'Resultado global',
+        tone: seriesTone(3),
+        codes: [spnf(place, 'RESULTADO_GLOBAL')],
+      },
     ],
     measure,
     from,
@@ -111,6 +167,8 @@ export function AccountsPanorama({ accounts }: { accounts: AccountsPayload }) {
     { key: 'rest', label: rest, tone: 'var(--series-rest)' },
   ];
   const format = (value: number) => (measure === 'pib' ? percent(value) : millions(value));
+  /** La unidad de lo que dibujan los tres gráficos, para sus títulos y sus archivos. */
+  const unitName = measure === 'pib' ? '% del PIB' : 'millones de Bs';
   const tick = (value: number) => number(value, measure === 'pib' ? 0 : 0);
 
   const tiles = (() => {
@@ -126,32 +184,29 @@ export function AccountsPanorama({ accounts }: { accounts: AccountsPayload }) {
   // La OCDE publica con un año más de retraso que el Ministerio: se toma su último año cerrado.
   const oecd = closedYears(index, oecdCode('BOL', 'TOTAL')).at(-1);
 
+  const perimeterName = PERIMETERS.find((one) => one.key === place)?.label ?? '';
+
   return (
     <>
-      <div className="panel">
-        <div className="panel-head">
-          <h2>El Estado en cifras: cuánto entra, cuánto sale</h2>
-          <p className="panel-sub">
-            Las cuentas del sector público no financiero que publica el Ministerio de Economía:
-            lo que el Estado cobra en impuestos y vende en gas y combustibles, lo que gasta en
-            sueldos, compras, intereses, subvenciones e inversión, y la diferencia que se
-            financia con deuda. Elegí abajo qué parte del Estado mirar y en qué unidad.
-          </p>
-        </div>
-        <DerivedReading
-          title="Qué dicen estos datos"
-          note="Cada frase sale de las series de este capítulo y se recalcula con cada carga. Dice qué nivel hay y contra qué se compara; no dice por qué ni qué va a pasar."
-          conclusions={conclusions}
-          icons={ICONS}
-        />
-        {tiles ? (
-          <div className="stat-strip">
-            <Tile label={`Ingresos ${lastYear}`} value={millions(tiles.inc)} hint={`${PERIMETERS.find((p) => p.key === place)?.label}${tiles.share(tiles.pib(tiles.inc))}`} />
-            <Tile label={`Gasto ${lastYear}`} value={millions(tiles.out)} hint={`Gastó Bs ${number((tiles.out / tiles.inc) * 100, 0)} por cada Bs 100 que ingresaron`} />
-            <Tile label={`Resultado global ${lastYear}`} value={millions(tiles.bal)} hint={`Déficit${tiles.share(tiles.pib(tiles.bal))}`} />
-            {oecd ? <Tile label={`Impuestos ${oecd.year}`} value={percent(oecd.value)} hint="del PIB, con seguridad social (OCDE)" /> : null}
-          </div>
-        ) : null}
+      <header className="page-intro">
+        <h3 className="page-intro-title">El Estado en cifras: cuánto entra, cuánto sale</h3>
+        <p className="page-intro-lede">
+          Las cuentas del sector público no financiero que publica el Ministerio de Economía: lo que
+          el Estado cobra y vende, lo que gasta y la diferencia que se financia con deuda. Elegí qué
+          parte del Estado mirar y en qué unidad.
+        </p>
+      </header>
+
+      <DerivedReading
+        id="cuentas-lectura"
+        title="Qué dicen estos datos"
+        note="Cada frase sale de las series de este capítulo y se recalcula con cada carga. Dice qué nivel hay y contra qué se compara; no dice por qué ni qué va a pasar."
+        conclusions={conclusions}
+        icons={ICONS}
+        source={SOURCE.ministry}
+      />
+
+      <div className="page-filters" role="group" aria-label="Filtros de las cuentas del Estado">
         <div className="slicer-row">
           <ChipPicker
             label="Qué parte del Estado"
@@ -168,19 +223,76 @@ export function AccountsPanorama({ accounts }: { accounts: AccountsPayload }) {
             ]}
             onChange={(next) => setMeasure(next === 'bs' ? 'bs' : 'pib')}
           />
-          <YearSlider label="Desde" value={from} min={Math.max(firstYear, floor)} max={lastYear} onChange={setChosen} />
+          <YearSlider
+            label="Desde"
+            value={from}
+            min={Math.max(firstYear, floor)}
+            max={lastYear}
+            onChange={setChosen}
+          />
         </div>
       </div>
 
-      <div className="grid-three">
-        <div className="panel">
-          <div className="panel-head">
-            <h2>Ingresos, gasto y resultado</h2>
-            <p className="panel-sub">
-              Año por año, años cerrados. Donde la línea del gasto queda por encima de la de
-              ingresos, la diferencia es el déficit de ese año.
-            </p>
+      {tiles ? (
+        <Panel
+          id="cuentas-ultimo-anio"
+          title={`Ingresos, gasto y resultado de ${lastYear} (millones de Bs)`}
+          lede={`${perimeterName}, último año cerrado.`}
+          source={oecd ? `${SOURCE.ministry}; impuestos: ${SOURCE.oecd}` : SOURCE.ministry}
+          data={{
+            unidad: 'millones de Bs',
+            columnas: ['Cifra', 'Valor', 'Unidad', 'Detalle'],
+            filas: [
+              [`Ingresos ${lastYear}`, tiles.inc, 'millones de Bs', perimeterName],
+              [`Gasto ${lastYear}`, tiles.out, 'millones de Bs', perimeterName],
+              [`Resultado global ${lastYear}`, tiles.bal, 'millones de Bs', perimeterName],
+              ...(oecd
+                ? [
+                    [
+                      `Impuestos ${oecd.year}`,
+                      oecd.value,
+                      '% del PIB',
+                      'con seguridad social (OCDE)',
+                    ],
+                  ]
+                : []),
+            ],
+          }}
+        >
+          <div className="stat-strip">
+            <Tile
+              label={`Ingresos ${lastYear}`}
+              value={millions(tiles.inc)}
+              hint={`${perimeterName}${tiles.share(tiles.pib(tiles.inc))}`}
+            />
+            <Tile
+              label={`Gasto ${lastYear}`}
+              value={millions(tiles.out)}
+              hint={`Gastó Bs ${number((tiles.out / tiles.inc) * 100, 0)} por cada Bs 100 que ingresaron`}
+            />
+            <Tile
+              label={`Resultado global ${lastYear}`}
+              value={millions(tiles.bal)}
+              hint={`Déficit${tiles.share(tiles.pib(tiles.bal))}`}
+            />
+            {oecd ? (
+              <Tile
+                label={`Impuestos ${oecd.year}`}
+                value={percent(oecd.value)}
+                hint="del PIB, con seguridad social (OCDE)"
+              />
+            ) : null}
           </div>
+        </Panel>
+      ) : null}
+
+      <div className="grid-three">
+        <Panel
+          id="cuentas-ingresos-gasto"
+          title={`Ingresos, gasto y resultado (${unitName})`}
+          lede="Año por año, años cerrados. Donde la línea del gasto queda por encima de la de ingresos, la diferencia es el déficit de ese año."
+          source={SOURCE.ministry}
+        >
           {lines.length > 1 ? (
             <WorldLines
               data={lines}
@@ -193,51 +305,49 @@ export function AccountsPanorama({ accounts }: { accounts: AccountsPayload }) {
               tick={tick}
             />
           ) : (
-            <p className="panel-sub">Sin datos para este perímetro.</p>
+            <div className="callout">Sin datos para este perímetro.</div>
           )}
-        </div>
-        <div className="panel">
-          <div className="panel-head">
-            <h2>De qué están hechos los ingresos</h2>
-            <p className="panel-sub">
-              Impuestos, regalías, venta de hidrocarburos por las empresas públicas y el resto.
-              Cuando el gas deja de venderse, la barra de «Venta de hidrocarburos» se achica.
-            </p>
-          </div>
+        </Panel>
+        <Panel
+          id="cuentas-ingresos-partes"
+          title={`De qué están hechos los ingresos (${unitName})`}
+          lede="Impuestos, regalías, venta de hidrocarburos por las empresas públicas y el resto. Cuando el gas deja de venderse, la barra de «Venta de hidrocarburos» se achica."
+          source={SOURCE.ministry}
+        >
           <StackedYearBars
             data={incomeBars}
             series={spec(income, 'Otros ingresos')}
             format={format}
             tick={tick}
+            unit={unitName}
             note={measure === 'bs' ? '* Año en curso: suma solo los meses publicados.' : undefined}
           />
-        </div>
-        <div className="panel">
-          <div className="panel-head">
-            <h2>En qué se gasta</h2>
-            <p className="panel-sub">
-              Sueldos, compras, intereses, transferencias —donde están las subvenciones a los
-              combustibles— e inversión. Los intereses crecen cuando la deuda crece.
-            </p>
-          </div>
+        </Panel>
+        <Panel
+          id="cuentas-gasto-partes"
+          title={`En qué se gasta (${unitName})`}
+          lede="Sueldos, compras, intereses, transferencias —donde están las subvenciones a los combustibles— e inversión. Los intereses crecen cuando la deuda crece."
+          source={SOURCE.ministry}
+        >
           <StackedYearBars
             data={spendingBars}
             series={spec(spending, 'Otros gastos')}
             format={format}
             tick={tick}
+            unit={unitName}
             note={measure === 'bs' ? '* Año en curso: suma solo los meses publicados.' : undefined}
           />
-        </div>
+        </Panel>
       </div>
 
       <div className="callout">
         <Icon name="info" size={14} /> <b>Por qué hay más de una cifra de déficit.</b> El Ministerio
-        informó para 2025 un déficit de 12,2 % del PIB en su Rendición Pública de Cuentas, con un PIB
-        estimado de unos Bs 375.000 millones. Este capítulo divide el mismo déficit por el PIB
+        informó para 2025 un déficit de 12,2 % del PIB en su Rendición Pública de Cuentas, con un
+        PIB estimado de unos Bs 375.000 millones. Este capítulo divide el mismo déficit por el PIB
         nominal del Banco Mundial, que es mayor, y da una proporción menor. El FMI publica además un
         resultado del gobierno general (rubro «Fiscal» de «Series de Bolivia») con otro perímetro y
-        otra fecha de estimación. Las tres cifras son ciertas para lo que miden; no son
-        comparables entre sí.{' '}
+        otra fecha de estimación. Las tres cifras son ciertas para lo que miden; no son comparables
+        entre sí.{' '}
         <a
           className="callout-link"
           href="https://www.economiayfinanzas.gob.bo/transparencia-rendiciones-de-cuentas"

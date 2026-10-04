@@ -23,6 +23,8 @@ import { InfoPopover } from './info-popover';
 import { NeighboursSection } from './neighbours-tables';
 import { useOnOpen } from './on-open';
 import { Pager } from './pager';
+import { Panel } from '@/components/ui/panel';
+import { celda } from '@/components/ui/panel-data';
 import type { EnergyBoard } from '@/lib/energy-board';
 import type { EnvironmentBoard } from '@/lib/environment-board';
 import { DEFINITION_AUTHOR } from '@/lib/indicator-glossary';
@@ -62,6 +64,9 @@ import type { WorldIndicator, WorldTheme } from '@/lib/world-board';
  * direcciones de esos capítulos, a la vez que el tablero mundial y sólo al
  * abrir la pestaña: la portada no los lee.
  */
+
+/** Quién publica las cifras de todo el tablero mundial. */
+const WORLD_SOURCE = 'Banco Mundial, World Development Indicators (WDI)';
 
 const PAGE_SIZE = 20;
 const DEFAULT_REGION = 'LCN';
@@ -408,10 +413,9 @@ export function WorldExplorer() {
               max={lastYear - 1}
               value={from}
               onChange={(event) => goTo(() => setFrom(Number(event.target.value)))}
-              style={{ width: '100%' }}
             />
           </div>
-          <div className="rail-pills" style={{ marginTop: '0.4rem' }}>
+          <div className="rail-pills">
             {[1960, 1990, 2000, 2010].map((year) => (
               <button
                 key={year}
@@ -441,32 +445,6 @@ export function WorldExplorer() {
           </div>
         </div>
 
-        <div className="rail-sec">
-          <div className="rail-head">
-            <Icon name="descarga" size={13} />
-            Descargar la selección
-          </div>
-          <div className="rail-download">
-            <a
-              className="download-btn"
-              href={`/api/export?${exportQuery.toString()}&format=csv`}
-              download={`observatorio-mundo-${region.toLowerCase()}-desde-${from}.csv`}
-            >
-              CSV
-            </a>
-            <a
-              className="download-btn"
-              href={`/api/export?${exportQuery.toString()}&format=json`}
-              download={`observatorio-mundo-${region.toLowerCase()}-desde-${from}.json`}
-            >
-              JSON
-            </a>
-          </div>
-          <p className="rail-hint">
-            Una fila por indicador, lugar y año, para el mundo, {regionLabel} y Bolivia.
-          </p>
-        </div>
-
         <div className="rail-foot">
           Selección: <b>{visible.length}</b> de <b>{WORLD_INDICATORS.length}</b> indicadores
           <br />
@@ -477,53 +455,44 @@ export function WorldExplorer() {
       </aside>
 
       <div className="workspace-main" id="tablero" tabIndex={-1}>
-        <div className="briefcard">
-          <span className="briefcard-mark">
-            <Icon name="globo" size={20} />
-          </span>
-          <div>
-            <h2>Cómo está la economía mundial</h2>
+        <header className="page-intro">
+          <h3 className="page-intro-title">Cómo está la economía mundial</h3>
+          <p className="page-intro-lede">
+            Crecimiento, precios, comercio, trabajo y bienestar <b>del mundo entero</b>, con la
+            región que elijas a la izquierda y <b>Bolivia en la misma escala</b>. Al pie,{' '}
+            <a href="#vecinos">Bolivia y sus vecinos</a>.
+          </p>
+          <details className="panel-note">
+            <summary>Cómo leerlo</summary>
             <p>
-              Crecimiento, precios, comercio, trabajo y bienestar <strong>del mundo entero</strong>,
-              con la región que elijas a la izquierda y <strong>Bolivia en la misma escala</strong>.
               Todas las cifras son del Banco Mundial y usan la misma definición para el mundo, las
               regiones y el país, así que las tasas se leen sobre un solo eje sin convertir nada.
               Los dos totales —el PIB en dólares y la población— se dibujan como índice, porque
-              junto al mundo Bolivia no se vería. Al pie,{' '}
-              <a href="#vecinos">Bolivia y sus vecinos</a>: el último dato de cada país de al lado
-              en energía, recursos naturales y medio ambiente.
+              junto al mundo Bolivia no se vería. Al pie de la página, «Bolivia y sus vecinos» da el
+              último dato de cada país de al lado en energía, recursos naturales y medio ambiente.
             </p>
-            <div className="brief-points">
-              <div className="brief-point">
-                <span className="brief-point-mark">
-                  <Icon name="globo" size={17} />
-                </span>
-                <div>
-                  <b>El mundo y siete regiones</b>
-                  <span>agregados que calcula el propio Banco Mundial</span>
-                </div>
+          </details>
+          <div className="brief-points">
+            <div className="brief-point">
+              <div>
+                <b>El mundo y siete regiones</b>
+                <span>agregados que calcula el propio Banco Mundial</span>
               </div>
-              <div className="brief-point">
-                <span className="brief-point-mark">
-                  <Icon name="diana" size={17} />
-                </span>
-                <div>
-                  <b>Bolivia en la misma escala</b>
-                  <span>la línea naranja de cada gráfico</span>
-                </div>
+            </div>
+            <div className="brief-point">
+              <div>
+                <b>Bolivia en la misma escala</b>
+                <span>la línea naranja de cada gráfico</span>
               </div>
-              <div className="brief-point">
-                <span className="brief-point-mark">
-                  <Icon name="info" size={17} />
-                </span>
-                <div>
-                  <b>Qué mide cada cifra</b>
-                  <span>tocá la ⓘ de una tarjeta</span>
-                </div>
+            </div>
+            <div className="brief-point">
+              <div>
+                <b>Qué mide cada cifra</b>
+                <span>tocá la ⓘ de una tarjeta</span>
               </div>
             </div>
           </div>
-        </div>
+        </header>
 
         {hasWorld ? null : (
           <div className="callout">
@@ -533,58 +502,84 @@ export function WorldExplorer() {
           </div>
         )}
 
-        <div className="stat-strip">
-          {stats.map(({ indicator, world, bolivia }) => (
-            <div className="stat" key={indicator.code}>
-              <span className="stat-label">
-                <Icon name={THEME_ICON[indicator.theme]} size={12} />
-                {indicator.label} · mundo
-              </span>
-              <span className="stat-value">
-                {world ? sayWorldFigure(world.value, indicator) : '—'}
-              </span>
-              <span className="stat-hint">
-                {world ? `${world.year} · ` : ''}
-                Bolivia:{' '}
-                {bolivia
-                  ? `${sayWorldFigure(bolivia.value, indicator)} (${bolivia.year})`
-                  : 'sin dato'}
-              </span>
-            </div>
-          ))}
-        </div>
+        <Panel
+          id="mundo-cifras"
+          title="Crecimiento, inflación, desempleo y pobreza: el mundo y Bolivia (%)"
+          lede="La última cifra publicada del mundo y, debajo, la de Bolivia."
+          source={WORLD_SOURCE}
+          data={() => ({
+            unidad: '% (tasas anuales y porcentaje de la población)',
+            columnas: ['Indicador', 'Unidad', 'Mundo', 'Año (mundo)', 'Bolivia', 'Año (Bolivia)'],
+            filas: stats.map(({ indicator, world, bolivia }) => [
+              indicator.label,
+              indicator.unit,
+              celda(world?.value),
+              celda(world?.year),
+              celda(bolivia?.value),
+              celda(bolivia?.year),
+            ]),
+          })}
+          className="world-stats"
+        >
+          <div className="stat-strip">
+            {stats.map(({ indicator, world, bolivia }) => (
+              <div className="stat" key={indicator.code}>
+                <span className="stat-label">
+                  <Icon name={THEME_ICON[indicator.theme]} size={12} />
+                  {indicator.label} · mundo
+                </span>
+                <span className="stat-value">
+                  {world ? sayWorldFigure(world.value, indicator) : '—'}
+                </span>
+                <span className="stat-hint">
+                  {world ? `${world.year} · ` : ''}
+                  Bolivia:{' '}
+                  {bolivia
+                    ? `${sayWorldFigure(bolivia.value, indicator)} (${bolivia.year})`
+                    : 'sin dato'}
+                </span>
+              </div>
+            ))}
+          </div>
+        </Panel>
 
-        <div className="strap">
-          <Icon
-            name={
-              theme.size === 0 ? 'globo' : (THEME_ICON[list(theme)[0] as WorldTheme] ?? 'globo')
-            }
-            size={17}
-          />
-          <h2>
-            {describe(
-              theme,
-              (value) => THEME_LABEL[value as WorldTheme] ?? value,
-              'Todos los temas',
-            )}
-          </h2>
-          <span className="tile-hint">
-            {visible.length} indicador{visible.length === 1 ? '' : 'es'}
-            {pages === 1 ? '' : ` · ${first}–${last} en pantalla`}
-          </span>
-          <div className="world-legend" aria-label="Qué es cada línea">
-            <span>
-              <i style={{ color: TONE.world }} aria-hidden="true" />
-              Mundo
+        {/*
+          La barra de la lista: qué tema se ve y cómo se baja la selección entera. Cada
+          tarjeta es un panel con su propio menú «Descargar» (imagen, datos del indicador
+          y enlace); esta barra baja TODO lo filtrado, de todas las páginas, que es lo que
+          un menú de tarjeta no puede hacer.
+        */}
+        <div className="list-bar">
+          <div className="list-bar-text">
+            <h3>
+              {describe(
+                theme,
+                (value) => THEME_LABEL[value as WorldTheme] ?? value,
+                'Todos los temas',
+              )}
+            </h3>
+            <span className="tile-hint">
+              {visible.length} indicador{visible.length === 1 ? '' : 'es'}
+              {pages === 1 ? '' : ` · ${first}–${last} en pantalla`}
             </span>
-            <span>
-              <i className="world-legend-dash" style={{ color: TONE.region }} aria-hidden="true" />
-              {regionLabel}
-            </span>
-            <span>
-              <i style={{ color: TONE.bolivia }} aria-hidden="true" />
-              Bolivia
-            </span>
+          </div>
+          <div className="download">
+            <a
+              className="download-btn"
+              href={`/api/export?${exportQuery.toString()}&format=csv`}
+              download={`observatorio-mundo-${region.toLowerCase()}-desde-${from}.csv`}
+              title={`Una fila por indicador, lugar y año, para el mundo, ${regionLabel} y Bolivia: todas las páginas`}
+            >
+              Selección en CSV
+            </a>
+            <a
+              className="download-btn"
+              href={`/api/export?${exportQuery.toString()}&format=json`}
+              download={`observatorio-mundo-${region.toLowerCase()}-desde-${from}.json`}
+              title={`Una fila por indicador, lugar y año, para el mundo, ${regionLabel} y Bolivia: todas las páginas`}
+            >
+              Selección en JSON
+            </a>
           </div>
         </div>
 
@@ -600,7 +595,7 @@ export function WorldExplorer() {
               onGo={setOffset}
               where="arriba"
             />
-            <div className="card-grid">
+            <div className="card-grid card-grid-flat">
               {shown.map((indicator) => (
                 <WorldCard
                   key={indicator.code}
@@ -727,9 +722,22 @@ function WorldCard({
   const shared = indicator.format === 'percent' ? latestShared(bolivia, world) : null;
   const gap = shared === null ? null : (bolivia?.get(shared) ?? 0) - (world?.get(shared) ?? 0);
 
+  const unitNote = indexed
+    ? `Las cifras de arriba son los totales, en ${indicator.unit}.`
+    : undefined;
+
   return (
-    <article className="card world-card">
-      <header className="card-head">
+    <Panel
+      id={`mundo-${indicator.code.toLowerCase().replace(/[^a-z0-9]+/g, '-')}`}
+      title={
+        indexed
+          ? `${indicator.label} (índice, base 100 en el primer año desde ${from})`
+          : `${indicator.label} (${indicator.unit})`
+      }
+      source={WORLD_SOURCE}
+      className="card world-card"
+    >
+      <div className="card-head">
         <span className="card-sector">
           <Icon name={THEME_ICON[indicator.theme]} size={12} /> {THEME_LABEL[indicator.theme]}
         </span>
@@ -751,9 +759,7 @@ function WorldCard({
             </p>
           </InfoPopover>
         </span>
-        <h3>{indicator.label}</h3>
-        <p className="world-unit">{indicator.unit}</p>
-      </header>
+      </div>
 
       <dl className="world-figures">
         {readings.map((one) => (
@@ -785,27 +791,20 @@ function WorldCard({
       ) : null}
 
       {series.length && data.length ? (
-        <>
-          <WorldLines
-            data={data}
-            series={series}
-            format={
-              indexed
-                ? (value) => `índice ${sayIndex(value)}`
-                : (value) => sayWorldFigure(value, indicator)
-            }
-            tick={indexed ? sayIndex : (value) => sayWorldTick(value, indicator)}
-          />
-          {indexed ? (
-            <p className="world-index-note">
-              Índice: cada línea vale 100 en el primer año que tiene desde {from}. Las cifras de
-              arriba son los totales.
-            </p>
-          ) : null}
-        </>
+        <WorldLines
+          data={data}
+          series={series}
+          format={
+            indexed
+              ? (value) => `índice ${sayIndex(value)}`
+              : (value) => sayWorldFigure(value, indicator)
+          }
+          tick={indexed ? sayIndex : (value) => sayWorldTick(value, indicator)}
+        />
       ) : (
         <p className="panel-sub">Sin observaciones desde {from}.</p>
       )}
-    </article>
+      {unitNote ? <p className="panel-note">{unitNote}</p> : null}
+    </Panel>
   );
 }

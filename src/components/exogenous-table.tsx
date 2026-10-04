@@ -1,5 +1,7 @@
 'use client';
 
+import { Panel } from '@/components/ui/panel';
+import { celda } from '@/components/ui/panel-data';
 import { SCOPES, sayPeriod, summarize } from '@/lib/exogenous-board';
 import type { ExogenousSeries } from '@/lib/exogenous-board';
 
@@ -23,6 +25,16 @@ const number = (value: number): string => {
   }).format(value);
 };
 
+/** Quién publica las series de un panel, sin inventar: lo que cada serie declara. */
+export function sourcesOf(series: readonly ExogenousSeries[]): string {
+  const names = [
+    ...new Set(series.map((one) => one.publisher).filter((name): name is string => Boolean(name))),
+  ];
+  if (names.length === 0) return 'Observatorio Económico de Bolivia (ver «Método»)';
+  if (names.length <= 3) return names.join(', ');
+  return `${names.slice(0, 3).join(', ')} y otras ${names.length - 3} fuentes`;
+}
+
 function Change({ value }: { value: number | null }) {
   if (value === null) return <td className="num">—</td>;
   const sign = value > 0 ? '+' : '';
@@ -36,15 +48,50 @@ function Change({ value }: { value: number | null }) {
 
 export function ExogenousTable({ series }: { series: readonly ExogenousSeries[] }) {
   if (!series.length) return null;
+  const rows = series.filter((one) => summarize(one).last);
+
+  /** Lo que muestra la tabla, con el valor sin redondear, para el archivo que se baja. */
+  const dataset = () => ({
+    unidad: 'cada lectura en su unidad; las variaciones en %',
+    columnas: [
+      'Lectura',
+      'Ámbito',
+      'Mercado',
+      'Unidad',
+      'Periodo',
+      'Último',
+      'Variación contra el periodo anterior (%)',
+      'Variación contra hace un año (%)',
+      'Variación contra el promedio de 5 años (%)',
+      'Publica',
+    ],
+    filas: rows.map((one) => {
+      const summary = summarize(one);
+      return [
+        one.name,
+        SCOPE_LABEL.get(one.scope) ?? one.scope,
+        one.market,
+        one.unit,
+        summary.last ? sayPeriod(summary.last[0]) : null,
+        celda(summary.last?.[1]),
+        celda(summary.change),
+        celda(summary.yearChange),
+        celda(summary.versusFiveYears),
+        one.publisher,
+      ];
+    }),
+    nota: '«Anterior» es el mes pasado en las lecturas mensuales y el año pasado en las de aduana.',
+  });
+
   return (
-    <div className="panel">
-      <div className="panel-head">
-        <h2>Último dato de cada lectura del recorte (precio y variación en %)</h2>
-        <p className="panel-sub">
-          Una fila por lectura, también las que el gráfico no dibuja. «Anterior» es el mes pasado en
-          las mensuales y el año pasado en las de aduana.
-        </p>
-      </div>
+    <Panel
+      id="exogenas-tabla"
+      title="Último dato de cada lectura del recorte (precio y variación en %)"
+      lede="Una fila por lectura, también las que el gráfico no dibuja."
+      meta={`${rows.length} lectura${rows.length === 1 ? '' : 's'}`}
+      source={sourcesOf(rows)}
+      data={dataset}
+    >
       <div className="table-wrap">
         <table className="grid-table">
           <thead>
@@ -61,7 +108,7 @@ export function ExogenousTable({ series }: { series: readonly ExogenousSeries[] 
             </tr>
           </thead>
           <tbody>
-            {series.map((one) => {
+            {rows.map((one) => {
               const summary = summarize(one);
               if (!summary.last) return null;
               return (
@@ -91,6 +138,9 @@ export function ExogenousTable({ series }: { series: readonly ExogenousSeries[] 
           </tbody>
         </table>
       </div>
-    </div>
+      <p className="panel-note">
+        «Anterior» es el mes pasado en las lecturas mensuales y el año pasado en las de aduana.
+      </p>
+    </Panel>
   );
 }

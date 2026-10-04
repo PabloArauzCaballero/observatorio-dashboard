@@ -4,6 +4,7 @@ import { useMemo, useState } from 'react';
 import { AccountsCalculator } from './accounts-calculator';
 import { ChipPicker } from './accounts-controls';
 import { Icon } from './icons';
+import { Panel } from '@/components/ui/panel';
 import {
   CONFIRMATION_LABEL,
   NORMS,
@@ -34,10 +35,14 @@ const CONFIRMATIONS = (Object.keys(CONFIRMATION_LABEL) as Confirmation[]).map((k
 }));
 
 const normalise = (text: string): string =>
-  text
-    .normalize('NFD')
-    .replace(/[̀-ͯ]/gu, '')
-    .toLowerCase();
+  text.normalize('NFD').replace(/[̀-ͯ]/gu, '').toLowerCase();
+
+/** Cómo se reparten los impuestos nacionales que se coparticipan (Ley 031). */
+const SHARES = [
+  { label: 'Tesoro General', value: 75 },
+  { label: 'Municipios', value: 20 },
+  { label: 'Universidades', value: 5 },
+] as const;
 
 export function AccountsNorms() {
   const [group, setGroup] = useState<ReadonlySet<string>>(new Set());
@@ -56,32 +61,35 @@ export function AccountsNorms() {
     );
   }, [group, confirmation, search]);
 
+  const NORM_SOURCE = `leyes y decretos de Bolivia, verificados el ${NORMS_AS_OF}`;
+
   return (
     <>
-      <div className="panel">
-        <div className="panel-head">
-          <h2>Qué dicen las normas</h2>
-          <p className="panel-sub">
-            Los impuestos y tasas que fijan las leyes y decretos de Bolivia, verificados el{' '}
-            {NORMS_AS_OF}. En 2026 cambiaron varios: se eliminó el impuesto a las transacciones
-            financieras, bajaron los aranceles, el diésel dejó de subvencionarse y se aprobó el IVA
-            «por fuera». Cada fila dice si se leyó el texto de la norma o solo se vio en prensa.
-          </p>
-        </div>
-      </div>
+      <header className="page-intro">
+        <h3 className="page-intro-title">Qué dicen las normas</h3>
+        <p className="page-intro-lede">
+          Los impuestos y tasas que fijan las leyes y decretos de Bolivia, verificados el{' '}
+          {NORMS_AS_OF}. En 2026 cambiaron varios: se eliminó el impuesto a las transacciones
+          financieras, bajaron los aranceles, el diésel dejó de subvencionarse y se aprobó el IVA
+          «por fuera». Cada fila dice si se leyó el texto de la norma o solo se vio en prensa.
+        </p>
+      </header>
 
       <AccountsCalculator />
 
       <div className="grid-two">
-        <div className="panel">
-          <div className="panel-head">
-            <h2>Aranceles: cinco puntos menos en cada tramo</h2>
-            <p className="panel-sub">
-              Desde el 6 de julio de 2026 y hasta fines de 2027, cada alícuota del gravamen
-              arancelario bajó cinco puntos (DS 5646). La escala llega ahora a 35 %.
-            </p>
-          </div>
-          <div className="table-wrap" style={{ maxHeight: "none" }}>
+        <Panel
+          id="normas-aranceles"
+          title="Aranceles: cinco puntos menos en cada tramo (% del valor)"
+          lede="Desde el 6 de julio de 2026 y hasta fines de 2027, cada alícuota del gravamen arancelario bajó cinco puntos (DS 5646). La escala llega ahora a 35 %."
+          source="prensa y un agregador normativo; el texto del decreto no se pudo bajar de la Gaceta Oficial"
+          data={{
+            unidad: '% del valor',
+            columnas: ['Arancel antes (%)', 'Arancel ahora (%)'],
+            filas: TARIFF_SHIFT.map((step) => [step.before, step.now]),
+          }}
+        >
+          <div className="table-wrap">
             <table className="grid-table accounts-table">
               <thead>
                 <tr>
@@ -101,52 +109,67 @@ export function AccountsNorms() {
               </tbody>
             </table>
           </div>
-          <p className="panel-sub">
-            Fuente: prensa y un agregador normativo; el texto del decreto no se pudo bajar de la
-            Gaceta Oficial.
-          </p>
-        </div>
-        <div className="panel">
-          <div className="panel-head">
-            <h2>A dónde va lo que se recauda</h2>
-            <p className="panel-sub">
-              De los impuestos nacionales que se reparten, tres cuartas partes se quedan en el
-              Tesoro, una quinta va a los municipios y una veinteava a las universidades. Las
-              gobernaciones reclaman un 15 % directo en la agenda de descentralización.
-            </p>
-          </div>
+        </Panel>
+        <Panel
+          id="normas-reparto"
+          title="A dónde va lo que se recauda (% de lo que se reparte)"
+          lede="De los impuestos nacionales que se reparten, tres cuartas partes se quedan en el Tesoro, una quinta va a los municipios y una veinteava a las universidades. Las gobernaciones reclaman un 15 % directo en la agenda de descentralización."
+          source="Ley 031, coparticipación tributaria"
+          data={{
+            unidad: '% de lo que se reparte',
+            columnas: ['Destino', 'Parte (%)', 'Norma'],
+            filas: SHARES.map((share) => [share.label, share.value, 'Ley 031, coparticipación']),
+            nota: 'El IDH y las regalías se reparten aparte; los porcentajes vigentes de ese reparto no se pudieron confirmar.',
+          }}
+        >
           <div className="stat-strip">
-            <div className="stat">
-              <span className="stat-label">Tesoro General</span>
-              <span className="stat-value">75 %</span>
-              <span className="stat-hint">Ley 031, coparticipación</span>
-            </div>
-            <div className="stat">
-              <span className="stat-label">Municipios</span>
-              <span className="stat-value">20 %</span>
-              <span className="stat-hint">Ley 031, coparticipación</span>
-            </div>
-            <div className="stat">
-              <span className="stat-label">Universidades</span>
-              <span className="stat-value">5 %</span>
-              <span className="stat-hint">Ley 031, coparticipación</span>
-            </div>
+            {SHARES.map((share) => (
+              <div className="stat" key={share.label}>
+                <span className="stat-label">{share.label}</span>
+                <span className="stat-value">{share.value} %</span>
+                <span className="stat-hint">Ley 031, coparticipación</span>
+              </div>
+            ))}
           </div>
-          <p className="panel-sub">
+          <p className="chart-note">
             El IDH y las regalías se reparten aparte, entre gobernaciones, municipios, universidades
             y el Tesoro; los porcentajes vigentes de ese reparto no se pudieron confirmar.
           </p>
-        </div>
+        </Panel>
       </div>
 
-      <div className="panel">
-        <div className="panel-head">
-          <h2>Cada impuesto, con su norma</h2>
-          <p className="panel-sub">
-            {shown.length} de {NORMS.length} normas. Filtrá por tipo de impuesto o por cómo se
-            confirmó, o buscá por nombre.
-          </p>
-        </div>
+      <Panel
+        id="normas-tabla"
+        title={`Cada impuesto, con su norma (${shown.length} de ${NORMS.length} normas)`}
+        lede="Filtrá por tipo de impuesto o por cómo se confirmó, o buscá por nombre."
+        source={NORM_SOURCE}
+        data={() => ({
+          unidad: 'normas',
+          columnas: [
+            'Impuesto',
+            'Tipo',
+            'Cuánto cobra hoy',
+            'Sobre qué',
+            'Nota',
+            'Norma',
+            'Dirección de la norma',
+            'Quién recauda y a dónde va',
+            'Confirmación',
+          ],
+          filas: shown.map((norm) => [
+            norm.name,
+            NORM_GROUP_LABEL[norm.group],
+            norm.rate,
+            norm.base,
+            norm.note ?? null,
+            norm.norm,
+            norm.source,
+            norm.collector,
+            CONFIRMATION_LABEL[norm.confirmation],
+          ]),
+          nota: 'Una alícuota que cambie después de la fecha de verificación no aparece hasta que se corrija la tabla.',
+        })}
+      >
         <div className="slicer-row">
           <ChipPicker
             label="Tipo"
@@ -192,14 +215,14 @@ export function AccountsNorms() {
                 <tr key={norm.id}>
                   <th scope="row">
                     {norm.name}
-                    <div className="panel-sub">{NORM_GROUP_LABEL[norm.group]}</div>
+                    <div className="cell-sub">{NORM_GROUP_LABEL[norm.group]}</div>
                   </th>
                   <td>
                     <b>{norm.rate}</b>
                   </td>
                   <td>
                     {norm.base}
-                    {norm.note ? <div className="panel-sub">{norm.note}</div> : null}
+                    {norm.note ? <div className="cell-sub">{norm.note}</div> : null}
                   </td>
                   <td>
                     <a className="table-link" href={norm.source} target="_blank" rel="noreferrer">
@@ -209,7 +232,11 @@ export function AccountsNorms() {
                   <td>{norm.collector}</td>
                   <td>
                     <span title={CONFIRMATION_LABEL[norm.confirmation]}>
-                      {norm.confirmation === 'primaria' ? '●' : norm.confirmation === 'pendiente' ? '◐' : '○'}{' '}
+                      {norm.confirmation === 'primaria'
+                        ? '●'
+                        : norm.confirmation === 'pendiente'
+                          ? '◐'
+                          : '○'}{' '}
                       {CONFIRMATION_LABEL[norm.confirmation]}
                     </span>
                   </td>
@@ -218,15 +245,15 @@ export function AccountsNorms() {
             </tbody>
           </table>
           {shown.length === 0 ? (
-            <p className="panel-sub">Ninguna norma coincide con estos filtros.</p>
+            <div className="callout">Ninguna norma coincide con estos filtros.</div>
           ) : null}
         </div>
-        <p className="panel-sub">
+        <p className="chart-note">
           <Icon name="info" size={12} /> ● texto de la norma leído · ○ solo prensa o portal
           tributario · ◐ aprobada, todavía no rige. Una alícuota que cambie después de esta fecha no
           aparece hasta que se corrija la tabla.
         </p>
-      </div>
+      </Panel>
     </>
   );
 }

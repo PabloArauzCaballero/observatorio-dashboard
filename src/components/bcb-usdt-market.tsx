@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { DatedLines, seriesTone } from './charts';
 import type { DatedLineSeries } from './charts';
+import { Panel } from '@/components/ui/panel';
 import type { BcbSeriesData } from '@/lib/bcb-board';
 
 /**
@@ -64,14 +65,13 @@ export function BcbUsdtMarket() {
     { key: 'value', label: measure.label, tone: seriesTone(3), emphasis: true },
   ];
   return (
-    <div className="panel">
-      <div className="panel-head">
-        <h2>{measure.title}</h2>
-        <p className="panel-sub">
-          Según el Banco Central, con información de Binance: compras de USDT hechas desde Bolivia,
-          por mes. Es el mercado que los bancos empezaron a atender; el BCB lo publica hasta mayo de
-          2025.
-        </p>
+    <Panel
+      id="mercado-usdt-bcb"
+      title={measure.title}
+      lede="Compras de USDT hechas desde Bolivia, por mes, según el Banco Central con información de Binance."
+      source="Banco Central de Bolivia (libro del bicentenario y Memoria), con información de Binance"
+    >
+      <div className="fx-filters">
         <div className="chips" role="group" aria-label="Medida">
           {MEASURES.map((option) => (
             <button
@@ -98,6 +98,12 @@ export function BcbUsdtMarket() {
       ) : (
         <div className="callout">Leyendo las cifras del Banco Central…</div>
       )}
-    </div>
+      <details className="panel-note">
+        <summary>Cómo leer este gráfico</summary>
+        <p>
+          Es el mercado que los bancos empezaron a atender; el BCB lo publica hasta mayo de 2025.
+        </p>
+      </details>
+    </Panel>
   );
 }

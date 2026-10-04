@@ -2,8 +2,9 @@
 
 import { useMemo, useState } from 'react';
 import { TradeCountryCard } from './trade-country-card';
-import { say } from './trade-records-panels';
+import { SOURCE_ADUANA, say } from './trade-records-panels';
 import { WorldTradeMap } from './world-trade-map';
+import { Panel } from '@/components/ui/panel';
 import type { Choice } from '@/lib/choice';
 import { countryMap, sameOutline } from '@/lib/trade-countries';
 import type { TradeView } from '@/lib/trade-records';
@@ -30,8 +31,7 @@ import type { TradeView } from '@/lib/trade-records';
 type Measure = 'usd' | 'kg';
 
 /** Más decimales donde la cifra es chica: un país de 0,004 MM USD no es «0». */
-const smart = (value: number): string =>
-  say(value, value >= 100 ? 0 : value >= 1 ? 1 : 3);
+const smart = (value: number): string => say(value, value >= 100 ? 0 : value >= 1 ? 1 : 3);
 
 const MEASURES: ReadonlyArray<{ by: Measure; label: string }> = [
   { by: 'usd', label: 'Valor' },
@@ -80,83 +80,98 @@ export function TradeWorld({
   };
 
   return (
-    <div className="panel">
-      <div className="panel-head panel-head-kind">
-        <div>
-          <h2>
-            A qué países {verb} Bolivia: mapa de calor ({measure === 'usd' ? 'millones de USD' : 'miles de toneladas'}, {years})
-          </h2>
-          <p className="panel-sub">
-            El tono dice cuánto —{what}, sumado en el periodo— y la clave de debajo dice qué extremo
-            es el mayor. Están todos los países que la declaración aduanera nombra, no sólo los
-            principales: el gris es «sin comercio declarado con estos filtros». El mapa respeta el
-            producto, el departamento y los meses elegidos; sólo suelta el filtro de país. Toca un
-            país para ponerlo en el filtro y abrir su ficha aquí debajo; Ctrl/⌘ suma varios.
+    <>
+      <Panel
+        id="aduana-mapa"
+        title={`A qué países ${verb} Bolivia: mapa de calor (${
+          measure === 'usd' ? 'millones de USD' : 'miles de toneladas'
+        }, ${years})`}
+        lede={`El tono dice cuánto —${what}, sumado en el periodo—; toca un país para ponerlo en el filtro y abrir su ficha aquí debajo.`}
+        source={SOURCE_ADUANA}
+      >
+        <div className="fx-filters">
+          <div className="chart-kind" role="group" aria-label="Flujo que pinta el mapa">
+            {(
+              [
+                ['X', 'Exportaciones'],
+                ['M', 'Importaciones'],
+              ] as const
+            ).map(([key, label]) => (
+              <button
+                key={key}
+                type="button"
+                className={flow === key ? 'chip chip-on' : 'chip'}
+                aria-pressed={flow === key}
+                onClick={() => onFlow(key)}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+          <div className="chart-kind" role="group" aria-label="Qué mide el mapa">
+            {MEASURES.map((option) => (
+              <button
+                key={option.by}
+                type="button"
+                className={measure === option.by ? 'chip chip-on' : 'chip'}
+                aria-pressed={measure === option.by}
+                onClick={() => setMeasure(option.by)}
+              >
+                {option.label}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {view?.unavailable ? (
+          <div className="callout">{view.unavailable}</div>
+        ) : !map.rows.length ? (
+          <div className="callout">Sin comercio declarado con estos filtros.</div>
+        ) : (
+          <WorldTradeMap
+            rows={map.rows}
+            unit={unit}
+            label={`${flow === 'X' ? 'exportaciones' : 'importaciones'} de Bolivia por país, ${years}`}
+            picked={country}
+            onPick={pick}
+            absent="sin comercio declarado con estos filtros"
+            absentKey="sin comercio declarado"
+            format={smart}
+            exact={smart}
+          />
+        )}
+
+        {map.unplaced.length ? (
+          <p className="chart-note">
+            No se dibuja, por no ser un país con contorno:{' '}
+            {map.unplaced
+              .slice(0, 3)
+              .map((row) => `${row.label} (${smart(row.value)} ${unit})`)
+              .join(', ')}
+            {map.unplaced.length > 3 ? ` y ${map.unplaced.length - 3} más` : ''}
+            {map.unplaced.length > 1 ? `; en total ${smart(unplaced)} ${unit}` : ''}. Sí cuenta en
+            los ránkings y en las cifras de arriba.
           </p>
-        </div>
-        <div className="chart-kind" role="group" aria-label="Flujo que pinta el mapa">
-          {(
-            [
-              ['X', 'Exportaciones'],
-              ['M', 'Importaciones'],
-            ] as const
-          ).map(([key, label]) => (
-            <button
-              key={key}
-              type="button"
-              className={flow === key ? 'chip chip-on' : 'chip'}
-              aria-pressed={flow === key}
-              onClick={() => onFlow(key)}
-            >
-              {label}
-            </button>
-          ))}
-        </div>
-      </div>
-      <div className="chart-kind" role="group" aria-label="Qué mide el mapa" style={{ marginBottom: '0.6rem' }}>
-        {MEASURES.map((option) => (
-          <button
-            key={option.by}
-            type="button"
-            className={measure === option.by ? 'chip chip-on' : 'chip'}
-            aria-pressed={measure === option.by}
-            onClick={() => setMeasure(option.by)}
-          >
-            {option.label}
-          </button>
-        ))}
-      </div>
+        ) : null}
 
-      {view?.unavailable ? (
-        <div className="callout">{view.unavailable}</div>
-      ) : !map.rows.length ? (
-        <div className="callout">Sin comercio declarado con estos filtros.</div>
-      ) : (
-        <WorldTradeMap
-          rows={map.rows}
-          unit={unit}
-          label={`${flow === 'X' ? 'exportaciones' : 'importaciones'} de Bolivia por país, ${years}`}
-          picked={country}
-          onPick={pick}
-          absent="sin comercio declarado con estos filtros"
-          absentKey="sin comercio declarado"
-          format={smart}
-          exact={smart}
-        />
-      )}
+        {focus ? null : (
+          <p className="chart-note">
+            Todavía no elegiste ningún país: la ficha con su comercio en el tiempo, los productos
+            que van y vienen y los departamentos de origen aparece al tocar uno en el mapa o en el
+            filtro.
+          </p>
+        )}
 
-      {map.unplaced.length ? (
-        <p className="chart-note">
-          No se dibuja, por no ser un país con contorno:{' '}
-          {map.unplaced
-            .slice(0, 3)
-            .map((row) => `${row.label} (${smart(row.value)} ${unit})`)
-            .join(', ')}
-          {map.unplaced.length > 3 ? ` y ${map.unplaced.length - 3} más` : ''}
-          {map.unplaced.length > 1 ? `; en total ${smart(unplaced)} ${unit}` : ''}. Sí cuenta en los
-          ránkings y en las cifras de arriba.
-        </p>
-      ) : null}
+        <details className="panel-note">
+          <summary>Cómo leerlo</summary>
+          <p>
+            La clave de debajo del mapa dice qué extremo es el mayor. Están todos los países que la
+            declaración aduanera nombra, no sólo los principales: el gris es «sin comercio declarado
+            con estos filtros». El mapa respeta el producto, el departamento y los meses elegidos;
+            sólo suelta el filtro de país. Ctrl/⌘ suma varios países.
+          </p>
+        </details>
+      </Panel>
 
       {focus ? (
         <TradeCountryCard
@@ -166,12 +181,7 @@ export function TradeWorld({
           from={from}
           to={to}
         />
-      ) : (
-        <p className="chart-note">
-          Todavía no elegiste ningún país: la ficha con su comercio en el tiempo, los productos que
-          van y vienen y los departamentos de origen aparece al tocar uno en el mapa o en el filtro.
-        </p>
-      )}
-    </div>
+      ) : null}
+    </>
   );
 }

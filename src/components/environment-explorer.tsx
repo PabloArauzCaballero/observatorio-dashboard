@@ -1,19 +1,17 @@
 'use client';
 
-import type { ReactNode } from 'react';
-
 import { MacroChart, WorldLines, seriesTone } from './charts';
 import type { WorldLinePoint, WorldLineSeries } from './charts';
 import { DerivedReading } from './derived-reading';
-import { Icon } from './icons';
 import type { IconName } from './icons';
+import { Panel } from '@/components/ui/panel';
+import { TabHeader } from '@/components/ui/tab-header';
 import {
   ENVIRONMENT_GROUP_LABEL,
   ENVIRONMENT_INDICATORS,
   ENVIRONMENT_PLACES,
   WHO_PM25_GUIDELINE,
   type EnvironmentBoard,
-  type EnvironmentGroup,
 } from '@/lib/environment-board';
 import { useSinceYear } from './year-floor';
 
@@ -116,15 +114,15 @@ function Latest({ code, board }: { code: string; board: EnvironmentBoard }) {
   );
 }
 
-/* `ReactNode` y no `string`: la entradilla del aire lleva dentro la guía de la OMS. */
-function GroupHead({ group, children }: { group: EnvironmentGroup; children: ReactNode }) {
-  return (
-    <div className="panel-head">
-      <h2>{ENVIRONMENT_GROUP_LABEL[group]}</h2>
-      <p className="panel-sub">{children}</p>
-    </div>
-  );
-}
+/**
+ * Quién publica las cifras. Todas llegan por el Banco Mundial; el bosque es del
+ * inventario de la FAO, las emisiones del inventario EDGAR bajo las métricas del
+ * quinto informe del IPCC y las especies amenazadas de la lista roja de la UICN.
+ */
+const SOURCE = 'Banco Mundial (Indicadores del Desarrollo Mundial)';
+const SOURCE_FOREST = `${SOURCE}, con el inventario de la FAO`;
+const SOURCE_GAS = `${SOURCE}, con el inventario EDGAR (métricas del quinto informe del IPCC)`;
+const SOURCE_PROTECTED = `${SOURCE}, con la lista roja de la UICN`;
 
 const share = (value: number): string => `${number(value, 1)} %`;
 const megatonnes = (value: number): string => `${number(value, 1)} Mt`;
@@ -157,26 +155,29 @@ export function EnvironmentExplorer({ board: entire }: { board: EnvironmentBoard
     value: point.value,
   }));
 
+  /** Las cifras de un panel que son solo tarjetas, para que se puedan bajar. */
+  const latestRows = (codes: readonly string[]) => ({
+    columnas: ['Indicador', 'Valor', 'Unidad', 'Año'],
+    filas: codes.flatMap((code) => {
+      const meta = indicator(code);
+      const reading = board.series[code]?.at(-1);
+      return meta && reading ? [[meta.label, reading.value, meta.unit, reading.year]] : [];
+    }),
+  });
+
   return (
-    <>
-      <div className="panel">
-        <div className="panel-head">
-          <h2>Medio ambiente</h2>
-          <p className="panel-sub">
-            El bosque que queda, lo que el país emite, el aire que respira y el agua que extrae.
-            Todas las cifras son del Banco Mundial con la misma definición para Bolivia y para cada
-            vecino. El dato más reciente es de {board.asOfYear ?? '—'}: los inventarios de emisiones
-            cierran antes que los de bosque, así que no todos los paneles terminan en el mismo año y
-            cada uno lleva el suyo escrito.
-          </p>
-        </div>
-        <DerivedReading
-          title="Qué dicen estos datos"
-          note="Cada frase sale de las series de este capítulo y se recalcula con cada carga. Dice qué nivel hay y contra qué se compara; no dice por qué ni qué va a pasar."
-          conclusions={board.conclusions}
-          icons={CONCLUSION_ICON}
-        />
-      </div>
+    <div className="stack guest-board">
+      <TabHeader
+        id="ambiente"
+        title="Medio ambiente"
+        lede={`El bosque que queda, lo que el país emite, el aire que respira y el agua que extrae. Todas las cifras son del Banco Mundial con la misma definición para Bolivia y para cada vecino. El dato más reciente es de ${board.asOfYear ?? '—'}: los inventarios de emisiones cierran antes que los de bosque, así que no todos los paneles terminan en el mismo año y cada uno lleva el suyo escrito.`}
+      />
+      <DerivedReading
+        title="Qué dicen estos datos"
+        note="Cada frase sale de las series de este capítulo y se recalcula con cada carga. Dice qué nivel hay y contra qué se compara; no dice por qué ni qué va a pasar."
+        conclusions={board.conclusions}
+        icons={CONCLUSION_ICON}
+      />
 
       {/*
         Diez paneles, de tres en tres: el bosque con sus dos vistas; las
@@ -185,12 +186,12 @@ export function EnvironmentExplorer({ board: entire }: { board: EnvironmentBoard
         rejilla, que son cinco cifras sin gráfico y leen bien a lo ancho.
       */}
       <div className="grid-three">
-        <div className="panel">
-          <GroupHead group="BOSQUE">
-            El bosque y el suelo: qué parte del país está cubierta de bosque y qué parte es tierra
-            agrícola. Las dos líneas se mueven en espejo, que es lo que quiere decir frontera
-            agrícola.
-          </GroupHead>
+        <Panel
+          id="ambiente-bosque"
+          title={ENVIRONMENT_GROUP_LABEL.BOSQUE}
+          lede="El bosque y el suelo: qué parte del país está cubierta de bosque y qué parte es tierra agrícola. Las dos líneas se mueven en espejo, que es lo que quiere decir frontera agrícola."
+          source={SOURCE_FOREST}
+        >
           <div className="stat-strip">
             <Latest code="AG.LND.FRST.ZS" board={board} />
             <Latest code="AG.LND.FRST.K2" board={board} />
@@ -200,27 +201,23 @@ export function EnvironmentExplorer({ board: entire }: { board: EnvironmentBoard
           {land.data.length > 1 ? (
             <WorldLines data={land.data} series={land.series} format={share} tick={tick} />
           ) : null}
-        </div>
-        <div className="panel">
-          <div className="panel-head">
-            <h2>Bosque que queda (km²)</h2>
-            <p className="panel-sub">
-              La misma superficie en kilómetros cuadrados, que es donde se ve el tamaño de lo
-              perdido: el porcentaje baja despacio porque el territorio es grande.
-            </p>
-          </div>
+        </Panel>
+        <Panel
+          id="ambiente-bosque-km2"
+          title="Bosque que queda (km²)"
+          lede="La misma superficie en kilómetros cuadrados, que es donde se ve el tamaño de lo perdido: el porcentaje baja despacio porque el territorio es grande."
+          source={SOURCE_FOREST}
+        >
           {forestArea.length > 1 ? (
             <MacroChart data={forestArea} unit="km²" tone="var(--series-2)" label="Bosque" />
           ) : null}
-        </div>
-        <div className="panel">
-          <div className="panel-head">
-            <h2>Bosque, Bolivia contra sus vecinos (% del territorio)</h2>
-            <p className="panel-sub">
-              La cobertura de cada país sobre el mismo eje. La línea gruesa es Bolivia; la pendiente
-              importa más que el nivel, porque el nivel lo fija la geografía.
-            </p>
-          </div>
+        </Panel>
+        <Panel
+          id="ambiente-bosque-vecinos"
+          title="Bosque, Bolivia contra sus vecinos (% del territorio)"
+          lede="La cobertura de cada país sobre el mismo eje. La línea gruesa es Bolivia; la pendiente importa más que el nivel, porque el nivel lo fija la geografía."
+          source={SOURCE_FOREST}
+        >
           {forestAcross.data.length > 1 ? (
             <WorldLines
               data={forestAcross.data}
@@ -229,14 +226,14 @@ export function EnvironmentExplorer({ board: entire }: { board: EnvironmentBoard
               tick={tick}
             />
           ) : null}
-        </div>
+        </Panel>
 
-        <div className="panel">
-          <GroupHead group="EMISIONES">
-            Lo que el país emite, en las dos medidas que existen: sin contar el cambio de uso del
-            suelo y contándolo. Van juntas a propósito — dar sólo la primera, que es la que suelen
-            citar los informes, dice casi lo contrario de lo que pasa.
-          </GroupHead>
+        <Panel
+          id="ambiente-emisiones"
+          title={ENVIRONMENT_GROUP_LABEL.EMISIONES}
+          lede="Lo que el país emite, en las dos medidas que existen: sin contar el cambio de uso del suelo y contándolo. Van juntas a propósito: dar solo la primera, que es la que suelen citar los informes, dice casi lo contrario de lo que pasa."
+          source={SOURCE_GAS}
+        >
           <div className="stat-strip">
             <Latest code="EN.GHG.ALL.LU.MT.CE.AR5" board={board} />
             <Latest code="EN.GHG.ALL.MT.CE.AR5" board={board} />
@@ -252,15 +249,13 @@ export function EnvironmentExplorer({ board: entire }: { board: EnvironmentBoard
               tick={tick}
             />
           ) : null}
-        </div>
-        <div className="panel">
-          <div className="panel-head">
-            <h2>Emisiones por habitante, Bolivia y vecinos (t de CO₂ equivalente)</h2>
-            <p className="panel-sub">
-              Sin contar el uso del suelo, que es la única forma de que la comparación entre países
-              de tamaños distintos signifique algo.
-            </p>
-          </div>
+        </Panel>
+        <Panel
+          id="ambiente-emisiones-habitante"
+          title="Emisiones por habitante, Bolivia y vecinos (t de CO₂ equivalente)"
+          lede="Sin contar el uso del suelo, que es la única forma de que la comparación entre países de tamaños distintos signifique algo."
+          source={SOURCE_GAS}
+        >
           {perCapitaAcross.data.length > 1 ? (
             <WorldLines
               data={perCapitaAcross.data}
@@ -269,16 +264,13 @@ export function EnvironmentExplorer({ board: entire }: { board: EnvironmentBoard
               tick={(value) => number(value, 1)}
             />
           ) : null}
-        </div>
-        <div className="panel">
-          <div className="panel-head">
-            <h2>Gases del agro (Mt de CO₂ equivalente)</h2>
-            <p className="panel-sub">
-              Metano del ganado y del arroz, y óxido nitroso de los fertilizantes y del manejo del
-              suelo. Es la parte de las emisiones que crece con la frontera agrícola y no con la
-              industria.
-            </p>
-          </div>
+        </Panel>
+        <Panel
+          id="ambiente-gases-agro"
+          title="Gases del agro (Mt de CO₂ equivalente)"
+          lede="Metano del ganado y del arroz, y óxido nitroso de los fertilizantes y del manejo del suelo. Es la parte de las emisiones que crece con la frontera agrícola y no con la industria."
+          source={SOURCE_GAS}
+        >
           {agro.data.length > 1 ? (
             <WorldLines
               data={agro.data}
@@ -287,14 +279,14 @@ export function EnvironmentExplorer({ board: entire }: { board: EnvironmentBoard
               tick={(value) => number(value, 1)}
             />
           ) : null}
-        </div>
+        </Panel>
 
-        <div className="panel">
-          <GroupHead group="AIRE">
-            El aire que se respira, medido como exposición media de la población a partículas finas.
-            La guía de la OMS desde 2021 es de {WHO_PM25_GUIDELINE} µg/m³, y es contra ella —y no
-            contra el propio pasado— como se lee esta serie.
-          </GroupHead>
+        <Panel
+          id="ambiente-aire"
+          title={ENVIRONMENT_GROUP_LABEL.AIRE}
+          lede={`El aire que se respira, medido como exposición media de la población a partículas finas. La guía de la OMS desde 2021 es de ${WHO_PM25_GUIDELINE} µg/m³, y es contra ella —y no contra el propio pasado— como se lee esta serie.`}
+          source={SOURCE}
+        >
           <div className="stat-strip">
             <Latest code="EN.ATM.PM25.MC.M3" board={board} />
             <Latest code="EN.ATM.PM25.MC.ZS" board={board} />
@@ -308,16 +300,13 @@ export function EnvironmentExplorer({ board: entire }: { board: EnvironmentBoard
               tick={(value) => number(value, 0)}
             />
           ) : null}
-        </div>
-        <div className="panel">
-          <div className="panel-head">
-            <h2>Intensidad de carbono (kg de CO₂ por US$ de 2015)</h2>
-            <p className="panel-sub">
-              Cuánto CO₂ cuesta producir un dólar. Baja cuando la economía se limpia y también
-              cuando simplemente se mueve hacia servicios, así que no es por sí sola una buena
-              noticia.
-            </p>
-          </div>
+        </Panel>
+        <Panel
+          id="ambiente-intensidad-carbono"
+          title="Intensidad de carbono (kg de CO₂ por US$ de 2015)"
+          lede="Cuánto CO₂ cuesta producir un dólar. Baja cuando la economía se limpia y también cuando simplemente se mueve hacia servicios, así que no es por sí sola una buena noticia."
+          source={SOURCE}
+        >
           {intensity.length > 1 ? (
             <MacroChart
               data={intensity}
@@ -326,14 +315,13 @@ export function EnvironmentExplorer({ board: entire }: { board: EnvironmentBoard
               label="Intensidad de carbono"
             />
           ) : null}
-        </div>
-        <div className="panel">
-          <GroupHead group="AGUA">
-            El agua extraída y el agua disponible. La cifra nacional es engañosa y conviene decirlo
-            en el mismo sitio donde se dibuja: el recurso renovable está casi todo en la cuenca
-            amazónica y la extracción está en el altiplano y en el valle, así que un estrés hídrico
-            nacional bajo convive con escasez local.
-          </GroupHead>
+        </Panel>
+        <Panel
+          id="ambiente-agua"
+          title={ENVIRONMENT_GROUP_LABEL.AGUA}
+          lede="El agua extraída y el agua disponible. La cifra nacional es engañosa y conviene decirlo en el mismo sitio donde se dibuja: el recurso renovable está casi todo en la cuenca amazónica y la extracción está en el altiplano y en el valle, así que un estrés hídrico nacional bajo convive con escasez local."
+          source={SOURCE}
+        >
           <div className="stat-strip">
             <Latest code="ER.H2O.FWST.ZS" board={board} />
             <Latest code="ER.H2O.FWAG.ZS" board={board} />
@@ -343,13 +331,23 @@ export function EnvironmentExplorer({ board: entire }: { board: EnvironmentBoard
           {water.data.length > 1 ? (
             <WorldLines data={water.data} series={water.series} format={share} tick={tick} />
           ) : null}
-        </div>
+        </Panel>
 
-        <div className="panel">
-          <GroupHead group="PROTECCION">
-            Lo que está declarado protegido y lo que la lista roja de la UICN cuenta aparte. La
-            primera cifra es de papel: dice qué tiene figura legal, no qué se vigila.
-          </GroupHead>
+        <Panel
+          id="ambiente-proteccion"
+          title={ENVIRONMENT_GROUP_LABEL.PROTECCION}
+          lede="Lo que está declarado protegido y lo que la lista roja de la UICN cuenta aparte. La primera cifra es de papel: dice qué tiene figura legal, no qué se vigila."
+          source={SOURCE_PROTECTED}
+          data={() =>
+            latestRows([
+              'ER.LND.PTLD.ZS',
+              'EN.MAM.THRD.NO',
+              'EN.BIR.THRD.NO',
+              'EN.HPT.THRD.NO',
+              'EN.FSH.THRD.NO',
+            ])
+          }
+        >
           <div className="stat-strip">
             <Latest code="ER.LND.PTLD.ZS" board={board} />
             <Latest code="EN.MAM.THRD.NO" board={board} />
@@ -357,22 +355,21 @@ export function EnvironmentExplorer({ board: entire }: { board: EnvironmentBoard
             <Latest code="EN.HPT.THRD.NO" board={board} />
             <Latest code="EN.FSH.THRD.NO" board={board} />
           </div>
-        </div>
+        </Panel>
       </div>
 
-      <p className="panel-sub">
-        <Icon name="info" size={12} /> El cuadro «Bolivia y sus vecinos» —el último dato de cada
-        país en las series que distinguen un territorio de otro— está ahora en la pestaña «Bolivia
-        ante el mundo», junto a los de energía y recursos naturales.
+      <p className="guest-note">
+        El cuadro «Bolivia y sus vecinos» —el último dato de cada país en las series que distinguen
+        un territorio de otro— está ahora en la pestaña «Bolivia ante el mundo», junto a los de
+        energía y recursos naturales.
       </p>
-
-      <p className="panel-sub">
-        <Icon name="info" size={12} /> Series del Banco Mundial (Indicadores del Desarrollo
-        Mundial), leídas del panel de treinta economías que recoge el núcleo del observatorio. El
-        bosque viene del inventario de la FAO, las emisiones del inventario EDGAR bajo las métricas
-        del quinto informe del IPCC, y las especies amenazadas de la lista roja de la UICN. Las
-        definiciones de cada serie están en «Social Info».
+      <p className="guest-note">
+        Series del Banco Mundial (Indicadores del Desarrollo Mundial), leídas del panel de treinta
+        economías que recoge el núcleo del observatorio. El bosque viene del inventario de la FAO,
+        las emisiones del inventario EDGAR bajo las métricas del quinto informe del IPCC, y las
+        especies amenazadas de la lista roja de la UICN. Las definiciones de cada serie están en
+        «Social Info».
       </p>
-    </>
+    </div>
   );
 }

@@ -24,6 +24,9 @@ import {
 } from 'recharts';
 import type { TooltipContentProps } from 'recharts';
 import type { NameType, ValueType } from 'recharts/types/component/DefaultTooltipContent';
+import { fittedDomain } from '@/lib/chart-axis';
+import { celda, useDatosDeFigura } from '@/components/ui/panel-data';
+import { filasDeSeries } from '@/lib/export/datos';
 
 /**
  * One chart language for the whole report.
@@ -407,16 +410,6 @@ export function ZoomExit({
   );
 }
 
-/** Padding that keeps a line off the frame without inventing headroom. */
-function fittedDomain(values: number[]): [number, number] {
-  const clean = values.filter((value) => Number.isFinite(value));
-  if (!clean.length) return [0, 1];
-  const min = Math.min(...clean);
-  const max = Math.max(...clean);
-  const pad = Math.max((max - min) * 0.12, Math.abs(max) * 0.01, 0.02);
-  return [Number((min - pad).toFixed(4)), Number((max + pad).toFixed(4))];
-}
-
 /**
  * The box a chart is drawn in, and the one place the context menu is refused.
  *
@@ -519,6 +512,15 @@ export function RateChart({
    */
   zoom?: RangeZoom;
 }) {
+  useDatosDeFigura(
+    () => ({
+      etiqueta: 'Tipo de cambio',
+      unidad: 'Bs por USD',
+      columnas: ['Fecha', 'Paralelo · compra (Bs)', 'Paralelo · venta (Bs)', 'Oficial (Bs)'],
+      filas: data.map((p) => [p.date, celda(p.parallelBuy), celda(p.parallelSell), celda(p.official)]),
+    }),
+    [data],
+  );
   const own = useRangeZoom(data.map((point) => point.date));
   const zoom = shared ?? own;
   const shown = zoom.visible(data);
@@ -644,6 +646,15 @@ export function RateChart({
 }
 
 export function GapChart({ data, tall }: { data: GapChartPoint[]; tall?: boolean }) {
+  useDatosDeFigura(
+    () => ({
+      etiqueta: 'Brecha cambiaria',
+      unidad: '% sobre el oficial',
+      columnas: ['Fecha', 'Brecha cambiaria (%)'],
+      filas: data.map((p) => [p.date, celda(p.gapPercent)]),
+    }),
+    [data],
+  );
   const zoom = useRangeZoom(data.map((point) => point.date));
   const shown = zoom.visible(data);
   const domain = fittedDomain([0, ...shown.map((point) => point.gapPercent)]);
@@ -711,6 +722,15 @@ export function GapChart({ data, tall }: { data: GapChartPoint[]; tall?: boolean
 }
 
 export function SpreadChart({ data }: { data: SpreadPoint[] }) {
+  useDatosDeFigura(
+    () => ({
+      etiqueta: 'Dispersión entre plazas',
+      unidad: 'Bs',
+      columnas: ['Fecha', 'Dispersión entre plazas (Bs)', 'Plazas'],
+      filas: data.map((p) => [p.date, celda(p.spread), celda(p.venues)]),
+    }),
+    [data],
+  );
   const renderTooltip = ({ active, payload, label }: TooltipRender) => {
     if (!active || !payload?.length || typeof label !== 'string') return null;
     const point = payload[0]?.payload as SpreadPoint | undefined;
@@ -779,6 +799,15 @@ export function MacroChart({
    */
   label?: string;
 }) {
+  useDatosDeFigura(
+    () => ({
+      unidad: unit,
+      etiqueta: seriesName,
+      columnas: ['Periodo', seriesName ? `${seriesName} (${unit})` : `Valor (${unit})`],
+      filas: data.map((p) => [p.period, celda(p.value)]),
+    }),
+    [data, unit, seriesName],
+  );
   const zoom = useRangeZoom(data.map((point) => point.period));
   const shown = zoom.visible(data);
   const domain = fittedDomain(shown.map((point) => point.value));
@@ -933,6 +962,15 @@ export function SeriesChart({
   domain?: [number, number];
   height?: 'small' | 'normal' | 'tall';
 }) {
+  useDatosDeFigura(
+    () => ({
+      unidad: unit,
+      etiqueta: seriesName,
+      columnas: ['Fecha', seriesName ? `${seriesName} (${unit})` : `Valor (${unit})`],
+      filas: data.map((p) => [p.date, celda(p.value)]),
+    }),
+    [data, unit, seriesName],
+  );
   const gradientId = `grad-${tone.replace(/[^a-z]/gu, '')}-${kind}`;
   const values = data.map((point) => point.value);
   const zoom = useRangeZoom(data.map((point) => point.date));
@@ -1069,6 +1107,14 @@ export interface HistogramBucket {
  * bar chart means counting.
  */
 export function Histogram({ data }: { data: HistogramBucket[] }) {
+  useDatosDeFigura(
+    () => ({
+      etiqueta: 'Distribución',
+      columnas: ['Intervalo', 'Cantidad', 'Cola'],
+      filas: data.map((b) => [b.bin, celda(b.count), b.tail ? 'sí' : 'no']),
+    }),
+    [data],
+  );
   const renderTooltip = ({ active, payload }: TooltipRender) => {
     if (!active || !payload?.length) return null;
     const point = payload[0]?.payload as HistogramBucket | undefined;
@@ -1146,6 +1192,15 @@ export interface CandlePoint {
  * is wanted here is two numbers a year and not a trading instrument.
  */
 export function YearCandles({ data, unit }: { data: CandlePoint[]; unit: string }) {
+  useDatosDeFigura(
+    () => ({
+      etiqueta: 'Velas por año',
+      unidad: unit,
+      columnas: ['Periodo', `Apertura (${unit})`, `Cierre (${unit})`],
+      filas: data.map((c) => [c.period, celda(c.open), celda(c.close)]),
+    }),
+    [data, unit],
+  );
   const [hover, setHover] = useState<number | null>(null);
 
   if (data.length < 2) {
@@ -1278,6 +1333,15 @@ export type { DayCandle } from '@/lib/candles';
  * a long wick — which is exactly when the parallel market is under strain.
  */
 export function DayCandles({ data, unit }: { data: DayCandle[]; unit: string }) {
+  useDatosDeFigura(
+    () => ({
+      etiqueta: 'Velas por jornada',
+      unidad: unit,
+      columnas: ['Fecha', `Apertura (${unit})`, `Cierre (${unit})`, `Máximo (${unit})`, `Mínimo (${unit})`],
+      filas: data.map((c) => [c.date, celda(c.open), celda(c.close), celda(c.high), celda(c.low)]),
+    }),
+    [data, unit],
+  );
   const [hover, setHover] = useState<number | null>(null);
 
   if (data.length < 2) {
@@ -1546,6 +1610,7 @@ export function ShareBars({
   height = 220,
   onPick,
   decimals: fixedDecimals,
+  declare = true,
 }: {
   data: ShareSlice[];
   tone?: string;
@@ -1561,7 +1626,26 @@ export function ShareBars({
    * cómo se tocó. Sin este prop las barras siguen siendo un dibujo.
    */
   onPick?: (value: string, additive: boolean) => void;
+  /**
+   * Si las barras declaran sus cifras al panel que las contiene (sí, por omisión).
+   * Un panel que ya aporta las cifras completas por su cuenta —las barras muestran
+   * solo las primeras, con los nombres recortados— lo apaga para no ofrecer dos
+   * descargas distintas de lo mismo.
+   */
+  declare?: boolean;
 }) {
+  useDatosDeFigura(
+    () =>
+      declare
+        ? {
+            etiqueta: 'Reparto',
+            unidad: unit,
+            columnas: ['Categoría', `Valor (${unit})`],
+            filas: data.map((s) => [s.name, celda(s.value)]),
+          }
+        : undefined,
+    [data, unit, declare],
+  );
   const rows = [...data].sort((left, right) => right.value - left.value);
   const peak = rows.reduce((highest, row) => Math.max(highest, row.value), 0);
   const marked = rows.some((row) => row.emphasis);
@@ -1606,7 +1690,7 @@ export function ShareBars({
     <div className="chart-frame" style={{ height: framed(height) }}>
       <ResponsiveContainer width="100%" height="100%">
         {/* El margen derecho es el sitio donde vive la cifra de la barra más larga. */}
-        <BarChart data={rows} layout="vertical" margin={{ top: 4, right: 56, bottom: 0, left: 4 }}>
+        <BarChart data={rows} layout="vertical" margin={{ top: 4, right: 88, bottom: 0, left: 4 }}>
           <XAxis type="number" domain={[0, peak > 0 ? peak : 1]} hide />
           {/*
            * `auto`, and not the 172 pixels this column used to be fixed at: a
@@ -1616,7 +1700,7 @@ export function ShareBars({
            * measures the longest label it actually has to draw and gives the
            * rest of the width to the bars.
            */}
-          <YAxis type="category" dataKey="name" width="auto" {...AXIS} />
+          <YAxis type="category" interval={0} dataKey="name" width="auto" {...AXIS} />
           <Tooltip content={renderTooltip} cursor={{ fill: 'var(--rule-soft)' }} />
           <Bar
             dataKey="value"
@@ -1684,6 +1768,14 @@ export function ReachChart({
   ceiling: number | null;
   height?: number;
 }) {
+  useDatosDeFigura(
+    () => ({
+      etiqueta: 'Alcance',
+      columnas: ['Plataforma', 'Alcance declarado', 'Excede a los internautas del país'],
+      filas: data.map((r) => [r.platform, celda(r.value), r.exceeds ? 'sí' : 'no']),
+    }),
+    [data],
+  );
   const millions = (value: number): string => `${number(value / 1_000_000, 1)} M`;
   const renderTooltip = ({ active, payload }: TooltipRender) => {
     if (!active || !payload?.length) return null;
@@ -1708,7 +1800,7 @@ export function ReachChart({
             margin={{ top: 4, right: 64, bottom: 0, left: 4 }}
           >
             <XAxis type="number" hide />
-            <YAxis type="category" dataKey="platform" width={96} {...AXIS} />
+            <YAxis type="category" interval={0} dataKey="platform" width={96} {...AXIS} />
             <Tooltip content={renderTooltip} cursor={{ fill: 'var(--rule-soft)' }} />
             {ceiling === null ? null : (
               <ReferenceLine
@@ -1792,6 +1884,14 @@ export interface StackedRow {
  * and the caption under the chart states what the total means.
  */
 export function StackedBars({ data, height = 200 }: { data: StackedRow[]; height?: number }) {
+  useDatosDeFigura(
+    () => ({
+      etiqueta: 'Formalidad',
+      columnas: ['Grupo', 'Informal', 'Mixto', 'Formal'],
+      filas: data.map((r) => [r.name, celda(r.informal), celda(r.mixto), celda(r.formal)]),
+    }),
+    [data],
+  );
   const renderTooltip = ({ active, payload, label }: TooltipRender) => {
     if (!active || !payload?.length) return null;
     const point = payload[0]?.payload as StackedRow | undefined;
@@ -1821,7 +1921,7 @@ export function StackedBars({ data, height = 200 }: { data: StackedRow[]; height
           >
             <CartesianGrid {...GRID} horizontal={false} vertical />
             <XAxis type="number" tickFormatter={(value: number) => number(value, 0)} {...AXIS} />
-            <YAxis type="category" dataKey="name" width={128} {...AXIS} />
+            <YAxis type="category" interval={0} dataKey="name" width={128} {...AXIS} />
             <Tooltip content={renderTooltip} cursor={{ fill: 'var(--rule-soft)' }} />
             {/*
              * Informal, mixto, formal es una escala CON orden: cambiar los tres
@@ -1903,6 +2003,15 @@ export function DivergingBars({
   unit?: string;
   height?: number;
 }) {
+  useDatosDeFigura(
+    () => ({
+      etiqueta: 'Comparación',
+      unidad: unit,
+      columnas: ['Nombre', `Valor (${unit})`, 'Nota'],
+      filas: data.map((r) => [r.name, celda(r.value), r.meta ?? null]),
+    }),
+    [data, unit],
+  );
   const rows = [...data]
     .sort((left, right) => right.value - left.value)
     .map((row) => ({
@@ -1944,7 +2053,7 @@ export function DivergingBars({
               tickFormatter={(value: number) => `${value > 0 ? '+' : ''}${number(value, 0)}`}
               {...AXIS}
             />
-            <YAxis type="category" dataKey="name" width={210} {...AXIS} />
+            <YAxis type="category" interval={0} dataKey="name" width={210} {...AXIS} />
             <Tooltip content={renderTooltip} cursor={{ fill: 'var(--rule-soft)' }} />
             {/* El cero es la referencia del gráfico: una regla del eje, sólida. */}
             <ReferenceLine x={0} stroke="var(--axis-rule)" strokeWidth={1} />
@@ -2020,6 +2129,15 @@ export function HeatGrid({
   cells: readonly HeatCell[];
   unit?: string;
 }) {
+  useDatosDeFigura(
+    () => ({
+      etiqueta: 'Mapa de calor',
+      unidad: unit,
+      columnas: ['Fila', 'Columna', `Valor (${unit})`],
+      filas: cells.map((c) => [c.row, c.column, celda(c.value)]),
+    }),
+    [cells, unit],
+  );
   const index = new Map(cells.map((cell) => [`${cell.row}|${cell.column}`, cell]));
   const peak = cells.reduce((highest, cell) => Math.max(highest, cell.value), 0);
   /*
@@ -2162,6 +2280,14 @@ const TONE_KEY = [
  * legible without rotating anything.
  */
 export function MonthlyBars({ data, height = 220 }: { data: MonthBar[]; height?: number }) {
+  useDatosDeFigura(
+    () => ({
+      etiqueta: 'Menciones por mes',
+      columnas: ['Mes', 'Menciones', 'Con tono adverso'],
+      filas: data.map((r) => [r.month, celda(r.mentions), celda(r.adverse)]),
+    }),
+    [data],
+  );
   const rows = data.map((row) => ({
     ...row,
     calm: Math.max(0, row.mentions - row.adverse),
@@ -2259,6 +2385,14 @@ export function YearSeriesBars({
   countries: readonly string[];
   height?: number;
 }) {
+  useDatosDeFigura(
+    () => ({
+      etiqueta: 'Por año',
+      columnas: ['Año', ...countries],
+      filas: data.map((row) => [row.year, ...countries.map((country) => celda(row[country]))]),
+    }),
+    [data, countries],
+  );
   /*
    * El color sale de la casilla que le toca al país, y de ninguna otra parte.
    *
@@ -2463,6 +2597,14 @@ export interface YearBar {
  * than ranked, because a year out of order stops being a year.
  */
 export function YearlyBars({ data, height = 200 }: { data: YearBar[]; height?: number }) {
+  useDatosDeFigura(
+    () => ({
+      etiqueta: 'Menciones por año',
+      columnas: ['Año', 'Menciones', 'Con tono adverso'],
+      filas: data.map((r) => [r.year, celda(r.mentions), celda(r.adverse)]),
+    }),
+    [data],
+  );
   const rows = [...data]
     .sort((left, right) => left.year.localeCompare(right.year))
     .map((row) => ({ ...row, calm: Math.max(0, row.mentions - row.adverse) }));
@@ -2566,6 +2708,10 @@ export function WorldLines({
    */
   countsOnly?: boolean;
 }) {
+  useDatosDeFigura(
+    () => filasDeSeries(data, { key: 'year', label: 'Año' }, series),
+    [data, series],
+  );
   const values = data.flatMap((row) =>
     series.map((one) => row[one.key]).filter((value): value is number => typeof value === 'number'),
   );
@@ -2742,6 +2888,10 @@ export function DatedLines({
   /** Points are months (the first of each): label month and year, not day. */
   monthly?: boolean;
 }) {
+  useDatosDeFigura(
+    () => ({ unidad: unit, ...filasDeSeries(data, { key: 'date', label: 'Fecha' }, series) }),
+    [data, series, unit],
+  );
   const tickLabel = monthly || yearTicks ? monthLabel : shortLabel;
   const sayLabel = monthly ? longMonth : (label: string) => longDate.format(asDate(label));
   const zoom = useRangeZoom(data.map((point) => point.date));
@@ -2903,6 +3053,15 @@ export function RankLines({
   /** El último puesto posible, que es el fondo del eje. */
   floor?: number;
 }) {
+  useDatosDeFigura(
+    () => ({
+      etiqueta: 'Posiciones',
+      unidad: 'puesto',
+      columnas: ['Año', ...lines.map((line) => line.label)],
+      filas: years.map((year) => [year, ...lines.map((line) => celda(line.ranks.get(year)))]),
+    }),
+    [years, lines],
+  );
   const data = years.map((year) => {
     const row: Record<string, number | null> = { year };
     for (const line of lines) row[line.key] = line.ranks.get(year) ?? null;
@@ -3005,6 +3164,15 @@ export function YearStackBars({
   /** Años con una nota: un quiebre de la serie, un corte parcial. */
   marks?: ReadonlyArray<{ year: string; label: string }>;
 }) {
+  useDatosDeFigura(
+    () => ({
+      etiqueta: 'Composición por año',
+      unidad: unit,
+      columnas: ['Año', ...parts.map((part) => part.label)],
+      filas: data.map((row) => [row.year, ...parts.map((part) => celda(row[part.key]))]),
+    }),
+    [data, parts, unit],
+  );
   const shown = parts.slice(0, SERIES.length);
   const folded = parts.slice(SERIES.length);
   const keys = [...shown.map((part) => part.key), ...(folded.length ? ['__rest'] : [])];

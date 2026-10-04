@@ -1,5 +1,7 @@
 'use client';
 
+import { ChartLegend } from './charts';
+import type { LegendItem } from './charts';
 import { DEPARTMENTS as SHAPES, MAP_BOX, PLACE_POINTS } from '@/lib/bolivia-map';
 
 /**
@@ -37,6 +39,11 @@ import { DEPARTMENTS as SHAPES, MAP_BOX, PLACE_POINTS } from '@/lib/bolivia-map'
  * sólo con color: cambia el relleno, cambia el trazo y se nombra en la línea de
  * debajo de la lista. Y esa lista son botones de verdad: el mapa es el atajo,
  * nunca la única puerta.
+ *
+ * **La clave de la escala es la leyenda de siempre** (`ChartLegend`): cinco
+ * tramos con sus cifras, uno por paso de la rampa, y «sin lectura» cuando algún
+ * departamento no tiene dato. Va dentro del panel, y por ser la misma lista que
+ * las demás figuras, también viaja en la imagen que se baja.
  */
 
 /** Una lectura por departamento, o `null` si esa medida no lo tiene. */
@@ -131,6 +138,20 @@ export function DepartmentsMap({
     return STEPS[Math.min(STEPS.length - 1, Math.max(0, index))] ?? STEPS[0];
   };
 
+  /*
+   * Los cinco tramos de la rampa con sus extremos. Cada paso cubre una quinta
+   * parte del recorrido entre el mínimo y el máximo, igual que `stepOf`.
+   */
+  const span = (high - low) / STEPS.length;
+  const key: LegendItem[] =
+    high > low
+      ? STEPS.map((step, index) => ({
+          color: step.fill,
+          label: `${short(low + span * index, decimals)} a ${short(low + span * (index + 1), decimals)} ${unit}`,
+        }))
+      : [{ color: STEPS[2].fill, label: `${short(high, decimals)} ${unit}` }];
+  if (values.length < readings.length) key.push({ color: NONE.fill, label: 'Sin lectura' });
+
   return (
     <div className="choro-map">
       <div
@@ -207,23 +228,7 @@ export function DepartmentsMap({
           </g>
         </svg>
       </div>
-      <div className="heat-scale">
-        <span>
-          {number(low, decimals)} {unit}
-        </span>
-        <span className="heat-scale-steps">
-          {STEPS.map((step) => (
-            <span key={step.fill} style={{ background: step.fill }} />
-          ))}
-        </span>
-        <span>
-          {number(high, decimals)} {unit}
-        </span>
-        <span className="heat-scale-steps" style={{ marginLeft: '0.6rem' }}>
-          <span style={{ background: NONE.fill }} />
-        </span>
-        <span>sin lectura</span>
-      </div>
+      <ChartLegend items={key} />
     </div>
   );
 }
