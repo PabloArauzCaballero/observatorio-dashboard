@@ -79,3 +79,48 @@ que el panel muestra con los filtros aplicados**. Cada pestaña lleva «Descarga
 - [ ] Capturas en 390, 768 y 1440 px, claro y oscuro, inspeccionadas (`visual-proof`).
 - [ ] Contraste medido sobre el DOM (ojo: `getComputedStyle` devuelve `color(srgb …)` para
       `color-mix`) y axe sin hallazgos.
+
+## Cómo se migra un panel antiguo (receta)
+
+Las piezas ya existen: `src/components/ui/panel.tsx` (`Panel`), `ui/tab-header.tsx` (`TabHeader`),
+`ui/panel-data.tsx` (los gráficos declaran sus cifras al `Panel` que los envuelve),
+`lib/export/*` (CSV, Excel, afiche PNG/SVG). **Envolver el panel antiguo en `<Panel>` basta
+para que se pueda bajar**: no hay que repetir los datos en `data` salvo que el contenido no sea un
+gráfico de `charts.tsx` ni una `<table>` (tarjetas, listas).
+
+1. **Cabecera**: `<div className="panel"><div className="tile-head|panel-head">…<h2>T</h2>…</div><p className="panel-sub">S</p>`
+   pasa a `<Panel id="…" title="T con la unidad" lede="S" meta="…" source="…">`. Sin iconos en el
+   título. El `h2` desaparece: el título del panel es un `h3` y lo pone `Panel`.
+2. **Título = magnitud y unidad.** «Qué produce la economía» → «Peso de cada sector en el PIB (% del
+   PIB)». La frase evocadora no se tira: va a `lede`. El comprobador exige un paréntesis con la unidad
+   (`(Bs por USD)`, `(% del PIB)`, `(millones de USD)`, `(cantidad de empresas)`).
+3. **`source` es verdad, no relleno.** Salió de algo que el componente o su API ya dice (`publisher`,
+   `fuente`, un pie `card-note-source`/`chart-note`/`panel-sub` que empieza por «Fuente:»). Ese pie
+   viejo se borra al subirlo a `source`. Si de verdad no se sabe: «Observatorio Económico de Bolivia
+   (ver «Método»)». Nunca inventar un proveedor.
+4. **Leyenda bajo cada gráfico**, también con una sola serie: `ChartLegend` (exportada de
+   `charts.tsx`) con `items`; las familias de líneas la dibujan si se les pasa `label`. Mapas: la
+   leyenda va dentro del panel, debajo.
+5. **Filtros**: no se rediseña su lógica ni se quita ninguno. Los controles que ya existen
+   (`.chip`, `.slicer`, `.rail-*`) conservan su comportamiento; solo se retira lo propio del panel
+   (estilos en línea de espaciado, `GroupHead` copiado, `BarLegend` copiado).
+6. **Estilos en línea de espaciado** (`style={{ marginTop: … }}`) y tamaños/colores literales: fuera;
+   se usan las escalas (`--s*`, `--text-*`, `--radius-*`) o una clase.
+7. **Cabecera de pestaña**: la sección de la pestaña (`*-section.tsx`) abre con `TabHeader`
+   (título + una frase que dice qué hay y cuánto confiar). Si la pestaña tiene `SubTabs`, va encima.
+8. **No tocar** `charts.tsx`, `globals.css` existente, `ui/*`, `icons.tsx`, `tabs.tsx`, `page.tsx` ni
+   `/admin`. Si hace falta CSS nuevo: añadirlo **al final** de `globals.css` bajo un comentario con
+   el nombre de la pestaña (solo añadir; nunca editar ni borrar reglas ajenas).
+
+### Verificar (obligatorio antes de decir «listo»)
+
+Los datos vienen de `test.datosbolivia.com`: las llamadas `/api/*` del build local se resuelven allí.
+Las pestañas que arma el servidor desde la base (Hoy y Tipo de cambio) se prueban con una página de
+sonda con datos sintéticos (no se commitea).
+
+- `npm run typecheck`, `npm run test:unit`, `npm run lint` sin errores nuevos.
+- `npm run build` y `npx next start -p <puerto propio>`.
+- `node panel-audit.mjs <puerto> "<pestaña>" "<subpestaña>"` — sin ✗ en los paneles migrados.
+- `node local-tab.mjs <puerto> "<pestaña>" "<subpestaña>" <etiqueta>` — capturas en claro/oscuro,
+  escritorio y móvil; **mirarlas** (no basta con que compile).
+- Descarga real de un panel con gráfico (PNG, CSV, Excel) abierta y revisada.
