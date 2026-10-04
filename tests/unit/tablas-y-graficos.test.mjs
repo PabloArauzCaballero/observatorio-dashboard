@@ -33,6 +33,8 @@ const REGISTROS = {
   'macro-analysis.tsx': 'años atípicos de una serie: una o dos filas, un gráfico quedaría vacío',
   'macro-explorer.tsx':
     'estadísticos con minigráficos por fila y la tabla de observaciones de cada tarjeta',
+  'roads-explorer.tsx':
+    'PENDIENTE en dev: en test «km por ruta» y «tramos» ya son gráfico con la tabla a un clic; falta portarlo cuando dev tenga el atlas de calles',
   'sources-explorer.tsx': 'catálogo de fuentes del Método, con enlaces',
   'trade-records-panels.tsx': 'el ránking ya trae su propio selector Barras/Tabla',
   'transport-prices-explorer.tsx':
