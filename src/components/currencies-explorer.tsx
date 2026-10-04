@@ -15,11 +15,14 @@ import {
   summarize,
 } from '@/lib/currencies-board';
 import type { CurrencyBoard, CurrencySeries, Measure, Region } from '@/lib/currencies-board';
-import { DatedLines, seriesTone } from './charts';
+import { DatedLines, DivergingBars, seriesTone } from './charts';
 import type { DatedLinePoint } from './charts';
 import { FilterHint } from './filters';
 import { Icon } from './icons';
+import { MAX_BARRAS, MacroViewChart } from './macro-view-chart';
 import { Panel } from '@/components/ui/panel';
+import { celda } from '@/components/ui/panel-data';
+import { ViewToggle } from '@/components/ui/view-toggle';
 
 /**
  * El boliviano frente a las principales monedas, con filtros que se cruzan.
@@ -60,6 +63,79 @@ const decimalsFor = (values: readonly number[]): number => {
 
 const signed = (value: number | null): string =>
   value === null ? '—' : `${value > 0 ? '+' : ''}${number(value, 1)} %`;
+
+/** Una moneda con su última cifra y sus tres variaciones: lo que dice cada fila de la tabla. */
+interface CoinRow {
+  one: CurrencySeries;
+  last: [string, number];
+  scale: number;
+  bs: number;
+  units: number | null;
+  day: number | null;
+  month: number | null;
+  year: number | null;
+}
+
+const CHANGES = [
+  { key: 'year', label: 'Contra hace un año' },
+  { key: 'month', label: 'Contra hace un mes' },
+  { key: 'day', label: 'Contra el dato anterior' },
+] as const;
+
+/**
+ * Cuánto se movió cada moneda frente al boliviano, como barras a un lado y otro del cero.
+ *
+ * Las cifras en bolivianos no se comparan —cien yenes, mil wones—, pero el cambio en porcentaje
+ * sí. Arriba, las monedas que subieron frente al boliviano (el boliviano se debilitó frente a
+ * ellas); abajo, las que bajaron. Se dibujan las doce que más se movieron en la lectura elegida;
+ * la tabla trae todas con su cifra en bolivianos.
+ */
+function CoinChangeChart({ rows }: { rows: readonly CoinRow[] }) {
+  const [key, setKey] = useState<(typeof CHANGES)[number]['key']>('year');
+  const change = CHANGES.find((one) => one.key === key) ?? CHANGES[0];
+  const moved = rows.flatMap((row) => {
+    const value = row[change.key];
+    return value === null ? [] : [{ row, value }];
+  });
+  const shown = [...moved]
+    .sort((left, right) => Math.abs(right.value) - Math.abs(left.value))
+    .slice(0, MAX_BARRAS);
+
+  return (
+    <>
+      <div className="chips" role="group" aria-label="Contra cuándo se mide el cambio">
+        {CHANGES.map((one) => (
+          <button
+            key={one.key}
+            type="button"
+            className={one.key === key ? 'chip chip-on' : 'chip'}
+            aria-pressed={one.key === key}
+            onClick={() => setKey(one.key)}
+          >
+            {one.label}
+          </button>
+        ))}
+      </div>
+      {shown.length ? (
+        <MacroViewChart shown={shown.length} total={moved.length}>
+          <DivergingBars
+            data={shown.map(({ row, value }) => ({
+              name: row.one.label,
+              value,
+              meta: `Bs ${number(row.bs, decimalsFor([row.bs]))} por ${
+                row.scale === 1 ? '1' : number(row.scale, 0)
+              } ${row.one.iso} · ${sayDate(row.last[0])}`,
+            }))}
+            unit="%"
+            height={Math.max(140, shown.length * 28 + 56)}
+          />
+        </MacroViewChart>
+      ) : (
+        <div className="callout">Ninguna moneda tiene esta comparación todavía.</div>
+      )}
+    </>
+  );
+}
 
 export function CurrenciesExplorer({ board }: { board: CurrencyBoard }) {
   const dollar = board.series.find((one) => one.iso === DOLLAR);
@@ -126,6 +202,29 @@ export function CurrenciesExplorer({ board }: { board: CurrencyBoard }) {
       : measure === 'INDEX'
         ? `Las monedas elegidas en índice (base 100 = primer dato visible desde ${from})`
         : 'Variación interanual de cada moneda frente al boliviano (%)';
+  /** Las monedas del cuadro, en el orden del catálogo, con la cifra que dice cada fila. */
+  const coinRows: CoinRow[] = [...coins]
+    .sort(
+      (left, right) =>
+        Object.keys(CATALOG).indexOf(left.iso) - Object.keys(CATALOG).indexOf(right.iso),
+    )
+    .flatMap((one) => {
+      const summary = summarize(one);
+      if (!summary.last) return [];
+      const scale = scaleOf(one.iso);
+      return [
+        {
+          one,
+          last: summary.last,
+          scale,
+          bs: summary.last[1] * scale,
+          units: perDollar(one, dollar),
+          day: summary.day,
+          month: summary.month,
+          year: summary.year,
+        },
+      ];
+    });
   const label = (one: CurrencySeries): string =>
     measure === 'LEVEL' && scaleOf(one.iso) !== 1
       ? `${one.label} (${sayScale(one.iso)})`
@@ -333,35 +432,54 @@ export function CurrenciesExplorer({ board }: { board: CurrencyBoard }) {
             title={`Las ${coins.length} monedas del BCB frente al boliviano (Bs y variación en %)`}
             lede="«Por» es la cantidad de moneda extranjera a la que se refiere la cifra: 100 yenes, 1.000 wones. «Por US$» son las unidades que entran en un dólar oficial."
             source="Banco Central de Bolivia, tabla de cotizaciones (bcb.gob.bo); cada cifra guarda la fila de la tabla de la que salió"
+            data={() => ({
+              unidad: 'Bs por la cantidad de moneda que dice «Por»; variaciones en %',
+              columnas: [
+                'Moneda',
+                'Código',
+                'País',
+                'Por (unidades de moneda)',
+                'Bs',
+                'Unidades por US$',
+                'Variación contra el dato anterior (%)',
+                'Variación contra hace un mes (%)',
+                'Variación contra hace un año (%)',
+                'Fecha',
+              ],
+              filas: coinRows.map((row) => [
+                row.one.label,
+                row.one.iso,
+                row.one.country,
+                row.scale,
+                celda(row.bs),
+                celda(row.units),
+                celda(row.day),
+                celda(row.month),
+                celda(row.year),
+                row.last[0],
+              ]),
+            })}
           >
-            <div className="table-wrap">
-              <table className="grid-table">
-                <thead>
-                  <tr>
-                    <th>Moneda</th>
-                    <th>País</th>
-                    <th>Por</th>
-                    <th className="num">Bs</th>
-                    <th className="num">Por US$</th>
-                    <th className="num">vs. anterior</th>
-                    <th className="num">vs. un mes</th>
-                    <th className="num">vs. un año</th>
-                    <th>Fecha</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {[...coins]
-                    .sort(
-                      (left, right) =>
-                        Object.keys(CATALOG).indexOf(left.iso) -
-                        Object.keys(CATALOG).indexOf(right.iso),
-                    )
-                    .map((one) => {
-                      const summary = summarize(one);
-                      if (!summary.last) return null;
-                      const units = perDollar(one, dollar);
-                      const scale = scaleOf(one.iso);
-                      return (
+            <ViewToggle
+              chart={<CoinChangeChart rows={coinRows} />}
+              table={
+                <div className="table-wrap">
+                  <table className="grid-table">
+                    <thead>
+                      <tr>
+                        <th>Moneda</th>
+                        <th>País</th>
+                        <th>Por</th>
+                        <th className="num">Bs</th>
+                        <th className="num">Por US$</th>
+                        <th className="num">vs. anterior</th>
+                        <th className="num">vs. un mes</th>
+                        <th className="num">vs. un año</th>
+                        <th>Fecha</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {coinRows.map(({ one, last, scale, bs, units, day, month, year }) => (
                         <tr key={one.iso} title={one.note}>
                           <td>
                             <b>{one.label}</b> <span className="muted">{one.iso}</span>
@@ -369,26 +487,22 @@ export function CurrenciesExplorer({ board }: { board: CurrencyBoard }) {
                           <td>{one.country}</td>
                           <td>{scale === 1 ? '1' : number(scale, 0)}</td>
                           <td className="num">
-                            <b>
-                              {number(
-                                summary.last[1] * scale,
-                                decimalsFor([summary.last[1] * scale]),
-                              )}
-                            </b>
+                            <b>{number(bs, decimalsFor([bs]))}</b>
                           </td>
                           <td className="num">
                             {units === null ? '—' : number(units, units >= 100 ? 1 : 3)}
                           </td>
-                          <td className="num">{signed(summary.day)}</td>
-                          <td className="num">{signed(summary.month)}</td>
-                          <td className="num">{signed(summary.year)}</td>
-                          <td>{sayDate(summary.last[0])}</td>
+                          <td className="num">{signed(day)}</td>
+                          <td className="num">{signed(month)}</td>
+                          <td className="num">{signed(year)}</td>
+                          <td>{sayDate(last[0])}</td>
                         </tr>
-                      );
-                    })}
-                </tbody>
-              </table>
-            </div>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              }
+            />
           </Panel>
         </div>
       </div>
