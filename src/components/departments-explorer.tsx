@@ -1,14 +1,15 @@
 'use client';
 
 import { useMemo, useState } from 'react';
-import { MacroChart, ShareBars, WorldLines, seriesTone } from './charts';
+import { ChartLegend, MacroChart, ShareBars, WorldLines, seriesTone } from './charts';
 import { DepartmentActivities } from './department-activities-panel';
 import { BENCHMARK, indexBase, indexed, onOneAxis, trio } from './department-lines';
 import type { NamedLine } from './department-lines';
 import { DepartmentsMap } from './departments-map';
 import { DerivedReading } from './derived-reading';
-import { Icon } from './icons';
 import type { IconName } from './icons';
+import { Panel } from '@/components/ui/panel';
+import { TabHeader } from '@/components/ui/tab-header';
 import { DEPARTMENTS, MEASURES, placeName } from '@/lib/departments';
 import type { Measure } from '@/lib/departments';
 import { placeRank, productMix, topProducts } from '@/lib/departments-board';
@@ -53,6 +54,10 @@ const CONCLUSION_ICON: Record<string, IconName> = {
   rubro: 'fabrica',
   hundida: 'area',
 };
+
+/** Quién publica las cuentas regionales y el comercio exterior de cada departamento. */
+const SOURCE_ACCOUNTS = 'Instituto Nacional de Estadística (INE), cuentas regionales';
+const SOURCE_TRADE = 'Instituto Nacional de Estadística (INE), comercio exterior por departamento';
 
 /** Las seis medidas de cuentas regionales; las otras dos son comercio. */
 const ACCOUNTS = MEASURES.filter((one) => !one.slug.startsWith('EXPORTS_'));
@@ -166,6 +171,24 @@ function Headline({
   );
 }
 
+/** Las seis medidas de cuentas regionales de un departamento, en su último año. */
+function accountRows(board: DepartmentBoard, place: string) {
+  return ACCOUNTS.flatMap((measure) => {
+    const byPlace = board.series[measure.slug] ?? {};
+    const own = last(byPlace[place]);
+    if (!own) return [];
+    return [
+      {
+        measure,
+        own,
+        bench: at(byPlace[BENCHMARK], own.year),
+        country: at(byPlace['BOLIVIA'], own.year),
+        rank: placeRank(board, measure.slug, place),
+      },
+    ];
+  });
+}
+
 /**
  * Las seis medidas de cuentas regionales, en su último año, contra Santa Cruz y
  * contra el país.
@@ -190,35 +213,30 @@ function AccountsTable({ board, place }: { board: DepartmentBoard; place: string
           </tr>
         </thead>
         <tbody>
-          {ACCOUNTS.map((measure) => {
-            const byPlace = board.series[measure.slug] ?? {};
-            const own = last(byPlace[place]);
-            if (!own) return null;
-            const country = at(byPlace['BOLIVIA'], own.year);
-            const bench = at(byPlace[BENCHMARK], own.year);
-            const rank = placeRank(board, measure.slug, place);
-            return (
-              <tr key={measure.slug}>
-                <td>
-                  {measure.label}
-                  <br />
-                  <span className="stat-hint">{measure.unit}</span>
-                </td>
-                <td className="num">
-                  <code>{number(own.value, measure.decimals)}</code>
-                </td>
-                <td className="num">{bench ? number(bench.value, measure.decimals) : '—'}</td>
-                <td className="num">{country ? number(country.value, measure.decimals) : '—'}</td>
-                <td className="num">{rank ? ordinal(rank) : '—'}</td>
-                <td className="num">{own.year}</td>
-              </tr>
-            );
-          })}
+          {accountRows(board, place).map(({ measure, own, bench, country, rank }) => (
+            <tr key={measure.slug}>
+              <td>
+                {measure.label}
+                <br />
+                <span className="stat-hint">{measure.unit}</span>
+              </td>
+              <td className="num">
+                <b>{number(own.value, measure.decimals)}</b>
+              </td>
+              <td className="num">{bench ? number(bench.value, measure.decimals) : '—'}</td>
+              <td className="num">{country ? number(country.value, measure.decimals) : '—'}</td>
+              <td className="num">{rank ? ordinal(rank) : '—'}</td>
+              <td className="num">{own.year}</td>
+            </tr>
+          ))}
         </tbody>
       </table>
     </div>
   );
 }
+
+/** Lo que pesa cada barra de un reparto, dicho bajo el gráfico. */
+const barsKey = (label: string) => <ChartLegend items={[{ color: 'var(--official)', label }]} />;
 
 /**
  * La vista completa de un departamento: todo lo que el INE publica de él.
@@ -262,78 +280,92 @@ function DepartmentDetail({
 
   return (
     <>
-      <div className="panel">
-        <div className="tile-head">
-          <Icon name="mapa" size={17} />
-          <h2>{name}, en todas las medidas del INE</h2>
-          <span className="tile-hint">cuentas regionales y comercio</span>
-        </div>
-        <p className="panel-sub">
-          Las ocho cifras en su último año publicado, con el puesto que ocupa {name} entre los nueve
-          departamentos en ese mismo año. El per cápita cierra un año antes que las demás porque
-          necesita la proyección de población.
-        </p>
+      <Panel
+        id="dep-resumen"
+        title={`${name}: las ocho medidas del INE en su último año (cada una en su unidad)`}
+        lede={`Las ocho cifras en su último año publicado, con el puesto que ocupa ${name} entre los nueve departamentos en ese mismo año. El per cápita cierra un año antes que las demás porque necesita la proyección de población.`}
+        source={`${SOURCE_ACCOUNTS}; ${SOURCE_TRADE}`}
+        data={() => ({
+          columnas: ['Medida', 'Unidad', 'Año', 'Valor', 'Puesto entre los nueve'],
+          filas: MEASURES.flatMap((one) => {
+            const point = last(board.series[one.slug]?.[place]);
+            if (!point) return [];
+            const rank = placeRank(board, one.slug, place);
+            return [[one.label, one.unit, point.year, point.value, rank ? ordinal(rank) : null]];
+          }),
+        })}
+      >
         <div className="stat-strip">
           {MEASURES.map((one) => (
             <Headline key={one.slug} board={board} measure={one} place={place} />
           ))}
         </div>
-      </div>
+      </Panel>
 
-      <div className="grid-two">
-        <div className="panel">
-          <div className="panel-head">
-            <h2>
-              Las ocho medidas de {name}, {placeName(BENCHMARK)} y Bolivia (cada una en su unidad)
-            </h2>
-            <p className="panel-sub">
-              La tabla es donde la comparación con el país cabe siempre y en su unidad: una cifra al
-              lado de otra no tiene el problema de escala que tiene una línea al lado de otra. En
-              participación la fila de Bolivia es cien por definición y en producto es la suma de
-              las nueve, así que ahí la cifra del país sitúa al departamento pero no lo califica.
-            </p>
-          </div>
-          <AccountsTable board={board} place={place} />
-        </div>
-        <div className="panel">
-          <div className="panel-head">
-            <h2>
-              {measure.label} de {listed(compared.drawn)} (
-              {compared.base === null ? measure.unit : `índice, ${compared.base} = 100`})
-            </h2>
-            <p className="panel-sub">
-              La medida que pinta el mapa, seguida en el tiempo. Tres líneas y no nueve: nueve es un
-              peine en el que se ve que hay dispersión y no se ve ninguna de las nueve. Un año sin
-              dato corta la línea en vez de unirla, porque unir dos años publicados afirmaría el de
-              en medio, que nadie publicó.
-            </p>
-          </div>
-          {compared.data.length > 1 ? (
-            <WorldLines
-              data={compared.data}
-              series={compared.series}
-              format={(value) => number(value, measure.decimals)}
-              tick={(value) => number(value, 0)}
-            />
-          ) : null}
-        </div>
-      </div>
+      <Panel
+        id="dep-cuadro"
+        title={`Las seis cuentas regionales de ${name}, ${placeName(BENCHMARK)} y Bolivia (cada una en su unidad)`}
+        lede="La tabla es donde la comparación con el país cabe siempre y en su unidad: una cifra al lado de otra no tiene el problema de escala que tiene una línea al lado de otra. En participación la fila de Bolivia es cien por definición y en producto es la suma de las nueve, así que ahí la cifra del país sitúa al departamento pero no lo califica."
+        source={SOURCE_ACCOUNTS}
+        data={() => ({
+          columnas: [
+            'Medida',
+            'Unidad',
+            name,
+            placeName(BENCHMARK),
+            'Bolivia',
+            'Puesto entre los nueve',
+            'Año',
+          ],
+          filas: accountRows(board, place).map(
+            ({ measure: one, own: mine, bench, country, rank }) => [
+              one.label,
+              one.unit,
+              mine.value,
+              bench?.value ?? null,
+              country?.value ?? null,
+              rank ? ordinal(rank) : null,
+              mine.year,
+            ],
+          ),
+        })}
+      >
+        <AccountsTable board={board} place={place} />
+      </Panel>
+
+      <Panel
+        id="dep-medida-del-mapa"
+        title={`${measure.label} de ${listed(compared.drawn)} (${
+          compared.base === null ? measure.unit : `índice, ${compared.base} = 100`
+        })`}
+        lede="La medida que pinta el mapa, seguida en el tiempo. Tres líneas y no nueve: nueve es un peine en el que se ve que hay dispersión y no se ve ninguna de las nueve. Un año sin dato corta la línea en vez de unirla, porque unir dos años publicados afirmaría el de en medio, que nadie publicó."
+        source={SOURCE_ACCOUNTS}
+      >
+        {compared.data.length > 1 ? (
+          <WorldLines
+            data={compared.data}
+            series={compared.series}
+            format={(value) => number(value, measure.decimals)}
+            tick={(value) => number(value, 0)}
+          />
+        ) : null}
+      </Panel>
 
       <div className="grid-three">
         {accounts.map(({ measure: one, data, series, base, drawn }) => (
-          <div className="panel" key={one.slug}>
-            <div className="panel-head">
-              <h2>
-                {one.label} de {listed(drawn)} ({base === null ? one.unit : `índice, ${base} = 100`}
-                )
-              </h2>
-              <p className="panel-sub">
-                {one.what}
-                {base === null
-                  ? ''
-                  : ' Va en índice porque la fila del país es la suma de los nueve y en su escala un departamento chico no se ve; el nivel en su unidad está en la tabla de arriba.'}
-              </p>
-            </div>
+          <Panel
+            key={one.slug}
+            id={`dep-cuenta-${one.slug.toLowerCase().replace(/_/g, '-')}`}
+            title={`${one.label} de ${listed(drawn)} (${
+              base === null ? one.unit : `índice, ${base} = 100`
+            })`}
+            lede={`${one.what}${
+              base === null
+                ? ''
+                : ' Va en índice porque la fila del país es la suma de los nueve y en su escala un departamento chico no se ve; el nivel en su unidad está en la tabla de arriba.'
+            }`}
+            source={SOURCE_ACCOUNTS}
+          >
             {data.length > 1 ? (
               <WorldLines
                 data={data}
@@ -344,54 +376,49 @@ function DepartmentDetail({
             ) : (
               <div className="callout">Esta medida no tiene serie para {name}.</div>
             )}
-          </div>
+          </Panel>
         ))}
       </div>
 
       <DepartmentActivities board={board} place={place} />
 
       <div className="grid-three">
-        <div className="panel">
-          <div className="panel-head">
-            <h2>
-              Qué vende {name} (millones de USD, {board.tradeYear ?? '—'})
-            </h2>
-            <p className="panel-sub">
-              Los productos que el INE publica para este departamento, más el residuo de «otros
-              productos». La lista no es la misma en cada departamento y esa asimetría es el dato:
-              dice de qué vive cada uno.
-            </p>
-          </div>
+        <Panel
+          id="dep-vende-usd"
+          title={`Qué vende ${name} (millones de USD, ${board.tradeYear ?? '—'})`}
+          lede="Los productos que el INE publica para este departamento, más el residuo de «otros productos». La lista no es la misma en cada departamento y esa asimetría es el dato: dice de qué vive cada uno."
+          source={SOURCE_TRADE}
+        >
           {soldUsd.length ? (
-            <ShareBars data={soldUsd} unit=" MM USD" tone="var(--official)" height={260} />
+            <>
+              <ShareBars data={soldUsd} unit=" MM USD" tone="var(--official)" height={260} />
+              {barsKey(`Valor exportado, millones de USD (${board.tradeYear ?? '—'})`)}
+            </>
           ) : (
             <div className="callout">Todavía no hay comercio exterior cargado para {name}.</div>
           )}
-        </div>
-        <div className="panel">
-          <div className="panel-head">
-            <h2>
-              Cuánto pesa lo que vende {name} (toneladas, {board.tradeYear ?? '—'})
-            </h2>
-            <p className="panel-sub">
-              El mismo año en peso neto. El orden cambia: el mineral pesa y el oro no, y esa es la
-              diferencia entre de qué vive un departamento y qué carga en el camión.
-            </p>
-          </div>
+        </Panel>
+        <Panel
+          id="dep-vende-toneladas"
+          title={`Cuánto pesa lo que vende ${name} (toneladas, ${board.tradeYear ?? '—'})`}
+          lede="El mismo año en peso neto. El orden cambia: el mineral pesa y el oro no, y esa es la diferencia entre de qué vive un departamento y qué carga en el camión."
+          source={SOURCE_TRADE}
+        >
           {soldTonnes.length ? (
-            <ShareBars data={soldTonnes} unit=" t" tone="var(--official)" height={260} />
+            <>
+              <ShareBars data={soldTonnes} unit=" t" tone="var(--official)" height={260} />
+              {barsKey(`Peso exportado, toneladas (${board.tradeYear ?? '—'})`)}
+            </>
           ) : (
             <div className="callout">Sin peso publicado para {name}.</div>
           )}
-        </div>
-        <div className="panel">
-          <div className="panel-head">
-            <h2>Exportaciones de {name} (millones de USD)</h2>
-            <p className="panel-sub">
-              Todo lo que salió del departamento, año a año, desde 2010. Es el valor declarado en
-              aduana; el acumulado parcial del año en curso no se dibuja.
-            </p>
-          </div>
+        </Panel>
+        <Panel
+          id="dep-exportaciones-usd"
+          title={`Exportaciones de ${name} (millones de USD)`}
+          lede="Todo lo que salió del departamento, año a año, desde 2010. Es el valor declarado en aduana; el acumulado parcial del año en curso no se dibuja."
+          source={SOURCE_TRADE}
+        >
           {exportsUsd.length > 1 ? (
             <MacroChart
               data={exportsUsd}
@@ -402,20 +429,16 @@ function DepartmentDetail({
           ) : (
             <div className="callout">Sin serie de exportaciones para {name}.</div>
           )}
-        </div>
+        </Panel>
       </div>
 
       <div className="grid-three">
-        <div className="panel">
-          <div className="panel-head">
-            <h2>
-              Los {leading.length} principales productos de {name} (millones de USD)
-            </h2>
-            <p className="panel-sub">
-              Los que más valieron en {board.tradeYear ?? '—'}, seguidos hacia atrás. «Otros
-              productos» queda fuera: es la suma de lo que no se nombró, no un producto.
-            </p>
-          </div>
+        <Panel
+          id="dep-productos-usd"
+          title={`Los ${leading.length} principales productos de ${name} (millones de USD)`}
+          lede={`Los que más valieron en ${board.tradeYear ?? '—'}, seguidos hacia atrás. «Otros productos» queda fuera: es la suma de lo que no se nombró, no un producto.`}
+          source={SOURCE_TRADE}
+        >
           {leadingUsd.data.length > 1 ? (
             <WorldLines
               data={leadingUsd.data}
@@ -426,15 +449,13 @@ function DepartmentDetail({
           ) : (
             <div className="callout">Sin productos con serie para {name}.</div>
           )}
-        </div>
-        <div className="panel">
-          <div className="panel-head">
-            <h2>Los mismos {leading.length} productos en peso (toneladas)</h2>
-            <p className="panel-sub">
-              Separa precio de volumen: un año que vale más puede ser el mismo mineral más caro, y
-              se ve porque la línea de dólares sube mientras la de toneladas no.
-            </p>
-          </div>
+        </Panel>
+        <Panel
+          id="dep-productos-toneladas"
+          title={`Los mismos ${leading.length} productos de ${name} en peso (toneladas)`}
+          lede="Separa precio de volumen: un año que vale más puede ser el mismo mineral más caro, y se ve porque la línea de dólares sube mientras la de toneladas no."
+          source={SOURCE_TRADE}
+        >
           {leadingTonnes.data.length > 1 ? (
             <WorldLines
               data={leadingTonnes.data}
@@ -445,15 +466,13 @@ function DepartmentDetail({
           ) : (
             <div className="callout">Sin peso por producto para {name}.</div>
           )}
-        </div>
-        <div className="panel">
-          <div className="panel-head">
-            <h2>Exportaciones de {name} en peso (toneladas)</h2>
-            <p className="panel-sub">
-              El peso neto de todo lo que salió, año a año. Contra la figura de dólares dice si el
-              departamento vendió más o sólo vendió más caro.
-            </p>
-          </div>
+        </Panel>
+        <Panel
+          id="dep-exportaciones-toneladas"
+          title={`Exportaciones de ${name} en peso (toneladas)`}
+          lede="El peso neto de todo lo que salió, año a año. Contra la figura de dólares dice si el departamento vendió más o sólo vendió más caro."
+          source={SOURCE_TRADE}
+        >
           {exportsTonnes.length > 1 ? (
             <MacroChart
               data={exportsTonnes}
@@ -464,7 +483,7 @@ function DepartmentDetail({
           ) : (
             <div className="callout">Sin serie de peso para {name}.</div>
           )}
-        </div>
+        </Panel>
       </div>
     </>
   );
@@ -498,39 +517,31 @@ export function DepartmentsExplorer({ board: entire }: { board: DepartmentBoard 
   const paintedYear = readings.find((reading) => reading.year !== null)?.year ?? null;
 
   return (
-    <>
-      <div className="panel">
-        <div className="panel-head">
-          <h2>Bolivia por departamento</h2>
-          <p className="panel-sub">
-            Las cuentas regionales del INE —seis medidas para cada uno de los nueve departamentos,
-            de 1988 a {board.accountsYear ?? '—'}— y lo que cada uno vende al exterior, producto por
-            producto, desde 2010 hasta {board.tradeYear ?? '—'}. Hasta aquí el observatorio medía un
-            solo país: una caída de un tercio en un departamento y una subida de la mitad en otro se
-            cancelaban en la cifra nacional hasta parecer quietud.
-          </p>
-        </div>
-        <DerivedReading
-          title="Qué dicen estos datos"
-          note="Cada frase sale de las series de este capítulo y se recalcula con cada carga. Dice qué nivel hay y contra qué se compara; no dice por qué ni qué va a pasar."
-          conclusions={board.conclusions}
-          icons={CONCLUSION_ICON}
-          defaultOpen={false}
-        />
-      </div>
+    <div className="stack guest-board">
+      <TabHeader
+        id="departamentos"
+        title="Bolivia por departamento"
+        lede={`Las cuentas regionales del INE —seis medidas para cada uno de los nueve departamentos, de 1988 a ${board.accountsYear ?? '—'}— y lo que cada uno vende al exterior, producto por producto, desde 2010 hasta ${board.tradeYear ?? '—'}. En la cifra nacional, una caída de un tercio en un departamento y una subida de la mitad en otro se cancelan hasta parecer quietud.`}
+      />
+      <DerivedReading
+        title="Qué dicen estos datos"
+        note="Cada frase sale de las series de este capítulo y se recalcula con cada carga. Dice qué nivel hay y contra qué se compara; no dice por qué ni qué va a pasar."
+        conclusions={board.conclusions}
+        icons={CONCLUSION_ICON}
+        defaultOpen={false}
+      />
 
-      <div className="panel">
-        <div className="panel-head">
-          <h2>
-            {painted.label} por departamento ({painted.unit}, {paintedYear ?? '—'})
-          </h2>
-          <p className="panel-sub">
-            Toca un departamento para abrir debajo su vista completa. El color es la medida elegida
-            aquí, en su último año; la clave de debajo del mapa dice qué extremo de la rampa es el
-            mínimo y cuál el máximo.
-          </p>
-        </div>
-
+      <Panel
+        id="dep-mapa"
+        title={`${painted.label} por departamento (${painted.unit}, ${paintedYear ?? '—'})`}
+        lede={`${painted.what} Toca un departamento, en el mapa o en la lista, para abrir debajo su vista completa.`}
+        source={SOURCE_ACCOUNTS}
+        data={() => ({
+          unidad: painted.unit,
+          columnas: ['Departamento', `${painted.label} (${painted.unit})`, 'Año'],
+          filas: ranked.map((reading) => [reading.name, reading.value, reading.year]),
+        })}
+      >
         <div className="chips">
           {MEASURES.map((one) => (
             <button
@@ -544,7 +555,6 @@ export function DepartmentsExplorer({ board: entire }: { board: DepartmentBoard 
             </button>
           ))}
         </div>
-        <p className="panel-sub">{painted.what}</p>
 
         <div className="map-layout">
           <DepartmentsMap
@@ -556,7 +566,7 @@ export function DepartmentsExplorer({ board: entire }: { board: DepartmentBoard 
             onPick={setPlace}
           />
           <div className="map-side">
-            <h3 className="map-side-head">De más a menos</h3>
+            <h4 className="map-side-head">De más a menos</h4>
             <ul className="map-list">
               {ranked.map((reading, index) => (
                 <li key={reading.code}>
@@ -584,9 +594,9 @@ export function DepartmentsExplorer({ board: entire }: { board: DepartmentBoard 
             </p>
           </div>
         </div>
-      </div>
+      </Panel>
 
       {place ? <DepartmentDetail board={board} place={place} measure={painted} /> : null}
-    </>
+    </div>
   );
 }
