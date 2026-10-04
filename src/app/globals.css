@@ -9435,3 +9435,15 @@ button.download-btn {
 .grid-three .panel-top-text {
   flex-basis: 9rem;
 }
+
+/* El cuerpo de un panel: figura, leyenda y notas con un mismo aire. */
+.panel-body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s2);
+  min-width: 0;
+}
+
+.panel-body:empty {
+  display: none;
+}
