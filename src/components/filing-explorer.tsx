@@ -149,7 +149,7 @@ const PAGE_SIZE = 40;
 const shortName = (name: string): string =>
   name.length > 26 ? `${name.slice(0, 25).trimEnd()}…` : name;
 
-export function FilingExplorer({ filings }: { filings: CompanyFiling[] }) {
+export function FilingExplorer({ filings, onReadNews }: { filings: CompanyFiling[]; onReadNews?: (code: string) => void }) {
   /*
    * Cada recorte es un conjunto y no un nombre.
    *
@@ -731,6 +731,7 @@ export function FilingExplorer({ filings }: { filings: CompanyFiling[] }) {
                       </p>
                     ) : null}
                     <p className="filing-foot">
+{filing.filerCode && onReadNews ? <button type="button" className="filing-toggle" onClick={() => onReadNews(filing.filerCode!)}>Noticias ABI del emisor</button> : null}
                       <button
                         type="button"
                         className="filing-toggle"
