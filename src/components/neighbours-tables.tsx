@@ -1,10 +1,14 @@
 'use client';
 
+import { useState } from 'react';
+import { DivergingBars, ShareBars, seriesTone } from './charts';
 import { Icon } from './icons';
+import { MacroViewChart } from './macro-view-chart';
 import { OnOpenNotice } from './on-open';
 import { Panel } from '@/components/ui/panel';
 import { celda } from '@/components/ui/panel-data';
 import type { DatosDeFigura } from '@/components/ui/panel-data';
+import { ViewToggle } from '@/components/ui/view-toggle';
 import { ENERGY_PLACES, type EnergyBoard } from '@/lib/energy-board';
 import { ENVIRONMENT_PLACES, type EnvironmentBoard } from '@/lib/environment-board';
 import { RESOURCE_PLACES, type ResourceBoard } from '@/lib/resources-board';
@@ -130,6 +134,100 @@ function LatestTable({
   );
 }
 
+/**
+ * El mismo cuadro como barras: una serie a la vez, un país por barra.
+ *
+ * Las columnas del cuadro no comparten unidad —un porcentaje, kilos por habitante, toneladas de
+ * CO₂—, así que no caben en un mismo eje; se elige la serie y se ven los países uno contra otro,
+ * con Bolivia en el color de acento y los demás en el gris de contexto. Una serie con valores
+ * negativos (la importación neta de un exportador de energía, el ahorro ajustado) pasa al
+ * gráfico con cero en el centro. Las cifras son las de la tabla: el último dato de cada país,
+ * y el año de cada uno va en el emergente porque no todos cierran el mismo año.
+ */
+function LatestChart({
+  board,
+  places,
+  columns,
+}: {
+  board: LatestByPlace;
+  places: ReadonlyArray<{ code: string; label: string }>;
+  columns: ReadonlyArray<Column>;
+}) {
+  const withData = columns.filter((column) =>
+    places.some((place) => board.latest[column.code]?.[place.code]),
+  );
+  const [code, setCode] = useState(withData[0]?.code ?? '');
+  const column = withData.find((one) => one.code === code) ?? withData[0];
+  if (!column) return <div className="callout">Este cuadro no tiene series con datos.</div>;
+
+  const readings = places.flatMap((place) => {
+    const reading = board.latest[column.code]?.[place.code];
+    return reading ? [{ place, reading }] : [];
+  });
+  const unit = column.unit.trim();
+  const signed = readings.some(({ reading }) => reading.value < 0);
+  const years = [...new Set(readings.map(({ reading }) => reading.year))].sort();
+
+  return (
+    <>
+      <div className="chips" role="group" aria-label="Serie que se dibuja">
+        {withData.map((one) => (
+          <button
+            key={one.code}
+            type="button"
+            className={one.code === column.code ? 'chip chip-on' : 'chip'}
+            aria-pressed={one.code === column.code}
+            onClick={() => setCode(one.code)}
+          >
+            {one.label}
+          </button>
+        ))}
+      </div>
+      <MacroViewChart
+        {...(signed
+          ? {}
+          : {
+              legend: [
+                { color: seriesTone(0), label: `Bolivia${unit ? ` (${unit})` : ''}` },
+                { color: 'var(--series-rest)', label: 'Los demás países' },
+              ],
+            })}
+      >
+        {signed ? (
+          <DivergingBars
+            data={readings.map(({ place, reading }) => ({
+              name: place.label,
+              value: reading.value,
+              meta: `Dato de ${reading.year}`,
+            }))}
+            unit={unit || column.label}
+            height={Math.max(220, readings.length * 28 + 48)}
+          />
+        ) : (
+          <ShareBars
+            data={readings.map(({ place, reading }) => ({
+              name: place.label,
+              value: reading.value,
+              ...(place.code === 'BOL' ? { emphasis: true } : {}),
+              note: `Dato de ${reading.year}`,
+            }))}
+            tone={seriesTone(0)}
+            unit={unit}
+            decimals={column.decimals}
+            height={Math.max(220, readings.length * 28 + 24)}
+            declare={false}
+          />
+        )}
+      </MacroViewChart>
+      <p className="chart-note">
+        {column.label}
+        {unit ? ` (${unit})` : ''}, último dato de cada país
+        {years.length === 1 ? `: ${years[0]}` : `: de ${years[0]} a ${years.at(-1)}`}.
+      </p>
+    </>
+  );
+}
+
 /* Los porcentajes del Banco Mundial terminan en `.ZS`; los de la ONU, en `.UN`. */
 const ENERGY_COLUMNS: ReadonlyArray<Column> = [
   { code: 'EG.ELC.NGAS.ZS', label: 'Gas en la electricidad', decimals: 0, unit: ' %' },
@@ -224,7 +322,10 @@ function Block<T extends LatestByPlace>({
         </div>
       ) : (
         <>
-          <LatestTable board={board} places={places} columns={columns} />
+          <ViewToggle
+            chart={<LatestChart board={board} places={places} columns={columns} />}
+            table={<LatestTable board={board} places={places} columns={columns} />}
+          />
           <details className="panel-note">
             <summary>Cómo leerlo</summary>
             <p>{note}</p>
