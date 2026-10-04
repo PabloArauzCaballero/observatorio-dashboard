@@ -1,0 +1,169 @@
+/*
+ * Los bancos sin precio público, en una lista al lado de las tarjetas con precio.
+ *
+ * Cinco tarjetas grandes que decían «USDT ficha» ocupaban dos filas para no dar
+ * ninguna cifra. Aquí van como renglones: quién, qué ficha, desde cuándo y un
+ * enlace a donde el lector puede ver la cotización él mismo. La lista ocupa las
+ * columnas que dejan libres las tarjetas, así la fila queda llena.
+ */
+.others {
+  grid-column: span var(--others-span, 3);
+  container-type: inline-size;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  padding: var(--s2) var(--s2) var(--s1);
+  border: 1px solid var(--rule);
+  border-radius: var(--radius);
+  background: var(--panel);
+}
+
+.othersHead {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 0.2rem 0.6rem;
+  margin-bottom: 0.35rem;
+}
+
+.othersTitle {
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+
+.othersHint {
+  font-size: 0.7rem;
+  color: var(--ink-soft);
+}
+
+.list {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-around;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.row {
+  display: grid;
+  grid-template-columns: minmax(6.5rem, 0.9fr) minmax(0, 1.6fr) 4.2rem 8.4rem auto;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.42rem 0;
+  border-top: 1px solid var(--rule);
+  font-size: 0.76rem;
+}
+
+.row:first-child {
+  border-top: 0;
+}
+
+.name {
+  font-weight: 700;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.product {
+  min-width: 0;
+  color: var(--ink-soft);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* La ficha lleva su color en la marca, no en el texto. */
+.asset {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-family: var(--mono);
+  font-size: 0.72rem;
+  font-weight: 600;
+}
+
+.asset::before {
+  content: '';
+  width: 0.55rem;
+  height: 0.55rem;
+  border-radius: 2px;
+  background: var(--asset-tone);
+}
+
+.since {
+  font-family: var(--mono);
+  font-size: 0.7rem;
+  font-variant-numeric: tabular-nums;
+  color: var(--ink-soft);
+  white-space: nowrap;
+}
+
+.link {
+  justify-self: end;
+  white-space: nowrap;
+  font-size: 0.72rem;
+}
+
+@media (max-width: 640px) {
+  .others {
+    grid-column: auto;
+  }
+
+  /*
+   * En el móvil la tarjeta de cotización pone la variación en una columna
+   * angosta a la derecha de la cifra; la de un banco dice «publicado por el
+   * banco el 3 oct 2026», que no cabe ahí y empujaba la cifra fuera de la
+   * tarjeta. Baja a su propio renglón.
+   */
+  .priced:global(.quote) {
+    grid-template-areas:
+      'head   figure'
+      'detail detail'
+      'change change'
+      'sides  sides';
+  }
+
+  .priced :global(.quote-change) {
+    justify-self: start;
+    white-space: normal;
+  }
+}
+
+/*
+ * Angosta —un tercio de fila cuando dos bancos ya tienen tarjeta, o el
+ * móvil—, cada banco ocupa dos renglones: quién, ficha y enlace arriba; qué
+ * producto y desde cuándo abajo.
+ */
+@container (max-width: 560px) {
+  .row {
+    grid-template-columns: minmax(0, 1fr) auto auto;
+    grid-template-areas:
+      'name asset link'
+      'product since since';
+    row-gap: 0.1rem;
+  }
+
+  .name {
+    grid-area: name;
+  }
+
+  .product {
+    grid-area: product;
+  }
+
+  .asset {
+    grid-area: asset;
+  }
+
+  .since {
+    grid-area: since;
+    justify-self: end;
+  }
+
+  .link {
+    grid-area: link;
+  }
+}
