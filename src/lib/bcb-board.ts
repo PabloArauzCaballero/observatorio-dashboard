@@ -140,7 +140,13 @@ export const familyLabel = (family: string): string => FAMILY_LABEL[family] ?? f
  * título que se lee es el del archivo de la versión vigente, que sí los trae.
  */
 export function workbookTitle(url: string | null, fallback: string): string {
-  const raw = url?.split('/').pop() ?? fallback.split('/').pop() ?? fallback;
+  // Los informes agrupados enlazan a una página (?q=tasas_interes), no a un
+  // archivo. Esa página es común a muchos informes: su título viene del catálogo.
+  const path = url?.split(/[?#]/u)[0] ?? '';
+  const file = path.split('/').pop() ?? '';
+  const raw = /\.(xlsx?|pdf)$/iu.test(file)
+    ? file
+    : fallback.split('/').pop() || fallback;
   let name = raw;
   try {
     name = decodeURIComponent(raw);
