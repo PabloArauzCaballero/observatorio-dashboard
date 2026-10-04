@@ -71,3 +71,8 @@ test('fittedDomain: sin datos o con una constante, no se rompe', () => {
   const [bajo, alto] = fittedDomain([7, 7, 7]);
   assert.ok(bajo < 7 && alto > 7);
 });
+
+test('fittedDomain: datos de 0 a 80 usan 0–100 y no un dominio que se estire hacia lo negativo', () => {
+  assert.deepEqual(fittedDomain([0, 80]), [0, 100]);
+  assert.deepEqual(fittedDomain([0.0001, 79]), [0, 100]);
+});

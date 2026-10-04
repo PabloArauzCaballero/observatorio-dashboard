@@ -25,7 +25,8 @@ export function fittedDomain(values: number[]): [number, number] {
     max += flat;
   }
   const margin = (max - min) * 0.04;
-  const floor = min - margin;
+  // Una serie que no baja de cero no necesita margen por debajo de cero: pedirlo ensanchaba el eje.
+  const floor = min >= 0 ? Math.max(0, min - margin) : min - margin;
   const ceiling = max + margin;
   const first = Math.floor(Math.log10((ceiling - floor) / 4));
   for (let power = first - 1; power <= first + 2; power += 1) {
