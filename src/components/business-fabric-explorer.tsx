@@ -1,19 +1,30 @@
 'use client';
 
 import { useMemo, useState } from 'react';
-import { HeatGrid, ShareBars, WorldLines, YearStackBars, seriesTone } from './charts';
-import type { HeatCell, StackPart, WorldLineSeries, YearStackRow } from './charts';
+import { ChartLegend, HeatGrid, ShareBars, WorldLines, YearStackBars, seriesTone } from './charts';
+import type { HeatCell, LegendItem, StackPart, WorldLineSeries, YearStackRow } from './charts';
 import { DepartmentsMap } from './departments-map';
 import { FilterHint, PickedCount } from './filters';
 import { Icon } from './icons';
-import { InfoPopover } from './info-popover';
 import styles from './business.module.css';
 import { BusinessSizePanel } from './business-size-panel';
+import { BusinessDirectoryPanel } from './business-directory-panel';
+import { Panel } from '@/components/ui/panel';
 import { ANY, additive, picked, toggle, without } from '@/lib/choice';
 import type { Choice } from '@/lib/choice';
-import { ACTIVITIES, FORMS, PLACES } from '@/lib/business-fabric-board';
-import type { FabricBoard, FirmCount, FirmDimension, FirmMeasure } from '@/lib/business-fabric-board';
-import { downloadCsv } from '@/lib/csv';
+import {
+  ACTIVITIES,
+  FIRM_MEASURES,
+  FORMS,
+  PLACES,
+  buildClosureSeries,
+} from '@/lib/business-fabric-board';
+import type {
+  FabricBoard,
+  FirmCount,
+  FirmDimension,
+  FirmMeasure,
+} from '@/lib/business-fabric-board';
 
 /**
  * Cuántas empresas tiene Bolivia, de qué tipo, dónde y de qué viven.
@@ -31,14 +42,6 @@ import { downloadCsv } from '@/lib/csv';
  * reconoce el registro.
  */
 
-const MEASURES: ReadonlyArray<{ value: FirmMeasure; label: string; noun: string }> = [
-  { value: 'STOCK', label: 'Vigentes', noun: 'empresas con matrícula vigente' },
-  { value: 'NEW', label: 'Inscripciones', noun: 'empresas inscritas en el año' },
-  { value: 'RENEWED', label: 'Renovaciones', noun: 'matrículas renovadas en el año' },
-  { value: 'CANCELLED', label: 'Cancelaciones', noun: 'matrículas canceladas en el año' },
-  { value: 'ACTIVE', label: 'Activas', noun: 'empresas activas' },
-];
-
 const MARKS: Record<string, string> = {
   '2013':
     'Depuración del registro (2013): el salto desde 2012 sale de la regularización de matrículas, no de empresas nuevas.',
@@ -46,12 +49,32 @@ const MARKS: Record<string, string> = {
     'Corte a noviembre de 2025 del reporte del SEPREC. El portal del Ministerio publica 470.077 para 2025, cifra que el propio registro no sostiene.',
 };
 
+/** De dónde sale el registro, dicho una vez para todos los paneles de la página. */
+const REGISTRY_SOURCE =
+  'SEPREC (antes FUNDEMPRESA), registro de comercio: servido por el SIIP del Ministerio de Desarrollo Productivo para 2008–2024 y por el reporte del propio SEPREC para 2025';
+const OWNERS_SOURCE =
+  'SEPREC, registro de comercio (titular o representante legal de cada empresa)';
+
+/** La clave de un reparto por departamento: qué mide la barra y, si hay uno elegido, cuál es. */
+const departmentKey = (what: string, chosen: boolean): LegendItem[] =>
+  chosen
+    ? [
+        { color: 'var(--official)', label: `${what}: el departamento elegido` },
+        { color: 'var(--series-rest)', label: 'Los demás departamentos' },
+      ]
+    : [{ color: 'var(--official)', label: what }];
+
 const placeLabel = (key: string): string => PLACES.find((one) => one.key === key)?.label ?? key;
 const say = (value: number, decimals = 0): string =>
-  value.toLocaleString('es-BO', { minimumFractionDigits: decimals, maximumFractionDigits: decimals });
+  value.toLocaleString('es-BO', {
+    minimumFractionDigits: decimals,
+    maximumFractionDigits: decimals,
+  });
 
 function catalogue(dimension: FirmDimension): ReadonlyArray<{ key: string; label: string }> {
-  return dimension === 'FORM' ? FORMS.map((one) => ({ key: one.key, label: one.short })) : ACTIVITIES;
+  return dimension === 'FORM'
+    ? FORMS.map((one) => ({ key: one.key, label: one.short }))
+    : ACTIVITIES;
 }
 
 /** Las cifras de un lugar y una dimensión, indexadas por categoría y año. */
@@ -72,8 +95,13 @@ export function BusinessFabricExplorer({ board }: { board: FabricBoard }) {
   const [measure, setMeasure] = useState<FirmMeasure>('STOCK');
   const [mode, setMode] = useState<'count' | 'share'>('count');
 
-  const measures = MEASURES.filter((one) => board.firms.some((row) => row.measure === one.value));
-  const ofMeasure = useMemo(() => board.firms.filter((row) => row.measure === measure), [board, measure]);
+  const measures = FIRM_MEASURES.filter((one) =>
+    board.firms.some((row) => row.measure === one.value),
+  );
+  const ofMeasure = useMemo(
+    () => board.firms.filter((row) => row.measure === measure),
+    [board, measure],
+  );
   const allYears = useMemo(
     () => [...new Set(ofMeasure.map((row) => row.year))].sort((left, right) => left - right),
     [ofMeasure],
@@ -99,7 +127,11 @@ export function BusinessFabricExplorer({ board }: { board: FabricBoard }) {
   const categories = catalogue(dimension)
     .map((one) => {
       const series = byKey.get(one.key);
-      const latest = series ? ([...series.entries()].filter(([year]) => year <= to).sort((a, b) => b[0] - a[0])[0]?.[1] ?? 0) : 0;
+      const latest = series
+        ? ([...series.entries()]
+            .filter(([year]) => year <= to)
+            .sort((a, b) => b[0] - a[0])[0]?.[1] ?? 0)
+        : 0;
       return { ...one, count: latest };
     })
     .filter((one) => byKey.has(one.key))
@@ -115,9 +147,12 @@ export function BusinessFabricExplorer({ board }: { board: FabricBoard }) {
     }
     return row;
   });
-  const marks = measure === 'STOCK'
-    ? Object.entries(MARKS).filter(([year]) => years.includes(Number(year))).map(([year, label]) => ({ year, label }))
-    : [];
+  const marks =
+    measure === 'STOCK'
+      ? Object.entries(MARKS)
+          .filter(([year]) => years.includes(Number(year)))
+          .map(([year, label]) => ({ year, label }))
+      : [];
 
   /*
    * El año de los paneles por departamento: el último del rango en que los
@@ -125,9 +160,16 @@ export function BusinessFabricExplorer({ board }: { board: FabricBoard }) {
    * SEPREC abre el país por tipo y actividad pero no cada departamento.
    */
   const placeYear =
-    [...years].reverse().find((year) =>
-      ofMeasure.some((row) => row.place !== 'BOLIVIA' && row.dimension === (chosen.size ? dimension : 'TOTAL') && row.year === year),
-    ) ?? last;
+    [...years]
+      .reverse()
+      .find((year) =>
+        ofMeasure.some(
+          (row) =>
+            row.place !== 'BOLIVIA' &&
+            row.dimension === (chosen.size ? dimension : 'TOTAL') &&
+            row.year === year,
+        ),
+      ) ?? last;
   const departmentValue = (code: string): number | null => {
     const pool = ofMeasure.filter((row) => row.place === code && row.year === placeYear);
     if (!chosen.size) return pool.find((row) => row.dimension === 'TOTAL')?.count ?? null;
@@ -142,7 +184,11 @@ export function BusinessFabricExplorer({ board }: { board: FabricBoard }) {
   for (const one of visible) {
     for (const dept of departments) {
       const row = ofMeasure.find(
-        (candidate) => candidate.place === dept.key && candidate.dimension === dimension && candidate.key === one.key && candidate.year === placeYear,
+        (candidate) =>
+          candidate.place === dept.key &&
+          candidate.dimension === dimension &&
+          candidate.key === one.key &&
+          candidate.year === placeYear,
       );
       if (row) heatCells.push({ row: one.label, column: dept.label, value: row.count });
     }
@@ -150,9 +196,15 @@ export function BusinessFabricExplorer({ board }: { board: FabricBoard }) {
 
   const lastTotal = total.get(last) ?? null;
   const prevTotal = total.get(years.at(-2) ?? -1) ?? null;
-  const unipersonal = place === 'BOLIVIA' ? byKey.get('UNIPERSONAL') : cube(ofMeasure.filter((row) => row.place === place && row.dimension === 'FORM')).get('UNIPERSONAL');
-  const shareUni = lastTotal && unipersonal?.get(last) ? (unipersonal.get(last)! / lastTotal) * 100 : null;
-  const noun = MEASURES.find((one) => one.value === measure)?.noun ?? 'empresas';
+  const unipersonal =
+    place === 'BOLIVIA'
+      ? byKey.get('UNIPERSONAL')
+      : cube(ofMeasure.filter((row) => row.place === place && row.dimension === 'FORM')).get(
+          'UNIPERSONAL',
+        );
+  const shareUni =
+    lastTotal && unipersonal?.get(last) ? (unipersonal.get(last)! / lastTotal) * 100 : null;
+  const noun = FIRM_MEASURES.find((one) => one.value === measure)?.noun ?? 'empresas';
 
   const growth = visible.map((one) => {
     const start = byKey.get(one.key)?.get(first) ?? null;
@@ -183,19 +235,78 @@ export function BusinessFabricExplorer({ board }: { board: FabricBoard }) {
       })
       .filter((row) => row.value > 0);
 
-  const flowSeries: WorldLineSeries[] = MEASURES.filter((one) => one.value !== 'STOCK' && board.firms.some((row) => row.measure === one.value && row.place === place && row.dimension === 'TOTAL')).map((one, index) => ({
+  const flowSeries: WorldLineSeries[] = FIRM_MEASURES.filter(
+    (one) =>
+      (one.value === 'NEW' || one.value === 'RENEWED') &&
+      board.firms.some(
+        (row) => row.measure === one.value && row.place === place && row.dimension === 'TOTAL',
+      ),
+  ).map((one, index) => ({
     key: one.value,
     label: one.label,
     tone: seriesTone(index),
   }));
-  const flowYears = [...new Set(board.firms.filter((row) => row.measure !== 'STOCK' && row.place === place && row.dimension === 'TOTAL').map((row) => row.year))].sort((a, b) => a - b);
-  const flowData = flowYears.map((year) => {
+  const flowYears = [
+    ...new Set(
+      board.firms
+        .filter(
+          (row) =>
+            flowSeries.some((series) => series.key === row.measure) &&
+            row.place === place &&
+            row.dimension === 'TOTAL',
+        )
+        .map((row) => row.year),
+    ),
+  ].sort((a, b) => a - b);
+  const closures = buildClosureSeries(board.firms, place);
+  const knownClosures = closures.filter(
+    (row): row is { year: number; count: number } => row.count !== null,
+  );
+  const latestClosure = knownClosures.at(-1) ?? null;
+  const previousClosure = knownClosures.at(-2) ?? null;
+  /*
+   * Entradas y salidas van lado a lado y se leen una contra otra, así que las
+   * dos comparten el mismo eje de años, y ese eje no se salta ninguno: dibujar
+   * sólo los años con cifra ponía 2010 y 2016 a un paso, como si fueran
+   * seguidos. Un año sin publicar queda como hueco en la línea, no como cero.
+   */
+  const spanYears = [...flowYears, ...knownClosures.map((row) => row.year)];
+  const spanFirst = spanYears.length ? Math.min(...spanYears) : 0;
+  const span = spanYears.length
+    ? Array.from(
+        { length: Math.max(...spanYears) - spanFirst + 1 },
+        (_, index) => spanFirst + index,
+      )
+    : [];
+  const flowData = span.map((year) => {
     const row: Record<string, string | number | null> = { year: String(year) };
     for (const series of flowSeries) {
-      row[series.key] = board.firms.find((one) => one.measure === series.key && one.place === place && one.dimension === 'TOTAL' && one.year === year)?.count ?? null;
+      row[series.key] =
+        board.firms.find(
+          (one) =>
+            one.measure === series.key &&
+            one.place === place &&
+            one.dimension === 'TOTAL' &&
+            one.year === year,
+        )?.count ?? null;
     }
     return row as { year: string; [key: string]: string | number | null };
   });
+  const hasFlow = flowSeries.length > 0 && flowYears.length > 0;
+  const latestFlows = flowSeries.flatMap((series) => {
+    const row = flowData.filter((one) => typeof one[series.key] === 'number').at(-1);
+    return row
+      ? [{ key: series.key, label: series.label, year: row.year, count: row[series.key] as number }]
+      : [];
+  });
+  const closureCount = new Map(knownClosures.map((row) => [row.year, row.count]));
+  const closureData = span.map((year) => ({
+    year: String(year),
+    CANCELLED: closureCount.get(year) ?? null,
+  }));
+  const closureLines: WorldLineSeries[] = [
+    { key: 'CANCELLED', label: 'Cierres', tone: seriesTone(2) },
+  ];
 
   const reset = (): void => {
     setPlace('BOLIVIA');
@@ -203,7 +314,10 @@ export function BusinessFabricExplorer({ board }: { board: FabricBoard }) {
     setSince(null);
     setUntil(null);
   };
-  const active = (place !== 'BOLIVIA' ? 1 : 0) + (chosen.size ? 1 : 0) + (since !== null || until !== null ? 1 : 0);
+  const active =
+    (place !== 'BOLIVIA' ? 1 : 0) +
+    (chosen.size ? 1 : 0) +
+    (since !== null || until !== null ? 1 : 0);
 
   if (!board.firms.length) {
     return <div className="callout">Todavía no hay base empresarial cargada.</div>;
@@ -211,34 +325,58 @@ export function BusinessFabricExplorer({ board }: { board: FabricBoard }) {
 
   return (
     <>
-      <div className="panel">
-        <div className="panel-head">
-          <h2>
-            Tejido empresarial de {placeLabel(place)}: {noun}, {first}–{last} (cantidad)
-          </h2>
-          <p className="panel-sub">
-            Registro de comercio: SEPREC (antes FUNDEMPRESA), servido por el SIIP del Ministerio de
-            Desarrollo Productivo para 2008–2024 y por el reporte del propio SEPREC para 2025.
-            «Vigente» es toda matrícula que no se canceló, no una empresa que funciona: la parte que
-            renueva su matrícula cada año es mucho menor.{' '}
-            <InfoPopover label="Cómo leer los quiebres">
-              <p>{MARKS['2013']}</p>
-              <p>{MARKS['2025']}</p>
-            </InfoPopover>
-          </p>
-        </div>
+      <Panel
+        id="tejido-resumen"
+        title={`Tejido empresarial de ${placeLabel(place)}: ${noun}, ${first}–${last} (cantidad de empresas)`}
+        lede={`Cuántas empresas hay en el registro de comercio de ${placeLabel(place)}. «Vigente» es toda matrícula que no se canceló, no una empresa que funciona.`}
+        source={REGISTRY_SOURCE}
+        data={() => ({
+          unidad: 'empresas',
+          columnas: ['Cifra', 'Valor', 'Detalle'],
+          filas: [
+            [`${placeLabel(place)}, ${last}`, lastTotal, noun],
+            [
+              `Frente a ${years.at(-2) ?? '—'}`,
+              lastTotal && prevTotal
+                ? Number((((lastTotal - prevTotal) / prevTotal) * 100).toFixed(1))
+                : null,
+              'variación en %',
+            ],
+            [
+              `Unipersonales, ${last}`,
+              shareUni === null ? null : Number(shareUni.toFixed(1)),
+              '% del total',
+            ],
+            [
+              `Desde ${first}`,
+              lastTotal && total.get(first)
+                ? Number((lastTotal / (total.get(first) ?? 1)).toFixed(1))
+                : null,
+              `veces la base de ${first}`,
+            ],
+          ],
+        })}
+      >
         <div className="stat-strip">
           <div className="stat">
-            <span className="stat-label">{placeLabel(place)}, {last}</span>
+            <span className="stat-label">
+              {placeLabel(place)}, {last}
+            </span>
             <span className="stat-value">{lastTotal === null ? '—' : say(lastTotal)}</span>
             <span className="stat-hint">{noun}</span>
           </div>
           <div className="stat">
             <span className="stat-label">Frente a {years.at(-2) ?? '—'}</span>
             <span className="stat-value">
-              {lastTotal && prevTotal ? `${lastTotal >= prevTotal ? '+' : ''}${say(((lastTotal - prevTotal) / prevTotal) * 100, 1)} %` : '—'}
+              {lastTotal && prevTotal
+                ? `${lastTotal >= prevTotal ? '+' : ''}${say(((lastTotal - prevTotal) / prevTotal) * 100, 1)} %`
+                : '—'}
             </span>
-            <span className="stat-hint">{lastTotal && prevTotal ? `${say(lastTotal - prevTotal)} de diferencia` : 'sin año anterior'}</span>
+            <span className="stat-hint">
+              {lastTotal && prevTotal
+                ? `${say(lastTotal - prevTotal)} de diferencia`
+                : 'sin año anterior'}
+            </span>
           </div>
           <div className="stat">
             <span className="stat-label">Unipersonales</span>
@@ -248,19 +386,34 @@ export function BusinessFabricExplorer({ board }: { board: FabricBoard }) {
           <div className="stat">
             <span className="stat-label">Desde {first}</span>
             <span className="stat-value">
-              {lastTotal && total.get(first) ? `×${say(lastTotal / (total.get(first) ?? 1), 1)}` : '—'}
+              {lastTotal && total.get(first)
+                ? `×${say(lastTotal / (total.get(first) ?? 1), 1)}`
+                : '—'}
             </span>
             <span className="stat-hint">veces la base de {first}</span>
           </div>
         </div>
-      </div>
+        <details className="panel-note">
+          <summary>Cómo leerlo</summary>
+          <p>
+            Registro de comercio: SEPREC (antes FUNDEMPRESA), servido por el SIIP del Ministerio de
+            Desarrollo Productivo para 2008–2024 y por el reporte del propio SEPREC para 2025.
+            «Vigente» es toda matrícula que no se canceló, no una empresa que funciona: la parte que
+            renueva su matrícula cada año es mucho menor.
+          </p>
+          <p>{MARKS['2013']}</p>
+          <p>{MARKS['2025']}</p>
+        </details>
+      </Panel>
 
       <div className="workspace">
         <aside className="rail" id="tejido-filtros">
           <div className="rail-top">
             <Icon name="filtro" size={15} />
             <span className="rail-title">Filtros</span>
-            <span className="rail-count">{active ? `${active} activo${active === 1 ? '' : 's'}` : 'sin filtro'}</span>
+            <span className="rail-count">
+              {active ? `${active} activo${active === 1 ? '' : 's'}` : 'sin filtro'}
+            </span>
           </div>
 
           <div className="rail-sec">
@@ -316,15 +469,31 @@ export function BusinessFabricExplorer({ board }: { board: FabricBoard }) {
               Años
             </div>
             <div className={`rail-field ${styles.pair}`}>
-              <select aria-label="Desde" value={from} onChange={(event) => setSince(Number(event.target.value))}>
-                {allYears.filter((year) => year <= to).map((year) => (
-                  <option key={year} value={year}>Desde {year}</option>
-                ))}
+              <select
+                aria-label="Desde"
+                value={from}
+                onChange={(event) => setSince(Number(event.target.value))}
+              >
+                {allYears
+                  .filter((year) => year <= to)
+                  .map((year) => (
+                    <option key={year} value={year}>
+                      Desde {year}
+                    </option>
+                  ))}
               </select>
-              <select aria-label="Hasta" value={to} onChange={(event) => setUntil(Number(event.target.value))}>
-                {allYears.filter((year) => year >= from).map((year) => (
-                  <option key={year} value={year}>Hasta {year}</option>
-                ))}
+              <select
+                aria-label="Hasta"
+                value={to}
+                onChange={(event) => setUntil(Number(event.target.value))}
+              >
+                {allYears
+                  .filter((year) => year >= from)
+                  .map((year) => (
+                    <option key={year} value={year}>
+                      Hasta {year}
+                    </option>
+                  ))}
               </select>
             </div>
           </div>
@@ -336,7 +505,11 @@ export function BusinessFabricExplorer({ board }: { board: FabricBoard }) {
             </div>
             <div className="rail-list">
               {PLACES.map((one) => {
-                const count = cube(ofMeasure.filter((row) => row.place === one.key && row.dimension === 'TOTAL')).get('TOTAL')?.get(last);
+                const count = cube(
+                  ofMeasure.filter((row) => row.place === one.key && row.dimension === 'TOTAL'),
+                )
+                  .get('TOTAL')
+                  ?.get(last);
                 return (
                   <button
                     key={one.key}
@@ -369,7 +542,9 @@ export function BusinessFabricExplorer({ board }: { board: FabricBoard }) {
                     type="button"
                     className={on ? 'rail-item rail-item-on' : 'rail-item'}
                     aria-pressed={on}
-                    onClick={(event) => setChosen((current) => toggle(current, one.key, additive(event)))}
+                    onClick={(event) =>
+                      setChosen((current) => toggle(current, one.key, additive(event)))
+                    }
                   >
                     <span className="rail-name">{one.label}</span>
                     <span className="rail-n">{say(one.count)}</span>
@@ -383,8 +558,15 @@ export function BusinessFabricExplorer({ board }: { board: FabricBoard }) {
             <div className="rail-sec">
               <div className="rail-pills">
                 {[...chosen].map((key) => (
-                  <button key={key} type="button" className="chip chip-on chip-wide" onClick={() => setChosen((current) => without(current, key))}>
-                    <span className="chip-text">{catalogue(dimension).find((one) => one.key === key)?.label ?? key}</span>
+                  <button
+                    key={key}
+                    type="button"
+                    className="chip chip-on chip-wide"
+                    onClick={() => setChosen((current) => without(current, key))}
+                  >
+                    <span className="chip-text">
+                      {catalogue(dimension).find((one) => one.key === key)?.label ?? key}
+                    </span>
                     <span aria-hidden="true">×</span>
                   </button>
                 ))}
@@ -396,44 +578,48 @@ export function BusinessFabricExplorer({ board }: { board: FabricBoard }) {
           ) : null}
         </aside>
 
-        <div className="workspace-main">
-          <div className="panel">
-            <div className="panel-head panel-head-kind">
-              <div>
-                <h2>
-                  {placeLabel(place)}: {noun} por {dimension === 'FORM' ? 'tipo societario' : 'actividad'}, {first}–{last} (
-                  {mode === 'share' ? '% del total del año' : 'cantidad'})
-                </h2>
-                <p className="panel-sub">
-                  {chosen.size ? `${visible.length} categorías elegidas.` : 'Todas las categorías; las que pasan de seis se pliegan en «Otros».'}{' '}
-                  Pasa el cursor por una columna para ver cada tramo; el rombo marca un quiebre de la serie.
-                </p>
-              </div>
-              <div className="chart-kind" role="group" aria-label="Escala">
-                {(['count', 'share'] as const).map((value) => (
-                  <button key={value} type="button" className={mode === value ? 'chip chip-on' : 'chip'} aria-pressed={mode === value} onClick={() => setMode(value)}>
-                    {value === 'count' ? 'Cantidad' : '% del año'}
-                  </button>
-                ))}
-              </div>
+        <div className={`workspace-main ${styles.board}`}>
+          <Panel
+            id="tejido-por-categoria"
+            title={`${placeLabel(place)}: ${noun} por ${dimension === 'FORM' ? 'tipo societario' : 'actividad'}, ${first}–${last} (${mode === 'share' ? '% del total del año' : 'cantidad de empresas'})`}
+            lede={`${chosen.size ? `${visible.length} categorías elegidas.` : 'Todas las categorías; las que pasan de seis se pliegan en «Otros».'} Pasa el cursor por una columna para ver cada tramo; el rombo marca un quiebre de la serie.`}
+            source={REGISTRY_SOURCE}
+          >
+            <div className="chart-kind" role="group" aria-label="Escala">
+              {(['count', 'share'] as const).map((value) => (
+                <button
+                  key={value}
+                  type="button"
+                  className={mode === value ? 'chip chip-on' : 'chip'}
+                  aria-pressed={mode === value}
+                  onClick={() => setMode(value)}
+                >
+                  {value === 'count' ? 'Cantidad' : '% del año'}
+                </button>
+              ))}
             </div>
             {parts.length ? (
               <YearStackBars data={rows} parts={parts} mode={mode} marks={marks} />
             ) : (
               <div className="callout">
-                {placeLabel(place)} no tiene esta medida abierta por {dimension === 'FORM' ? 'tipo societario' : 'actividad'}.
+                {placeLabel(place)} no tiene esta medida abierta por{' '}
+                {dimension === 'FORM' ? 'tipo societario' : 'actividad'}.
               </div>
             )}
-          </div>
+          </Panel>
 
-          <div className="grid-two">
-            <div className="panel">
-              <div className="panel-head">
-                <h2>
-                  {chosen.size ? 'Lo elegido' : 'Todas'} por departamento, {placeYear} ({noun})
-                </h2>
-                <p className="panel-sub">Toca un departamento para filtrar toda la página por él.</p>
-              </div>
+          <div className="grid-pair">
+            <Panel
+              id="tejido-mapa"
+              title={`${chosen.size ? 'Lo elegido' : 'Todas'} por departamento, ${placeYear} (cantidad de empresas)`}
+              lede="Toca un departamento para filtrar toda la página por él."
+              source={REGISTRY_SOURCE}
+              data={() => ({
+                unidad: 'empresas',
+                columnas: ['Departamento', `${noun}, ${placeYear} (cantidad de empresas)`],
+                filas: readings.map((one) => [placeLabel(one.code), one.value]),
+              })}
+            >
               {readings.some((one) => one.value !== null) ? (
                 <DepartmentsMap
                   readings={readings}
@@ -444,61 +630,79 @@ export function BusinessFabricExplorer({ board }: { board: FabricBoard }) {
                   onPick={(code) => setPlace((current) => (current === code ? 'BOLIVIA' : code))}
                 />
               ) : (
-                <div className="callout">El corte de {placeYear} no abre esta selección por departamento.</div>
+                <div className="callout">
+                  El corte de {placeYear} no abre esta selección por departamento.
+                </div>
               )}
-            </div>
-            <div className="panel">
-              <div className="panel-head">
-                <h2>Ranking de departamentos, {placeYear} (cantidad de empresas)</h2>
-                <p className="panel-sub">Misma selección que el mapa, ordenada.</p>
-              </div>
+            </Panel>
+            <Panel
+              id="tejido-ranking"
+              title={`Ranking de departamentos, ${placeYear} (cantidad de empresas)`}
+              lede="Misma selección que el mapa, ordenada."
+              source={REGISTRY_SOURCE}
+            >
               <ShareBars
                 data={readings
                   .filter((one): one is { code: string; value: number } => one.value !== null)
-                  .map((one) => ({ name: placeLabel(one.code), value: one.value, pick: one.code, emphasis: place === one.code }))
+                  .map((one) => ({
+                    name: placeLabel(one.code),
+                    value: one.value,
+                    pick: one.code,
+                    emphasis: place === one.code,
+                  }))
                   .sort((left, right) => right.value - left.value)}
                 unit=" empresas"
                 decimals={0}
                 height={300}
                 onPick={(code) => setPlace((current) => (current === code ? 'BOLIVIA' : code))}
               />
-            </div>
+              <ChartLegend
+                items={departmentKey(
+                  `${noun.charAt(0).toLocaleUpperCase('es')}${noun.slice(1)}, ${placeYear} (cantidad de empresas)`,
+                  place !== 'BOLIVIA',
+                )}
+              />
+            </Panel>
           </div>
 
           {heatCells.length ? (
-            <div className="panel">
-              <div className="panel-head">
-                <h2>
-                  {dimension === 'FORM' ? 'Tipo societario' : 'Actividad'} por departamento, {placeYear} (cantidad de empresas)
-                </h2>
-                <p className="panel-sub">Una celda vacía es una combinación sin empresas registradas, no un cero estimado.</p>
-              </div>
-              <HeatGrid rows={visible.map((one) => one.label)} columns={heatColumns} cells={heatCells} unit="empresas" />
-            </div>
+            <Panel
+              id="tejido-matriz"
+              title={`${dimension === 'FORM' ? 'Tipo societario' : 'Actividad'} por departamento, ${placeYear} (cantidad de empresas)`}
+              lede="Una celda vacía es una combinación sin empresas registradas, no un cero estimado."
+              source={REGISTRY_SOURCE}
+            >
+              <HeatGrid
+                rows={visible.map((one) => one.label)}
+                columns={heatColumns}
+                cells={heatCells}
+                unit="empresas"
+              />
+            </Panel>
           ) : null}
 
-          <div className="panel">
-            <div className="panel-head panel-head-kind">
-              <div>
-                <h2>Crecimiento por categoría, {first}–{last} ({placeLabel(place)})</h2>
-                <p className="panel-sub">
-                  Tasa anual compuesta entre los dos extremos del rango elegido. Calculada aquí sobre las cifras publicadas.
-                </p>
-              </div>
-              <button
-                type="button"
-                className="chip"
-                onClick={() =>
-                  downloadCsv(
-                    `tejido-empresarial-${place.toLowerCase()}-${first}-${last}.csv`,
-                    ['Categoría', `Cantidad ${first}`, `Cantidad ${last}`, 'Tasa anual %', `Parte de ${last} %`],
-                    growth.map((one) => [one.label, one.start, one.end, one.rate === null ? null : Number(one.rate.toFixed(2)), one.share === null ? null : Number(one.share.toFixed(2))]),
-                  )
-                }
-              >
-                <Icon name="descarga" size={13} /> CSV
-              </button>
-            </div>
+          <Panel
+            id="tejido-crecimiento"
+            title={`Crecimiento por categoría, ${first}–${last}, ${placeLabel(place)} (% anual compuesto)`}
+            lede="Tasa anual compuesta entre los dos extremos del rango elegido, calculada aquí sobre las cifras publicadas."
+            source={`${REGISTRY_SOURCE}; cálculo del Observatorio`}
+            data={() => ({
+              columnas: [
+                dimension === 'FORM' ? 'Tipo societario' : 'Actividad',
+                `Cantidad ${first}`,
+                `Cantidad ${last}`,
+                'Tasa anual %',
+                `Parte de ${last} %`,
+              ],
+              filas: growth.map((one) => [
+                one.label,
+                one.start,
+                one.end,
+                one.rate === null ? null : Number(one.rate.toFixed(2)),
+                one.share === null ? null : Number(one.share.toFixed(2)),
+              ]),
+            })}
+          >
             <div className="table-wrap">
               <table className="grid-table">
                 <thead>
@@ -523,44 +727,135 @@ export function BusinessFabricExplorer({ board }: { board: FabricBoard }) {
                 </tbody>
               </table>
             </div>
-          </div>
-
-          {flowSeries.length && flowData.length ? (
-            <div className="panel">
-              <div className="panel-head">
-                <h2>Movimiento del registro en {placeLabel(place)}: inscripciones, renovaciones y cancelaciones por año (cantidad)</h2>
-                <p className="panel-sub">Un año parcial lo dice su fuente; pasa el cursor para ver la cifra.</p>
-              </div>
-              <WorldLines
-                data={flowData}
-                series={flowSeries}
-                format={(value) => `${say(value)} empresas`}
-                tick={(value) => (value >= 1000 ? `${say(value / 1000)} mil` : say(value))}
-                countsOnly
-              />
-            </div>
-          ) : null}
+          </Panel>
 
           {owners.length ? (
-            <div className="grid-two">
-              <div className="panel">
-                <div className="panel-head">
-                  <h2>Empresas encabezadas por mujeres, por departamento, {ownerYear} (% de las que declaran género)</h2>
-                  <p className="panel-sub">Propietaria o representante legal según el SEPREC. Toca una barra para filtrar.</p>
-                </div>
-                <ShareBars data={ownerShare('WOMEN', 'MEN').sort((a, b) => b.value - a.value)} height={300} onPick={(code) => setPlace(code)} />
-              </div>
-              <div className="panel">
-                <div className="panel-head">
-                  <h2>Empresas encabezadas por jóvenes, por departamento, {ownerYear} (% del total)</h2>
-                  <p className="panel-sub">Según el grupo etario que el SEPREC asigna al titular.</p>
-                </div>
-                <ShareBars data={ownerShare('YOUTH', 'ADULT').sort((a, b) => b.value - a.value)} height={300} onPick={(code) => setPlace(code)} />
-              </div>
+            <div className="grid-pair">
+              <Panel
+                id="tejido-mujeres"
+                title={`Empresas encabezadas por mujeres, por departamento, ${ownerYear} (% de las que declaran género)`}
+                lede="Propietaria o representante legal según el SEPREC. Toca una barra para filtrar."
+                source={OWNERS_SOURCE}
+              >
+                <ShareBars
+                  data={ownerShare('WOMEN', 'MEN').sort((a, b) => b.value - a.value)}
+                  height={300}
+                  onPick={(code) => setPlace(code)}
+                />
+                <ChartLegend
+                  items={departmentKey(
+                    'Empresas encabezadas por mujeres (% de las que declaran género)',
+                    place !== 'BOLIVIA',
+                  )}
+                />
+              </Panel>
+              <Panel
+                id="tejido-jovenes"
+                title={`Empresas encabezadas por jóvenes, por departamento, ${ownerYear} (% del total)`}
+                lede="Según el grupo etario que el SEPREC asigna al titular."
+                source={OWNERS_SOURCE}
+              >
+                <ShareBars
+                  data={ownerShare('YOUTH', 'ADULT').sort((a, b) => b.value - a.value)}
+                  height={300}
+                  onPick={(code) => setPlace(code)}
+                />
+                <ChartLegend
+                  items={departmentKey(
+                    'Empresas encabezadas por jóvenes (% del total)',
+                    place !== 'BOLIVIA',
+                  )}
+                />
+              </Panel>
             </div>
           ) : null}
 
           <BusinessSizePanel board={board} place={place} />
+
+          {/*
+            Entradas y salidas del registro van al final de la página, una junto a la
+            otra, y el directorio nominal cierra: son lo último que se lee, no lo primero.
+          */}
+          {hasFlow || latestClosure ? (
+            <div className={hasFlow && latestClosure ? 'grid-pair' : undefined}>
+              {hasFlow ? (
+                <Panel
+                  id="tejido-entradas"
+                  title={`Entradas al registro en ${placeLabel(place)}: inscripciones y renovaciones por año (cantidad de empresas)`}
+                  lede="Un año parcial lo dice su fuente; pasa el cursor para ver la cifra."
+                  source={REGISTRY_SOURCE}
+                >
+                  <div className="stat-strip">
+                    {latestFlows.map((one) => (
+                      <div className="stat" key={one.key}>
+                        <span className="stat-label">
+                          {one.label} · {one.year}
+                        </span>
+                        <span className="stat-value">{say(one.count)}</span>
+                        <span className="stat-hint">último dato publicado</span>
+                      </div>
+                    ))}
+                    <div className="stat">
+                      <span className="stat-label">Cobertura</span>
+                      <span className="stat-value">
+                        {flowYears[0]}–{flowYears.at(-1)}
+                      </span>
+                      <span className="stat-hint">años con alguna cifra</span>
+                    </div>
+                  </div>
+                  <WorldLines
+                    data={flowData}
+                    series={flowSeries}
+                    format={(value) => `${say(value)} empresas`}
+                    tick={(value) => (value >= 1000 ? `${say(value / 1000)} mil` : say(value))}
+                    countsOnly
+                  />
+                </Panel>
+              ) : null}
+
+              {latestClosure ? (
+                <Panel
+                  id="tejido-salidas"
+                  title={`Salidas del registro en ${placeLabel(place)}: cancelaciones de matrícula por año (cantidad de matrículas)`}
+                  lede="No es quiebra: incluye fusiones, transformaciones y otras bajas registrales."
+                  source={REGISTRY_SOURCE}
+                >
+                  <div className="stat-strip">
+                    <div className="stat">
+                      <span className="stat-label">Cierres · {latestClosure.year}</span>
+                      <span className="stat-value">{say(latestClosure.count)}</span>
+                      <span className="stat-hint">matrículas canceladas</span>
+                    </div>
+                    <div className="stat">
+                      <span className="stat-label">Frente a {previousClosure?.year ?? '—'}</span>
+                      <span className="stat-value">
+                        {previousClosure
+                          ? `${latestClosure.count >= previousClosure.count ? '+' : ''}${say(latestClosure.count - previousClosure.count)}`
+                          : '—'}
+                      </span>
+                      <span className="stat-hint">variación en cantidad</span>
+                    </div>
+                    <div className="stat">
+                      <span className="stat-label">Cobertura</span>
+                      <span className="stat-value">
+                        {knownClosures[0]?.year}–{latestClosure.year}
+                      </span>
+                      <span className="stat-hint">los años no publicados quedan vacíos</span>
+                    </div>
+                  </div>
+                  <WorldLines
+                    data={closureData}
+                    series={closureLines}
+                    format={(value) => `${say(value)} cierres`}
+                    tick={(value) => (value >= 1000 ? `${say(value / 1000)} mil` : say(value))}
+                    countsOnly
+                  />
+                </Panel>
+              ) : null}
+            </div>
+          ) : null}
+
+          <BusinessDirectoryPanel />
         </div>
       </div>
     </>
