@@ -21,6 +21,7 @@ import {
   FilingsSection,
   MacroSection,
   PressSection,
+  PeopleSection,
   TransportSection,
   SourcesSection,
 } from './lazy-sections';
@@ -674,6 +675,10 @@ export default function Page() {
 
         <section className="stack">
           <FilingsSection />
+        </section>
+
+        <section className="stack">
+          <PeopleSection />
         </section>
 
         <section className="stack">
