@@ -1,11 +1,13 @@
 'use client';
 
 import { useEffect, useRef } from 'react';
-import { WorldLines, seriesTone } from './charts';
+import { DivergingBars, WorldLines, seriesTone } from './charts';
 import type { WorldLineSeries } from './charts';
 import { CompanyLogo } from './company-logo';
 import styles from './business.module.css';
+import { SinDeclarar } from './transport-views';
 import { Panel } from '@/components/ui/panel';
+import { ViewToggle } from '@/components/ui/view-toggle';
 import type { OwnersBoard } from '@/lib/business-owners-board';
 
 /** De dónde sale cada estimación: los documentos públicos de cada empresa, no el Observatorio solo. */
@@ -58,6 +60,25 @@ export function BusinessOwnerHistory({
 
   if (!current || !history) return null;
 
+  /** Cuánto se movió el piso contable de un año al siguiente, en %; el primer año no tiene anterior. */
+  const changes = history.years.map((row, index) => {
+    const before = history.years[index - 1];
+    return before && before.book > 0 ? ((row.book - before.book) / before.book) * 100 : null;
+  });
+  const variationBars = history.years.flatMap((row, index) => {
+    const change = changes[index];
+    const before = history.years[index - 1];
+    return change === null || change === undefined || !before
+      ? []
+      : [
+          {
+            name: String(row.year),
+            value: change,
+            meta: `Posición #${before.rank} → #${row.rank} · ${usd(before.book)} → ${usd(row.book)}`,
+          },
+        ];
+  });
+
   return (
     <section
       ref={profileRef}
@@ -94,33 +115,22 @@ export function BusinessOwnerHistory({
         lede={`Estimaciones disponibles entre ${history.firstYear} y ${history.latestYear}; cada cifra conserva las empresas y documentos que sostienen el cálculo.`}
         source={ESTIMATE_SOURCE}
         data={() => ({
-          columnas: ['Dato', 'Valor', 'Detalle'],
-          filas: [
-            [
-              'Mejor posición entre estimaciones',
-              history.bestRank,
-              history.podiumYears.length
-                ? `${history.podiumYears.length} año${history.podiumYears.length === 1 ? '' : 's'} entre las tres mayores`
-                : 'sin apariciones entre las tres mayores',
-            ],
-            [
-              'Máximo histórico (millones de dólares)',
-              history.peak.book,
-              `${history.peak.year} · posición #${history.peak.rank} entre estimaciones`,
-            ],
-            [
-              'Primera aparición',
-              history.firstYear,
-              firstHistory ? `posición #${firstHistory.rank} de ${firstHistory.population}` : null,
-            ],
-            [
-              'Última aparición',
-              history.latestYear,
-              latestHistory
-                ? `posición #${latestHistory.rank} de ${latestHistory.population} · ${usd(latestHistory.book)}`
-                : null,
-            ],
+          columnas: [
+            'Año',
+            'Posición entre las estimaciones del año',
+            'Estimaciones calculables ese año',
+            'Piso contable (millones de dólares)',
+            'Referencia de mercado (millones de dólares)',
+            'Variación del piso contable frente al año anterior (%)',
           ],
+          filas: history.years.map((row, index) => [
+            row.year,
+            row.rank,
+            row.population,
+            row.book,
+            row.market,
+            index === 0 ? null : (changes[index] ?? null),
+          ]),
         })}
       >
         <div className="stat-strip">
@@ -158,98 +168,125 @@ export function BusinessOwnerHistory({
           </div>
         </div>
 
-        <div className={styles.historyGrid}>
-          <div>
-            {sheet.length > 1 ? (
-              <WorldLines
-                data={sheet.map((one) => ({
-                  year: String(one.year),
-                  book: one.book,
-                  market: one.market,
-                }))}
-                series={personSeries}
-                format={usd}
-                tick={(value) => value.toLocaleString('es-BO', { maximumFractionDigits: 0 })}
-                countsOnly
-              />
-            ) : (
-              <div className="callout">
-                Sólo hay una gestión con estimación calculable para esta persona.
+        <ViewToggle
+          chart={
+            <div className={styles.historyGrid}>
+              <div>
+                {sheet.length > 1 ? (
+                  <SinDeclarar>
+                    <WorldLines
+                      data={sheet.map((one) => ({
+                        year: String(one.year),
+                        book: one.book,
+                        market: one.market,
+                      }))}
+                      series={personSeries}
+                      format={usd}
+                      tick={(value) => value.toLocaleString('es-BO', { maximumFractionDigits: 0 })}
+                      countsOnly
+                    />
+                  </SinDeclarar>
+                ) : (
+                  <div className="callout">
+                    Sólo hay una gestión con estimación calculable para esta persona.
+                  </div>
+                )}
               </div>
-            )}
-          </div>
-          <div>
-            <h4 className={styles.subhead}>Principales hitos históricos</h4>
-            <ol className={styles.milestones}>
-              {firstHistory ? (
-                <li>
-                  <b>{firstHistory.year}</b>
-                  <span>
-                    Primera estimación: {usd(firstHistory.book)}, posición #{firstHistory.rank} de{' '}
-                    {firstHistory.population}; principal empresa: {firstHistory.leadingHolding}.
-                  </span>
-                </li>
-              ) : null}
-              <li>
-                <b>{history.peak.year}</b>
-                <span>
-                  Máximo estimado: {usd(history.peak.book)}, posición #{history.peak.rank} entre los
-                  pisos disponibles.
-                </span>
-              </li>
-              {history.podiumYears.length ? (
-                <li>
-                  <b>Tres mayores</b>
-                  <span>
-                    Años en que estuvo entre los tres mayores pisos calculables:{' '}
-                    {history.podiumYears.join(', ')}.
-                  </span>
-                </li>
-              ) : null}
-              {latestHistory && latestHistory.year !== firstHistory?.year ? (
-                <li>
-                  <b>{latestHistory.year}</b>
-                  <span>
-                    Última estimación: {usd(latestHistory.book)}, posición #{latestHistory.rank} de{' '}
-                    {latestHistory.population}; principal empresa: {latestHistory.leadingHolding}.
-                  </span>
-                </li>
-              ) : null}
-            </ol>
-          </div>
-        </div>
-      </Panel>
-
-      <Panel
-        id="empresario-anios"
-        title={`${history.name}: posición y fortuna estimada por año (millones de dólares)`}
-        lede="El puesto es entre las estimaciones calculables de ese año, no entre fortunas reales."
-        source={ESTIMATE_SOURCE}
-      >
-        <div className="table-wrap">
-          <table className={`grid-table ${styles.historyTable}`}>
-            <thead>
-              <tr>
-                <th>Año</th>
-                <th className="num">Posición disponible</th>
-                <th className="num">Piso contable</th>
-                <th className="num">Referencia de mercado</th>
-              </tr>
-            </thead>
-            <tbody>
-              {history.years.map((row) => (
-                <tr key={row.year}>
-                  <th scope="row">{row.year}</th>
-                  <td className="num">
-                    #{row.rank} de {row.population}
-                  </td>
-                  <td className="num">{usd(row.book)}</td>
-                  <td className="num">{row.market === null ? '—' : usd(row.market)}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+              <div>
+                <h4 className={styles.subhead}>Principales hitos históricos</h4>
+                <ol className={styles.milestones}>
+                  {firstHistory ? (
+                    <li>
+                      <b>{firstHistory.year}</b>
+                      <span>
+                        Primera estimación: {usd(firstHistory.book)}, posición #{firstHistory.rank}{' '}
+                        de {firstHistory.population}; principal empresa:{' '}
+                        {firstHistory.leadingHolding}.
+                      </span>
+                    </li>
+                  ) : null}
+                  <li>
+                    <b>{history.peak.year}</b>
+                    <span>
+                      Máximo estimado: {usd(history.peak.book)}, posición #{history.peak.rank} entre
+                      los pisos disponibles.
+                    </span>
+                  </li>
+                  {history.podiumYears.length ? (
+                    <li>
+                      <b>Tres mayores</b>
+                      <span>
+                        Años en que estuvo entre los tres mayores pisos calculables:{' '}
+                        {history.podiumYears.join(', ')}.
+                      </span>
+                    </li>
+                  ) : null}
+                  {latestHistory && latestHistory.year !== firstHistory?.year ? (
+                    <li>
+                      <b>{latestHistory.year}</b>
+                      <span>
+                        Última estimación: {usd(latestHistory.book)}, posición #{latestHistory.rank}{' '}
+                        de {latestHistory.population}; principal empresa:{' '}
+                        {latestHistory.leadingHolding}.
+                      </span>
+                    </li>
+                  ) : null}
+                </ol>
+              </div>
+            </div>
+          }
+          table={
+            <>
+              <div className="table-wrap">
+                <table className={`grid-table ${styles.historyTable}`}>
+                  <thead>
+                    <tr>
+                      <th>Año</th>
+                      <th className="num">Posición disponible</th>
+                      <th className="num">Piso contable</th>
+                      <th className="num">Referencia de mercado</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {history.years.map((row) => (
+                      <tr key={row.year}>
+                        <th scope="row">{row.year}</th>
+                        <td className="num">
+                          #{row.rank} de {row.population}
+                        </td>
+                        <td className="num">{usd(row.book)}</td>
+                        <td className="num">{row.market === null ? '—' : usd(row.market)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+              <p className="chart-note">
+                El puesto es entre las estimaciones calculables de ese año, no entre fortunas
+                reales.
+              </p>
+            </>
+          }
+          variation={
+            variationBars.length > 0 ? (
+              <>
+                <SinDeclarar>
+                  <DivergingBars
+                    signed
+                    ordered
+                    data={variationBars}
+                    unit="% frente al año anterior"
+                    height={Math.max(160, variationBars.length * 26 + 56)}
+                  />
+                </SinDeclarar>
+                <p className="chart-note">
+                  Cuánto se movió el piso contable de un año al siguiente; el puesto es entre las
+                  estimaciones calculables de ese año.
+                </p>
+              </>
+            ) : undefined
+          }
+        />
       </Panel>
 
       <Panel

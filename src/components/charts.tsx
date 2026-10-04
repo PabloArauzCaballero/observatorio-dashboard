@@ -2031,11 +2031,14 @@ export function DivergingBars({
   unit = 'puntos',
   height = 260,
   signed = false,
+  ordered = false,
 }: {
   data: DivergingRow[];
   unit?: string;
   height?: number;
   signed?: boolean;
+  /** Respeta el orden de `data` (años, meses) en lugar de ordenar de mayor a menor. */
+  ordered?: boolean;
 }) {
   const plus = signed ? 'var(--series-1)' : 'var(--up)';
   const minus = signed ? 'var(--series-2)' : 'var(--down)';
@@ -2048,13 +2051,13 @@ export function DivergingBars({
     }),
     [data, unit],
   );
-  const rows = [...data]
-    .sort((left, right) => right.value - left.value)
-    .map((row) => ({
-      ...row,
-      above: row.value >= 0 ? row.value : null,
-      below: row.value < 0 ? row.value : null,
-    }));
+  const rows = (
+    ordered ? [...data] : [...data].sort((left, right) => right.value - left.value)
+  ).map((row) => ({
+    ...row,
+    above: row.value >= 0 ? row.value : null,
+    below: row.value < 0 ? row.value : null,
+  }));
   const renderTooltip = ({ active, payload }: TooltipRender) => {
     if (!active || !payload?.length) return null;
     const point = payload[0]?.payload as DivergingRow | undefined;

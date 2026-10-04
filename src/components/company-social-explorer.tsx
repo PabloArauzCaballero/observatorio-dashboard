@@ -367,61 +367,63 @@ export function CompanySocialExplorer({ board }: { board: CompanySocialBoard }) 
             onFocus={(slug, add) => setFocus((current) => toggle(current, slug, add))}
           />
 
-          <Panel
-            id="empresas-redes-seguidores"
-            title="Seguidores declarados por red (suma de las empresas elegidas, cuentas)"
-            lede="Toca una red para filtrar por ella. Una persona que sigue a la empresa en dos redes cuenta dos veces."
-            source={SOCIAL_SOURCE}
-          >
-            {byPlatform.length ? (
-              <>
-                <ShareBars
-                  data={byPlatform}
-                  unit=" seguidores"
-                  decimals={0}
-                  height={220}
-                  onPick={(platform, add) =>
-                    setPlatforms((current) => toggle(current, platform, add))
-                  }
-                />
-                {barsKey('Seguidores declarados por la red, sumados entre las empresas elegidas')}
-              </>
-            ) : (
-              <div className="callout">Ninguna cuenta leída con los filtros puestos.</div>
-            )}
-          </Panel>
+          <div className="grid-pair">
+            <Panel
+              id="empresas-redes-seguidores"
+              title="Seguidores declarados por red (suma de las empresas elegidas, cuentas)"
+              lede="Toca una red para filtrar por ella. Una persona que sigue a la empresa en dos redes cuenta dos veces."
+              source={SOCIAL_SOURCE}
+            >
+              {byPlatform.length ? (
+                <>
+                  <ShareBars
+                    data={byPlatform}
+                    unit=" seguidores"
+                    decimals={0}
+                    height={220}
+                    onPick={(platform, add) =>
+                      setPlatforms((current) => toggle(current, platform, add))
+                    }
+                  />
+                  {barsKey('Seguidores declarados por la red, sumados entre las empresas elegidas')}
+                </>
+              ) : (
+                <div className="callout">Ninguna cuenta leída con los filtros puestos.</div>
+              )}
+            </Panel>
 
-          <Panel
-            id="empresas-redes-interaccion"
-            title="Interacción por post (% de los seguidores, mediana de las cuentas de cada empresa)"
-            lede="Cuánto responde la audiencia, no su tamaño: las 15 más altas; toca una para aislarla."
-            source={SOCIAL_SOURCE}
-          >
-            <details className="panel-note">
-              <summary>Cómo leerlo</summary>
-              <p>
-                Likes, comentarios y compartidos de cada post de los últimos 90 días dividido por
-                los seguidores de la cuenta. Mide cuánto responde la audiencia, no su tamaño. Las 15
-                más altas; toca una para aislarla.
-              </p>
-            </details>
-            {engagement.length ? (
-              <>
-                <ShareBars
-                  data={engagement}
-                  unit="%"
-                  decimals={3}
-                  height={Math.max(220, engagement.length * 26)}
-                  onPick={(slug, add) => setFocus((current) => toggle(current, slug, add))}
-                />
-                {barsKey('Mediana de (likes + comentarios + compartidos) ÷ seguidores, en %')}
-              </>
-            ) : (
-              <div className="callout">
-                Sin posts con cifras de interacción para las empresas elegidas.
-              </div>
-            )}
-          </Panel>
+            <Panel
+              id="empresas-redes-interaccion"
+              title="Interacción por post (% de los seguidores, mediana de las cuentas de cada empresa)"
+              lede="Cuánto responde la audiencia, no su tamaño: las 15 más altas; toca una para aislarla."
+              source={SOCIAL_SOURCE}
+            >
+              <details className="panel-note">
+                <summary>Cómo leerlo</summary>
+                <p>
+                  Likes, comentarios y compartidos de cada post de los últimos 90 días dividido por
+                  los seguidores de la cuenta. Mide cuánto responde la audiencia, no su tamaño. Las
+                  15 más altas; toca una para aislarla.
+                </p>
+              </details>
+              {engagement.length ? (
+                <>
+                  <ShareBars
+                    data={engagement}
+                    unit="%"
+                    decimals={3}
+                    height={Math.max(220, engagement.length * 26)}
+                    onPick={(slug, add) => setFocus((current) => toggle(current, slug, add))}
+                  />
+                  {barsKey('Mediana de (likes + comentarios + compartidos) ÷ seguidores, en %')}
+                </>
+              ) : (
+                <div className="callout">
+                  Sin posts con cifras de interacción para las empresas elegidas.
+                </div>
+              )}
+            </Panel>
+          </div>
 
           <Panel
             id="empresas-redes-reparto-comentarios"

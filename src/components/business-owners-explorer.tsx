@@ -199,7 +199,10 @@ export function BusinessOwnersExplorer({ board }: { board: OwnersBoard }) {
 
   /** El puesto de cada persona en cada año, para decir cuánto se movió. */
   const rankOf = new Map<string, Map<number, OwnerYearHistory>>(
-    board.histories.map((history) => [history.person, new Map(history.years.map((row) => [row.year, row]))]),
+    board.histories.map((history) => [
+      history.person,
+      new Map(history.years.map((row) => [row.year, row])),
+    ]),
   );
   const fullYears = board.podiums
     .filter((one) => one.places.length >= TOP_PLACES)
@@ -272,7 +275,14 @@ export function BusinessOwnersExplorer({ board }: { board: OwnersBoard }) {
           source={ESTIMATE_SOURCE}
           data={() => ({
             unidad: 'millones de dólares',
-            columnas: ['Año', 'Estimaciones calculables', 'Puesto', 'Persona', 'Piso contable (millones de dólares)', 'Mayor empresa'],
+            columnas: [
+              'Año',
+              'Estimaciones calculables',
+              'Puesto',
+              'Persona',
+              'Piso contable (millones de dólares)',
+              'Mayor empresa',
+            ],
             filas: [...board.podiums]
               .reverse()
               .flatMap((one) =>
@@ -318,7 +328,9 @@ export function BusinessOwnersExplorer({ board }: { board: OwnersBoard }) {
                     }}
                   >
                     <strong>{place.name}</strong>
-                    <small>{rankOf.get(place.person)?.get(podium.year)?.leadingHolding ?? ''}</small>
+                    <small>
+                      {rankOf.get(place.person)?.get(podium.year)?.leadingHolding ?? ''}
+                    </small>
                   </button>
                   <span className={styles.topBarTrack} aria-hidden="true">
                     <span style={{ width: `${Math.max(2, (place.book / peakBook) * 100)}%` }} />
@@ -326,21 +338,34 @@ export function BusinessOwnersExplorer({ board }: { board: OwnersBoard }) {
                   <span className={styles.topValue}>{usd(place.book)}</span>
                   <span
                     className={styles.topMove}
-                    title={before === undefined ? `Sin estimación en ${podium.year - 1}` : `${before}.º en ${podium.year - 1}`}
+                    title={
+                      before === undefined
+                        ? `Sin estimación en ${podium.year - 1}`
+                        : `${before}.º en ${podium.year - 1}`
+                    }
                   >
-                    {moved === null ? 'nuevo' : moved > 0 ? `▲ ${moved}` : moved < 0 ? `▼ ${-moved}` : '='}
+                    {moved === null
+                      ? 'nuevo'
+                      : moved > 0
+                        ? `▲ ${moved}`
+                        : moved < 0
+                          ? `▼ ${-moved}`
+                          : '='}
                   </span>
                 </li>
               );
             })}
           </ol>
-          <ChartLegend items={[{ color: 'var(--official)', label: 'Piso contable (millones de dólares)' }]} />
+          <ChartLegend
+            items={[{ color: 'var(--official)', label: 'Piso contable (millones de dólares)' }]}
+          />
           <details className="panel-note">
             <summary>Cómo leerlo</summary>
             <p>
-              Ordena sólo a las personas con participación y patrimonio públicos ese año: no es un ránking de
-              fortunas reales. ▲ y ▼ dicen cuántos puestos subió o bajó frente al año anterior; «nuevo», que ese
-              año no tenía estimación. Un año con menos de diez personas calculables muestra menos puestos.
+              Ordena sólo a las personas con participación y patrimonio públicos ese año: no es un
+              ránking de fortunas reales. ▲ y ▼ dicen cuántos puestos subió o bajó frente al año
+              anterior; «nuevo», que ese año no tenía estimación. Un año con menos de diez personas
+              calculables muestra menos puestos.
             </p>
           </details>
         </Panel>
@@ -355,9 +380,21 @@ export function BusinessOwnersExplorer({ board }: { board: OwnersBoard }) {
           source={ESTIMATE_SOURCE}
           data={() => ({
             unidad: 'puesto',
-            columnas: ['Persona', 'Año', 'Puesto', 'Estimaciones calculables', 'Piso contable (millones de dólares)'],
+            columnas: [
+              'Persona',
+              'Año',
+              'Puesto',
+              'Estimaciones calculables',
+              'Piso contable (millones de dólares)',
+            ],
             filas: board.histories.flatMap((history) =>
-              history.years.map((row) => [history.name, row.year, row.rank, row.population, row.book]),
+              history.years.map((row) => [
+                history.name,
+                row.year,
+                row.rank,
+                row.population,
+                row.book,
+              ]),
             ),
           })}
         >
@@ -690,67 +727,70 @@ export function BusinessOwnersExplorer({ board }: { board: OwnersBoard }) {
             </div>
           ) : null}
 
-          {board.benchmarks
-            .filter((one) => !one.code.startsWith('WEALTH_PBV_'))
-            .map((one, index) => {
-              const known = BENCHMARK_NAMES[one.code];
-              const name = known?.name ?? one.label;
-              const unit = known?.unit ?? UNIT_LABEL[one.unit] ?? one.unit;
-              const first = one.points[0]?.year;
-              const last = one.points.at(-1)?.year;
-              const single = one.points.length === 1;
-              const only = one.points[0];
-              const format = (value: number): string =>
-                value.toLocaleString('es-BO', { maximumFractionDigits: 1 });
-              return (
-                <Panel
-                  key={one.code}
-                  id={`empresarios-referencia-${one.code.toLowerCase().replace(/[^a-z0-9]+/gu, '-')}`}
-                  title={`${name}, ${first === last ? first : `${first}–${last}`} (${unit})`}
-                  lede={
-                    single
-                      ? 'Una cifra del país, sin nombres de personas.'
-                      : 'Una cifra del país, sin nombres de personas, año a año.'
-                  }
-                  source={
-                    board.sources[one.code.split('_').slice(0, 2).join('_')]?.publisher ||
-                    FALLBACK_SOURCE
-                  }
-                  {...(single && only
-                    ? {
-                        data: () => ({
-                          unidad: unit,
-                          columnas: ['Año', `${name} (${unit})`],
-                          filas: [[only.year, only.value]],
-                        }),
-                      }
-                    : {})}
-                >
-                  {single && only ? (
-                    <div className="stat-strip">
-                      <div className="stat">
-                        <span className="stat-label">
-                          {name}, {only.year}
-                        </span>
-                        <span className="stat-value">{format(only.value)}</span>
-                        <span className="stat-hint">{unit}; la fuente publica un solo año</span>
+          {/* Las referencias del país son doce gráficos chicos: tres por fila, no doce apilados. */}
+          <div className="grid-three">
+            {board.benchmarks
+              .filter((one) => !one.code.startsWith('WEALTH_PBV_'))
+              .map((one, index) => {
+                const known = BENCHMARK_NAMES[one.code];
+                const name = known?.name ?? one.label;
+                const unit = known?.unit ?? UNIT_LABEL[one.unit] ?? one.unit;
+                const first = one.points[0]?.year;
+                const last = one.points.at(-1)?.year;
+                const single = one.points.length === 1;
+                const only = one.points[0];
+                const format = (value: number): string =>
+                  value.toLocaleString('es-BO', { maximumFractionDigits: 1 });
+                return (
+                  <Panel
+                    key={one.code}
+                    id={`empresarios-referencia-${one.code.toLowerCase().replace(/[^a-z0-9]+/gu, '-')}`}
+                    title={`${name}, ${first === last ? first : `${first}–${last}`} (${unit})`}
+                    lede={
+                      single
+                        ? 'Una cifra del país, sin nombres de personas.'
+                        : 'Una cifra del país, sin nombres de personas, año a año.'
+                    }
+                    source={
+                      board.sources[one.code.split('_').slice(0, 2).join('_')]?.publisher ||
+                      FALLBACK_SOURCE
+                    }
+                    {...(single && only
+                      ? {
+                          data: () => ({
+                            unidad: unit,
+                            columnas: ['Año', `${name} (${unit})`],
+                            filas: [[only.year, only.value]],
+                          }),
+                        }
+                      : {})}
+                  >
+                    {single && only ? (
+                      <div className="stat-strip">
+                        <div className="stat">
+                          <span className="stat-label">
+                            {name}, {only.year}
+                          </span>
+                          <span className="stat-value">{format(only.value)}</span>
+                          <span className="stat-hint">{unit}; la fuente publica un solo año</span>
+                        </div>
                       </div>
-                    </div>
-                  ) : (
-                    <WorldLines
-                      data={one.points.map((point) => ({
-                        year: String(point.year),
-                        value: point.value,
-                      }))}
-                      series={[{ key: 'value', label: name, tone: seriesTone(index) }]}
-                      format={format}
-                      tick={(value) => value.toLocaleString('es-BO', { notation: 'compact' })}
-                      countsOnly
-                    />
-                  )}
-                </Panel>
-              );
-            })}
+                    ) : (
+                      <WorldLines
+                        data={one.points.map((point) => ({
+                          year: String(point.year),
+                          value: point.value,
+                        }))}
+                        series={[{ key: 'value', label: name, tone: seriesTone(index) }]}
+                        format={format}
+                        tick={(value) => value.toLocaleString('es-BO', { notation: 'compact' })}
+                        countsOnly
+                      />
+                    )}
+                  </Panel>
+                );
+              })}
+          </div>
         </div>
       </div>
     </>

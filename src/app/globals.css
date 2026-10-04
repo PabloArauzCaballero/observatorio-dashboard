@@ -9558,12 +9558,6 @@ button.download-btn {
   scroll-margin-top: var(--s5);
 }
 
-.site-block-seccion + .site-block-seccion {
-  margin-top: var(--s6);
-  padding-top: var(--s5);
-  border-top: 1px solid var(--rule);
-}
-
 .site-block-pagina {
   margin-top: var(--s5);
 }
@@ -9594,7 +9588,7 @@ button.download-btn {
   display: flex;
   flex-direction: column;
   gap: 0.2rem;
-  min-height: 70vh;
+  min-height: 8rem;
   padding: var(--s3) 0;
   color: var(--ink-faint);
   font-size: var(--text-sm);
@@ -9788,11 +9782,6 @@ button.download-btn {
 
 .view-toggle-body {
   min-width: 0;
-}
-
-/* Un bloque recién montado conserva el alto de su hueco hasta que llega lo suyo. */
-.site-block[data-retener='si'] {
-  min-height: 70vh;
 }
 
 /* === Transporte: tablas que pasan a gráfico (ViewToggle) === */
