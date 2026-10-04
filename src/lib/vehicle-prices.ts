@@ -28,6 +28,8 @@ export async function readVehiclePrices(): Promise<{
              availability, source_sha256 AS "sourceSha256"
       FROM read_models.vehicle_price_offer
       ORDER BY brand, model, version, model_year, source_url`);
+    // The migration can finish before the separate seed service has loaded its offers.
+    if (!result.rows.length) return { rows: fallback, catalogOrigin: 'snapshot' };
     return {
       rows: result.rows.map((row) => ({ ...row, price: Number(row.price) })),
       catalogOrigin: 'core',
