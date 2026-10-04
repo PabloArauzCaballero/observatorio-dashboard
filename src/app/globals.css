@@ -9789,3 +9789,8 @@ button.download-btn {
 .view-toggle-body {
   min-width: 0;
 }
+
+/* Un bloque recién montado conserva el alto de su hueco hasta que llega lo suyo. */
+.site-block[data-retener='si'] {
+  min-height: 70vh;
+}

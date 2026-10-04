@@ -132,29 +132,55 @@ function Bloque({
 }) {
   const [montado, setMontado] = useState(eager);
   const ref = useRef<HTMLElement>(null);
+  /*
+   * Un bloque recién montado muestra su aviso de «Cargando», que es mucho más bajo que el hueco
+   * que ocupaba: sin retener el alto, el de abajo sube a la pantalla, se monta, y así en cadena
+   * hasta que todo el informe pide sus datos a la vez. Se conserva el alto del hueco unos
+   * segundos —lo que tarda en llegar lo suyo— y luego cada bloque mide lo que mide.
+   */
+  const [retener, setRetener] = useState(true);
+  useEffect(() => {
+    if (!montado) return;
+    const hasta = window.setTimeout(() => setRetener(false), 6000);
+    return () => window.clearTimeout(hasta);
+  }, [montado]);
 
   useEffect(() => {
     if (montado) return;
     const elemento = ref.current;
     if (!elemento) return;
-    const observador = new IntersectionObserver(
+    const montar = () => {
+      setMontado(true);
+      cercano.disconnect();
+      visible.disconnect();
+    };
+    // Lo que ya se ve se monta siempre.
+    const visible = new IntersectionObserver((entradas) => {
+      if (entradas.some((entrada) => entrada.isIntersecting)) montar();
+    });
+    /*
+     * Lo que está por llegar, solo cuando el lector ya se mueve. Al cargar, con la portada aún
+     * vacía, todos los huecos de abajo caben en el margen y se montaban a la vez: eso era
+     * pedirle al servidor lo de cada sección antes de que nadie bajara un píxel.
+     */
+    const cercano = new IntersectionObserver(
       (entradas) => {
-        if (entradas.some((entrada) => entrada.isIntersecting)) {
-          setMontado(true);
-          observador.disconnect();
-        }
+        if (!entradas.some((entrada) => entrada.isIntersecting)) return;
+        if (viajando || window.scrollY > 120) montar();
       },
       // Algo más de media pantalla: cuando el lector llega, ya está dibujado.
       { rootMargin: '600px 0px' },
     );
-    observador.observe(elemento);
+    visible.observe(elemento);
+    cercano.observe(elemento);
     const pedido = (evento: Event) => {
       const ids = (evento as CustomEvent<string[]>).detail;
       if (ids.includes(id)) setMontado(true);
     };
     window.addEventListener(EVENTO_MONTAR, pedido);
     return () => {
-      observador.disconnect();
+      cercano.disconnect();
+      visible.disconnect();
       window.removeEventListener(EVENTO_MONTAR, pedido);
     };
   }, [montado, id]);
@@ -168,6 +194,7 @@ function Bloque({
       data-site-kind={tipo}
       data-label={label}
       data-montado={montado ? 'si' : 'no'}
+      data-retener={montado && retener ? 'si' : undefined}
       aria-label={label}
     >
       {montado ? (
