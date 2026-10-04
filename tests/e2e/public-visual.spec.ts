@@ -20,20 +20,27 @@ const VIEWPORTS = [
 ] as const;
 
 const TABS = [
-  { label: 'Resumen', slug: 'resumen' },
+  { label: 'Hoy', slug: 'hoy' },
   { label: 'Tipo de cambio', slug: 'tipo-de-cambio' },
   { label: 'Macroeconomía', slug: 'macroeconomia' },
   { label: 'Empresas', slug: 'empresas' },
   { label: 'Ciudades', slug: 'ciudades' },
+  { label: 'Transporte', slug: 'transporte' },
   { label: 'Prensa', slug: 'prensa' },
   { label: 'Método', slug: 'metodo' },
 ] as const;
 
-// The two chapters that split again into their own tablist once open.
-const SUBTABS: Partial<Record<(typeof TABS)[number]['label'], string[]>> = {
-  Macroeconomía: ['Series de Bolivia', 'Bolivia ante el mundo'],
-  Prensa: ['Cobertura', 'Temas'],
-};
+/**
+ * Las páginas interiores de la pestaña abierta, tal como las ofrece la propia
+ * página. Una lista escrita a mano envejece con cada capítulo nuevo (ya se
+ * había quedado sin «Transporte» ni «Variables exógenas»); la primera barra
+ * `.subtabs` del panel activo es la verdad.
+ */
+async function subTabsOf(page: import('@playwright/test').Page): Promise<string[]> {
+  const bar = page.locator('nav.subtabs').first();
+  if ((await bar.count()) === 0) return [];
+  return (await bar.getByRole('tab').allInnerTexts()).map((text) => text.trim()).filter(Boolean);
+}
 
 /**
  * Una pestaña abierta no esta lista hasta que su aviso desaparece.
@@ -84,12 +91,11 @@ test.describe('sitio público · revisión visual y de accesibilidad', () => {
         const overflow = await overflowOf(page);
         expect(overflow, `pestaña «${tab.label}» desborda ${overflow}px en ${viewport.name}`).toBeLessThanOrEqual(1);
 
-        for (const subLabel of SUBTABS[tab.label] ?? []) {
-          await page.getByRole('tab', { name: subLabel, exact: true }).click();
-          await expect(page.getByRole('tab', { name: subLabel, exact: true })).toHaveAttribute(
-            'aria-selected',
-            'true',
-          );
+        for (const subLabel of await subTabsOf(page)) {
+          await page.getByRole('tab', { name: subLabel, exact: true }).first().click();
+          await expect(
+            page.getByRole('tab', { name: subLabel, exact: true }).first(),
+          ).toHaveAttribute('aria-selected', 'true');
           await settle(page);
           const subOverflow = await overflowOf(page);
           expect(
