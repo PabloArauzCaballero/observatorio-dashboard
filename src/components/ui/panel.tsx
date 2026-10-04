@@ -1,7 +1,14 @@
 'use client';
 
 import { useEffect, useRef, type ReactNode } from 'react';
-import { DownloadMenu, type DatosDePanel } from '@/components/ui/download-menu';
+import { DownloadMenu } from '@/components/ui/download-menu';
+import {
+  ProveedorDePanel,
+  useAlmacenDePanel,
+  type DatosDeFigura,
+} from '@/components/ui/panel-data';
+
+export type DatosDePanel = DatosDeFigura;
 
 export interface PanelProps {
   /**
@@ -22,9 +29,11 @@ export interface PanelProps {
   /** Cuándo se actualizó, «3-oct-2026». */
   updated?: string;
   /**
-   * Las cifras que el panel muestra, con los filtros puestos; habilita CSV y Excel.
-   * Un objeto cuando el panel lo arma un componente de servidor (una función no
-   * cruza esa frontera); una función cuando depende de filtros del navegador.
+   * Cifras que el panel muestra y que ninguna figura declara por sí misma (una
+   * tarjeta, una lista). Un objeto cuando el panel lo arma un componente de
+   * servidor (una función no cruza esa frontera); una función cuando depende de
+   * filtros del navegador. Los gráficos de `charts.tsx` no lo necesitan: declaran
+   * sus propias cifras al panel que los envuelve.
    */
   data?: DatosDePanel | (() => DatosDePanel | undefined);
   /** Para un panel que no se baja (una cabecera, un aviso): sin menú. */
@@ -60,6 +69,7 @@ export function Panel({
   className,
 }: PanelProps) {
   const raiz = useRef<HTMLElement>(null);
+  const almacen = useAlmacenDePanel();
 
   // Un enlace a un panel (`#id`) lo lleva a la vista cuando la pestaña ya lo montó.
   useEffect(() => {
@@ -67,6 +77,12 @@ export function Panel({
   }, [id]);
 
   const entradilla = ledeText ?? (typeof lede === 'string' ? lede : undefined);
+
+  /** Primero las cifras que el panel declara a mano, y detrás las de sus figuras. */
+  const cifras = (): DatosDeFigura[] => {
+    const propias = typeof data === 'function' ? data() : data;
+    return [...(propias ? [propias] : []), ...almacen.todos()];
+  };
 
   return (
     <section
@@ -90,12 +106,14 @@ export function Panel({
               titulo={title}
               entradilla={entradilla}
               fuente={source}
-              datos={typeof data === 'function' ? data : data ? () => data : undefined}
+              datos={cifras}
             />
           ) : null}
         </div>
       </header>
-      <div className="panel-body">{children}</div>
+      <ProveedorDePanel almacen={almacen}>
+        <div className="panel-body">{children}</div>
+      </ProveedorDePanel>
       <p className="panel-source">
         Fuente: {source}
         {updated ? <> · actualizado {updated}</> : null}

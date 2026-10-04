@@ -7,8 +7,22 @@ import assert from 'node:assert/strict';
 import { crc32 as crcDeNode } from 'node:zlib';
 import { test } from 'node:test';
 
-import { aCsv, campoCsv, filasDeSeries, nombreDeArchivo } from '../../src/lib/export/datos.ts';
-import { aXlsx, columnaExcel, crc32, nombreDeHoja, zipStore } from '../../src/lib/export/xlsx.ts';
+import {
+  aCsv,
+  campoCsv,
+  filasDeSeries,
+  nombreDeArchivo,
+  numeroDeTexto,
+  tiparTabla,
+} from '../../src/lib/export/datos.ts';
+import {
+  aXlsx,
+  columnaExcel,
+  crc32,
+  nombreDeHoja,
+  nombresDeHojas,
+  zipStore,
+} from '../../src/lib/export/xlsx.ts';
 
 const datos = {
   id: 'dolar-paralelo',
@@ -174,5 +188,92 @@ test('filasDeSeries usa los nombres legibles y no inventa ceros', () => {
     ['2026-10-01', 11.9, 6.96],
     ['2026-10-02', 12, null],
     ['2026-10-03', null, 6.96],
+  ]);
+});
+
+test('un panel con varias figuras da un libro con una hoja por figura', () => {
+  const f = leerZip(
+    aXlsx(
+      [
+        { ...datos, hoja: 'Paralelo' },
+        {
+          ...datos,
+          id: 'otra',
+          titulo: 'Volatilidad',
+          hoja: 'Volatilidad (30 días)',
+          columnas: ['Fecha', 'Valor'],
+          filas: [['2026-10-01', 0.4]],
+        },
+      ],
+      { consultado: '2026-10-03' },
+    ),
+  );
+  assert.match(
+    f['xl/workbook.xml'],
+    /name="Paralelo"[\s\S]*name="Volatilidad \(30 días\)"[\s\S]*name="Fuente"/,
+  );
+  assert.ok(
+    f['xl/worksheets/sheet1.xml'] && f['xl/worksheets/sheet2.xml'] && f['xl/worksheets/sheet3.xml'],
+  );
+  assert.match(f['xl/worksheets/sheet2.xml'], /<v>0\.4<\/v>/);
+  assert.match(f['xl/worksheets/sheet3.xml'], /Hojas/);
+  assert.match(f['[Content_Types].xml'], /sheet3\.xml/);
+  assert.match(f['xl/_rels/workbook.xml.rels'], /rId4[^>]*styles\.xml/);
+});
+
+test('nombresDeHojas: únicos sin distinguir mayúsculas, sin pisar «Fuente» y de 31 como mucho', () => {
+  assert.deepEqual(nombresDeHojas([undefined, undefined, undefined]), [
+    'Datos',
+    'Datos 2',
+    'Datos 3',
+  ]);
+  assert.deepEqual(nombresDeHojas(['Brecha', 'brecha', 'BRECHA']), [
+    'Brecha',
+    'brecha 2',
+    'BRECHA 3',
+  ]);
+  assert.deepEqual(nombresDeHojas(['Fuente']), ['Fuente 2']);
+  const largos = nombresDeHojas(['x'.repeat(40), 'x'.repeat(40)]);
+  assert.ok(largos.every((n) => n.length <= 31));
+  assert.notEqual(largos[0].toLowerCase(), largos[1].toLowerCase());
+});
+
+test('numeroDeTexto lee los números como se escriben en Bolivia y nada más', () => {
+  assert.equal(numeroDeTexto('1.234,5'), 1234.5);
+  assert.equal(numeroDeTexto('1.221'), 1221);
+  assert.equal(numeroDeTexto('12.345.678'), 12345678);
+  assert.equal(numeroDeTexto('−12,3'), -12.3);
+  assert.equal(numeroDeTexto('2025'), 2025);
+  assert.equal(numeroDeTexto(' 0,52 '), 0.52);
+  // Con unidad o con texto, no es un número: se conserva tal cual.
+  assert.equal(numeroDeTexto('12,3 %'), null);
+  assert.equal(numeroDeTexto('Bs 5'), null);
+  assert.equal(numeroDeTexto('1.2'), null);
+  assert.equal(numeroDeTexto(''), null);
+  assert.equal(numeroDeTexto('—'), null);
+});
+
+test('tiparTabla convierte en números solo las columnas enteramente numéricas', () => {
+  const filas = [
+    ['La Paz', '1.221', '12,3 %', '2024'],
+    ['Oruro', '—', '4,1 %', '2024'],
+    ['Pando', '98', '', '2023'],
+  ];
+  assert.deepEqual(tiparTabla(filas, 4), [
+    ['La Paz', 1221, '12,3 %', 2024],
+    ['Oruro', null, '4,1 %', 2024],
+    ['Pando', 98, null, 2023],
+  ]);
+});
+
+test('tiparTabla: una columna con un solo texto no se vuelve numérica a medias', () => {
+  const filas = [['10'], ['20'], ['s/d']];
+  assert.deepEqual(tiparTabla(filas, 1), [['10'], ['20'], ['s/d']]);
+});
+
+test('tiparTabla: una fila corta se completa con vacíos', () => {
+  assert.deepEqual(tiparTabla([['a', '1'], ['b']], 3), [
+    ['a', 1, null],
+    ['b', null, null],
   ]);
 });

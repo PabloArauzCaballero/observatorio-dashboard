@@ -2,13 +2,15 @@
 
 import { useCallback, useEffect, useId, useRef, useState, type RefObject } from 'react';
 import { Icon } from '@/components/icons';
+import type { DatosDeFigura } from '@/components/ui/panel-data';
 import { afichePng, componerAfiche, puedeComponerImagen } from '@/lib/export/afiche';
 import { aCsv, nombreDeArchivo, type Dataset } from '@/lib/export/datos';
 import { entregar, fechaLarga, hoyEnLaPaz, TIPO } from '@/lib/export/entrega';
+import { leerTablas } from '@/lib/export/tablas';
 import { aXlsx } from '@/lib/export/xlsx';
 
 /** Lo que un panel pone a disposición de quien baja sus datos. */
-export type DatosDePanel = Pick<Dataset, 'columnas' | 'filas' | 'unidad' | 'nota'>;
+export type DatosDePanel = DatosDeFigura;
 
 interface Props {
   panel: RefObject<HTMLElement | null>;
@@ -16,25 +18,29 @@ interface Props {
   titulo: string;
   entradilla?: string | undefined;
   fuente: string;
-  /** Las cifras que el panel muestra, con los filtros puestos. Se piden al bajarlas. */
-  datos?: (() => DatosDePanel | undefined) | undefined;
+  /** Las cifras que el panel muestra, con los filtros puestos. Se piden al abrir el menú. */
+  datos?: (() => DatosDeFigura[]) | undefined;
 }
 
-type Accion = 'png' | 'svg' | 'csv' | 'xlsx' | 'enlace';
+type Accion = { tipo: 'png' | 'svg' | 'xlsx' | 'enlace' } | { tipo: 'csv'; indice: number };
+
+const clave = (accion: Accion): string =>
+  accion.tipo === 'csv' ? `csv-${accion.indice}` : accion.tipo;
 
 /**
  * «Descargar» de un panel: imagen, datos y enlace.
  *
- * La imagen sale de lo que hay dibujado y los datos de lo que el panel declara,
- * así que una y otros cuentan lo mismo. Cada opción aparece solo si se puede
- * cumplir: un panel sin gráfico no ofrece imagen, y uno sin tabla no ofrece datos.
+ * La imagen sale de lo que hay dibujado y los datos de lo que las figuras del
+ * panel declaran (o, si no declararon nada, de la tabla que se ve), así que una
+ * y otros cuentan lo mismo. Cada opción aparece solo si se puede cumplir: un panel
+ * sin gráfico no ofrece imagen, y uno sin cifras no ofrece datos.
  */
 export function DownloadMenu({ panel, id, titulo, entradilla, fuente, datos }: Props) {
   const [abierto, setAbierto] = useState(false);
-  const [ocupado, setOcupado] = useState<Accion | null>(null);
+  const [ocupado, setOcupado] = useState<string | null>(null);
   const [aviso, setAviso] = useState<string | null>(null);
   const [conImagen, setConImagen] = useState(false);
-  const [conDatos, setConDatos] = useState(false);
+  const [conjuntos, setConjuntos] = useState<DatosDeFigura[]>([]);
   const raiz = useRef<HTMLDivElement>(null);
   const boton = useRef<HTMLButtonElement>(null);
   const menuId = useId();
@@ -44,11 +50,18 @@ export function DownloadMenu({ panel, id, titulo, entradilla, fuente, datos }: P
     if (devolverFoco) boton.current?.focus();
   }, []);
 
+  /** Lo que el panel declaró; si nada, la tabla que se ve. */
+  const reunir = (): DatosDeFigura[] => {
+    const declarados = (datos?.() ?? []).filter((d) => d.filas.length > 0);
+    if (declarados.length > 0 || !panel.current) return declarados;
+    return leerTablas(panel.current).filter((t) => t.filas.length > 0);
+  };
+
   // Lo que se ofrece se mira al abrir, no al montar: el gráfico puede dibujarse después.
   const alternar = () => {
     if (!abierto) {
       setConImagen(panel.current ? puedeComponerImagen(panel.current) : false);
-      setConDatos(Boolean(datos?.()));
+      setConjuntos(reunir());
       setAviso(null);
     }
     setAbierto(!abierto);
@@ -82,18 +95,29 @@ export function DownloadMenu({ panel, id, titulo, entradilla, fuente, datos }: P
     items[siguiente]?.focus();
   };
 
+  const comoDataset = (figura: DatosDeFigura): Dataset => ({
+    id,
+    titulo: figura.etiqueta ? `${titulo} · ${figura.etiqueta}` : titulo,
+    fuente,
+    columnas: figura.columnas,
+    filas: figura.filas,
+    unidad: figura.unidad,
+    nota: figura.nota,
+    hoja: figura.etiqueta,
+  });
+
   const ejecutar = async (accion: Accion) => {
     const hoy = hoyEnLaPaz();
     setAviso(null);
     try {
-      if (accion === 'enlace') {
+      if (accion.tipo === 'enlace') {
         const direccion = `${location.origin}${location.pathname}${location.search}#${id}`;
         await navigator.clipboard.writeText(direccion);
         setAviso('Enlace copiado');
         return;
       }
-      setOcupado(accion);
-      if (accion === 'png' || accion === 'svg') {
+      setOcupado(clave(accion));
+      if (accion.tipo === 'png' || accion.tipo === 'svg') {
         const host = panel.current;
         if (!host) return;
         const afiche = await componerAfiche({
@@ -103,7 +127,7 @@ export function DownloadMenu({ panel, id, titulo, entradilla, fuente, datos }: P
           fuente,
           fecha: fechaLarga(),
         });
-        if (accion === 'svg') {
+        if (accion.tipo === 'svg') {
           entregar(
             new Blob([afiche.svg], { type: TIPO.svg }),
             nombreDeArchivo(id, hoy, 'svg'),
@@ -112,32 +136,30 @@ export function DownloadMenu({ panel, id, titulo, entradilla, fuente, datos }: P
         } else {
           entregar(await afichePng(afiche), nombreDeArchivo(id, hoy, 'png'), 'panel-png');
         }
+      } else if (accion.tipo === 'csv') {
+        const figura = conjuntos[accion.indice];
+        if (!figura) return;
+        const nombre = figura.etiqueta ? `${id}-${figura.etiqueta}` : id;
+        entregar(
+          new Blob([aCsv(comoDataset(figura), hoy)], { type: TIPO.csv }),
+          nombreDeArchivo(nombre, hoy, 'csv'),
+          'panel-csv',
+        );
       } else {
-        const filas = datos?.();
-        if (!filas) return;
-        const dataset: Dataset = { id, titulo, fuente, ...filas };
-        if (accion === 'csv') {
-          entregar(
-            new Blob([aCsv(dataset, hoy)], { type: TIPO.csv }),
-            nombreDeArchivo(id, hoy, 'csv'),
-            'panel-csv',
-          );
-        } else {
-          const bytes = aXlsx(dataset, { consultado: hoy });
-          entregar(
-            new Blob([bytes as BlobPart], { type: TIPO.xlsx }),
-            nombreDeArchivo(id, hoy, 'xlsx'),
-            'panel-xlsx',
-          );
-        }
+        const bytes = aXlsx(conjuntos.map(comoDataset), { consultado: hoy });
+        entregar(
+          new Blob([bytes as BlobPart], { type: TIPO.xlsx }),
+          nombreDeArchivo(id, hoy, 'xlsx'),
+          'panel-xlsx',
+        );
       }
       cerrar(true);
     } catch (error) {
       console.error('Descarga del panel', id, error);
       setAviso(
-        accion === 'png' || accion === 'svg'
+        accion.tipo === 'png' || accion.tipo === 'svg'
           ? 'No se pudo preparar la imagen. Los datos sí se pueden bajar.'
-          : accion === 'enlace'
+          : accion.tipo === 'enlace'
             ? 'No se pudo copiar el enlace.'
             : 'No se pudieron preparar los datos.',
       );
@@ -148,16 +170,19 @@ export function DownloadMenu({ panel, id, titulo, entradilla, fuente, datos }: P
 
   const item = (accion: Accion, etiqueta: string, nota: string) => (
     <button
+      key={clave(accion)}
       type="button"
       role="menuitem"
       className="menu-item"
       disabled={ocupado !== null}
       onClick={() => void ejecutar(accion)}
     >
-      <span>{ocupado === accion ? 'Preparando…' : etiqueta}</span>
+      <span>{ocupado === clave(accion) ? 'Preparando…' : etiqueta}</span>
       <span className="menu-item-note">{nota}</span>
     </button>
   );
+
+  const varias = conjuntos.length > 1;
 
   return (
     <div className="menu" ref={raiz} onKeyDown={alTeclear}>
@@ -179,17 +204,29 @@ export function DownloadMenu({ panel, id, titulo, entradilla, fuente, datos }: P
         <div className="menu-list" role="menu" id={menuId} aria-label={`Descargar «${titulo}»`}>
           {conImagen ? (
             <>
-              {item('png', 'Imagen', 'PNG')}
-              {item('svg', 'Imagen vectorial', 'SVG')}
+              {item({ tipo: 'png' }, 'Imagen', 'PNG')}
+              {item({ tipo: 'svg' }, 'Imagen vectorial', 'SVG')}
             </>
           ) : null}
-          {conDatos ? (
+          {conjuntos.length > 0 ? (
             <>
-              {item('csv', 'Datos', 'CSV')}
-              {item('xlsx', 'Datos para Excel', 'XLSX')}
+              {item(
+                { tipo: 'xlsx' },
+                varias ? `Datos para Excel (${conjuntos.length} hojas)` : 'Datos para Excel',
+                'XLSX',
+              )}
+              {varias
+                ? conjuntos.map((figura, indice) =>
+                    item(
+                      { tipo: 'csv', indice },
+                      `Datos · ${figura.etiqueta ?? `figura ${indice + 1}`}`,
+                      'CSV',
+                    ),
+                  )
+                : item({ tipo: 'csv', indice: 0 }, 'Datos', 'CSV')}
             </>
           ) : null}
-          {item('enlace', 'Copiar enlace al panel', '')}
+          {item({ tipo: 'enlace' }, 'Copiar enlace al panel', '')}
           <p className="menu-aviso" role="status">
             {aviso ?? ''}
           </p>

@@ -1133,8 +1133,8 @@ h2 {
 
 .download-btn {
   font-family: var(--sans);
-  font-size: var(--text-xs);
-  letter-spacing: 0.06em;
+  font-size: var(--text-sm);
+  letter-spacing: 0;
   text-decoration: none;
   padding: 0.35rem 0.8rem;
   border: 1px solid var(--rule);
@@ -1148,9 +1148,8 @@ h2 {
 }
 
 .download-btn:hover {
-  border-color: var(--ink-soft);
+  border-color: var(--ink-faint);
   color: var(--ink);
-  transform: translateY(-1px);
 }
 
 /* Daily reading ---------------------------------------------------------- */
@@ -1314,7 +1313,7 @@ code {
 
 .chip:hover {
   border-color: var(--ink-faint);
-  transform: translateY(-1px);
+  color: var(--ink);
 }
 
 .chip-on {
@@ -1348,6 +1347,7 @@ code {
 .slicer select {
   font: inherit;
   font-size: var(--text-sm);
+  min-height: var(--control-h-md);
   padding: 0.42rem 0.7rem;
   border: 1px solid var(--rule);
   border-radius: var(--radius-md);
@@ -1853,7 +1853,8 @@ span.rail-twist {
 .rail-field select {
   font: inherit;
   font-size: var(--text-sm);
-  padding: 0.38rem 0.6rem;
+  min-height: var(--control-h-md);
+  padding: 0.42rem 0.7rem;
   border: 1px solid var(--rule);
   border-radius: var(--radius-md);
   background: var(--panel);
@@ -3618,8 +3619,8 @@ button.download-btn {
   cursor: pointer;
   font: inherit;
   font-family: var(--sans);
-  font-size: var(--text-xs);
-  letter-spacing: 0.06em;
+  font-size: var(--text-sm);
+  letter-spacing: 0;
   appearance: none;
 }
 
@@ -3810,45 +3811,18 @@ button.download-btn {
   border-top: 1px solid var(--rule-soft);
 }
 
-.chip {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.4rem;
-  border: 1px solid var(--rule-soft);
-  background: transparent;
-  color: var(--ink-soft);
-  font: inherit;
-  font-size: var(--text-sm);
-  padding: 0.28rem 0.7rem;
-  border-radius: var(--radius-pill);
-  cursor: pointer;
-  transition:
-    background 140ms ease,
-    color 140ms ease,
-    border-color 140ms ease;
-}
-
-.chip:hover {
-  color: var(--ink);
-  border-color: var(--official);
-}
-
-.chip-active,
-.chip-active:hover {
-  background: var(--official);
-  border-color: var(--official);
-  color: #fff;
-}
-
 /*
- * `.chip-on` se declara arriba, junto a las pastillas del carril, y esta
- * sección vuelve a declarar `.chip` con la misma especificidad y más abajo:
- * su fondo, su borde y su tinta pisaban los de `.chip-on`, y ninguna pastilla
- * elegida —tipo de gráfico, flujo, nivel de producto— se distinguía de las
- * demás. Con la clase doble gana sin depender del orden.
+ * La pastilla elegida, en tinta: es la única forma de selección del tablero.
+ * Antes había dos definiciones de `.chip` que se pisaban según el orden —una con
+ * borde suave y relleno transparente, otra con fondo de panel— y dos maneras de
+ * marcar la elegida (tinta y azul). Queda una, declarada junto a las demás
+ * pastillas del carril, y esta línea con clase doble para ganar sin depender del
+ * orden.
  */
 .chip.chip-on,
-.chip.chip-on:hover {
+.chip.chip-on:hover,
+.chip-active,
+.chip-active:hover {
   background: var(--ink);
   border-color: var(--ink);
   color: var(--paper);
@@ -7403,14 +7377,14 @@ button.download-btn {
 
 .street-filter-field select {
   width: 100%;
-  min-height: 2.15rem;
-  padding: 0.38rem 0.55rem;
+  min-height: var(--control-h-md);
+  padding: 0.42rem 0.7rem;
   border: 1px solid var(--rule);
   border-radius: var(--radius-md);
   background: var(--panel);
   color: var(--ink);
   font: inherit;
-  font-size: var(--text-xs);
+  font-size: var(--text-sm);
 }
 
 .street-actions {

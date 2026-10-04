@@ -225,16 +225,53 @@ export interface OpcionesXlsx {
   ahora?: Date;
 }
 
-/** El libro de un panel: «Datos» y «Fuente». */
-export function aXlsx(datos: Dataset, { consultado, ahora }: OpcionesXlsx): Uint8Array {
-  const pares: Array<[string, string]> = [['Panel', datos.titulo]];
-  if (datos.unidad) pares.push(['Unidad', datos.unidad]);
-  pares.push(['Fuente', datos.fuente], ['Consultado', consultado]);
-  if (datos.nota) pares.push(['Nota', datos.nota]);
+/** Nombres de hoja que Excel acepta: únicos sin distinguir mayúsculas y de 31 caracteres como mucho. */
+export function nombresDeHojas(pedidos: ReadonlyArray<string | undefined>): string[] {
+  const usados = new Set<string>(['fuente']);
+  return pedidos.map((pedido, i) => {
+    const base = nombreDeHoja(pedido?.trim() || (i === 0 ? 'Datos' : `Datos ${i + 1}`));
+    let nombre = base;
+    for (let n = 2; usados.has(nombre.toLowerCase()); n += 1) {
+      const sufijo = ` ${n}`;
+      nombre = base.slice(0, 31 - sufijo.length) + sufijo;
+    }
+    usados.add(nombre.toLowerCase());
+    return nombre;
+  });
+}
+
+/**
+ * El libro de un panel: una hoja de datos por figura y una hoja «Fuente».
+ * Con una sola figura la hoja se llama «Datos».
+ */
+export function aXlsx(
+  datos: Dataset | ReadonlyArray<Dataset>,
+  { consultado, ahora }: OpcionesXlsx,
+): Uint8Array {
+  const conjuntos = Array.isArray(datos) ? (datos as ReadonlyArray<Dataset>) : [datos as Dataset];
+  const primero = conjuntos[0];
+  if (!primero) throw new Error('Un libro necesita al menos una tabla.');
+  const nombres = nombresDeHojas(
+    conjuntos.map((c, i) => (conjuntos.length > 1 ? c.hoja : i === 0 ? 'Datos' : c.hoja)),
+  );
+
+  const pares: Array<[string, string]> = [['Panel', primero.titulo]];
+  const unidades = [...new Set(conjuntos.map((c) => c.unidad).filter(Boolean))];
+  if (unidades.length) pares.push(['Unidad', unidades.join(' · ')]);
+  pares.push(['Fuente', primero.fuente], ['Consultado', consultado]);
+  for (const c of conjuntos) if (c.nota) pares.push(['Nota', c.nota]);
+  if (conjuntos.length > 1) {
+    pares.push(['Hojas', nombres.map((n, i) => `${n}: ${conjuntos[i]?.titulo ?? ''}`).join(' | ')]);
+  }
   pares.push(['Publica', 'Observatorio Económico de Bolivia · datosbolivia.com']);
 
   const xml = (parte: string): Uint8Array => encoder.encode(parte);
   const cabecera = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>';
+  const hojas = conjuntos.length + 1; // las de datos y «Fuente»
+  const tipoHoja = 'application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml';
+  const relHoja = 'http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet';
+  const indices = Array.from({ length: hojas }, (_, i) => i + 1);
+
   const archivos: ArchivoZip[] = [
     {
       nombre: '[Content_Types].xml',
@@ -243,8 +280,12 @@ export function aXlsx(datos: Dataset, { consultado, ahora }: OpcionesXlsx): Uint
           '<Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>' +
           '<Default Extension="xml" ContentType="application/xml"/>' +
           '<Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/>' +
-          '<Override PartName="/xl/worksheets/sheet1.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>' +
-          '<Override PartName="/xl/worksheets/sheet2.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>' +
+          indices
+            .map(
+              (i) =>
+                `<Override PartName="/xl/worksheets/sheet${i}.xml" ContentType="${tipoHoja}"/>`,
+            )
+            .join('') +
           '<Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/>' +
           '</Types>',
       ),
@@ -261,22 +302,36 @@ export function aXlsx(datos: Dataset, { consultado, ahora }: OpcionesXlsx): Uint
       nombre: 'xl/workbook.xml',
       datos: xml(
         `${cabecera}<workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">` +
-          `<sheets><sheet name="${nombreDeHoja('Datos')}" sheetId="1" r:id="rId1"/><sheet name="${nombreDeHoja('Fuente')}" sheetId="2" r:id="rId2"/></sheets></workbook>`,
+          '<sheets>' +
+          [...nombres, 'Fuente']
+            .map(
+              (n, i) =>
+                `<sheet name="${escapar(nombreDeHoja(n))}" sheetId="${i + 1}" r:id="rId${i + 1}"/>`,
+            )
+            .join('') +
+          '</sheets></workbook>',
       ),
     },
     {
       nombre: 'xl/_rels/workbook.xml.rels',
       datos: xml(
         `${cabecera}<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">` +
-          '<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet1.xml"/>' +
-          '<Relationship Id="rId2" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet2.xml"/>' +
-          '<Relationship Id="rId3" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/>' +
+          indices
+            .map(
+              (i) =>
+                `<Relationship Id="rId${i}" Type="${relHoja}" Target="worksheets/sheet${i}.xml"/>`,
+            )
+            .join('') +
+          `<Relationship Id="rId${hojas + 1}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/>` +
           '</Relationships>',
       ),
     },
     { nombre: 'xl/styles.xml', datos: xml(ESTILOS) },
-    { nombre: 'xl/worksheets/sheet1.xml', datos: xml(hojaDatos(datos.columnas, datos.filas)) },
-    { nombre: 'xl/worksheets/sheet2.xml', datos: xml(hojaFuente(pares)) },
+    ...conjuntos.map((c, i) => ({
+      nombre: `xl/worksheets/sheet${i + 1}.xml`,
+      datos: xml(hojaDatos(c.columnas, c.filas)),
+    })),
+    { nombre: `xl/worksheets/sheet${hojas}.xml`, datos: xml(hojaFuente(pares)) },
   ];
   return zipStore(archivos, ahora);
 }
