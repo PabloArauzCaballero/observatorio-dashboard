@@ -9004,3 +9004,109 @@ button.download-btn {
     margin-left: 0;
   }
 }
+
+/*
+ * Macroeconomía › Series de Bolivia: los cinco paneles invitados
+ * (Departamentos, Energía, Recursos naturales, Medio ambiente e Instituciones).
+ */
+
+/*
+ * El cuerpo de un `Panel` dentro de una rejilla se estira con la fila.
+ *
+ * Las reglas de `.grid-pair` y `.grid-three` estiran el gráfico cuando es hijo
+ * directo del panel; dentro de `Panel` el gráfico vive en `.panel-body`, así que
+ * el cuerpo hace de columna y se queda con el alto que sobra. Sin esto, dos
+ * paneles de una fila medían lo mismo pero el pie de fuente de uno quedaba a
+ * media altura.
+ */
+.guest-board .grid-pair > .panel-x > .panel-body,
+.guest-board .grid-three > .panel-x > .panel-body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s2);
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.guest-board .grid-pair > .panel-x > .panel-body > .chart-frame,
+.guest-board .grid-pair > .panel-x > .panel-body > .chart-stack,
+.guest-board .grid-three > .panel-x > .panel-body > .chart-frame,
+.guest-board .grid-three > .panel-x > .panel-body > .chart-stack {
+  flex: 1 0 auto;
+  min-height: 0;
+}
+
+.guest-board .grid-pair > .panel-x > .panel-body > .chart-stack > .chart-frame,
+.guest-board .grid-three > .panel-x > .panel-body > .chart-stack > .chart-frame {
+  flex: 1 0 auto;
+  min-height: 0;
+}
+
+/* Un panel suelto (el mapa, la ficha): el cuerpo separa sus partes con el mismo aire. */
+.guest-board > .panel-x > .panel-body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s2);
+  min-width: 0;
+}
+
+/* Un grupo de paneles que comparten una pregunta: una entradilla y, debajo, sus figuras. */
+.panel-group {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s2);
+}
+
+.panel-group-head {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s1);
+}
+
+.panel-group-head h3 {
+  margin: 0;
+  font-family: var(--serif);
+  font-size: var(--text-xl);
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  line-height: 1.25;
+  text-wrap: balance;
+}
+
+.panel-group-head p {
+  max-width: 72ch;
+  margin: 0;
+  color: var(--ink-soft);
+  font-size: var(--text-sm);
+  line-height: 1.5;
+  text-wrap: pretty;
+}
+
+.panel-group-head .chips {
+  margin-top: var(--s1);
+}
+
+/* Notas al pie de un capítulo: de dónde sale la serie y dónde están las definiciones. */
+.guest-note {
+  max-width: 78ch;
+  margin: 0;
+  color: var(--ink-soft);
+  font-size: var(--text-xs);
+  line-height: 1.5;
+  text-wrap: pretty;
+}
+
+/* Las cifras de cabecera sin caja: una línea fina las separa y no queda un hueco gris en la última fila. */
+.guest-board .stat-strip {
+  gap: 0 var(--s3);
+  border: 0;
+  border-radius: 0;
+  background: none;
+  overflow: visible;
+}
+
+.guest-board .stat {
+  padding: var(--s1) 0;
+  border-top: 1px solid var(--rule-soft);
+  background: none;
+}

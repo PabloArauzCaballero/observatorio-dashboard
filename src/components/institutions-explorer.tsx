@@ -1,16 +1,16 @@
 'use client';
 
-import { DivergingBars, ShareBars, WorldLines, seriesTone } from './charts';
+import { ChartLegend, DivergingBars, ShareBars, WorldLines, seriesTone } from './charts';
 import type { WorldLinePoint, WorldLineSeries } from './charts';
 import { DerivedReading } from './derived-reading';
 import type { IconName } from './icons';
+import { Panel } from '@/components/ui/panel';
+import { TabHeader } from '@/components/ui/tab-header';
 import {
-  INSTITUTION_GROUP_LABEL,
   INSTITUTION_INDICATORS,
   REGIME_LABEL,
   freedomStatus,
   indicatorOf,
-  type InstitutionGroup,
   type InstitutionsBoard,
 } from '@/lib/institutions-board';
 import { useSinceYear } from './year-floor';
@@ -86,14 +86,11 @@ function Latest({ code, board }: { code: string; board: InstitutionsBoard }) {
   );
 }
 
-function GroupHead({ group, children }: { group: InstitutionGroup; children: React.ReactNode }) {
-  return (
-    <div className="panel-head">
-      <h2>{INSTITUTION_GROUP_LABEL[group]}</h2>
-      <p className="panel-sub">{children}</p>
-    </div>
-  );
-}
+/** Quién publica cada índice, como lo nombra el propio tablero. */
+const SOURCE_FRASER = 'Fraser Institute (índice de libertad económica)';
+const SOURCE_FREEDOM_HOUSE = 'Freedom House (Freedom in the World)';
+const SOURCE_VDEM = 'V-Dem (Varieties of Democracy)';
+const SOURCE_WGI = 'Banco Mundial (Indicadores Mundiales de Gobernanza, WGI)';
 
 const twoDecimals = (value: number): string => number(value, 2);
 const threeDecimals = (value: number): string => number(value, 3);
@@ -169,38 +166,32 @@ export function InstitutionsExplorer({ board: entire }: { board: InstitutionsBoa
   const missingLabels = board.missing.map((code) => indicatorOf(code)?.label ?? code);
 
   return (
-    <>
-      <div className="panel">
-        <div className="panel-head">
-          <h2>Situación jurídica y política</h2>
-          <p className="panel-sub">
-            Qué tan libre es el país, en qué sentido, y qué parte de esa libertad se movió. Cuatro
-            instituciones lo califican con métodos publicados y cada índice se muestra con las
-            partes que lo componen: el total esconde justo lo que cambia. El dato más reciente es de{' '}
-            {board.asOfYear ?? '—'}.
-          </p>
+    <div className="stack guest-board">
+      <TabHeader
+        id="instituciones"
+        title="Situación jurídica y política"
+        lede={`Qué tan libre es el país, en qué sentido, y qué parte de esa libertad se movió. Cuatro instituciones lo califican con métodos publicados y cada índice se muestra con las partes que lo componen: el total esconde justo lo que cambia. El dato más reciente es de ${board.asOfYear ?? '—'}.`}
+      />
+      <DerivedReading
+        title="Qué dicen estos índices"
+        note="Cada frase sale de las series de este capítulo y se recalcula con cada carga. Dice qué nivel hay, contra qué techo y desde cuándo; no dice por qué ni qué va a pasar."
+        conclusions={board.conclusions}
+        icons={CONCLUSION_ICON}
+      />
+      {missingLabels.length ? (
+        <div className="callout">
+          Todavía no llegan al tablero: {missingLabels.join(', ')}. Las recoge el núcleo del
+          observatorio y aparecen aquí en cuanto su carga las publique.
         </div>
-        <DerivedReading
-          title="Qué dicen estos índices"
-          note="Cada frase sale de las series de este capítulo y se recalcula con cada carga. Dice qué nivel hay, contra qué techo y desde cuándo; no dice por qué ni qué va a pasar."
-          conclusions={board.conclusions}
-          icons={CONCLUSION_ICON}
-        />
-        {missingLabels.length ? (
-          <div className="callout">
-            Todavía no llegan al tablero: {missingLabels.join(', ')}. Las recoge el núcleo del
-            observatorio y aparecen aquí en cuanto su carga las publique.
-          </div>
-        ) : null}
-      </div>
+      ) : null}
 
       {economic.series.length ? (
-        <div className="panel">
-          <GroupHead group="ECONOMICA">
-            Índice de libertad económica del Fraser Institute, de 0 a 10, y las cinco áreas que
-            promedia. Diez es la economía más libre. Las áreas discrepan más de lo que el resumen
-            deja ver: esa discrepancia es la lectura.
-          </GroupHead>
+        <Panel
+          id="instituciones-libertad-economica"
+          title="Libertad económica (índice de 0 a 10; 10 es la más libre)"
+          lede="Índice de libertad económica del Fraser Institute y las cinco áreas que promedia. Las áreas discrepan más de lo que el resumen deja ver: esa discrepancia es la lectura."
+          source={SOURCE_FRASER}
+        >
           <div className="stat-strip">
             <Latest code="EFW_SUMMARY_INDEX" board={board} />
             <Latest code="EFW_SIZE_OF_GOVERNMENT" board={board} />
@@ -215,30 +206,47 @@ export function InstitutionsExplorer({ board: entire }: { board: InstitutionsBoa
             format={twoDecimals}
             tick={whole}
           />
-        </div>
+        </Panel>
       ) : null}
 
       {political.series.length || ratings.series.length ? (
-        <div className="grid-two">
-          <div className="panel">
-            <GroupHead group="POLITICA">
-              Freedom in the World: derechos políticos sobre 40, libertades civiles sobre 60 y el
-              total sobre 100. Cada subcategoría se dibuja como parte de su propio techo, porque un
-              6 sobre 16 y un 6 sobre 12 no son la misma cosa.
-              {status ? (
-                <>
-                  {' '}
-                  Estado actual: <b>{status}</b>.
-                </>
-              ) : null}
-            </GroupHead>
+        <div className="grid-pair">
+          <Panel
+            id="instituciones-libertad-politica"
+            title="Libertad política (puntos de 0 a 100; más es más libre)"
+            lede={
+              <>
+                Freedom in the World: derechos políticos sobre 40, libertades civiles sobre 60 y el
+                total sobre 100. Cada subcategoría se dibuja como parte de su propio techo, porque
+                un 6 sobre 16 y un 6 sobre 12 no son la misma cosa.
+                {status ? (
+                  <>
+                    {' '}
+                    Estado actual: <b>{status}</b>.
+                  </>
+                ) : null}
+              </>
+            }
+            ledeText={`Freedom in the World: derechos políticos sobre 40, libertades civiles sobre 60 y el total sobre 100. Cada subcategoría se dibuja como parte de su propio techo, porque un 6 sobre 16 y un 6 sobre 12 no son la misma cosa.${status ? ` Estado actual: ${status}.` : ''}`}
+            source={SOURCE_FREEDOM_HOUSE}
+          >
             <div className="stat-strip">
               <Latest code="FH_TOTAL_SCORE" board={board} />
               <Latest code="FH_POLITICAL_RIGHTS_SCORE" board={board} />
               <Latest code="FH_CIVIL_LIBERTIES_SCORE" board={board} />
             </div>
             {subcategories.length ? (
-              <ShareBars data={subcategories} tone="var(--official)" />
+              <>
+                <ShareBars data={subcategories} tone="var(--official)" />
+                <ChartLegend
+                  items={[
+                    {
+                      color: 'var(--official)',
+                      label: 'Puntaje de cada subcategoría (% de su techo)',
+                    },
+                  ]}
+                />
+              </>
             ) : null}
             {political.data.length > 1 ? (
               <WorldLines
@@ -248,37 +256,48 @@ export function InstitutionsExplorer({ board: entire }: { board: InstitutionsBoa
                 tick={whole}
               />
             ) : null}
-          </div>
-          <div className="panel">
-            <div className="panel-head">
-              <h2>Medio siglo de calificaciones</h2>
-              <p className="panel-sub">
-                Las calificaciones de 1 a 7 que Freedom House publica desde 1972, donde{' '}
+          </Panel>
+          <Panel
+            id="instituciones-calificaciones"
+            title="Medio siglo de calificaciones (de 1 a 7; 1 es la más libre)"
+            lede={
+              <>
+                Las calificaciones que Freedom House publica desde 1972, donde{' '}
                 <b>1 es la más libre</b> y 7 la menos: aquí la línea sube cuando la libertad baja.
                 El promedio de las dos define el estado: hasta 2,5 «libre», hasta 5 «parcialmente
                 libre», más allá «no libre».
-              </p>
-            </div>
+              </>
+            }
+            ledeText="Las calificaciones que Freedom House publica desde 1972, donde 1 es la más libre y 7 la menos: aquí la línea sube cuando la libertad baja. El promedio de las dos define el estado: hasta 2,5 «libre», hasta 5 «parcialmente libre», más allá «no libre»."
+            source={SOURCE_FREEDOM_HOUSE}
+          >
             {ratings.data.length > 1 ? (
               <WorldLines data={ratings.data} series={ratings.series} format={whole} tick={whole} />
             ) : null}
-          </div>
+          </Panel>
         </div>
       ) : null}
 
       {democracy.series.length ? (
-        <div className="panel">
-          <GroupHead group="DEMOCRACIA">
-            Los índices de V-Dem, de 0 a 1, desde 1952. La democracia liberal es la electoral más
-            los contrapesos —control judicial y legislativo del Ejecutivo, libertades individuales—
-            y la distancia entre las dos líneas es cuánto pesan los contrapesos.
-            {regime ? (
-              <>
-                {' '}
-                Régimen en {regime.year}: <b>{REGIME_LABEL[regime.value] ?? regime.value}</b>.
-              </>
-            ) : null}
-          </GroupHead>
+        <Panel
+          id="instituciones-democracia"
+          title="Anatomía de la democracia (índices de 0 a 1; más es más democrático)"
+          lede={
+            <>
+              Los índices de V-Dem, desde 1952. La democracia liberal es la electoral más los
+              contrapesos —control judicial y legislativo del Ejecutivo, libertades individuales— y
+              la distancia entre las dos líneas es cuánto pesan los contrapesos.
+              {regime ? (
+                <>
+                  {' '}
+                  Régimen en {regime.year}: <b>{REGIME_LABEL[regime.value] ?? regime.value}</b>.
+                </>
+              ) : null}
+            </>
+          }
+          ledeText={`Los índices de V-Dem, desde 1952. La democracia liberal es la electoral más los contrapesos —control judicial y legislativo del Ejecutivo, libertades individuales— y la distancia entre las dos líneas es cuánto pesan los contrapesos.${regime ? ` Régimen en ${regime.year}: ${REGIME_LABEL[regime.value] ?? regime.value}.` : ''}`}
+          source={SOURCE_VDEM}
+        >
           <div className="stat-strip">
             <Latest code="VDEM_LIBERAL_DEMOCRACY_INDEX" board={board} />
             <Latest code="VDEM_ELECTORAL_DEMOCRACY_INDEX" board={board} />
@@ -293,27 +312,25 @@ export function InstitutionsExplorer({ board: entire }: { board: InstitutionsBoa
             format={threeDecimals}
             tick={twoDecimals}
           />
-        </div>
+        </Panel>
       ) : null}
 
       {governance.series.length ? (
-        <div className="grid-two">
-          <div className="panel">
-            <GroupHead group="GOBERNANZA">
-              Las seis estimaciones de gobernanza del Banco Mundial, en desviaciones típicas
-              respecto de la media mundial: cero es el país mediano del mundo, y casi todo va de
-              −2,5 a 2,5. Las barras son el último año; la línea, la historia.
-            </GroupHead>
+        <div className="grid-pair">
+          <Panel
+            id="instituciones-gobernanza"
+            title="Cómo funciona el Estado: seis estimaciones, último año (desviaciones típicas)"
+            lede="Las seis estimaciones de gobernanza del Banco Mundial, respecto de la media mundial: cero es el país mediano del mundo, y casi todo va de −2,5 a 2,5. Las barras son el último año; la línea, la historia."
+            source={SOURCE_WGI}
+          >
             {governanceLatest.length ? <DivergingBars data={governanceLatest} unit="σ" /> : null}
-          </div>
-          <div className="panel">
-            <div className="panel-head">
-              <h2>Las seis dimensiones en el tiempo</h2>
-              <p className="panel-sub">
-                La misma escala, año a año desde 1996. Una línea que baja es una dimensión en la que
-                el país se aleja de la media mundial.
-              </p>
-            </div>
+          </Panel>
+          <Panel
+            id="instituciones-gobernanza-tiempo"
+            title="Las seis dimensiones de gobernanza en el tiempo (desviaciones típicas)"
+            lede="La misma escala, año a año desde 1996. Una línea que baja es una dimensión en la que el país se aleja de la media mundial."
+            source={`${SOURCE_WGI}; percepción de la corrupción de Transparency International y capacidad estatal de Hanson y Sigman`}
+          >
             <WorldLines
               data={governance.data}
               series={governance.series}
@@ -324,9 +341,9 @@ export function InstitutionsExplorer({ board: entire }: { board: InstitutionsBoa
               <Latest code="CORRUPTION_PERCEPTIONS_INDEX" board={board} />
               <Latest code="STATE_CAPACITY_INDEX" board={board} />
             </div>
-          </div>
+          </Panel>
         </div>
       ) : null}
-    </>
+    </div>
   );
 }
