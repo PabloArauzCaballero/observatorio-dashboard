@@ -2,6 +2,7 @@
 
 import {
   Children,
+  Component,
   createContext,
   useCallback,
   useContext,
@@ -116,6 +117,39 @@ async function irA(destino: Destino, sumarAlHistorial: boolean): Promise<void> {
   }
 }
 
+/**
+ * Lo que un bloque no pueda dibujar se queda en el bloque.
+ *
+ * Cada sección se pide en su propio trozo de JavaScript. Si ese trozo no llega —un 502 pasajero
+ * del servidor al desplegar, una conexión que se corta— la excepción subía hasta la raíz y se
+ * llevaba la página entera (`Application error`). Ahora cae aquí: el resto del informe sigue y el
+ * bloque ofrece recargar.
+ */
+class BloqueSeguro extends Component<{ label: string; children: ReactNode }, { fallo: boolean }> {
+  state = { fallo: false };
+
+  static getDerivedStateFromError() {
+    return { fallo: true };
+  }
+
+  componentDidCatch(error: unknown) {
+    console.error('[observatorio] bloque sin dibujar', this.props.label, error);
+  }
+
+  render() {
+    if (!this.state.fallo) return this.props.children;
+    return (
+      <div className="site-wait" role="alert">
+        <b>{this.props.label}</b>
+        <span>No se pudo cargar esta parte.</span>
+        <button type="button" className="menu-btn" onClick={() => window.location.reload()}>
+          Recargar la página
+        </button>
+      </div>
+    );
+  }
+}
+
 /** Un bloque que se monta cuando se acerca a la pantalla y no antes. */
 function Bloque({
   id,
@@ -198,7 +232,7 @@ function Bloque({
       aria-label={label}
     >
       {montado ? (
-        children
+        <BloqueSeguro label={label}>{children}</BloqueSeguro>
       ) : (
         <div className="site-wait" role="status">
           <b>{label}</b>
