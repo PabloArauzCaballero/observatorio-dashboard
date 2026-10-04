@@ -7283,7 +7283,7 @@ button.download-btn {
 
 .street-filter-grid {
   display: grid;
-  grid-template-columns: minmax(230px, 1.4fr) repeat(3, minmax(160px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 11rem), 1fr));
   gap: var(--s2);
   align-items: end;
   padding: var(--s2);
