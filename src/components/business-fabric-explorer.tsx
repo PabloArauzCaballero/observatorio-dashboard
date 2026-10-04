@@ -756,6 +756,7 @@ export function BusinessFabricExplorer({ board }: { board: FabricBoard }) {
                       /* Con caídas hay dos lados del cero: barras divergentes. */
                       <SinCifrasPropias>
                         <DivergingBars
+                          signed
                           data={growthBars}
                           unit="% anual"
                           height={Math.max(220, growthBars.length * 30 + 40)}
