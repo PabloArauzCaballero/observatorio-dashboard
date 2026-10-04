@@ -370,14 +370,17 @@ export async function componerAfiche(entrada: EntradaAfiche): Promise<Afiche> {
     delClon.forEach((clon, i) => {
       const original = delOriginal[i] ?? clon;
       const { ancho, alto } = dimensionesDe(original);
-      const altoFigura = Math.round((CONTENIDO * alto) / ancho);
+      // Hasta el doble de su tamaño real: ampliar una tarjeta de 280 px a todo el ancho del afiche
+      // multiplicaba por cuatro las etiquetas de los ejes y las dejaba desproporcionadas.
+      const anchoFigura = Math.round(Math.min(CONTENIDO, ancho * 2));
+      const altoFigura = Math.round((anchoFigura * alto) / ancho);
       const figura = clon.cloneNode(true) as SVGSVGElement;
       // Los estilos salen del clon, que está en tema claro; del original saldrían los de la pantalla.
       fijarEstilos(clon, figura);
       figura.setAttribute('viewBox', `0 0 ${ancho} ${alto}`);
       figura.setAttribute('x', String(MARGEN));
       figura.setAttribute('y', String(y));
-      figura.setAttribute('width', String(CONTENIDO));
+      figura.setAttribute('width', String(anchoFigura));
       figura.setAttribute('height', String(altoFigura));
       figura.setAttribute('preserveAspectRatio', 'xMidYMid meet');
       figura.setAttribute('overflow', 'visible');
