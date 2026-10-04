@@ -1610,6 +1610,7 @@ export function ShareBars({
   height = 220,
   onPick,
   decimals: fixedDecimals,
+  declare = true,
 }: {
   data: ShareSlice[];
   tone?: string;
@@ -1625,15 +1626,25 @@ export function ShareBars({
    * cómo se tocó. Sin este prop las barras siguen siendo un dibujo.
    */
   onPick?: (value: string, additive: boolean) => void;
+  /**
+   * Si las barras declaran sus cifras al panel que las contiene (sí, por omisión).
+   * Un panel que ya aporta las cifras completas por su cuenta —las barras muestran
+   * solo las primeras, con los nombres recortados— lo apaga para no ofrecer dos
+   * descargas distintas de lo mismo.
+   */
+  declare?: boolean;
 }) {
   useDatosDeFigura(
-    () => ({
-      etiqueta: 'Reparto',
-      unidad: unit,
-      columnas: ['Categoría', `Valor (${unit})`],
-      filas: data.map((s) => [s.name, celda(s.value)]),
-    }),
-    [data, unit],
+    () =>
+      declare
+        ? {
+            etiqueta: 'Reparto',
+            unidad: unit,
+            columnas: ['Categoría', `Valor (${unit})`],
+            filas: data.map((s) => [s.name, celda(s.value)]),
+          }
+        : undefined,
+    [data, unit, declare],
   );
   const rows = [...data].sort((left, right) => right.value - left.value);
   const peak = rows.reduce((highest, row) => Math.max(highest, row.value), 0);
