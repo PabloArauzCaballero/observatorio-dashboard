@@ -4,6 +4,7 @@ import { OnOpenNotice, useOnOpen } from './on-open';
 import { RailExplorer } from './rail-explorer';
 import { RoadsSection } from './roads-section';
 import { SubSections } from './site-layout';
+import { FuelPricesExplorer, PassengerFaresExplorer, VehiclePricesExplorer } from './transport-prices-explorer';
 import { TabHeader } from '@/components/ui/tab-header';
 import { WaterwaysExplorer } from './waterways-explorer';
 import type { RailBoard, WaterBoard } from '@/lib/transport-board';
@@ -21,16 +22,19 @@ export function TransportSection() {
       <TabHeader
         id="transporte"
         title="Transporte"
-        lede="Carreteras, trenes y ríos de Bolivia. Los mapas muestran lo que OpenStreetMap ha trazado, que no es un inventario oficial."
+        lede="Precios de vehículos, carburantes y pasajes, junto a carreteras, trenes y ríos de Bolivia. Cada precio conserva su fuente y fecha."
       />
       <SubSections
-        labels={['Carreteras', 'Ferrocarriles', 'Ríos y puertos']}
-        icons={['camion', 'linea', 'gota']}
+        labels={['Carreteras', 'Ferrocarriles', 'Ríos y puertos', 'Vehículos 0 km', 'Carburantes', 'Pasajes']}
+        icons={['camion', 'linea', 'gota', 'camion', 'gota', 'etiqueta']}
         enlace
       >
         <RoadsSection />
         <RailSection />
         <WaterwaysSection />
+        <VehiclePricesExplorer />
+        <FuelPricesExplorer />
+        <PassengerFaresExplorer />
       </SubSections>
     </>
   );
