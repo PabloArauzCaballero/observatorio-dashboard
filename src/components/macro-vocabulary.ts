@@ -134,6 +134,19 @@ export const UNIT_LABEL: Record<string, string> = {
   MONTHS: 'meses',
   PEOPLE: 'personas',
   YEARS: 'años',
+  // Los códigos que el catálogo trae y que salían crudos en títulos y archivos.
+  RANK: 'puesto',
+  POINTS: 'puntos',
+  SCORE: 'puntaje',
+  USD_MILLIONS: 'millones de USD',
+  TONNES: 'toneladas',
+  KG: 'kg',
+  BOB: 'Bs',
+  BOB_THOUSANDS: 'miles de Bs',
+  BOB_THOUSANDS_1990: 'miles de Bs de 1990',
+  RATE_PER_100K: 'por 100.000 habitantes',
+  RATE_PER_1000: 'por 1.000 habitantes',
+  'BOB/UFV': 'Bs por UFV',
 };
 
 export const sectorLabel = (sector: string): string => SECTOR_LABEL[sector] ?? sector;
