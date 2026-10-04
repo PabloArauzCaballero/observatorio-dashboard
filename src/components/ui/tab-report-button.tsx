@@ -10,20 +10,38 @@ import { hoyEnLaPaz } from '@/lib/export/entrega';
 const textoDe = (nodo: Element | null | undefined): string =>
   (nodo?.textContent ?? '').replace(/\s+/g, ' ').trim();
 
+/** Espera a que los bloques recién montados terminen de leer, sin pasar de veinte segundos. */
+async function esperarCarga(raiz: Element): Promise<void> {
+  const limite = Date.now() + 20_000;
+  await new Promise((resolver) => setTimeout(resolver, 400));
+  while (Date.now() < limite && raiz.querySelector('.loading-note, [data-montado="no"]')) {
+    await new Promise((resolver) => setTimeout(resolver, 300));
+  }
+}
+
 /**
- * «Descargar informe (PDF)» de la pestaña abierta.
+ * «Descargar informe (PDF)» de la sección.
  *
- * Recoge los paneles que hay montados dentro de la pestaña —con la página y los
- * filtros que el lector tiene puestos— y abre el diálogo de impresión sobre un
- * documento que los reúne. Lo que sale es lo que se ve.
+ * Recoge los paneles de todas las páginas de la sección —con los filtros que el
+ * lector tiene puestos— y abre el diálogo de impresión sobre un documento que los
+ * reúne. Lo que sale es lo que se ve.
  */
 export function TabReportButton() {
   const boton = useRef<HTMLButtonElement>(null);
   const [estado, setEstado] = useState<string | null>(null);
 
   const generar = async () => {
-    const pestana = boton.current?.closest('[role="tabpanel"]');
+    const pestana = boton.current?.closest<HTMLElement>('[data-site-id][data-site-kind="seccion"]');
     if (!pestana) return;
+    // Las páginas que el lector todavía no alcanzó se piden ahora: el informe es de toda la sección.
+    const sinMontar = [
+      ...pestana.querySelectorAll<HTMLElement>('[data-site-kind="pagina"][data-montado="no"]'),
+    ].map((bloque) => bloque.dataset.siteId ?? '');
+    if (sinMontar.length > 0) {
+      setEstado('Cargando las páginas de la sección…');
+      window.dispatchEvent(new CustomEvent('observatorio:montar', { detail: sinMontar }));
+      await esperarCarga(pestana);
+    }
     // Los paneles de primer nivel que se ven: uno dentro de otro ya viaja con su padre.
     const paneles = [...pestana.querySelectorAll<HTMLElement>('[data-panel-id]')].filter(
       (panel) => panel.offsetParent !== null && !panel.parentElement?.closest('[data-panel-id]'),
@@ -32,13 +50,7 @@ export function TabReportButton() {
       setEstado('Esta pestaña aún no tiene paneles que incluir.');
       return;
     }
-    const nombreDePestana = textoDe(
-      document.querySelector('nav.tabs [role="tab"][aria-selected="true"]'),
-    );
-    const nombreDePagina = textoDe(
-      pestana.querySelector('nav.subtabs [role="tab"][aria-selected="true"]'),
-    );
-    const titulo = [nombreDePestana, nombreDePagina].filter(Boolean).join(' · ');
+    const titulo = pestana.dataset.label ?? textoDe(pestana.querySelector('h2'));
     try {
       setEstado('Preparando el informe…');
       const html = await componerInforme({

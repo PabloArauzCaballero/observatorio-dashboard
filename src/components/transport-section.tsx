@@ -3,7 +3,8 @@
 import { OnOpenNotice, useOnOpen } from './on-open';
 import { RailExplorer } from './rail-explorer';
 import { RoadsSection } from './roads-section';
-import { SubTabs } from './tabs';
+import { SubSections } from './site-layout';
+import { TabHeader } from '@/components/ui/tab-header';
 import { WaterwaysExplorer } from './waterways-explorer';
 import type { RailBoard, WaterBoard } from '@/lib/transport-board';
 
@@ -11,20 +12,27 @@ import type { RailBoard, WaterBoard } from '@/lib/transport-board';
  * El capítulo de transporte: carreteras, ferrocarriles y ríos, tres páginas.
  *
  * Cada página pide su tablero al abrirse y no antes, como hacía «Carreteras»
- * sola: `SubTabs` monta sólo la página activa, así que abrir el capítulo no
+ * sola: `SubSections` monta cada página al acercarse, así que abrir el capítulo no
  * trae la red fluvial de nadie que no la mire.
  */
 export function TransportSection() {
   return (
-    <SubTabs
-      labels={['Carreteras', 'Ferrocarriles', 'Ríos y puertos']}
-      icons={['camion', 'linea', 'gota']}
-      enlace
-    >
-      <RoadsSection />
-      <RailSection />
-      <WaterwaysSection />
-    </SubTabs>
+    <>
+      <TabHeader
+        id="transporte"
+        title="Transporte"
+        lede="Carreteras, trenes y ríos de Bolivia. Los mapas muestran lo que OpenStreetMap ha trazado, que no es un inventario oficial."
+      />
+      <SubSections
+        labels={['Carreteras', 'Ferrocarriles', 'Ríos y puertos']}
+        icons={['camion', 'linea', 'gota']}
+        enlace
+      >
+        <RoadsSection />
+        <RailSection />
+        <WaterwaysSection />
+      </SubSections>
+    </>
   );
 }
 

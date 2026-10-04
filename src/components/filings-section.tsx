@@ -8,7 +8,8 @@ import { FilingExplorer } from './filing-explorer';
 import { ForeignTradeSection } from './foreign-trade-section';
 import { LargestCompaniesSection } from './largest-companies-section';
 import { OnOpenNotice, useOnOpen } from './on-open';
-import { SubTabs } from './tabs';
+import { SubSections } from './site-layout';
+import { TabHeader } from '@/components/ui/tab-header';
 import { TradeRecordsSection } from './trade-records-section';
 import type { CompanyFiling } from '@/lib/series';
 
@@ -51,36 +52,43 @@ import type { CompanyFiling } from '@/lib/series';
  * estimación del observatorio, construida con el patrimonio de cada empresa y
  * la participación que los documentos públicos atribuyen a cada accionista.
  *
- * `SubTabs` monta sólo la página activa, así que abrir «Empresas» pide sólo el
+ * `SubSections` monta cada página al acercarse, así que abrir «Empresas» pide sólo el
  * tejido empresarial; las demás esperan a que alguien las elija, y «Comercio
  * exterior» y «Reputación empresarial» leen la misma dirección de exportadoras,
  * así que la segunda que se abra sale de la caché.
  */
 export function FilingsSection() {
   return (
-    <SubTabs
-      enlace
-      labels={[
-        'Tejido empresarial',
-        'Principales empresas',
-        'Empresarios',
-        'Bolsa de valores (BBV)',
-        'Comercio exterior',
-        'Detalle aduanero (INE)',
-        'Reputación empresarial',
-        'Redes sociales',
-      ]}
-      icons={['capas', 'barras', 'maletin', 'velas', 'globo', 'cajas', 'escudo', 'personas']}
-    >
-      <BusinessFabricSection />
-      <LargestCompaniesSection />
-      <BusinessOwnersSection />
-      <FilingsPage />
-      <ForeignTradeSection />
-      <TradeRecordsSection />
-      <ReputationSection />
-      <CompanySocialSection />
-    </SubTabs>
+    <>
+      <TabHeader
+        id="empresas"
+        title="Empresas"
+        lede="Cuántas empresas hay, cuáles son las más grandes, quiénes son sus dueños, qué comunican a la bolsa, cómo comercia Bolivia con el mundo, cómo las ve el público y qué publican en sus redes. Cada página dice quién mide y cuánto confiar."
+      />
+      <SubSections
+        enlace
+        labels={[
+          'Tejido empresarial',
+          'Principales empresas',
+          'Empresarios',
+          'Bolsa de valores (BBV)',
+          'Comercio exterior',
+          'Detalle aduanero (INE)',
+          'Reputación empresarial',
+          'Redes sociales',
+        ]}
+        icons={['capas', 'barras', 'maletin', 'velas', 'globo', 'cajas', 'escudo', 'personas']}
+      >
+        <BusinessFabricSection />
+        <LargestCompaniesSection />
+        <BusinessOwnersSection />
+        <FilingsPage />
+        <ForeignTradeSection />
+        <TradeRecordsSection />
+        <ReputationSection />
+        <CompanySocialSection />
+      </SubSections>
+    </>
   );
 }
 

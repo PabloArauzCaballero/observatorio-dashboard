@@ -11,7 +11,8 @@ import { MacroExplorer } from './macro-explorer';
 import { OnOpenNotice, useOnOpen } from './on-open';
 import { PanelSection } from './panel-section';
 import { ResourcesSection } from './resources-section';
-import { SubTabs } from './tabs';
+import { SubSections } from './site-layout';
+import { TabHeader } from '@/components/ui/tab-header';
 import { WorldExplorer } from './world-explorer';
 import type { InstitutionsBoard } from '@/lib/institutions-board';
 import type { MacroBundle } from '@/lib/macro-transport';
@@ -46,25 +47,32 @@ import type { MacroBundle } from '@/lib/macro-transport';
  */
 export function MacroSection() {
   return (
-    <SubTabs
-      enlace
-      labels={[
-        'Series de Bolivia',
-        'Social Info',
-        'Bolivia ante el mundo',
-        'Variables exógenas',
-        'Series del BCB',
-      ]}
-      icons={['linea', 'capas', 'globo', 'monedas', 'banco']}
-    >
-      <MeasuresPanel />
-      <PanelSection
-        guests={[{ label: 'Instituciones', icon: 'escudo', panel: <InstitutionsPanel /> }]}
+    <>
+      <TabHeader
+        id="macroeconomia"
+        title="Macroeconomía"
+        lede="Las series anuales de Bolivia y su comparación con el mundo. Cada cifra dice quién la publica; lo que calcula el Observatorio se dice aparte."
       />
-      <WorldExplorer />
-      <ExogenousSection />
-      <BcbSection />
-    </SubTabs>
+      <SubSections
+        enlace
+        labels={[
+          'Series de Bolivia',
+          'Social Info',
+          'Bolivia ante el mundo',
+          'Variables exógenas',
+          'Series del BCB',
+        ]}
+        icons={['linea', 'capas', 'globo', 'monedas', 'banco']}
+      >
+        <MeasuresPanel />
+        <PanelSection
+          guests={[{ label: 'Instituciones', icon: 'escudo', panel: <InstitutionsPanel /> }]}
+        />
+        <WorldExplorer />
+        <ExogenousSection />
+        <BcbSection />
+      </SubSections>
+    </>
   );
 }
 
