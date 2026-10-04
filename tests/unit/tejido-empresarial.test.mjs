@@ -271,6 +271,38 @@ test('el tablero conserva los nombres y arma el podio y la trayectoria históric
   );
 });
 
+test('el orden publica los diez primeros de cada año, no tres, y no rellena un año con menos', () => {
+  const people = Array.from({ length: 12 }, (_, index) => `P${String(index + 1).padStart(2, '0')}`);
+  const rows = [];
+  people.forEach((person, index) => {
+    rows.push(
+      point(
+        `OWNER_STAKE_${person}_EMP_${person}`,
+        2023,
+        100,
+        `${person}: participación en Empresa ${person} {tipo=persona; titular=${person}; empresa=EMP_${person}}`,
+        'PERCENT',
+      ),
+      // Patrimonio decreciente: P01 es la mayor. En 2024 sólo publican las cuatro primeras.
+      point(`OWNER_EQUITY_EMP_${person}`, 2023, 1000 - index * 50, `Empresa ${person}: patrimonio {empresa=EMP_${person}; sector=Industria}`, 'MILLION_BOB'),
+      ...(index < 4
+        ? [point(`OWNER_EQUITY_EMP_${person}`, 2024, 1000 - index * 50, `Empresa ${person}: patrimonio {empresa=EMP_${person}; sector=Industria}`, 'MILLION_BOB')]
+        : []),
+    );
+  });
+  const board = buildOwnersBoard([], rows);
+  const byYear = new Map(board.podiums.map((podium) => [podium.year, podium]));
+  assert.equal(byYear.get(2023)?.population, 12);
+  assert.deepEqual(
+    byYear.get(2023)?.places.map((place) => place.rank),
+    [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
+  );
+  assert.equal(byYear.get(2023)?.places[0]?.person, 'P01');
+  assert.equal(byYear.get(2024)?.places.length, 4);
+  // El undécimo sigue en su trayectoria aunque no entre en los diez.
+  assert.equal(board.histories.find((history) => history.person === 'P11')?.years[0]?.rank, 11);
+});
+
 test('el historial de empresas enumera las gestiones disponibles sin inventar un período continuo', () => {
   const board = buildOwnersBoard(
     [],
@@ -368,7 +400,7 @@ test('los cierres recientes oficiales completan una copia anual todavía rezagad
   );
 });
 
-test('la ficha histórica de empresarios abre con nombre visible antes del podio', async () => {
+test('la página de empresarios abre con los diez primeros y sus cintas, y conserva la ficha con nombre', async () => {
   const source = await readFile(
     new URL('../../src/components/business-owners-explorer.tsx', import.meta.url),
     'utf8',
@@ -381,10 +413,11 @@ test('la ficha histórica de empresarios abre con nombre visible antes del podio
   assert.match(source, /const initialOwner = latestEstimate\?\.person \?\?/u);
   assert.match(historySource, /aria-label="Empresario con historial"/u);
   assert.match(historySource, /className=\{`panel-group \$\{styles\.ficha\}`\}/u);
-  assert.ok(
-    source.indexOf('<BusinessOwnerHistory') <
-      source.indexOf('Podio histórico de estimaciones documentables'),
-    'el selector y la ficha deben aparecer antes del podio histórico',
-  );
+  // Pedido del 2026-10-03: primero el top 10 y cómo se movió cada puesto, después lo demás.
+  const top = source.indexOf('id="empresarios-top"');
+  const ribbons = source.indexOf('id="empresarios-cintas"');
+  assert.ok(top > -1 && ribbons > top, 'el top 10 va primero y las cintas justo después');
+  assert.ok(ribbons < source.indexOf('id="empresarios-resumen"'), 'las cintas van antes del resumen');
+  assert.ok(source.indexOf('<BusinessOwnerHistory') > ribbons, 'la ficha sigue en la página');
   assert.doesNotMatch(source, /current === row\.key \? null : row\.key/u);
 });

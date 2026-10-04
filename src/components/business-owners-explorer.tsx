@@ -4,13 +4,15 @@ import { useMemo, useState } from 'react';
 import { ChartLegend, WorldLines, seriesTone } from './charts';
 import type { WorldLineSeries } from './charts';
 import { BusinessOwnerHistory, ESTIMATE_SOURCE } from './business-owner-history';
+import { OwnerRankRibbons } from './owner-rank-ribbons';
 import { FilterHint, PickedCount } from './filters';
 import { Icon } from './icons';
 import styles from './business.module.css';
 import { Panel } from '@/components/ui/panel';
 import { ANY, additive, picked, toggle } from '@/lib/choice';
 import type { Choice } from '@/lib/choice';
-import type { OwnerEstimate, OwnersBoard } from '@/lib/business-owners-board';
+import { TOP_PLACES } from '@/lib/business-owners-board';
+import type { OwnerEstimate, OwnersBoard, OwnerYearHistory } from '@/lib/business-owners-board';
 
 /**
  * Los principales empresarios de Bolivia y sus fortunas, año a año.
@@ -195,6 +197,18 @@ export function BusinessOwnersExplorer({ board }: { board: OwnersBoard }) {
   ].sort((a, b) => a - b);
   const latestTax = board.wealthTax.at(-1);
 
+  /** El puesto de cada persona en cada año, para decir cuánto se movió. */
+  const rankOf = new Map<string, Map<number, OwnerYearHistory>>(
+    board.histories.map((history) => [history.person, new Map(history.years.map((row) => [row.year, row]))]),
+  );
+  const fullYears = board.podiums
+    .filter((one) => one.places.length >= TOP_PLACES)
+    .map((one) => one.year);
+  const podium =
+    board.podiums.find((one) => one.year === year) ??
+    board.podiums.filter((one) => one.year <= year).at(-1) ??
+    board.podiums.at(-1);
+
   const rankingItem = (row: Row) => (
     <li key={row.key} className={styles.rankingRow}>
       <span
@@ -245,6 +259,120 @@ export function BusinessOwnersExplorer({ board }: { board: OwnersBoard }) {
 
   return (
     <>
+      {podium ? (
+        <Panel
+          id="empresarios-top"
+          title={`Los ${podium.places.length} mayores empresarios por fortuna estimada en libros, ${podium.year} (millones de dólares)`}
+          lede={
+            podium.places.length < TOP_PLACES
+              ? `En ${podium.year} sólo ${podium.population} personas tienen participación y patrimonio públicos, así que hay ${podium.places.length} puestos y no diez${fullYears.length ? `; los diez completos están en ${fullYears.join(', ')}` : ''}. Toca un nombre para abrir su ficha.`
+              : `Puesto entre las ${podium.population} personas con participación y patrimonio públicos ese año, y cuánto se movió cada una frente al año anterior. Toca un nombre para abrir su ficha.`
+          }
+          ledeText={`Puesto entre las ${podium.population} personas con participación y patrimonio públicos en ${podium.year}.`}
+          source={ESTIMATE_SOURCE}
+          data={() => ({
+            unidad: 'millones de dólares',
+            columnas: ['Año', 'Estimaciones calculables', 'Puesto', 'Persona', 'Piso contable (millones de dólares)', 'Mayor empresa'],
+            filas: [...board.podiums]
+              .reverse()
+              .flatMap((one) =>
+                one.places.map((place) => [
+                  one.year,
+                  one.population,
+                  place.rank,
+                  place.name,
+                  place.book,
+                  rankOf.get(place.person)?.get(one.year)?.leadingHolding ?? null,
+                ]),
+              ),
+          })}
+        >
+          <div className={styles.topBar}>
+            <label className={styles.topYear}>
+              <span>Año</span>
+              <select value={podium.year} onChange={(event) => setYear(Number(event.target.value))}>
+                {[...board.podiums].reverse().map((one) => (
+                  <option key={one.year} value={one.year}>
+                    {one.year}
+                  </option>
+                ))}
+              </select>
+            </label>
+          </div>
+          <ol className={styles.topList}>
+            {podium.places.map((place) => {
+              const before = rankOf.get(place.person)?.get(podium.year - 1)?.rank;
+              const moved = before === undefined ? null : before - place.rank;
+              const peakBook = podium.places[0]?.book ?? 1;
+              return (
+                <li key={place.person} className={styles.topRow}>
+                  <span className={styles.topRank}>{place.rank}.º</span>
+                  <button
+                    type="button"
+                    className={styles.personButton}
+                    aria-controls="empresario-ficha"
+                    aria-expanded={open === place.person}
+                    onClick={() => {
+                      setOpen(place.person);
+                      setYear(podium.year);
+                    }}
+                  >
+                    <strong>{place.name}</strong>
+                    <small>{rankOf.get(place.person)?.get(podium.year)?.leadingHolding ?? ''}</small>
+                  </button>
+                  <span className={styles.topBarTrack} aria-hidden="true">
+                    <span style={{ width: `${Math.max(2, (place.book / peakBook) * 100)}%` }} />
+                  </span>
+                  <span className={styles.topValue}>{usd(place.book)}</span>
+                  <span
+                    className={styles.topMove}
+                    title={before === undefined ? `Sin estimación en ${podium.year - 1}` : `${before}.º en ${podium.year - 1}`}
+                  >
+                    {moved === null ? 'nuevo' : moved > 0 ? `▲ ${moved}` : moved < 0 ? `▼ ${-moved}` : '='}
+                  </span>
+                </li>
+              );
+            })}
+          </ol>
+          <ChartLegend items={[{ color: 'var(--official)', label: 'Piso contable (millones de dólares)' }]} />
+          <details className="panel-note">
+            <summary>Cómo leerlo</summary>
+            <p>
+              Ordena sólo a las personas con participación y patrimonio públicos ese año: no es un ránking de
+              fortunas reales. ▲ y ▼ dicen cuántos puestos subió o bajó frente al año anterior; «nuevo», que ese
+              año no tenía estimación. Un año con menos de diez personas calculables muestra menos puestos.
+            </p>
+          </details>
+        </Panel>
+      ) : null}
+
+      {board.histories.length ? (
+        <Panel
+          id="empresarios-cintas"
+          title={`Puesto de cada empresario entre los ${TOP_PLACES} primeros, ${board.podiums[0]?.year ?? ''}–${board.podiums.at(-1)?.year ?? ''} (puesto por año)`}
+          lede="Cada cinta es una persona: sube cuando mejora su puesto y se corta el año en que no tiene estimación o queda fuera de los diez. Pasa por encima para ver el año; toca una cinta para resaltarla y abrir su ficha."
+          ledeText="Cada cinta es una persona; se corta el año en que no tiene estimación o queda fuera de los diez."
+          source={ESTIMATE_SOURCE}
+          data={() => ({
+            unidad: 'puesto',
+            columnas: ['Persona', 'Año', 'Puesto', 'Estimaciones calculables', 'Piso contable (millones de dólares)'],
+            filas: board.histories.flatMap((history) =>
+              history.years.map((row) => [history.name, row.year, row.rank, row.population, row.book]),
+            ),
+          })}
+        >
+          <OwnerRankRibbons
+            histories={board.histories}
+            places={TOP_PLACES}
+            selected={open}
+            onSelect={(person, chosen) => {
+              setOpen(person);
+              setYear(chosen);
+            }}
+          />
+        </Panel>
+      ) : null}
+
       <Panel
         id="empresarios-resumen"
         title={`Empresarios de Bolivia: fortuna estimada por sus participaciones en empresas, ${year} (millones de dólares)`}
@@ -333,120 +461,6 @@ export function BusinessOwnersExplorer({ board }: { board: OwnersBoard }) {
           setYear(latestYear);
         }}
       />
-
-      {board.podiums.length ? (
-        <Panel
-          id="empresarios-podio"
-          title="Podio histórico de estimaciones documentables (millones de dólares)"
-          lede="Los tres mayores pisos contables que se pueden calcular en cada gestión; cada nombre abre su trayectoria."
-          source={ESTIMATE_SOURCE}
-          data={() => ({
-            unidad: 'millones de dólares',
-            columnas: [
-              'Año',
-              'Estimaciones calculables',
-              'Puesto',
-              'Persona',
-              'Piso contable (millones de dólares)',
-            ],
-            filas: [...board.podiums]
-              .reverse()
-              .flatMap((podium) =>
-                podium.places.map((place) => [
-                  podium.year,
-                  podium.population,
-                  place.rank,
-                  place.name,
-                  place.book,
-                ]),
-              ),
-          })}
-        >
-          <details className="panel-note">
-            <summary>Cómo leerlo</summary>
-            <p>
-              Ordena sólo a las personas con participación y patrimonio públicos ese año: no es un
-              ránking de fortunas reales. Cada nombre abre su trayectoria, sus hitos y las empresas
-              que sostienen la estimación.
-            </p>
-          </details>
-          <div className={`table-wrap ${styles.podiumDesktop}`}>
-            <table className={`grid-table ${styles.podiumTable}`}>
-              <thead>
-                <tr>
-                  <th>Año</th>
-                  <th>1.º</th>
-                  <th>2.º</th>
-                  <th>3.º</th>
-                </tr>
-              </thead>
-              <tbody>
-                {[...board.podiums].reverse().map((podium) => (
-                  <tr key={podium.year}>
-                    <th scope="row">
-                      {podium.year}
-                      <small className={styles.population}>{podium.population} estimaciones</small>
-                    </th>
-                    {[0, 1, 2].map((index) => {
-                      const place = podium.places[index];
-                      return (
-                        <td key={index}>
-                          {place ? (
-                            <button
-                              type="button"
-                              className={styles.personButton}
-                              aria-controls="empresario-ficha"
-                              aria-expanded={open === place.person}
-                              onClick={() => {
-                                setOpen(place.person);
-                                setYear(podium.year);
-                              }}
-                            >
-                              <strong>{place.name}</strong>
-                              <small>{usd(place.book)}</small>
-                            </button>
-                          ) : (
-                            '—'
-                          )}
-                        </td>
-                      );
-                    })}
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-          <div className={styles.podiumCards}>
-            {[...board.podiums].reverse().map((podium) => (
-              <section key={podium.year} className={styles.podiumCard}>
-                <h4>
-                  {podium.year} <span>{podium.population} estimaciones</span>
-                </h4>
-                <ol>
-                  {podium.places.map((place) => (
-                    <li key={place.person}>
-                      <span>{place.rank}.º</span>
-                      <button
-                        type="button"
-                        className={styles.personButton}
-                        aria-controls="empresario-ficha"
-                        aria-expanded={open === place.person}
-                        onClick={() => {
-                          setOpen(place.person);
-                          setYear(podium.year);
-                        }}
-                      >
-                        <strong>{place.name}</strong>
-                        <small>{usd(place.book)}</small>
-                      </button>
-                    </li>
-                  ))}
-                </ol>
-              </section>
-            ))}
-          </div>
-        </Panel>
-      ) : null}
 
       <div className="workspace">
         <aside className="rail" id="empresarios-filtros">

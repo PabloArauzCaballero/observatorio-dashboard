@@ -1,0 +1,137 @@
+/*
+ * Las cintas del orden de empresarios.
+ *
+ * El gris se mezcla con el fondo del panel y no con transparente: una cinta
+ * translúcida cambia de tono donde cruza a otra, y un cruce no es un dato.
+ */
+.wrap {
+  --ribbon-rest: color-mix(in srgb, var(--ink-soft) 42%, var(--panel));
+  display: flex;
+  flex-direction: column;
+  gap: var(--s1);
+}
+
+.frame {
+  position: relative;
+  width: 100%;
+  overflow: hidden;
+}
+
+.frame svg {
+  display: block;
+}
+
+.grid {
+  stroke: var(--rule);
+  stroke-width: 1;
+}
+
+.rank,
+.year {
+  fill: var(--ink-soft);
+  font-family: var(--mono);
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+}
+
+.rank {
+  text-anchor: end;
+  dominant-baseline: middle;
+}
+
+.year {
+  text-anchor: middle;
+}
+
+.ribbon {
+  fill: none;
+  stroke: var(--ribbon-rest);
+  stroke-width: 6;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.dot {
+  fill: var(--ribbon-rest);
+}
+
+.on .ribbon {
+  stroke: var(--official);
+  stroke-width: 8;
+}
+
+.on .dot {
+  fill: var(--official);
+  stroke: var(--panel);
+  stroke-width: 2;
+}
+
+/* Columnas angostas (el móvil): cintas más finas para que no se tapen. */
+.thin .ribbon {
+  stroke-width: 3.5;
+}
+
+.thin .on .ribbon {
+  stroke-width: 5;
+}
+
+.thin .halo {
+  stroke-width: 8;
+}
+
+/* El anillo del color del fondo: separa la cinta elegida de las que cruza. */
+.halo {
+  fill: none;
+  stroke: var(--panel);
+  stroke-width: 12;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.hit {
+  fill: none;
+  stroke: transparent;
+  stroke-width: 18;
+  cursor: pointer;
+}
+
+.hitDot {
+  fill: transparent;
+  cursor: pointer;
+}
+
+.name,
+.nameOn {
+  dominant-baseline: middle;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.name {
+  fill: var(--ink-soft);
+}
+
+.nameOn {
+  fill: var(--ink);
+  font-weight: 700;
+}
+
+.tip {
+  position: absolute;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+  width: 210px;
+  padding: 0.45rem 0.6rem;
+  border: 1px solid var(--rule);
+  border-radius: var(--radius);
+  background: var(--panel);
+  box-shadow: var(--shadow);
+  font-size: 0.74rem;
+  pointer-events: none;
+}
+
+.tip span {
+  color: var(--ink-soft);
+}

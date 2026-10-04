@@ -135,6 +135,14 @@ export interface OwnerHistory {
   }>;
 }
 
+/**
+ * Cuántos puestos se publican por año: los diez primeros. El podio de tres
+ * escondía a casi todos —hay años con once estimaciones— y no dejaba ver cómo
+ * se mueve el orden. Un año con menos personas tiene menos puestos: no se
+ * rellenan.
+ */
+export const TOP_PLACES = 10;
+
 export interface OwnerPodium {
   year: number;
   /** Universo comparable: personas con un piso calculable en la gestión. */
@@ -362,7 +370,7 @@ export function buildOwnersBoard(ranking: readonly MacroPoint[], fortunes: reado
     .map(([year, rows]) => ({
       year,
       population: rows.length,
-      places: rows.slice(0, 3).map((estimate, index) => ({
+      places: rows.slice(0, TOP_PLACES).map((estimate, index) => ({
         person: estimate.person,
         name: estimate.name,
         rank: index + 1,
