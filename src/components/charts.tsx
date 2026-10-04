@@ -24,7 +24,7 @@ import {
 } from 'recharts';
 import type { TooltipContentProps } from 'recharts';
 import type { NameType, ValueType } from 'recharts/types/component/DefaultTooltipContent';
-import { fittedDomain } from '@/lib/chart-axis';
+import { axisDecimals, fittedDomain, tickCountOf } from '@/lib/chart-axis';
 import { celda, useDatosDeFigura } from '@/components/ui/panel-data';
 import { filasDeSeries } from '@/lib/export/datos';
 
@@ -517,7 +517,12 @@ export function RateChart({
       etiqueta: 'Tipo de cambio',
       unidad: 'Bs por USD',
       columnas: ['Fecha', 'Paralelo · compra (Bs)', 'Paralelo · venta (Bs)', 'Oficial (Bs)'],
-      filas: data.map((p) => [p.date, celda(p.parallelBuy), celda(p.parallelSell), celda(p.official)]),
+      filas: data.map((p) => [
+        p.date,
+        celda(p.parallelBuy),
+        celda(p.parallelSell),
+        celda(p.official),
+      ]),
     }),
     [data],
   );
@@ -598,7 +603,13 @@ export function RateChart({
           </defs>
           <CartesianGrid {...GRID} />
           <XAxis dataKey="date" tickFormatter={shortLabel} minTickGap={52} {...AXIS} />
-          <YAxis domain={domain} width={54} tickFormatter={(value) => number(value, 2)} {...AXIS} />
+          <YAxis
+            domain={domain}
+            tickCount={tickCountOf(domain)}
+            width={54}
+            tickFormatter={(value) => number(value, axisDecimals(domain, 2))}
+            {...AXIS}
+          />
           <Tooltip content={renderTooltip} cursor={{ stroke: 'var(--rule)', strokeWidth: 1 }} />
           <Area
             type="monotone"
@@ -692,6 +703,7 @@ export function GapChart({ data, tall }: { data: GapChartPoint[]; tall?: boolean
           <XAxis dataKey="date" tickFormatter={shortLabel} minTickGap={52} {...AXIS} />
           <YAxis
             domain={domain}
+            tickCount={tickCountOf(domain)}
             width={54}
             tickFormatter={(value) => `${number(value, 0)}%`}
             {...AXIS}
@@ -861,7 +873,13 @@ export function MacroChart({
           >
             <CartesianGrid {...GRID} />
             <XAxis dataKey="period" minTickGap={34} {...AXIS} />
-            <YAxis domain={domain} width={54} tickFormatter={compact} {...AXIS} />
+            <YAxis
+              domain={domain}
+              tickCount={tickCountOf(domain)}
+              width={54}
+              tickFormatter={compact}
+              {...AXIS}
+            />
             <Tooltip content={renderTooltip} cursor={{ stroke: 'var(--rule)', strokeWidth: 1 }} />
             {domain[0] < 0 ? (
               <ReferenceLine y={0} stroke="var(--axis-rule)" strokeWidth={1} />
@@ -1023,8 +1041,11 @@ export function SeriesChart({
             <XAxis dataKey="date" tickFormatter={shortLabel} minTickGap={52} {...AXIS} />
             <YAxis
               domain={axisDomain}
+              tickCount={tickCountOf(axisDomain)}
               width={54}
-              tickFormatter={(value) => number(value, decimals === 0 ? 0 : 1)}
+              tickFormatter={(value) =>
+                number(value, axisDecimals(axisDomain, decimals === 0 ? 0 : 1))
+              }
               {...AXIS}
             />
             <Tooltip content={renderTooltip} cursor={{ stroke: 'var(--rule)', strokeWidth: 1 }} />
@@ -1337,7 +1358,13 @@ export function DayCandles({ data, unit }: { data: DayCandle[]; unit: string }) 
     () => ({
       etiqueta: 'Velas por jornada',
       unidad: unit,
-      columnas: ['Fecha', `Apertura (${unit})`, `Cierre (${unit})`, `Máximo (${unit})`, `Mínimo (${unit})`],
+      columnas: [
+        'Fecha',
+        `Apertura (${unit})`,
+        `Cierre (${unit})`,
+        `Máximo (${unit})`,
+        `Mínimo (${unit})`,
+      ],
       filas: data.map((c) => [c.date, celda(c.open), celda(c.close), celda(c.high), celda(c.low)]),
     }),
     [data, unit],
@@ -2747,6 +2774,7 @@ export function WorldLines({
             <XAxis dataKey="year" minTickGap={26} {...AXIS} />
             <YAxis
               {...(domain ? { domain } : {})}
+              tickCount={tickCountOf(fitted)}
               width={axisWidth}
               tickFormatter={(value: number) => tick(value)}
               {...AXIS}
@@ -2940,8 +2968,11 @@ export function DatedLines({
             <XAxis dataKey="date" tickFormatter={tickLabel} minTickGap={52} {...AXIS} />
             <YAxis
               {...(domain ? { domain } : {})}
+              tickCount={tickCountOf(domain)}
               width={54}
-              tickFormatter={(value: number) => number(value, decimals === 0 ? 0 : 1)}
+              tickFormatter={(value: number) =>
+                number(value, axisDecimals(domain, decimals === 0 ? 0 : 1))
+              }
               {...AXIS}
             />
             <Tooltip content={renderTooltip} cursor={{ stroke: 'var(--rule)', strokeWidth: 1 }} />
@@ -3183,7 +3214,8 @@ export function YearStackBars({
   const rows = data.map((row) => {
     const out: YearStackRow = { year: row.year };
     let total = 0;
-    for (const part of parts) total += typeof row[part.key] === 'number' ? (row[part.key] as number) : 0;
+    for (const part of parts)
+      total += typeof row[part.key] === 'number' ? (row[part.key] as number) : 0;
     for (const part of shown) {
       const value = typeof row[part.key] === 'number' ? (row[part.key] as number) : 0;
       out[part.key] = mode === 'share' && total ? (value / total) * 100 : value;
@@ -3204,13 +3236,11 @@ export function YearStackBars({
     if (!active || !payload?.length) return null;
     const point = payload[0]?.payload as YearStackRow | undefined;
     if (!point) return null;
-    const lines = [...keys]
-      .reverse()
-      .map((key, index) => ({
-        name: labels.get(key) ?? key,
-        value: say(typeof point[key] === 'number' ? (point[key] as number) : 0),
-        color: key === '__rest' ? 'var(--series-rest)' : seriesTone(keys.length - 1 - index),
-      }));
+    const lines = [...keys].reverse().map((key, index) => ({
+      name: labels.get(key) ?? key,
+      value: say(typeof point[key] === 'number' ? (point[key] as number) : 0),
+      color: key === '__rest' ? 'var(--series-rest)' : seriesTone(keys.length - 1 - index),
+    }));
     const mark = marks?.find((one) => one.year === String(label));
     return (
       <TooltipShell
@@ -3230,7 +3260,11 @@ export function YearStackBars({
             <YAxis
               width={mode === 'share' ? 40 : 58}
               tickFormatter={(value: number) =>
-                mode === 'share' ? `${value} %` : value >= 1000 ? `${number(value / 1000, 0)} mil` : number(value, 0)
+                mode === 'share'
+                  ? `${value} %`
+                  : value >= 1000
+                    ? `${number(value / 1000, 0)} mil`
+                    : number(value, 0)
               }
               {...(mode === 'share' ? { domain: [0, 100] as [number, number] } : {})}
               {...AXIS}
@@ -3254,7 +3288,9 @@ export function YearStackBars({
                 fill={key === '__rest' ? 'var(--series-rest)' : seriesTone(index)}
                 maxBarSize={BAR_CAP * 2}
                 {...STACK_GAP}
-                {...(index === keys.length - 1 ? { radius: [4, 4, 0, 0] as [number, number, number, number] } : {})}
+                {...(index === keys.length - 1
+                  ? { radius: [4, 4, 0, 0] as [number, number, number, number] }
+                  : {})}
                 animationDuration={index === 0 ? MOTION.duration : 0}
                 animationEasing={MOTION.easing}
               />
