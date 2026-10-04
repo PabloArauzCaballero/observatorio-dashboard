@@ -9,6 +9,7 @@ import assert from 'node:assert/strict';
 import { test } from 'node:test';
 
 import { buildCompanySocialBoard, commentBreakdown, followersOf } from '../../src/lib/company-social-board.ts';
+import { formatMix } from '../../src/lib/company-social-format.ts';
 
 const profile = (overrides) => ({
   slug: 'ENTEL',
@@ -215,4 +216,63 @@ test('«Posts a fondo» no se fía de lo que llega en la petición', () => {
   assert.equal(query.commentTone, 'all');
   assert.equal(query.offset, 0);
   assert.equal(query.limit, 60);
+});
+
+test('una selección de empresas vacía no vuelve a mostrar todos los posts', () => {
+  const all = [post({ url: 'a' }), post({ url: 'b', slug: 'TIGO' })];
+  const selected = queryPosts(all, parseQuery({ emptySelection: true, limit: 8 }));
+  assert.equal(selected.total, 0);
+  assert.deepEqual(selected.rows, []);
+  assert.deepEqual(selected.series, []);
+  assert.equal(selected.summary.medianInteractions, null);
+  assert.equal(queryPosts(all, parseQuery({ limit: 8 })).total, 2);
+});
+
+test('los formatos sin dato se filtran y las medianas excluyen interacciones desconocidas', () => {
+  const all = [
+    post({ url: 'a', format: null, interactions: null }),
+    post({ url: 'b', format: null, interactions: 10 }),
+    post({ url: 'c', format: null, interactions: 30 }),
+    post({ url: 'd', format: 'VIDEO', interactions: 100 }),
+  ];
+  const page = queryPosts(all, parseQuery({ format: 'SIN DATO', limit: 2 }));
+  assert.equal(page.total, 3);
+  assert.deepEqual(page.rows.map((row) => row.url), ['c', 'b']);
+  assert.equal(page.summary.measured, 2);
+  assert.equal(page.summary.medianInteractions, 20);
+  assert.equal(page.summary.topFiveShare, 100);
+  assert.deepEqual(page.formats, [{ format: 'SIN DATO', posts: 3 }, { format: 'VIDEO', posts: 1 }]);
+});
+
+test('los indicadores de posts usan el recorte completo y ponderan el sentimiento por comentarios', () => {
+  const sentiment = (analyzed, netScore) => ({ analyzed, netScore });
+  const all = [
+    post({ url: 'a', interactions: 10, sentiment: sentiment(10, 50) }),
+    post({ url: 'b', interactions: 20, sentiment: sentiment(30, -10) }),
+    post({ url: 'c', interactions: null, sentiment: null }),
+  ];
+  const first = queryPosts(all, parseQuery({ limit: 1 }));
+  const second = queryPosts(all, parseQuery({ limit: 1, offset: 1 }));
+  assert.deepEqual(first.summary, second.summary);
+  assert.equal(first.summary.medianInteractions, 15);
+  assert.equal(first.summary.analyzed, 40);
+  assert.equal(first.summary.net, 5);
+  assert.equal(first.summary.topFiveShare, 100);
+});
+
+test('el reparto de formatos distingue posts sin formato y excluye métricas ausentes de la mediana', () => {
+  const shapes = [
+    { slug: 'ENTEL', platform: 'facebook', format: 'VIDEO', hour: null, interactions: null },
+    { slug: 'ENTEL', platform: 'facebook', format: 'VIDEO', hour: null, interactions: 10 },
+    { slug: 'ENTEL', platform: 'facebook', format: 'VIDEO', hour: null, interactions: 30 },
+    { slug: 'ENTEL', platform: 'facebook', format: null, hour: null, interactions: null },
+    { slug: 'ENTEL', platform: 'youtube', format: 'VIDEO', hour: null, interactions: 100 },
+  ];
+  const all = formatMix(shapes, new Set(['ENTEL']), new Set(['facebook']));
+  assert.equal(all.reduce((sum, row) => sum + row.posts, 0), 4);
+  assert.equal(all.reduce((sum, row) => sum + row.value, 0), 100);
+  assert.deepEqual(all.map(({ name, posts, measured, median }) => ({ name, posts, measured, median })), [
+    { name: 'Video', posts: 3, measured: 2, median: 20 },
+    { name: 'Sin dato', posts: 1, measured: 0, median: null },
+  ]);
 });

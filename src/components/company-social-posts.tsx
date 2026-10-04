@@ -15,6 +15,7 @@ import {
 } from './charts';
 import { SOCIAL_SOURCE } from './company-social-source';
 import { CommentSentimentSummary } from './company-social-insights';
+import { Pager } from './pager';
 import { Panel } from '@/components/ui/panel';
 import { celda, useDatosDeFigura } from '@/components/ui/panel-data';
 import { PLATFORM_LABEL, type SocialCompany } from '@/lib/company-social-board';
@@ -51,8 +52,9 @@ const FORMAT_LABEL: Record<string, string> = {
   PHOTO: 'Foto',
   TEXT: 'Texto',
   POST: 'Publicación',
+  'SIN DATO': 'Sin dato',
 };
-const PAGE = 25;
+const PAGE = 8;
 /** Una sola serie, un solo color: el de interfaz. */
 const TONE = 'var(--official)';
 
@@ -75,9 +77,10 @@ interface Props {
   /** Las redes elegidas; vacío = todas. */
   platforms: readonly string[];
   companies: readonly SocialCompany[];
+  emptySelection: boolean;
 }
 
-export function CompanySocialPosts({ slugs, platforms, companies }: Props) {
+export function CompanySocialPosts({ slugs, platforms, companies, emptySelection }: Props) {
   const [from, setFrom] = useState('');
   const [to, setTo] = useState('');
   const [format, setFormat] = useState<string | null>(null);
@@ -85,8 +88,7 @@ export function CompanySocialPosts({ slugs, platforms, companies }: Props) {
   const [sort, setSort] = useState<PostSort>('interactions');
   const [commentTone, setCommentTone] = useState<CommentTone>('all');
   const [metric, setMetric] = useState<Metric>('posts');
-  const [page, setPage] = useState<PostPage | null>(null);
-  const [rows, setRows] = useState<PostPage['rows']>([]);
+  const [response, setResponse] = useState<{ key: string; data: PostPage } | null>(null);
   const [failed, setFailed] = useState(false);
   const [loading, setLoading] = useState(false);
   const names = useMemo(
@@ -96,6 +98,12 @@ export function CompanySocialPosts({ slugs, platforms, companies }: Props) {
 
   const slugKey = slugs.join(',');
   const platformKey = platforms.join(',');
+  const filterKey = JSON.stringify([slugKey, platformKey, emptySelection, from, to, format, text, commentTone, sort]);
+  const [cursor, setCursor] = useState({ key: filterKey, offset: 0 });
+  useEffect(() => setCursor({ key: filterKey, offset: 0 }), [filterKey]);
+  const offset = cursor.key === filterKey ? cursor.offset : 0;
+  const requestKey = JSON.stringify([filterKey, offset]);
+  const page = response?.key === requestKey ? response.data : null;
 
   const request = async (offset: number, signal: AbortSignal): Promise<PostPage> => {
     const response = await fetch('/api/redes-empresas/posts', {
@@ -104,6 +112,7 @@ export function CompanySocialPosts({ slugs, platforms, companies }: Props) {
       body: JSON.stringify({
         slugs: slugKey ? slugKey.split(',') : [],
         platforms: platformKey ? platformKey.split(',') : [],
+        emptySelection,
         from: from || null,
         to: to || null,
         format,
@@ -121,20 +130,19 @@ export function CompanySocialPosts({ slugs, platforms, companies }: Props) {
 
   useEffect(() => {
     const controller = new AbortController();
+    setLoading(true);
+    setFailed(false);
     // Con una búsqueda por texto se espera a que se termine de escribir.
     const timer = setTimeout(
       () => {
-        setLoading(true);
-        setFailed(false);
-        request(0, controller.signal)
+        request(offset, controller.signal)
           .then((next) => {
-            setPage(next);
-            setRows(next.rows);
+            if (!controller.signal.aborted) setResponse({ key: requestKey, data: next });
           })
           .catch((error: unknown) => {
-            if ((error as { name?: string }).name !== 'AbortError') setFailed(true);
+            if (!controller.signal.aborted && (error as { name?: string }).name !== 'AbortError') setFailed(true);
           })
-          .finally(() => setLoading(false));
+          .finally(() => { if (!controller.signal.aborted) setLoading(false); });
       },
       text ? 350 : 0,
     );
@@ -143,16 +151,11 @@ export function CompanySocialPosts({ slugs, platforms, companies }: Props) {
       controller.abort();
     };
     // `request` lee los mismos filtros que esta lista de dependencias.
-  }, [slugKey, platformKey, from, to, format, text, commentTone, sort]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [requestKey]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const more = (): void => {
-    const controller = new AbortController();
-    setLoading(true);
-    request(rows.length, controller.signal)
-      .then((next) => setRows((current) => [...current, ...next.rows]))
-      .catch(() => setFailed(true))
-      .finally(() => setLoading(false));
-  };
+  const go = (next: number): void => setCursor({ key: filterKey, offset: next });
+  const totalPages = Math.max(1, Math.ceil((page?.total ?? 0) / PAGE));
+  const pageNumber = Math.min(totalPages, Math.floor(offset / PAGE) + 1);
 
   const series: MonthPoint[] = page?.series ?? [];
   const label = METRICS.find((one) => one.value === metric)?.label ?? '';
@@ -189,7 +192,7 @@ export function CompanySocialPosts({ slugs, platforms, companies }: Props) {
           'Comentarios leídos',
           'Enlace',
         ],
-        filas: rows.map((post) => [
+        filas: (page?.rows ?? []).map((post) => [
           names.get(post.slug) ?? post.slug,
           PLATFORM_LABEL[post.platform],
           post.date,
@@ -204,7 +207,7 @@ export function CompanySocialPosts({ slugs, platforms, companies }: Props) {
           post.sentiment ? post.sentiment.analyzed : null,
           post.url,
         ]),
-        nota: 'Solo los posts cargados en pantalla; «Ver más» trae los siguientes.',
+        nota: 'Solo los posts de esta página; Anteriores y Siguientes recorren el resto.',
       })}
     >
       <details className="panel-note">
@@ -292,8 +295,7 @@ export function CompanySocialPosts({ slugs, platforms, companies }: Props) {
           <input
             type="date"
             value={from}
-            min={page?.dates.min ?? undefined}
-            max={to || page?.dates.max || undefined}
+            max={to || undefined}
             onChange={(event) => setFrom(event.target.value)}
           />
         </label>
@@ -302,8 +304,7 @@ export function CompanySocialPosts({ slugs, platforms, companies }: Props) {
           <input
             type="date"
             value={to}
-            min={from || page?.dates.min || undefined}
-            max={page?.dates.max ?? undefined}
+            min={from || undefined}
             onChange={(event) => setTo(event.target.value)}
           />
         </label>
@@ -337,18 +338,25 @@ export function CompanySocialPosts({ slugs, platforms, companies }: Props) {
         </div>
       ) : null}
       {page ? (
-        <p className="panel-note" aria-live="polite">
-          {count(page.total)} post{page.total === 1 ? '' : 's'}
-          {page.dates.min && page.dates.max
-            ? ` publicados entre el ${sayDate(page.dates.min)} y el ${sayDate(page.dates.max)}`
-            : ''}
-          .
-        </p>
+        <>
+          <p className="panel-note" aria-live="polite">
+            {count(page.total)} post{page.total === 1 ? '' : 's'}
+            {page.dates.min && page.dates.max
+              ? ` publicados entre el ${sayDate(page.dates.min)} y el ${sayDate(page.dates.max)}`
+              : ''}.
+          </p>
+          <div className="stat-strip">
+            <div className="stat"><span className="stat-label">Mediana de interacciones</span><span className="stat-value">{page.summary.medianInteractions === null ? '—' : count(page.summary.medianInteractions)}</span><span className="stat-hint">{count(page.summary.measured)} posts con interacciones declaradas</span></div>
+            <div className="stat"><span className="stat-label">Peso de los 5 principales</span><span className="stat-value">{page.summary.topFiveShare === null ? '—' : `${page.summary.topFiveShare.toLocaleString('es-BO', { maximumFractionDigits: 1 })} %`}</span><span className="stat-hint">de las interacciones declaradas del recorte</span></div>
+            <div className="stat"><span className="stat-label">Sentimiento neto</span><span className="stat-value">{page.summary.net === null ? '—' : `${page.summary.net > 0 ? '+' : ''}${page.summary.net.toLocaleString('es-BO', { maximumFractionDigits: 1 })}`}</span><span className="stat-hint">{count(page.summary.analyzed)} comentarios clasificados</span></div>
+          </div>
+          <Pager page={pageNumber} pages={totalPages} first={page.total ? offset + 1 : 0} last={offset + page.rows.length} total={page.total} pageSize={PAGE} onGo={go} where="arriba" noun="posts" />
+        </>
       ) : null}
 
-      {rows.length ? (
+      {page?.rows.length ? (
         <ol className="social-posts">
-          {rows.map((post) => (
+          {page.rows.map((post) => (
             <li key={`${post.platform}-${post.url}`} className="social-post">
               <div className="social-post-head">
                 <b>{names.get(post.slug) ?? post.slug}</b>
@@ -359,7 +367,7 @@ export function CompanySocialPosts({ slugs, platforms, companies }: Props) {
               </div>
               <p className="social-post-text">{post.text || '(sin texto)'}</p>
               <div className="social-post-figures">
-                <span>{count(post.interactions ?? 0)} interacciones</span>
+                <span>{post.interactions === null ? 'Interacciones sin dato' : `${count(post.interactions)} interacciones`}</span>
                 {post.likes !== null ? <span>{count(post.likes)} me gusta</span> : null}
                 {post.comments !== null ? <span>{count(post.comments)} comentarios</span> : null}
                 {post.shares !== null ? <span>{count(post.shares)} compartidos</span> : null}
@@ -376,13 +384,7 @@ export function CompanySocialPosts({ slugs, platforms, companies }: Props) {
         <div className="callout">Ningún post cumple este filtro.</div>
       ) : null}
 
-      {page && rows.length < page.total ? (
-        <button type="button" className="chip" disabled={loading} onClick={more}>
-          {loading
-            ? 'Cargando…'
-            : `Ver ${Math.min(PAGE, page.total - rows.length)} más (${count(page.total - rows.length)} restantes)`}
-        </button>
-      ) : null}
+      {page ? <Pager page={pageNumber} pages={totalPages} first={page.total ? offset + 1 : 0} last={offset + page.rows.length} total={page.total} pageSize={PAGE} onGo={go} where="abajo" noun="posts" /> : null}
     </Panel>
   );
 }

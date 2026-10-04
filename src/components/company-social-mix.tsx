@@ -5,7 +5,8 @@ import { SOCIAL_SOURCE } from './company-social-source';
 import { Panel } from '@/components/ui/panel';
 import type { Choice } from '@/lib/choice';
 import type { CompanySocialBoard, SocialCompany } from '@/lib/company-social-board';
-import { emotionMix, formatMix, hourMix } from '@/lib/company-social-view';
+import { formatMix } from '@/lib/company-social-format';
+import { emotionMix, hourMix } from '@/lib/company-social-view';
 
 /**
  * Cómo publican y qué despiertan: formato de los posts, hora de publicación y
@@ -40,7 +41,7 @@ export function CompanySocialMix({
         <Panel
           id="empresas-redes-formato"
           title="Formato de los posts (% de los posts leídos)"
-          lede={`${count(posts)} posts de las empresas y redes elegidas; al pasar sobre una barra se ve la mediana de interacciones por post de ese formato.`}
+          lede={`${count(posts)} posts de las empresas y redes elegidas; al pasar sobre una barra se ve la mediana y cuántos posts declararon interacciones.`}
           source={SOCIAL_SOURCE}
         >
           {formats.length ? (
@@ -51,7 +52,8 @@ export function CompanySocialMix({
                   value: Number(row.value.toFixed(1)),
                   parts: [
                     { name: 'Posts', value: row.posts },
-                    { name: 'Mediana de interacciones', value: row.median },
+                    ...(row.median === null ? [] : [{ name: 'Mediana de interacciones', value: row.median }]),
+                    { name: 'Posts con interacciones', value: row.measured },
                   ],
                 }))}
                 unit="%"
@@ -60,7 +62,7 @@ export function CompanySocialMix({
               {barsKey('Parte de los posts leídos que tiene ese formato, en %')}
             </>
           ) : (
-            <div className="callout">Sin posts con formato conocido para el recorte.</div>
+            <div className="callout">Sin posts para el recorte.</div>
           )}
         </Panel>
 

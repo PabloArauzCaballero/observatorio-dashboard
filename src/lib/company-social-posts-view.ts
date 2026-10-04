@@ -27,6 +27,8 @@ export type PostSort = 'interactions' | 'date' | 'views' | 'comments' | 'analyze
 export type CommentTone = 'all' | 'analyzed' | 'positive' | 'negative';
 
 export interface PostQuery {
+  /** Una selección sin empresas es distinta de «todas las empresas». */
+  emptySelection: boolean;
   /** Vacío = todas las empresas. */
   slugs: readonly string[];
   /** Vacío = todas las redes. */
@@ -54,6 +56,13 @@ export interface PostPage {
   series: MonthPoint[];
   formats: Array<{ format: string; posts: number }>;
   dates: { min: string | null; max: string | null };
+  summary: {
+    measured: number;
+    medianInteractions: number | null;
+    topFiveShare: number | null;
+    analyzed: number;
+    net: number | null;
+  };
 }
 
 const ISO_DAY = /^\d{4}-\d{2}-\d{2}$/u;
@@ -82,11 +91,12 @@ export function parseQuery(body: unknown): PostQuery {
     return Number.isFinite(parsed) ? Math.min(Math.max(parsed, 0), max) : fallback;
   };
   return {
+    emptySelection: input.emptySelection === true,
     slugs: strings(input.slugs, 400),
     platforms: strings(input.platforms, 5),
     from: day(input.from),
     to: day(input.to),
-    format: typeof input.format === 'string' && /^[A-Z]{3,8}$/u.test(input.format) ? input.format : null,
+    format: typeof input.format === 'string' && (input.format === 'SIN DATO' || /^[A-Z]{3,8}$/u.test(input.format)) ? input.format : null,
     text: typeof input.text === 'string' ? input.text.trim().slice(0, 80) : '',
     commentTone: TONES.find((one) => one === input.commentTone) ?? 'all',
     sort,
@@ -109,6 +119,7 @@ export function queryPosts(all: readonly PostRecord[], query: PostQuery): PostPa
   // Las fechas y el formato recortan los gráficos y la lista; el formato no recorta su propio reparto.
   const inScope = all.filter(
     (post) =>
+      !query.emptySelection &&
       (!slugs || slugs.has(post.slug)) &&
       (!platforms || platforms.has(post.platform)) &&
       (!query.from || (post.date !== null && post.date >= query.from)) &&
@@ -120,7 +131,7 @@ export function queryPosts(all: readonly PostRecord[], query: PostQuery): PostPa
             (query.commentTone === 'positive' && post.sentiment.netScore > 0) ||
             (query.commentTone === 'negative' && post.sentiment.netScore < 0)))),
   );
-  const matching = query.format ? inScope.filter((post) => post.format === query.format) : inScope;
+  const matching = query.format ? inScope.filter((post) => (post.format ?? 'SIN DATO') === query.format) : inScope;
 
   const months = new Map<string, MonthPoint>();
   for (const post of matching) {
@@ -137,11 +148,22 @@ export function queryPosts(all: readonly PostRecord[], query: PostQuery): PostPa
   const dated = matching.filter((post) => post.date).map((post) => post.date as string).sort();
 
   const sorted = [...matching].sort((left, right) => key(right, query.sort) - key(left, query.sort));
+  const measured = matching.flatMap((post) => post.interactions === null ? [] : [post.interactions]).sort((a, b) => a - b);
+  const interactions = measured.reduce((sum, value) => sum + value, 0);
+  const middle = Math.floor(measured.length / 2);
+  const analyzed = matching.reduce((sum, post) => sum + (post.sentiment?.analyzed ?? 0), 0);
   return {
     total: matching.length,
     rows: sorted.slice(query.offset, query.offset + query.limit),
     series: [...months.values()].sort((left, right) => left.month.localeCompare(right.month)),
     formats: [...formats].map(([format, posts]) => ({ format, posts })).sort((left, right) => right.posts - left.posts),
     dates: { min: dated[0] ?? null, max: dated[dated.length - 1] ?? null },
+    summary: {
+      measured: measured.length,
+      medianInteractions: measured.length ? ((measured[middle] ?? 0) + (measured[Math.floor((measured.length - 1) / 2)] ?? 0)) / 2 : null,
+      topFiveShare: interactions > 0 ? 100 * measured.slice(-5).reduce((sum, value) => sum + value, 0) / interactions : null,
+      analyzed,
+      net: analyzed ? matching.reduce((sum, post) => sum + (post.sentiment ? post.sentiment.netScore * post.sentiment.analyzed : 0), 0) / analyzed : null,
+    },
   };
 }
