@@ -669,6 +669,11 @@ export default function Page() {
             lee nada, así que no necesita su propio `Suspense`; el cálculo corre
             en `/api/econometria` cuando alguien pide el documento.
           */}
+          <TabHeader
+            id="tipo-de-cambio"
+            title="Tipo de cambio"
+            lede="El dólar oficial del Banco Central y el paralelo de los mercados P2P, en bolivianos y descontada la inflación, y el boliviano frente a otras monedas. El paralelo es una lectura de mercados abiertos, no una cotización oficial."
+          />
           <Suspense fallback={<Armando que="el capítulo del tipo de cambio" />}>
             <FxSection />
           </Suspense>

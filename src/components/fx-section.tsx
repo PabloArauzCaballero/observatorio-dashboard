@@ -10,7 +10,6 @@ import type { Observatory } from '@/lib/series';
 import { realIndex, toMacroPoints } from '@/lib/fx-macro';
 import { readFxSnapshot } from '@/lib/fx-reader';
 import type { Observation } from '@/lib/econometrics';
-import { TabHeader } from '@/components/ui/tab-header';
 
 /**
  * The whole exchange-rate chapter, assembled where the data lives.
@@ -89,11 +88,6 @@ export async function FxSection() {
      * detrás de la tabla de bancos, y aquí el orden de lectura es el del documento.
      */
     <div className="fx-tab">
-      <TabHeader
-        id="tipo-de-cambio"
-        title="Tipo de cambio"
-        lede="El dólar oficial del Banco Central y el paralelo de los mercados P2P, en bolivianos y descontada la inflación, y el boliviano frente a otras monedas. El paralelo es una lectura de mercados abiertos, no una cotización oficial."
-      />
       <details className="panel-note">
         <summary>Qué muestra esta sección</summary>
         <p>
