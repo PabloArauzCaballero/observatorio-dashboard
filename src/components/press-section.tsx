@@ -4,6 +4,7 @@ import { OnOpenNotice, useOnOpen } from './on-open';
 import { PressExplorer } from './press-explorer';
 import { SubjectsExplorer } from './subjects-explorer';
 import { SubTabs } from './tabs';
+import { TabHeader } from '@/components/ui/tab-header';
 import type { PressArticle, PressCube, TermMonth, TermTotal } from '@/lib/series';
 
 /**
@@ -20,10 +21,17 @@ import type { PressArticle, PressCube, TermMonth, TermTotal } from '@/lib/series
  */
 export function PressSection() {
   return (
-    <SubTabs enlace labels={['Cobertura', 'Temas']} icons={['ventana', 'etiqueta']}>
-      <CoveragePanel />
-      <SubjectsPanel />
-    </SubTabs>
+    <>
+      <TabHeader
+        id="prensa"
+        title="Prensa"
+        lede="Lo que publicaron los medios bolivianos y de qué hablaron. Es reporte, no medición: ninguna cifra de aquí entra a una serie, y el tema y el tono los deriva el Observatorio con listas de palabras. En «Temas» se cuentan menciones, no notas."
+      />
+      <SubTabs enlace labels={['Cobertura', 'Temas']} icons={['ventana', 'etiqueta']}>
+        <CoveragePanel />
+        <SubjectsPanel />
+      </SubTabs>
+    </>
   );
 }
 
@@ -47,7 +55,9 @@ function CoveragePanel() {
     return <div className="callout">Todavía no hay cobertura de prensa cargada.</div>;
   }
 
-  return <PressExplorer cube={payload.cube} initialArticles={payload.articles} span={payload.span} />;
+  return (
+    <PressExplorer cube={payload.cube} initialArticles={payload.articles} span={payload.span} />
+  );
 }
 
 /** De qué se habló: cada término, mes a mes, con el tono con que se escribió. */

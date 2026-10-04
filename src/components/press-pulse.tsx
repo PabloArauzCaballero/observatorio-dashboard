@@ -1,7 +1,9 @@
 'use client';
 
+import { ChartLegend } from './charts';
 import { Icon } from './icons';
 import type { IconName } from './icons';
+import { Panel } from '@/components/ui/panel';
 import { ANY, additive, multiTitle, picked } from '@/lib/choice';
 import { countsFor } from '@/lib/cross-filter';
 import type { PressDimension, PressSelection } from '@/lib/cross-filter';
@@ -122,6 +124,19 @@ const REGION: Record<string, string> = {
   NACIONAL: 'Sin departamento nombrado',
 };
 
+/** Quién dice lo que se cuenta aquí: las notas son de los medios, el tono lo calcula el Observatorio. */
+const PRESS_SOURCE =
+  'archivo de prensa de medios bolivianos (cada nota enlaza a su medio); el tono y el tema los calcula el Observatorio con listas de palabras (ver «Método»)';
+
+/** Qué significan las dos marcas de la lista por años: la de delante y la de detrás. */
+const YEAR_KEY = [
+  { color: 'var(--up)', label: 'Alarma y conflicto, en % de la cobertura del año' },
+  {
+    color: 'color-mix(in srgb, var(--up) 26%, var(--panel-tint))',
+    label: 'Notas archivadas ese año',
+  },
+] as const;
+
 const ORDER = [
   'ALARMA',
   'CONFLICTO',
@@ -220,30 +235,33 @@ export function PressPulse({ cube, selection, span, onPick }: PressPulseProps) {
   // the comparison between years readable at all.
   const peakShare = Math.max(1, ...alarmByYear.map((row) => row.share));
 
+  const period = span.firstDay && span.lastDay ? `Del ${span.firstDay} al ${span.lastDay}. ` : '';
+  const round1 = (value: number): number => Number(value.toFixed(1));
+  const regionKey = [
+    { color: 'var(--official)', label: 'Notas que nombran el departamento' },
+    ...(regions.some(([key]) => picked(selection.region, key))
+      ? [{ color: 'var(--ink)', label: 'Departamento elegido' }]
+      : []),
+  ];
+  const termKey = [{ color: 'var(--official)', label: 'Notas que mencionan el término' }];
+
   return (
     <>
-      <div className="panel">
-        <div className="tile-head">
-          <Icon name="campana" size={17} />
-          <h2>Tono de la cobertura</h2>
-          <span className="tile-hint">
-            {shown.toLocaleString('es-BO')} de {span.total.toLocaleString('es-BO')} notas ·{' '}
-            {span.firstDay} → {span.lastDay}
-          </span>
-        </div>
-        <p className="panel-sub" style={{ marginBottom: 'var(--s2)' }}>
-          Léxico, no modelo: cada categoría es una lista de palabras que podés revisar. No lee
-          ironía ni distingue quién habla — un titular que cita la alarma de otro cuenta como
-          alarma. Tocá una y el resto del tablero se filtra con ella; con Ctrl+clic (⌘ en Mac)
-          sumás varias y el tablero se queda con las notas de cualquiera de ellas.
-        </p>
-        <p className="panel-sub" style={{ marginBottom: 'var(--s2)' }}>
-          «Sin marca» no quiere decir calma: quiere decir que ninguna palabra de la lista apareció.
-          Depende de cuánto texto hay que leer — <b>{span.unmarked.live} %</b> en las notas que
-          llegan con entradilla ({span.unmarked.liveLength} caracteres de media) y{' '}
-          <b>{span.unmarked.archive} %</b> en las de archivo, que sólo conservan el titular
-          reconstruido de su dirección ({span.unmarked.archiveLength} caracteres).
-        </p>
+      <Panel
+        id="prensa-tono"
+        title="Tono de la cobertura (cantidad de notas)"
+        lede={`${period}Léxico, no modelo: cada categoría es una lista de palabras que podés revisar.`}
+        meta={`${shown.toLocaleString('es-BO')} de ${span.total.toLocaleString('es-BO')} notas`}
+        source={PRESS_SOURCE}
+        data={() => ({
+          unidad: 'notas',
+          columnas: ['Tono', 'Notas', 'Parte de la selección (%)'],
+          filas: tones.map((key) => {
+            const count = byTone.get(key) ?? 0;
+            return [TONE[key]?.label ?? key, count, round1((count / (shown || 1)) * 100)];
+          }),
+        })}
+      >
         <div className="tone-strip">
           {tones.map((key) => {
             const entry = TONE[key];
@@ -276,41 +294,43 @@ export function PressPulse({ cube, selection, span, onPick }: PressPulseProps) {
             );
           })}
         </div>
-      </div>
+        <p className="panel-sub">
+          Tocá una categoría y el resto del tablero se filtra con ella; con Ctrl+clic (⌘ en Mac)
+          sumás varias y el tablero se queda con las notas de cualquiera de ellas. No lee ironía ni
+          distingue quién habla: un titular que cita la alarma de otro cuenta como alarma.
+        </p>
+        <p className="panel-sub">
+          «Sin marca» no quiere decir calma: quiere decir que ninguna palabra de la lista apareció.
+          Depende de cuánto texto hay que leer — <b>{span.unmarked.live} %</b> en las notas que
+          llegan con entradilla ({span.unmarked.liveLength} caracteres de media) y{' '}
+          <b>{span.unmarked.archive} %</b> en las de archivo, que sólo conservan el titular
+          reconstruido de su dirección ({span.unmarked.archiveLength} caracteres).
+        </p>
+      </Panel>
 
       {alarmByYear.length > 1 ? (
-        <div className="panel">
-          <div className="tile-head">
-            <Icon name="tendencia" size={17} />
-            <h2>Alarma y conflicto por año</h2>
-            <span className="tile-hint">{span.outlets} medios</span>
-          </div>
-          <p className="panel-sub" style={{ marginBottom: 'var(--s2)' }}>
-            Porcentaje de la cobertura de cada año que el léxico marca como escasez, colas, bloqueos
-            o paros. Tocá un año para quedarte con él. La cifra entre paréntesis es{' '}
-            <b>cuántos medios</b> se pudieron leer ese año: un año con menos notas puede ser un año
-            tranquilo o un año que nadie archivó, y esa columna dice cuál.
-          </p>
-          {/*
-            Dos marcas llevan sentido en esta lista —la barra de detrás es el
-            volumen del año y la de delante su alarma— y ninguna estaba
-            nombrada sobre el dibujo: el texto lo contaba, pero un lector que
-            baja directo a las barras veía dos rojos y tenía que adivinar cuál
-            era cuál.
-          */}
-          <ul className="chart-legend" style={{ marginBottom: 'var(--s2)' }}>
-            <li>
-              <span className="chart-legend-mark" style={{ background: 'var(--up)' }} />
-              Alarma y conflicto, en % de la cobertura del año
-            </li>
-            <li>
-              <span
-                className="chart-legend-mark"
-                style={{ background: 'color-mix(in srgb, var(--up) 26%, var(--panel-tint))' }}
-              />
-              Notas archivadas ese año
-            </li>
-          </ul>
+        <Panel
+          id="prensa-alarma-anio"
+          title="Alarma y conflicto por año (% de las notas del año)"
+          lede="Parte de la cobertura de cada año que el léxico marca como escasez, colas, bloqueos o paros."
+          meta={`${span.outlets} medios`}
+          source={PRESS_SOURCE}
+          data={() => ({
+            unidad: '% de las notas del año',
+            columnas: [
+              'Año',
+              'Notas archivadas',
+              'Alarma y conflicto (% de las notas)',
+              'Medios leídos',
+            ],
+            filas: alarmByYear.map((row) => [
+              row.year,
+              row.articles,
+              round1(row.share),
+              row.outlets,
+            ]),
+          })}
+        >
           <div className="barlist">
             {alarmByYear.map((row) => {
               const on = picked(selection.year, row.year);
@@ -324,11 +344,9 @@ export function PressPulse({ cube, selection, span, onPick }: PressPulseProps) {
                   onClick={(event) => onPick('year', row.year, additive(event))}
                 >
                   <Icon name="calendario" size={13} />
-                  <span className="barlist-name" style={{ width: 60 }}>
-                    {row.year}
-                  </span>
+                  <span className="barlist-name barlist-name-year">{row.year}</span>
                   <span className="barlist-track">
-                    {/* The pale bar is the year's volume; the solid one, its alarm. */}
+                    {/* La barra pálida es el volumen del año; la sólida, su alarma. */}
                     <span
                       className="barlist-ghost"
                       style={{ width: `${(row.articles / peakYear) * 100}%` }}
@@ -341,7 +359,7 @@ export function PressPulse({ cube, selection, span, onPick }: PressPulseProps) {
                       }}
                     />
                   </span>
-                  <span className="barlist-n" style={{ width: 152 }}>
+                  <span className="barlist-n barlist-n-wide">
                     {row.share.toFixed(1)} % de {row.articles.toLocaleString('es-BO')}{' '}
                     <span className="barlist-aside">({row.outlets})</span>
                   </span>
@@ -349,24 +367,32 @@ export function PressPulse({ cube, selection, span, onPick }: PressPulseProps) {
               );
             })}
           </div>
-        </div>
+          {/*
+            Dos marcas llevan sentido en esta lista —la barra de detrás es el
+            volumen del año y la de delante su alarma—, y la leyenda las nombra
+            bajo el dibujo, con los mismos colores.
+          */}
+          <ChartLegend items={YEAR_KEY} />
+          <p className="panel-sub">
+            Tocá un año para quedarte con él. La cifra entre paréntesis es <b>cuántos medios</b> se
+            pudieron leer ese año: un año con menos notas puede ser un año tranquilo o un año que
+            nadie archivó, y esa columna dice cuál.
+          </p>
+        </Panel>
       ) : null}
 
       <div className="grid-two">
-        <div className="panel">
-          <div className="tile-head">
-            <Icon name="etiqueta" size={17} />
-            <h2>Qué se está nombrando</h2>
-            <span className="tile-hint">
-              {terms.length} de {cube.terms.length} términos vigilados
-            </span>
-          </div>
-          <p className="panel-sub" style={{ marginBottom: 'var(--s2)' }}>
-            Tamaño por número de notas que lo mencionan. Tocá un término y el tablero entero se
-            queda con la cobertura que lo nombra; con Ctrl+clic sumás varios. Ojo: una nota que
-            nombra dos de los términos elegidos se cuenta dos veces en estas cifras y una sola vez
-            en el listado, así que los recuentos pasan a ser un techo.
-          </p>
+        <Panel
+          id="prensa-terminos"
+          title="Términos vigilados más nombrados (cantidad de notas)"
+          lede="El tamaño es el número de notas que mencionan cada término."
+          source={PRESS_SOURCE}
+          data={() => ({
+            unidad: 'notas',
+            columnas: ['Término', 'Notas que lo mencionan'],
+            filas: terms.slice(0, 24).map((term) => [term.label, term.mentions]),
+          })}
+        >
           <div className="term-map">
             {terms.slice(0, 24).map((term) => {
               const weight = term.mentions / peakTerm;
@@ -384,8 +410,12 @@ export function PressPulse({ cube, selection, span, onPick }: PressPulseProps) {
                   onClick={(event) => onPick('term', term.term, additive(event))}
                   style={{
                     fontSize: `${0.72 + weight * 0.55}rem`,
-                    background: on ? 'var(--ink)' : `rgb(27 79 156 / ${0.05 + weight * 0.16})`,
-                    borderColor: on ? 'var(--ink)' : `rgb(27 79 156 / ${0.15 + weight * 0.4})`,
+                    background: on
+                      ? 'var(--ink)'
+                      : `color-mix(in srgb, var(--official) ${((0.05 + weight * 0.16) * 100).toFixed(0)}%, transparent)`,
+                    borderColor: on
+                      ? 'var(--ink)'
+                      : `color-mix(in srgb, var(--official) ${((0.15 + weight * 0.4) * 100).toFixed(0)}%, transparent)`,
                     color: on ? 'var(--panel)' : 'inherit',
                   }}
                 >
@@ -395,18 +425,26 @@ export function PressPulse({ cube, selection, span, onPick }: PressPulseProps) {
               );
             })}
           </div>
-        </div>
-
-        <div className="panel">
-          <div className="tile-head">
-            <Icon name="globo" size={17} />
-            <h2>Dónde ocurre</h2>
-            <span className="tile-hint">{regions.length} departamentos</span>
-          </div>
-          <p className="panel-sub" style={{ marginBottom: 'var(--s2)' }}>
-            El departamento que la nota nombra. Las que no nombran ninguno quedan como nacionales,
-            en vez de asignarse a la ciudad del medio. Ctrl+clic para comparar varios a la vez.
+          <ChartLegend items={termKey} />
+          <p className="panel-sub">
+            Tocá un término y el tablero entero se queda con la cobertura que lo nombra; con
+            Ctrl+clic sumás varios. Ojo: una nota que nombra dos de los términos elegidos se cuenta
+            dos veces en estas cifras y una sola vez en el listado, así que los recuentos pasan a
+            ser un techo.
           </p>
+        </Panel>
+
+        <Panel
+          id="prensa-departamentos"
+          title="Notas por departamento (cantidad de notas)"
+          lede="El departamento que nombra cada nota; las que no nombran ninguno no se asignan a la ciudad del medio."
+          source={PRESS_SOURCE}
+          data={() => ({
+            unidad: 'notas',
+            columnas: ['Departamento', 'Notas'],
+            filas: regions.map(([key, count]) => [REGION[key] ?? key, count]),
+          })}
+        >
           <div className="barlist">
             {regions.map(([key, count]) => {
               const on = picked(selection.region, key);
@@ -435,11 +473,12 @@ export function PressPulse({ cube, selection, span, onPick }: PressPulseProps) {
               );
             })}
           </div>
-          <p className="panel-sub" style={{ marginTop: 'var(--s2)', marginBottom: 0 }}>
-            {national.toLocaleString('es-BO')} notas no nombran ningún departamento y no aparecen en
-            la lista.
+          <ChartLegend items={regionKey} />
+          <p className="panel-sub">
+            Ctrl+clic para comparar varios a la vez. {national.toLocaleString('es-BO')} notas no
+            nombran ningún departamento y no aparecen en la lista.
           </p>
-        </div>
+        </Panel>
       </div>
     </>
   );

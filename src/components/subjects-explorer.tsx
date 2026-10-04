@@ -14,10 +14,11 @@ import {
 } from '@/lib/choice';
 import type { Choice } from '@/lib/choice';
 import { FilterHint, PickedCount } from './filters';
-import { HeatGrid, MonthlyBars, ShareBars, TermCloud, YearlyBars } from './charts';
-import type { CloudWord, HeatCell, MonthBar, ShareSlice, YearBar } from './charts';
+import { ChartLegend, HeatGrid, MonthlyBars, ShareBars, TermCloud, YearlyBars } from './charts';
+import type { CloudWord, HeatCell, LegendItem, MonthBar, ShareSlice, YearBar } from './charts';
 import { Icon } from './icons';
 import type { IconName } from './icons';
+import { Panel } from '@/components/ui/panel';
 import type { TermMonth, TermTotal } from '@/lib/series';
 
 /**
@@ -255,6 +256,63 @@ const sumOf = (folds: Iterable<{ mentions: number }>): number => {
   return total;
 };
 
+/** Quién dice lo que se cuenta aquí: las notas son de los medios, los temas los fija el Observatorio. */
+const SUBJECTS_SOURCE =
+  'archivo de prensa de medios bolivianos, leído contra la lista de temas vigilados del Observatorio (ver «Método»)';
+
+/**
+ * La clave de unas barras de ShareBars: un solo color, o —si hay una marcada—
+ * el color de la marcada y el gris de contexto en que ShareBars deja las demás.
+ */
+function shareKey(
+  data: readonly ShareSlice[],
+  tone: string,
+  label: string,
+  markedLabel = label,
+  otherLabel = 'Demás',
+): LegendItem[] {
+  return data.some((slice) => slice.emphasis)
+    ? [
+        { color: tone, label: markedLabel },
+        { color: 'var(--series-rest)', label: otherLabel },
+      ]
+    : [{ color: tone, label }];
+}
+
+/** Año o mes: la granularidad de las rejillas, que se cambia desde el panel. */
+function GrainSwitch({
+  grain,
+  onChange,
+}: {
+  grain: 'anio' | 'mes';
+  onChange: (grain: 'anio' | 'mes') => void;
+}) {
+  return (
+    <div className="panel-tools" role="group" aria-label="Granularidad de la tabla">
+      <button
+        type="button"
+        className={grain === 'anio' ? 'chip chip-on' : 'chip'}
+        aria-pressed={grain === 'anio'}
+        onClick={() => onChange('anio')}
+        title="Una columna por año"
+      >
+        <Icon name="calendario" size={12} />
+        Por año
+      </button>
+      <button
+        type="button"
+        className={grain === 'mes' ? 'chip chip-on' : 'chip'}
+        aria-pressed={grain === 'mes'}
+        onClick={() => onChange('mes')}
+        title="Abrir cada año en sus meses"
+      >
+        <Icon name="barras" size={12} />
+        Por mes
+      </button>
+    </div>
+  );
+}
+
 export function SubjectsExplorer({ months, totals }: { months: TermMonth[]; totals: TermTotal[] }) {
   /*
    * La familia y el año son conjuntos; el tema no.
@@ -298,6 +356,8 @@ export function SubjectsExplorer({ months, totals }: { months: TermMonth[]; tota
   const chosenYears = list(year);
   const yearsLabel = chosenYears.join(', ');
   const yearsWord = year.size === 1 ? 'año' : 'años';
+  /** Lo que cada panel dice del recorte de años que tiene puesto. */
+  const periodLabel = year.size ? `${yearsWord} ${yearsLabel}` : 'archivo completo';
   const familiesLabel = list(family)
     .map((name) => FAMILY_LABEL[name] ?? name)
     .join(', ');
@@ -767,49 +827,6 @@ export function SubjectsExplorer({ months, totals }: { months: TermMonth[]; tota
       </aside>
 
       <div className="workspace-main" id="tablero" tabIndex={-1}>
-        <div className="briefcard">
-          <span className="briefcard-mark">
-            <Icon name="etiqueta" size={20} />
-          </span>
-          <div>
-            <h2>De qué se habla, y cuándo</h2>
-            <p>
-              Cada nota del archivo se lee contra una lista de temas vigilados y queda fechada por
-              el mes en que se publicó. Una nota puede nombrar varios temas: los conteos son{' '}
-              <strong>menciones, no notas</strong>, y por eso suman más que el archivo.
-            </p>
-            <div className="brief-points">
-              <div className="brief-point">
-                <span className="brief-point-mark">
-                  <Icon name="globo" size={17} />
-                </span>
-                <div>
-                  <b>Primero, entre temas</b>
-                  <span>la nube, las familias y el archivo entero</span>
-                </div>
-              </div>
-              <div className="brief-point">
-                <span className="brief-point-mark">
-                  <Icon name="diana" size={17} />
-                </span>
-                <div>
-                  <b>Después, dentro de uno</b>
-                  <span>su serie, sus tonos y sus vecinos</span>
-                </div>
-              </div>
-              <div className="brief-point">
-                <span className="brief-point-mark">
-                  <Icon name="calendario" size={17} />
-                </span>
-                <div>
-                  <b>Siempre fechado</b>
-                  <span>el año se elige a la izquierda</span>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-
         <div className="stat-strip">
           <div className="stat">
             <span className="stat-label">
@@ -827,7 +844,9 @@ export function SubjectsExplorer({ months, totals }: { months: TermMonth[]; tota
               Menciones fechadas
             </span>
             <span className="stat-value">{count(selectedMentions)}</span>
-            <span className="stat-hint">{year.size ? `sólo ${yearsLabel}` : 'todo el archivo'}</span>
+            <span className="stat-hint">
+              {year.size ? `sólo ${yearsLabel}` : 'todo el archivo'}
+            </span>
           </div>
           <div
             className="stat"
@@ -857,96 +876,110 @@ export function SubjectsExplorer({ months, totals }: { months: TermMonth[]; tota
           </div>
         </div>
 
-        <div className="strap">
-          <Icon name="globo" size={17} />
+        <div className="group-head">
           <h2>Panorama: los temas entre sí</h2>
-          <span className="tile-hint">
-            {year.size ? `${yearsWord} ${yearsLabel}` : 'archivo completo'}
+          <span className="group-hint">
+            {periodLabel}
             {family.size ? ` · ${familiesLabel}` : ''}
           </span>
         </div>
 
-        <div className="panel">
-          <div className="tile-head">
-            <Icon name="cajas" size={17} />
-            <h2>La nube de temas</h2>
-            <span className="tile-hint">
-              {cloud.length} tema{cloud.length === 1 ? '' : 's'} · tocá uno para abrirlo
-            </span>
-          </div>
+        <Panel
+          id="temas-nube"
+          title="Menciones de cada tema vigilado (cantidad de menciones)"
+          lede="Cada palabra es un tema, al tamaño de las veces que la prensa lo nombró."
+          meta={`${cloud.length} tema${cloud.length === 1 ? '' : 's'} · tocá uno para abrirlo`}
+          source={SUBJECTS_SOURCE}
+          data={() => ({
+            unidad: 'menciones',
+            columnas: ['Tema', 'Menciones', 'Cobertura adversa (%)'],
+            filas: [...cloud]
+              .filter((word) => word.value > 0)
+              .sort((left, right) => right.value - left.value)
+              .slice(0, 120)
+              .map((word) => [
+                word.label,
+                word.value,
+                word.adverse === null ? null : Number(word.adverse.toFixed(1)),
+              ]),
+            nota: 'Los 120 temas más nombrados de la selección.',
+          })}
+        >
           <TermCloud
             data={cloud}
             selected={subject?.term ?? ''}
             onPick={(picked) => setTerm(term === picked ? '' : picked)}
           />
-          <p className="panel-sub" style={{ marginTop: 'var(--s1)' }}>
+          <p className="panel-sub">
             El tamaño es cuántas veces la prensa nombró cada asunto — en raíz cuadrada, porque lo
             que el ojo compara es el área — y el color es qué parte de esa cobertura fue adversa:
             del azul, casi nada, al rojo, casi toda. El orden es alfabético para que un tema pueda
             buscarse; el dato es el tamaño, no la posición.
           </p>
-        </div>
+        </Panel>
 
         <div className="grid-pair">
-          <div className="panel">
-            <div className="tile-head">
-              <Icon name="etiqueta" size={17} />
-              <h2>Los quince más nombrados</h2>
-              <span className="tile-hint">
-                {family.size ? familiesLabel : 'todas las familias'}
-              </span>
-            </div>
+          <Panel
+            id="temas-quince"
+            title="Quince temas más nombrados (cantidad de menciones)"
+            lede={`La altura es atención mediática y no tamaño económico: el contrabando ocupa más titulares que la manufactura sin mover más dinero.${family.size ? ` Familias: ${familiesLabel}.` : ''}`}
+            source={SUBJECTS_SOURCE}
+          >
             <ShareBars
               data={topTerms}
               unit="menciones"
               height={Math.max(200, topTerms.length * 26)}
               onPick={(value) => setTerm(value === term ? '' : value)}
             />
-            <p className="panel-sub" style={{ marginTop: 'var(--s1)' }}>
-              La altura es atención mediática y no tamaño económico: el contrabando ocupa más
-              titulares que la manufactura sin mover más dinero.
-            </p>
-          </div>
+            <ChartLegend
+              items={shareKey(topTerms, 'var(--official)', 'Menciones del tema', 'Tema abierto')}
+            />
+          </Panel>
 
-          <div className="panel">
-            <div className="tile-head">
-              <Icon name="barras" size={17} />
-              <h2>El archivo, mes a mes</h2>
-              <span className="tile-hint">{archiveMonths.length} meses</span>
-            </div>
+          <Panel
+            id="temas-por-mes"
+            title="Menciones por mes (cantidad de menciones)"
+            lede="Todas las menciones de la selección sumadas por mes; en rojo, la parte adversa."
+            source={SUBJECTS_SOURCE}
+          >
             <MonthlyBars data={archiveMonths} height={240} />
-            <p className="panel-sub" style={{ marginTop: 'var(--s1)' }}>
-              Todas las menciones de la selección sumadas por mes; en rojo, la parte adversa. Los
-              años delgados son los que se reconstruyeron desde los mapas de sitio de cada medio, no
-              años sin economía.
+            <p className="panel-sub">
+              Los años delgados son los que se reconstruyeron desde los mapas de sitio de cada
+              medio, no años sin economía.
             </p>
-          </div>
+          </Panel>
 
-          <div className="panel">
-            <div className="tile-head">
-              <Icon name="capas" size={17} />
-              <h2>Las familias, comparadas</h2>
-              <span className="tile-hint">{families.length} familias</span>
-            </div>
+          <Panel
+            id="temas-familias"
+            title="Menciones por familia de temas (cantidad de menciones)"
+            lede="Siguen todas aunque haya una elegida, porque un ranking de una sola barra no compara nada."
+            source={SUBJECTS_SOURCE}
+          >
             <ShareBars
               data={familyShare}
               unit="menciones"
               height={Math.max(200, familyShare.length * 22)}
               onPick={pickFamily}
             />
-            <p className="panel-sub" style={{ marginTop: 'var(--s1)' }}>
-              Siguen todas aunque haya una elegida — va marcada —, porque un ranking de una sola
-              barra no compara nada. Tocá una barra para quedarte con esa familia; Ctrl+clic suma
-              otra.
+            <ChartLegend
+              items={shareKey(
+                familyShare,
+                'var(--official)',
+                'Menciones de la familia',
+                'Familia elegida',
+              )}
+            />
+            <p className="panel-sub">
+              Tocá una barra para quedarte con esa familia; Ctrl+clic suma otra.
             </p>
-          </div>
+          </Panel>
 
-          <div className="panel">
-            <div className="tile-head">
-              <Icon name="pulso" size={17} />
-              <h2>Qué familia se cubre peor</h2>
-              <span className="tile-hint">% de cobertura adversa</span>
-            </div>
+          <Panel
+            id="temas-familias-adversa"
+            title="Cobertura adversa por familia (% de las menciones)"
+            lede="Las mismas familias, ordenadas por tono en vez de por volumen. Es tono de la cobertura, no estado de la economía."
+            source={SUBJECTS_SOURCE}
+          >
             <ShareBars
               data={familyAdverse}
               unit="%"
@@ -954,56 +987,38 @@ export function SubjectsExplorer({ months, totals }: { months: TermMonth[]; tota
               height={Math.max(200, familyAdverse.length * 22)}
               onPick={pickFamily}
             />
-            <p className="panel-sub" style={{ marginTop: 'var(--s1)' }}>
-              Las mismas familias del panel de al lado, ordenadas por tono en vez de por volumen:
-              cada barra es una división —las menciones que la prensa cubrió con alarma, deterioro,
+            <ChartLegend
+              items={shareKey(
+                familyAdverse,
+                'var(--gap)',
+                'Cobertura adversa de la familia',
+                'Familia elegida',
+              )}
+            />
+            <p className="panel-sub">
+              Cada barra es una división —las menciones que la prensa cubrió con alarma, deterioro,
               conflicto o incertidumbre, <strong>divididas entre todas</strong> las menciones de esa
               familia—, y las dos listas rara vez coinciden en quién va primero. Pasá el puntero por
-              una barra y el globo muestra los dos números. Es tono de la cobertura, no estado de la
-              economía.
+              una barra y el globo muestra los dos números.
             </p>
-          </div>
+          </Panel>
         </div>
 
-        <div className="panel">
-          <div className="tile-head">
-            <Icon name="calendario" size={17} />
-            <h2>Qué se cubrió {grain === 'mes' ? 'cada mes' : 'cada año'}</h2>
-            <span className="tile-hint">
-              {year.size ? `${yearsWord} ${yearsLabel}` : 'archivo completo'} · {calendar.columns.length}{' '}
-              {grain === 'mes' ? 'meses' : 'años'}
-            </span>
-            <div className="tile-tools" role="group" aria-label="Granularidad de la tabla">
-              <button
-                type="button"
-                className={grain === 'anio' ? 'chip chip-on' : 'chip'}
-                aria-pressed={grain === 'anio'}
-                onClick={() => setGrain('anio')}
-                title="Una columna por año"
-              >
-                <Icon name="calendario" size={12} />
-                Por año
-              </button>
-              <button
-                type="button"
-                className={grain === 'mes' ? 'chip chip-on' : 'chip'}
-                aria-pressed={grain === 'mes'}
-                onClick={() => setGrain('mes')}
-                title="Abrir cada año en sus meses"
-              >
-                <Icon name="barras" size={12} />
-                Por mes
-              </button>
-            </div>
-          </div>
+        <Panel
+          id="temas-calendario"
+          title={`Menciones por familia y por ${grain === 'mes' ? 'mes' : 'año'} (cantidad de menciones)`}
+          lede="Cuanto más oscura la celda, más se habló de esa familia en esa columna."
+          meta={`${periodLabel} · ${calendar.columns.length} ${grain === 'mes' ? 'meses' : 'años'}`}
+          source={SUBJECTS_SOURCE}
+        >
+          <GrainSwitch grain={grain} onChange={setGrain} />
           <HeatGrid
             rows={calendar.rows}
             columns={calendar.columns}
             cells={calendar.cells}
             unit="menciones"
           />
-          <p className="panel-sub" style={{ marginTop: 'var(--s2)' }}>
-            Cuanto más oscura la celda, más se habló de esa familia en esa columna.{' '}
+          <p className="panel-sub">
             <strong>Por mes</strong> abre cada año en sus doce meses, y el filtro del año de la
             izquierda recorta la tabla igual que a los demás paneles:{' '}
             {year.size
@@ -1013,22 +1028,21 @@ export function SubjectsExplorer({ months, totals }: { months: TermMonth[]; tota
             comparte nada con nada. Las celdas vacías son periodos sin ninguna mención del asunto,
             no periodos con cero cobertura económica.
           </p>
-        </div>
+        </Panel>
 
         {missing ? (
           <div className="callout">
             El tema elegido no tiene ninguna mención{year.size ? ` en ${yearsLabel}` : ''}
-            {family.size ? ` dentro de ${familiesLabel}` : ''}. Quitá el filtro del año
-            o elegí otro tema para ver su análisis.
+            {family.size ? ` dentro de ${familiesLabel}` : ''}. Quitá el filtro del año o elegí otro
+            tema para ver su análisis.
           </div>
         ) : null}
 
         {subject ? (
           <>
-            <div className="strap">
-              <Icon name="diana" size={17} />
+            <div className="group-head">
               <h2>{subject.label}</h2>
-              <span className="tile-hint">
+              <span className="group-hint">
                 {count(subject.mentions)} menciones · {subject.months} meses ·{' '}
                 {FAMILY_LABEL[subject.family] ?? subject.family}
               </span>
@@ -1052,125 +1066,97 @@ export function SubjectsExplorer({ months, totals }: { months: TermMonth[]; tota
             </div>
 
             <div className="grid-pair">
-              <div className="panel">
-                <div className="tile-head">
-                  <Icon name="barras" size={17} />
-                  <h2>{subject.label}, mes a mes</h2>
-                  <span className="tile-hint">
-                    {sayMonth(subject.firstMonth)} → {sayMonth(subject.lastMonth)}
-                  </span>
-                </div>
-                <MonthlyBars data={subjectMonths} height={240} />
-                <p className="panel-sub" style={{ marginTop: 'var(--s1)' }}>
-                  Acumula <strong>{count(subject.mentions)} menciones</strong> en {subject.months}{' '}
-                  meses, con su pico en {sayMonth(subject.peakMonth)} ({count(subject.peakMentions)}{' '}
-                  notas)
-                  {subject.adverseShare === null
+              <Panel
+                id="tema-por-mes"
+                title={`Menciones de «${subject.label}» por mes (cantidad de menciones)`}
+                lede={`Acumula ${count(subject.mentions)} menciones en ${subject.months} meses, con su pico en ${sayMonth(subject.peakMonth)} (${count(subject.peakMentions)} notas)${
+                  subject.adverseShare === null
                     ? ''
-                    : ` y un ${percent(subject.adverseShare)} % de cobertura adversa`}
-                  .
-                </p>
-              </div>
+                    : ` y un ${percent(subject.adverseShare)} % de cobertura adversa`
+                }.`}
+                source={SUBJECTS_SOURCE}
+              >
+                <MonthlyBars data={subjectMonths} height={240} />
+              </Panel>
 
-              <div className="panel">
-                <div className="tile-head">
-                  <Icon name="calendario" size={17} />
-                  <h2>{subject.label}, año por año</h2>
-                  <span className="tile-hint">{subjectYears.length} años</span>
-                </div>
+              <Panel
+                id="tema-por-anio"
+                title={`Menciones de «${subject.label}» por año (cantidad de menciones)`}
+                lede="Este panel ignora el filtro del año a propósito: es la comparación entre años, y recortarla a uno dejaría una sola barra."
+                source={SUBJECTS_SOURCE}
+              >
                 <YearlyBars data={subjectYears} height={240} />
-                <p className="panel-sub" style={{ marginTop: 'var(--s1)' }}>
-                  Este panel ignora el filtro del año a propósito: es la comparación entre años, y
-                  recortarla a uno dejaría una sola barra.
-                </p>
-              </div>
+              </Panel>
 
-              <div className="panel">
-                <div className="tile-head">
-                  <Icon name="pulso" size={17} />
-                  <h2>Con qué tono se lo cubrió</h2>
-                  <span className="tile-hint">{year.size ? `${yearsWord} ${yearsLabel}` : 'todo el archivo'}</span>
-                </div>
+              <Panel
+                id="tema-tono"
+                title={`Tono con que se cubrió «${subject.label}» (cantidad de menciones)`}
+                lede="Van marcados los cuatro tonos que componen la cobertura adversa."
+                source={SUBJECTS_SOURCE}
+              >
                 <ShareBars
                   data={subjectTones}
                   unit="menciones"
                   height={Math.max(180, subjectTones.length * 32)}
                 />
-                <p className="panel-sub" style={{ marginTop: 'var(--s1)' }}>
-                  Van marcados los cuatro tonos que componen la cobertura adversa. «Sin marca» es
-                  una nota que nombró el tema sin que ninguna regla de tono la alcanzara, no una
-                  nota neutral.
+                <ChartLegend
+                  items={shareKey(
+                    subjectTones,
+                    'var(--official)',
+                    'Menciones con ese tono',
+                    'Tono adverso (alarma, deterioro, conflicto, incertidumbre)',
+                    'Otros tonos',
+                  )}
+                />
+                <p className="panel-sub">
+                  «Sin marca» es una nota que nombró el tema sin que ninguna regla de tono la
+                  alcanzara, no una nota neutral.
                 </p>
-              </div>
+              </Panel>
 
-              <div className="panel">
-                <div className="tile-head">
-                  <Icon name={FAMILY_ICON[subject.family] ?? 'capas'} size={17} />
-                  <h2>Dentro de {FAMILY_LABEL[subject.family] ?? subject.family}</h2>
-                  <span className="tile-hint">
-                    {siblingShare.length} tema{siblingShare.length === 1 ? '' : 's'}
-                  </span>
-                </div>
+              <Panel
+                id="tema-familia"
+                title={`Menciones de los temas de ${FAMILY_LABEL[subject.family] ?? subject.family} (cantidad de menciones)`}
+                lede="El tema abierto va marcado, para leerlo contra sus vecinos de familia y no contra el archivo entero."
+                source={SUBJECTS_SOURCE}
+              >
                 <ShareBars
                   data={siblingShare}
                   unit="menciones"
                   height={Math.max(180, Math.min(siblingShare.length, 16) * 26)}
                   onPick={(value) => setTerm(value === term ? '' : value)}
                 />
-                <p className="panel-sub" style={{ marginTop: 'var(--s1)' }}>
-                  El tema abierto va marcado, para leerlo contra sus vecinos de familia y no contra
-                  el archivo entero.
-                </p>
-              </div>
+                <ChartLegend
+                  items={shareKey(
+                    siblingShare,
+                    'var(--official)',
+                    'Menciones del tema',
+                    'Tema abierto',
+                  )}
+                />
+              </Panel>
             </div>
 
             {familyCalendar.rows.length > 1 ? (
-              <div className="panel">
-                <div className="tile-head">
-                  <Icon name="capas" size={17} />
-                  <h2>
-                    {FAMILY_LABEL[subject.family] ?? subject.family}, tema por tema y{' '}
-                    {grain === 'mes' ? 'mes por mes' : 'año por año'}
-                  </h2>
-                  <span className="tile-hint">
-                    hasta 12 temas · {year.size ? `${yearsWord} ${yearsLabel}` : 'archivo completo'}
-                  </span>
-                  <div className="tile-tools" role="group" aria-label="Granularidad de la tabla">
-                    <button
-                      type="button"
-                      className={grain === 'anio' ? 'chip chip-on' : 'chip'}
-                      aria-pressed={grain === 'anio'}
-                      onClick={() => setGrain('anio')}
-                      title="Una columna por año"
-                    >
-                      <Icon name="calendario" size={12} />
-                      Por año
-                    </button>
-                    <button
-                      type="button"
-                      className={grain === 'mes' ? 'chip chip-on' : 'chip'}
-                      aria-pressed={grain === 'mes'}
-                      onClick={() => setGrain('mes')}
-                      title="Abrir cada año en sus meses"
-                    >
-                      <Icon name="barras" size={12} />
-                      Por mes
-                    </button>
-                  </div>
-                </div>
+              <Panel
+                id="tema-calendario"
+                title={`${FAMILY_LABEL[subject.family] ?? subject.family}: menciones por tema y por ${grain === 'mes' ? 'mes' : 'año'} (cantidad de menciones)`}
+                lede="Un pico sólo significa algo contra los de al lado: dice si el periodo que disparó a este tema disparó también a los demás de su familia, o sólo a él."
+                meta={`hasta 12 temas · ${periodLabel}`}
+                source={SUBJECTS_SOURCE}
+              >
+                <GrainSwitch grain={grain} onChange={setGrain} />
                 <HeatGrid
                   rows={familyCalendar.rows}
                   columns={familyCalendar.columns}
                   cells={familyCalendar.cells}
                   unit="menciones"
                 />
-                <p className="panel-sub" style={{ marginTop: 'var(--s2)' }}>
-                  Un pico sólo significa algo contra los de al lado: esta rejilla dice si el periodo
-                  que disparó a este tema disparó también a los demás de su familia — un shock del
-                  sector — o sólo a él. Lleva el mismo año y la misma granularidad que la rejilla de
-                  arriba.
+                <p className="panel-sub">
+                  Un shock del sector mueve a varios temas a la vez. Lleva el mismo año y la misma
+                  granularidad que la rejilla de arriba.
                 </p>
-              </div>
+              </Panel>
             ) : null}
           </>
         ) : null}

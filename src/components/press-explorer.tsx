@@ -1,10 +1,12 @@
 'use client';
 
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { ChartLegend } from './charts';
 import { Icon } from './icons';
 import type { IconName } from './icons';
 import { FilterHint, PickedCount } from './filters';
 import { PressPulse } from './press-pulse';
+import { Panel } from '@/components/ui/panel';
 import {
   ECONOMIC_TOPICS,
   NO_SELECTION,
@@ -137,6 +139,10 @@ const REGION_LABEL: Record<string, string> = {
  */
 const BAR_TONE = 'var(--official)';
 
+/** Quién dice lo que se cuenta aquí: las notas son de los medios, el tema lo deriva el Observatorio. */
+const PRESS_SOURCE =
+  'archivo de prensa de medios bolivianos (cada nota enlaza a su medio); el tema lo deriva el Observatorio del titular (ver «Método»)';
+
 /** One page of the register; the API is asked for exactly this many. */
 const PAGE_SIZE = 60;
 
@@ -173,10 +179,26 @@ function chipsFor(selection: PressSelection, terms: PressCube['terms']): Chip[] 
     (value) => (value === ECONOMIC_TOPICS ? 'Solo economicos' : (TOPIC_LABEL[value] ?? value)),
     (value) => TOPIC_ICON[value] ?? 'cajas',
   );
-  add('year', (value) => value, () => 'calendario');
-  add('tone', (value) => TONE_LABEL[value] ?? value, () => 'campana');
-  add('region', (value) => REGION_LABEL[value] ?? value, () => 'globo');
-  add('outlet', (value) => value, () => 'ventana');
+  add(
+    'year',
+    (value) => value,
+    () => 'calendario',
+  );
+  add(
+    'tone',
+    (value) => TONE_LABEL[value] ?? value,
+    () => 'campana',
+  );
+  add(
+    'region',
+    (value) => REGION_LABEL[value] ?? value,
+    () => 'globo',
+  );
+  add(
+    'outlet',
+    (value) => value,
+    () => 'ventana',
+  );
   add(
     'term',
     (value) => terms.find((entry) => entry.term === value)?.label ?? value,
@@ -362,10 +384,13 @@ export function PressExplorer({
    * si fuera el total.
    */
   const bounded = isUpperBound(selection);
-  const chosenTopics = list(selection.topic);
-  const headingIcon: IconName = same(selection.topic, NO_SELECTION.topic)
-    ? 'tendencia'
-    : (TOPIC_ICON[chosenTopics[0] ?? ''] ?? 'tendencia');
+  /** Qué dice cada color de las barras: un tono para todos y la tinta para el elegido. */
+  const topicKey = [
+    { color: BAR_TONE, label: 'Notas del tema' },
+    ...(topics.some(([key]) => picked(selection.topic, key))
+      ? [{ color: 'var(--ink)', label: 'Tema elegido' }]
+      : []),
+  ];
   const heading = same(selection.topic, NO_SELECTION.topic)
     ? 'Cobertura económica'
     : selection.topic.size === 0
@@ -528,90 +553,20 @@ export function PressExplorer({
       </aside>
 
       <div className="workspace-main" id="tablero" tabIndex={-1}>
-        <div className="briefcard">
-          <span className="briefcard-mark">
-            <Icon name="ventana" size={20} />
-          </span>
-          <div>
-            <h2>Qué publica la prensa</h2>
-            <p>
-              Cobertura de siete medios bolivianos. Esta sección responde lo que ninguna serie
-              puede: <strong>por qué se movió un número</strong>. Un decreto o un bloqueo se reporta
-              días antes de que una tabla registre su efecto.
-            </p>
-            <div className="brief-points">
-              <div className="brief-point">
-                <span className="brief-point-mark">
-                  <Icon name="info" size={17} />
-                </span>
-                <div>
-                  <b>Es reporte, no medición</b>
-                  <span>ninguna cifra de aquí entra a una serie</span>
-                </div>
-              </div>
-              <div className="brief-point">
-                <span className="brief-point-mark">
-                  <Icon name="capas" size={17} />
-                </span>
-                <div>
-                  <b>Todo cruza con todo</b>
-                  <span>tocá cualquier barra y el resto se filtra</span>
-                </div>
-              </div>
-              <div className="brief-point">
-                <span className="brief-point-mark">
-                  <Icon name="diana" size={17} />
-                </span>
-                <div>
-                  <b>Cada nota cita su medio</b>
-                  <span>con el enlace y la huella del listado</span>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div className="strap">
-          <Icon name={headingIcon} size={17} />
-          <h2>{heading}</h2>
-          <span className="tile-hint">
-            {bounded ? 'hasta ' : ''}
-            {total.toLocaleString('es-BO')} de {span.total.toLocaleString('es-BO')} nota
-            {span.total === 1 ? '' : 's'}
-          </span>
-          {/*
-            Atenuar las tarjetas decia que algo pasaba solo a quien ya estaba
-            mirandolas. La espera se nombra donde esta el recuento que va a
-            cambiar, que es lo que el lector acaba de tocar.
-          */}
-          {loading ? (
-            <span className="strap-loading" role="status">
-              <span className="loading-spin" aria-hidden="true" />
-              buscando…
-            </span>
-          ) : null}
-          <div className="download">
-            <a className="download-btn" href={`/api/export?dataset=prensa&${address}&format=csv`}>
-              CSV
-            </a>
-            <a className="download-btn" href={`/api/export?dataset=prensa&${address}&format=json`}>
-              JSON
-            </a>
-          </div>
-        </div>
-
         <PressPulse cube={counting} selection={selection} span={span} onPick={pick} />
 
         {topics.length > 1 ? (
-          <div className="panel">
-            <div className="tile-head">
-              <Icon name="barras" size={17} />
-              <h2>Cobertura por tema</h2>
-              <span className="tile-hint">
-                {topics.reduce((sum, [, count]) => sum + count, 0).toLocaleString('es-BO')} notas,
-                sin filtrar por tema
-              </span>
-            </div>
+          <Panel
+            id="prensa-temas"
+            title="Notas por tema (cantidad de notas)"
+            lede={`${topics.reduce((sum, [, count]) => sum + count, 0).toLocaleString('es-BO')} notas, sin filtrar por tema. Tocá una barra para elegir ese tema.`}
+            source={PRESS_SOURCE}
+            data={() => ({
+              unidad: 'notas',
+              columnas: ['Tema', 'Notas'],
+              filas: topics.map(([key, count]) => [TOPIC_LABEL[key] ?? key, count]),
+            })}
+          >
             <div className="barlist">
               {topics.map(([key, count]) => {
                 const on = picked(selection.topic, key);
@@ -640,7 +595,8 @@ export function PressExplorer({
                 );
               })}
             </div>
-          </div>
+            <ChartLegend items={topicKey} />
+          </Panel>
         ) : null}
 
         {failed ? (
@@ -650,105 +606,144 @@ export function PressExplorer({
           </div>
         ) : null}
 
-        {total > PAGE_SIZE ? (
-          <p className="panel-sub register-note">
-            <Icon name="reloj" size={13} /> El registro va de lo más reciente a lo más antiguo:
-            página <b>{page}</b> de <b>{pages.toLocaleString('es-BO')}</b>,{' '}
-            <b>
-              {bounded ? 'hasta ' : ''}
-              {total.toLocaleString('es-BO')}
-            </b>{' '}
-            notas en esta selección. La descarga trae la selección completa.
-            {bounded ? (
-              <>
-                {' '}
-                Con varios términos elegidos esa cifra es un techo: una nota que nombra a dos se
-                cuenta dos veces aquí y una sola vez en el listado y en el archivo.
-              </>
-            ) : null}
-          </p>
-        ) : null}
+        <Panel
+          id="prensa-notas"
+          title="Notas de la selección (cantidad de notas)"
+          lede={`${heading}: ${bounded ? 'hasta ' : ''}${total.toLocaleString('es-BO')} de ${span.total.toLocaleString('es-BO')} nota${span.total === 1 ? '' : 's'}, de la más reciente a la más antigua.`}
+          meta={
+            loading ? (
+              <span className="strap-loading" role="status">
+                <span className="loading-spin" aria-hidden="true" />
+                buscando…
+              </span>
+            ) : null
+          }
+          source={PRESS_SOURCE}
+          data={() => ({
+            unidad: 'notas',
+            columnas: ['Fecha', 'Medio', 'Tema', 'Sección', 'Titular', 'Resumen', 'Enlace'],
+            filas: articles.map((article) => [
+              article.eventDate,
+              article.outlet,
+              TOPIC_LABEL[article.topic] ?? article.topic,
+              article.section,
+              article.headline,
+              article.summary ?? null,
+              article.url,
+            ]),
+            nota: 'Solo las notas de la página que se ve; la selección completa está en los botones CSV y JSON del panel.',
+          })}
+        >
+          <div className="download">
+            <span className="download-label">Selección completa</span>
+            <a className="download-btn" href={`/api/export?dataset=prensa&${address}&format=csv`}>
+              CSV
+            </a>
+            <a className="download-btn" href={`/api/export?dataset=prensa&${address}&format=json`}>
+              JSON
+            </a>
+          </div>
 
-        {articles.length ? (
-          <div className={loading ? 'filing-grid filing-grid-loading' : 'filing-grid'}>
-            {articles.map((article, index) => {
-              const isOpen = open.has(article.factClaimId);
-              return (
-                <article
-                  className={
-                    isOpen ? 'filing-card filing-card-open' : 'filing-card filing-card-tight'
-                  }
-                  key={article.factClaimId}
-                  style={{ animationDelay: `${Math.min(index, 12) * 40}ms` }}
-                >
-                  <div className="filing-top">
-                    <Icon name={TOPIC_ICON[article.topic] ?? 'cajas'} size={13} />
-                    <span>{article.outlet}</span>
-                    <span className="filing-date">{article.eventDate}</span>
-                  </div>
-                  <h4>{article.headline}</h4>
-                  <p className="filing-filer">
-                    {TOPIC_LABEL[article.topic] ?? article.topic} · {article.section}
-                  </p>
-                  {article.summary ? <p className="filing-summary">{article.summary}</p> : null}
-                  <p className="filing-foot">
-                    <button
-                      type="button"
-                      className="filing-toggle"
-                      onClick={() => toggle(article.factClaimId)}
-                      aria-expanded={isOpen}
-                    >
-                      <Icon name={isOpen ? 'plegar' : 'desplegar'} size={13} />
-                      {isOpen ? 'Plegar' : 'Ver completo'}
-                    </button>
-                    <span style={{ color: 'var(--ink-faint)' }}>{article.domain}</span>
-                    <a href={article.url} target="_blank" rel="noreferrer noopener">
-                      leer en el medio
-                    </a>
-                  </p>
-                </article>
-              );
-            })}
-          </div>
-        ) : (
-          <div className="callout">
-            {loading ? (
-              'Buscando las notas de esta selección…'
-            ) : search.trim() ? (
-              <>
-                Ninguna nota contiene «{search.trim()}» con los demás filtros puestos.{' '}
-                <button type="button" className="callout-link" onClick={() => setSearch('')}>
-                  Quitar la búsqueda
-                </button>
-              </>
-            ) : (
-              'Ninguna nota coincide con esta selección.'
-            )}
-          </div>
-        )}
-        {pages > 1 ? (
-          <nav className="pager" aria-label="Páginas del registro">
-            <button
-              type="button"
-              className="pager-step"
-              onClick={() => setOffset(Math.max(0, offset - PAGE_SIZE))}
-              disabled={page <= 1 || loading}
-            >
-              <Icon name="plegar" size={14} /> Más recientes
-            </button>
-            <span className="pager-where">
-              Página <b>{page}</b> de <b>{pages.toLocaleString('es-BO')}</b>
-            </span>
-            <button
-              type="button"
-              className="pager-step"
-              onClick={() => setOffset(offset + PAGE_SIZE)}
-              disabled={page >= pages || loading || atEnd}
-            >
-              Más antiguas <Icon name="desplegar" size={14} />
-            </button>
-          </nav>
-        ) : null}
+          {total > PAGE_SIZE ? (
+            <p className="panel-sub register-note">
+              <Icon name="reloj" size={13} /> Página <b>{page}</b> de{' '}
+              <b>{pages.toLocaleString('es-BO')}</b>,{' '}
+              <b>
+                {bounded ? 'hasta ' : ''}
+                {total.toLocaleString('es-BO')}
+              </b>{' '}
+              notas en esta selección. Los botones de arriba bajan la selección completa.
+              {bounded ? (
+                <>
+                  {' '}
+                  Con varios términos elegidos esa cifra es un techo: una nota que nombra a dos se
+                  cuenta dos veces aquí y una sola vez en el listado y en el archivo.
+                </>
+              ) : null}
+            </p>
+          ) : null}
+
+          {articles.length ? (
+            <div className={loading ? 'filing-grid filing-grid-loading' : 'filing-grid'}>
+              {articles.map((article, index) => {
+                const isOpen = open.has(article.factClaimId);
+                return (
+                  <article
+                    className={
+                      isOpen ? 'filing-card filing-card-open' : 'filing-card filing-card-tight'
+                    }
+                    key={article.factClaimId}
+                    style={{ animationDelay: `${Math.min(index, 12) * 40}ms` }}
+                  >
+                    <div className="filing-top">
+                      <Icon name={TOPIC_ICON[article.topic] ?? 'cajas'} size={13} />
+                      <span>{article.outlet}</span>
+                      <span className="filing-date">{article.eventDate}</span>
+                    </div>
+                    <h4>{article.headline}</h4>
+                    <p className="filing-filer">
+                      {TOPIC_LABEL[article.topic] ?? article.topic} · {article.section}
+                    </p>
+                    {article.summary ? <p className="filing-summary">{article.summary}</p> : null}
+                    <p className="filing-foot">
+                      <button
+                        type="button"
+                        className="filing-toggle"
+                        onClick={() => toggle(article.factClaimId)}
+                        aria-expanded={isOpen}
+                      >
+                        <Icon name={isOpen ? 'plegar' : 'desplegar'} size={13} />
+                        {isOpen ? 'Plegar' : 'Ver completo'}
+                      </button>
+                      <span className="filing-domain">{article.domain}</span>
+                      <a href={article.url} target="_blank" rel="noreferrer noopener">
+                        leer en el medio
+                      </a>
+                    </p>
+                  </article>
+                );
+              })}
+            </div>
+          ) : (
+            <div className="callout">
+              {loading ? (
+                'Buscando las notas de esta selección…'
+              ) : search.trim() ? (
+                <>
+                  Ninguna nota contiene «{search.trim()}» con los demás filtros puestos.{' '}
+                  <button type="button" className="callout-link" onClick={() => setSearch('')}>
+                    Quitar la búsqueda
+                  </button>
+                </>
+              ) : (
+                'Ninguna nota coincide con esta selección.'
+              )}
+            </div>
+          )}
+          {pages > 1 ? (
+            <nav className="pager" aria-label="Páginas del registro">
+              <button
+                type="button"
+                className="pager-step"
+                onClick={() => setOffset(Math.max(0, offset - PAGE_SIZE))}
+                disabled={page <= 1 || loading}
+              >
+                <Icon name="plegar" size={14} /> Más recientes
+              </button>
+              <span className="pager-where">
+                Página <b>{page}</b> de <b>{pages.toLocaleString('es-BO')}</b>
+              </span>
+              <button
+                type="button"
+                className="pager-step"
+                onClick={() => setOffset(offset + PAGE_SIZE)}
+                disabled={page >= pages || loading || atEnd}
+              >
+                Más antiguas <Icon name="desplegar" size={14} />
+              </button>
+            </nav>
+          ) : null}
+        </Panel>
       </div>
     </div>
   );
