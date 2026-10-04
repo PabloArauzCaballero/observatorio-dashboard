@@ -9779,3 +9779,13 @@ button.download-btn {
     display: none !important;
   }
 }
+
+/* === Gráfico y tabla del mismo dato (ViewToggle) === */
+
+.view-toggle-bar {
+  margin-bottom: var(--s2);
+}
+
+.view-toggle-body {
+  min-width: 0;
+}

@@ -124,3 +124,25 @@ sonda con datos sintéticos (no se commitea).
 - `node local-tab.mjs <puerto> "<pestaña>" "<subpestaña>" <etiqueta>` — capturas en claro/oscuro,
   escritorio y móvil; **mirarlas** (no basta con que compile).
 - Descarga real de un panel con gráfico (PNG, CSV, Excel) abierta y revisada.
+
+## Tablas → gráficos (`ViewToggle`)
+
+Pedido del usuario (3-oct-2026): «se ven feas esas tablas, podrían verse gráficos». Regla: **donde una tabla es una clasificación, una serie o un desglose, se ve primero como gráfico y la tabla queda a un clic dentro del mismo panel.** Lo que es registro (un directorio, una lista de documentos con enlaces, normas con texto, un catálogo) sigue siendo tabla.
+
+| La tabla es… | Se dibuja como… | Pieza de `charts.tsx` |
+|---|---|---|
+| un ranking (nombre → cifra) | barras horizontales | `ShareBars`, `ReachChart`, `DivergingBars` si hay signo |
+| una serie en el tiempo (año/mes → cifra) | líneas o barras | `SeriesChart`, `YearlyBars`, `MonthlyBars`, `DatedLines` |
+| un desglose que suma un total | barras apiladas | `StackedBars`, `YearStackBars` |
+| varias series comparables | líneas | `WorldLines`, `DatedLines`, `RankLines` |
+| dos dimensiones cruzadas | mapa de calor | `HeatGrid` |
+
+Receta: `ViewToggle` (`@/components/ui/view-toggle`) recibe `chart` y `table` ya armados y enseña
+uno a la vez (gráfico primero). Va **dentro** del `Panel`, donde iba la tabla. La tabla se conserva
+tal cual (mismas filas, mismas columnas) y los datos que se bajan son los mismos en las dos vistas.
+
+- Los datos del gráfico salen de las mismas filas que la tabla; no se calculan dos veces ni se cambia ningún cálculo.
+- Leyenda (`ChartLegend`) bajo el gráfico, también con una sola serie; título con unidad.
+- Un gráfico con más de ~12 categorías muestra las primeras y dice cuántas faltan; la tabla las tiene todas.
+- Si la tabla tiene enlaces o texto largo por fila, **no** se convierte: se deja tabla.
+- No se tocan `charts.tsx` ni `ui/*`: si falta un gráfico, se describe en el informe.
