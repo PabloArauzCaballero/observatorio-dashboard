@@ -1,0 +1,4007 @@
+[
+  {
+    "date": "2010-12-31",
+    "product": "Gasolina Premium",
+    "unit": "Bs/l",
+    "price": 7.51,
+    "market": "Mercado interno",
+    "kind": "Cierre anual",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2010-12-31",
+    "product": "Gasolina de Aviación",
+    "unit": "Bs/l",
+    "price": 7.29,
+    "market": "Mercado interno",
+    "kind": "Cierre anual",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2010-12-31",
+    "product": "Gasolina Especial",
+    "unit": "Bs/l",
+    "price": 6.47,
+    "market": "Mercado interno",
+    "kind": "Cierre anual",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2010-12-31",
+    "product": "Diésel Oil",
+    "unit": "Bs/l",
+    "price": 6.8,
+    "market": "Mercado interno",
+    "kind": "Cierre anual",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2010-12-31",
+    "product": "Jet Fuel Nacional",
+    "unit": "Bs/l",
+    "price": 5.5,
+    "market": "Mercado interno",
+    "kind": "Cierre anual",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2010-12-31",
+    "product": "Kerosene",
+    "unit": "Bs/l",
+    "price": 5.3,
+    "market": "Mercado interno",
+    "kind": "Cierre anual",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2010-12-31",
+    "product": "GLP",
+    "unit": "Bs/kg",
+    "price": 2.25,
+    "market": "Mercado interno",
+    "kind": "Cierre anual",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2010-12-31",
+    "product": "GNV",
+    "unit": "Bs/m³",
+    "price": 1.66,
+    "market": "Mercado interno",
+    "kind": "Cierre anual",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2010-12-31",
+    "product": "Gas Oil",
+    "unit": "Bs/l",
+    "price": 1.1,
+    "market": "Mercado interno",
+    "kind": "Cierre anual",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2011-12-31",
+    "product": "Gasolina Premium",
+    "unit": "Bs/l",
+    "price": 4.79,
+    "market": "Mercado interno",
+    "kind": "Cierre anual",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2011-12-31",
+    "product": "Gasolina de Aviación",
+    "unit": "Bs/l",
+    "price": 4.57,
+    "market": "Mercado interno",
+    "kind": "Cierre anual",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2011-12-31",
+    "product": "Gasolina Especial",
+    "unit": "Bs/l",
+    "price": 3.74,
+    "market": "Mercado interno",
+    "kind": "Cierre anual",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2011-12-31",
+    "product": "Diésel Oil",
+    "unit": "Bs/l",
+    "price": 3.72,
+    "market": "Mercado interno",
+    "kind": "Cierre anual",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2011-12-31",
+    "product": "Jet Fuel Nacional",
+    "unit": "Bs/l",
+    "price": 2.77,
+    "market": "Mercado interno",
+    "kind": "Cierre anual",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2011-12-31",
+    "product": "Kerosene",
+    "unit": "Bs/l",
+    "price": 2.72,
+    "market": "Mercado interno",
+    "kind": "Cierre anual",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2011-12-31",
+    "product": "GLP",
+    "unit": "Bs/kg",
+    "price": 2.25,
+    "market": "Mercado interno",
+    "kind": "Cierre anual",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2011-12-31",
+    "product": "GNV",
+    "unit": "Bs/m³",
+    "price": 1.66,
+    "market": "Mercado interno",
+    "kind": "Cierre anual",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2011-12-31",
+    "product": "Gas Oil",
+    "unit": "Bs/l",
+    "price": 1.1,
+    "market": "Mercado interno",
+    "kind": "Cierre anual",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2012-12-31",
+    "product": "Gasolina Premium",
+    "unit": "Bs/l",
+    "price": 4.79,
+    "market": "Mercado interno",
+    "kind": "Cierre anual",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2012-12-31",
+    "product": "Gasolina de Aviación",
+    "unit": "Bs/l",
+    "price": 4.57,
+    "market": "Mercado interno",
+    "kind": "Cierre anual",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2012-12-31",
+    "product": "Gasolina Especial",
+    "unit": "Bs/l",
+    "price": 3.74,
+    "market": "Mercado interno",
+    "kind": "Cierre anual",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2012-12-31",
+    "product": "Diésel Oil",
+    "unit": "Bs/l",
+    "price": 3.72,
+    "market": "Mercado interno",
+    "kind": "Cierre anual",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2012-12-31",
+    "product": "Jet Fuel Nacional",
+    "unit": "Bs/l",
+    "price": 2.77,
+    "market": "Mercado interno",
+    "kind": "Cierre anual",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2012-12-31",
+    "product": "Kerosene",
+    "unit": "Bs/l",
+    "price": 2.72,
+    "market": "Mercado interno",
+    "kind": "Cierre anual",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2012-12-31",
+    "product": "GLP",
+    "unit": "Bs/kg",
+    "price": 2.25,
+    "market": "Mercado interno",
+    "kind": "Cierre anual",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2012-12-31",
+    "product": "GNV",
+    "unit": "Bs/m³",
+    "price": 1.66,
+    "market": "Mercado interno",
+    "kind": "Cierre anual",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2012-12-31",
+    "product": "Gas Oil",
+    "unit": "Bs/l",
+    "price": 1.1,
+    "market": "Mercado interno",
+    "kind": "Cierre anual",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2013-12-31",
+    "product": "Gasolina Premium",
+    "unit": "Bs/l",
+    "price": 4.79,
+    "market": "Mercado interno",
+    "kind": "Cierre anual",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2013-12-31",
+    "product": "Gasolina de Aviación",
+    "unit": "Bs/l",
+    "price": 4.57,
+    "market": "Mercado interno",
+    "kind": "Cierre anual",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2013-12-31",
+    "product": "Gasolina Especial",
+    "unit": "Bs/l",
+    "price": 3.74,
+    "market": "Mercado interno",
+    "kind": "Cierre anual",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2013-12-31",
+    "product": "Diésel Oil",
+    "unit": "Bs/l",
+    "price": 3.72,
+    "market": "Mercado interno",
+    "kind": "Cierre anual",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2013-12-31",
+    "product": "Jet Fuel Nacional",
+    "unit": "Bs/l",
+    "price": 2.77,
+    "market": "Mercado interno",
+    "kind": "Cierre anual",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2013-12-31",
+    "product": "Kerosene",
+    "unit": "Bs/l",
+    "price": 2.72,
+    "market": "Mercado interno",
+    "kind": "Cierre anual",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2013-12-31",
+    "product": "GLP",
+    "unit": "Bs/kg",
+    "price": 2.25,
+    "market": "Mercado interno",
+    "kind": "Cierre anual",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2013-12-31",
+    "product": "GNV",
+    "unit": "Bs/m³",
+    "price": 1.66,
+    "market": "Mercado interno",
+    "kind": "Cierre anual",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2013-12-31",
+    "product": "Gas Oil",
+    "unit": "Bs/l",
+    "price": 1.1,
+    "market": "Mercado interno",
+    "kind": "Cierre anual",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2014-12-31",
+    "product": "Gasolina Premium",
+    "unit": "Bs/l",
+    "price": 4.79,
+    "market": "Mercado interno",
+    "kind": "Cierre anual",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2014-12-31",
+    "product": "Gasolina de Aviación",
+    "unit": "Bs/l",
+    "price": 4.57,
+    "market": "Mercado interno",
+    "kind": "Cierre anual",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2014-12-31",
+    "product": "Gasolina Especial",
+    "unit": "Bs/l",
+    "price": 3.74,
+    "market": "Mercado interno",
+    "kind": "Cierre anual",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2014-12-31",
+    "product": "Diésel Oil",
+    "unit": "Bs/l",
+    "price": 3.72,
+    "market": "Mercado interno",
+    "kind": "Cierre anual",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2014-12-31",
+    "product": "Jet Fuel Nacional",
+    "unit": "Bs/l",
+    "price": 2.77,
+    "market": "Mercado interno",
+    "kind": "Cierre anual",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2014-12-31",
+    "product": "Kerosene",
+    "unit": "Bs/l",
+    "price": 2.72,
+    "market": "Mercado interno",
+    "kind": "Cierre anual",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2014-12-31",
+    "product": "GLP",
+    "unit": "Bs/kg",
+    "price": 2.25,
+    "market": "Mercado interno",
+    "kind": "Cierre anual",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2014-12-31",
+    "product": "GNV",
+    "unit": "Bs/m³",
+    "price": 1.66,
+    "market": "Mercado interno",
+    "kind": "Cierre anual",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2014-12-31",
+    "product": "Gas Oil",
+    "unit": "Bs/l",
+    "price": 1.1,
+    "market": "Mercado interno",
+    "kind": "Cierre anual",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2015-12-31",
+    "product": "Gasolina Premium",
+    "unit": "Bs/l",
+    "price": 4.79,
+    "market": "Mercado interno",
+    "kind": "Cierre anual",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2015-12-31",
+    "product": "Gasolina de Aviación",
+    "unit": "Bs/l",
+    "price": 4.57,
+    "market": "Mercado interno",
+    "kind": "Cierre anual",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2015-12-31",
+    "product": "Gasolina Especial",
+    "unit": "Bs/l",
+    "price": 3.74,
+    "market": "Mercado interno",
+    "kind": "Cierre anual",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2015-12-31",
+    "product": "Diésel Oil",
+    "unit": "Bs/l",
+    "price": 3.72,
+    "market": "Mercado interno",
+    "kind": "Cierre anual",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2015-12-31",
+    "product": "Jet Fuel Nacional",
+    "unit": "Bs/l",
+    "price": 2.77,
+    "market": "Mercado interno",
+    "kind": "Cierre anual",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2015-12-31",
+    "product": "Kerosene",
+    "unit": "Bs/l",
+    "price": 2.72,
+    "market": "Mercado interno",
+    "kind": "Cierre anual",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2015-12-31",
+    "product": "GLP",
+    "unit": "Bs/kg",
+    "price": 2.25,
+    "market": "Mercado interno",
+    "kind": "Cierre anual",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2015-12-31",
+    "product": "GNV",
+    "unit": "Bs/m³",
+    "price": 1.66,
+    "market": "Mercado interno",
+    "kind": "Cierre anual",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2015-12-31",
+    "product": "Gas Oil",
+    "unit": "Bs/l",
+    "price": 1.1,
+    "market": "Mercado interno",
+    "kind": "Cierre anual",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2016-12-31",
+    "product": "Gasolina Premium",
+    "unit": "Bs/l",
+    "price": 4.79,
+    "market": "Mercado interno",
+    "kind": "Cierre anual",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2016-12-31",
+    "product": "Gasolina de Aviación",
+    "unit": "Bs/l",
+    "price": 4.57,
+    "market": "Mercado interno",
+    "kind": "Cierre anual",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2016-12-31",
+    "product": "Gasolina Especial",
+    "unit": "Bs/l",
+    "price": 3.74,
+    "market": "Mercado interno",
+    "kind": "Cierre anual",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2016-12-31",
+    "product": "Diésel Oil",
+    "unit": "Bs/l",
+    "price": 3.72,
+    "market": "Mercado interno",
+    "kind": "Cierre anual",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2016-12-31",
+    "product": "Jet Fuel Nacional",
+    "unit": "Bs/l",
+    "price": 2.77,
+    "market": "Mercado interno",
+    "kind": "Cierre anual",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2016-12-31",
+    "product": "Kerosene",
+    "unit": "Bs/l",
+    "price": 2.72,
+    "market": "Mercado interno",
+    "kind": "Cierre anual",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2016-12-31",
+    "product": "GLP",
+    "unit": "Bs/kg",
+    "price": 2.25,
+    "market": "Mercado interno",
+    "kind": "Cierre anual",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2016-12-31",
+    "product": "GNV",
+    "unit": "Bs/m³",
+    "price": 1.66,
+    "market": "Mercado interno",
+    "kind": "Cierre anual",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2016-12-31",
+    "product": "Gas Oil",
+    "unit": "Bs/l",
+    "price": 1.1,
+    "market": "Mercado interno",
+    "kind": "Cierre anual",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2017-12-31",
+    "product": "Gasolina Premium",
+    "unit": "Bs/l",
+    "price": 4.79,
+    "market": "Mercado interno",
+    "kind": "Cierre anual",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2017-12-31",
+    "product": "Gasolina de Aviación",
+    "unit": "Bs/l",
+    "price": 4.57,
+    "market": "Mercado interno",
+    "kind": "Cierre anual",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2017-12-31",
+    "product": "Gasolina Especial",
+    "unit": "Bs/l",
+    "price": 3.74,
+    "market": "Mercado interno",
+    "kind": "Cierre anual",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2017-12-31",
+    "product": "Diésel Oil",
+    "unit": "Bs/l",
+    "price": 3.72,
+    "market": "Mercado interno",
+    "kind": "Cierre anual",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2017-12-31",
+    "product": "Jet Fuel Nacional",
+    "unit": "Bs/l",
+    "price": 2.77,
+    "market": "Mercado interno",
+    "kind": "Cierre anual",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2017-12-31",
+    "product": "Kerosene",
+    "unit": "Bs/l",
+    "price": 2.72,
+    "market": "Mercado interno",
+    "kind": "Cierre anual",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2017-12-31",
+    "product": "GLP",
+    "unit": "Bs/kg",
+    "price": 2.25,
+    "market": "Mercado interno",
+    "kind": "Cierre anual",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2017-12-31",
+    "product": "GNV",
+    "unit": "Bs/m³",
+    "price": 1.66,
+    "market": "Mercado interno",
+    "kind": "Cierre anual",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2017-12-31",
+    "product": "Gas Oil",
+    "unit": "Bs/l",
+    "price": 1.1,
+    "market": "Mercado interno",
+    "kind": "Cierre anual",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2018-12-31",
+    "product": "Gasolina Premium",
+    "unit": "Bs/l",
+    "price": 4.79,
+    "market": "Mercado interno",
+    "kind": "Cierre anual",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2018-12-31",
+    "product": "Gasolina de Aviación",
+    "unit": "Bs/l",
+    "price": 4.57,
+    "market": "Mercado interno",
+    "kind": "Cierre anual",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2018-12-31",
+    "product": "Gasolina Súper 91",
+    "unit": "Bs/l",
+    "price": 4.4,
+    "market": "Mercado interno",
+    "kind": "Cierre anual",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2018-12-31",
+    "product": "Gasolina Especial",
+    "unit": "Bs/l",
+    "price": 3.74,
+    "market": "Mercado interno",
+    "kind": "Cierre anual",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2018-12-31",
+    "product": "Diésel Oil",
+    "unit": "Bs/l",
+    "price": 3.72,
+    "market": "Mercado interno",
+    "kind": "Cierre anual",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2018-12-31",
+    "product": "Jet Fuel Nacional",
+    "unit": "Bs/l",
+    "price": 2.77,
+    "market": "Mercado interno",
+    "kind": "Cierre anual",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2018-12-31",
+    "product": "Kerosene",
+    "unit": "Bs/l",
+    "price": 2.72,
+    "market": "Mercado interno",
+    "kind": "Cierre anual",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2018-12-31",
+    "product": "GLP",
+    "unit": "Bs/kg",
+    "price": 2.25,
+    "market": "Mercado interno",
+    "kind": "Cierre anual",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2018-12-31",
+    "product": "GNV",
+    "unit": "Bs/m³",
+    "price": 1.66,
+    "market": "Mercado interno",
+    "kind": "Cierre anual",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2018-12-31",
+    "product": "Gas Oil",
+    "unit": "Bs/l",
+    "price": 1.1,
+    "market": "Mercado interno",
+    "kind": "Cierre anual",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2018-12-31",
+    "product": "Gasolina Súper Etanol 92",
+    "unit": "Bs/l",
+    "price": 4.5,
+    "market": "Mercado interno",
+    "kind": "Cierre anual",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2019-12-31",
+    "product": "Gasolina Premium",
+    "unit": "Bs/l",
+    "price": 4.79,
+    "market": "Mercado interno",
+    "kind": "Cierre anual",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2019-12-31",
+    "product": "Gasolina de Aviación",
+    "unit": "Bs/l",
+    "price": 4.57,
+    "market": "Mercado interno",
+    "kind": "Cierre anual",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2019-12-31",
+    "product": "Gasolina Súper 91",
+    "unit": "Bs/l",
+    "price": 4.4,
+    "market": "Mercado interno",
+    "kind": "Cierre anual",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2019-12-31",
+    "product": "Gasolina Especial",
+    "unit": "Bs/l",
+    "price": 3.74,
+    "market": "Mercado interno",
+    "kind": "Cierre anual",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2019-12-31",
+    "product": "Diésel Oil",
+    "unit": "Bs/l",
+    "price": 3.72,
+    "market": "Mercado interno",
+    "kind": "Cierre anual",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2019-12-31",
+    "product": "Jet Fuel Nacional",
+    "unit": "Bs/l",
+    "price": 2.77,
+    "market": "Mercado interno",
+    "kind": "Cierre anual",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2019-12-31",
+    "product": "Kerosene",
+    "unit": "Bs/l",
+    "price": 2.72,
+    "market": "Mercado interno",
+    "kind": "Cierre anual",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2019-12-31",
+    "product": "GLP",
+    "unit": "Bs/kg",
+    "price": 2.25,
+    "market": "Mercado interno",
+    "kind": "Cierre anual",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2019-12-31",
+    "product": "GNV",
+    "unit": "Bs/m³",
+    "price": 1.66,
+    "market": "Mercado interno",
+    "kind": "Cierre anual",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2019-12-31",
+    "product": "Gas Oil",
+    "unit": "Bs/l",
+    "price": 1.1,
+    "market": "Mercado interno",
+    "kind": "Cierre anual",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2019-12-31",
+    "product": "Gasolina Especial +",
+    "unit": "Bs/l",
+    "price": 3.74,
+    "market": "Mercado interno",
+    "kind": "Cierre anual",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2019-12-31",
+    "product": "Gasolina Súper Etanol 92",
+    "unit": "Bs/l",
+    "price": 4.5,
+    "market": "Mercado interno",
+    "kind": "Cierre anual",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2020-12-31",
+    "product": "Gasolina Premium",
+    "unit": "Bs/l",
+    "price": 4.79,
+    "market": "Mercado interno",
+    "kind": "Cierre anual",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2020-12-31",
+    "product": "Gasolina de Aviación",
+    "unit": "Bs/l",
+    "price": 4.57,
+    "market": "Mercado interno",
+    "kind": "Cierre anual",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2020-12-31",
+    "product": "Gasolina Súper 91",
+    "unit": "Bs/l",
+    "price": 4.4,
+    "market": "Mercado interno",
+    "kind": "Cierre anual",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2020-12-31",
+    "product": "Gasolina Especial",
+    "unit": "Bs/l",
+    "price": 3.74,
+    "market": "Mercado interno",
+    "kind": "Cierre anual",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2020-12-31",
+    "product": "Diésel Oil",
+    "unit": "Bs/l",
+    "price": 3.72,
+    "market": "Mercado interno",
+    "kind": "Cierre anual",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2020-12-31",
+    "product": "Jet Fuel Nacional",
+    "unit": "Bs/l",
+    "price": 2.77,
+    "market": "Mercado interno",
+    "kind": "Cierre anual",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2020-12-31",
+    "product": "Kerosene",
+    "unit": "Bs/l",
+    "price": 2.72,
+    "market": "Mercado interno",
+    "kind": "Cierre anual",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2020-12-31",
+    "product": "GLP",
+    "unit": "Bs/kg",
+    "price": 2.25,
+    "market": "Mercado interno",
+    "kind": "Cierre anual",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2020-12-31",
+    "product": "GNV",
+    "unit": "Bs/m³",
+    "price": 1.66,
+    "market": "Mercado interno",
+    "kind": "Cierre anual",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2020-12-31",
+    "product": "Gas Oil",
+    "unit": "Bs/l",
+    "price": 1.1,
+    "market": "Mercado interno",
+    "kind": "Cierre anual",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2020-12-31",
+    "product": "Gasolina Especial +",
+    "unit": "Bs/l",
+    "price": 3.74,
+    "market": "Mercado interno",
+    "kind": "Cierre anual",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2020-12-31",
+    "product": "Gasolina Súper Etanol 92",
+    "unit": "Bs/l",
+    "price": 4.5,
+    "market": "Mercado interno",
+    "kind": "Cierre anual",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2021-12-31",
+    "product": "Gasolina Premium",
+    "unit": "Bs/l",
+    "price": 4.79,
+    "market": "Mercado interno",
+    "kind": "Cierre anual",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2021-12-31",
+    "product": "Gasolina de Aviación",
+    "unit": "Bs/l",
+    "price": 4.57,
+    "market": "Mercado interno",
+    "kind": "Cierre anual",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2021-12-31",
+    "product": "Gasolina Súper 91",
+    "unit": "Bs/l",
+    "price": 4.4,
+    "market": "Mercado interno",
+    "kind": "Cierre anual",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2021-12-31",
+    "product": "Gasolina Especial",
+    "unit": "Bs/l",
+    "price": 3.74,
+    "market": "Mercado interno",
+    "kind": "Cierre anual",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2021-12-31",
+    "product": "Diésel Oil",
+    "unit": "Bs/l",
+    "price": 3.72,
+    "market": "Mercado interno",
+    "kind": "Cierre anual",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2021-12-31",
+    "product": "Jet Fuel Nacional",
+    "unit": "Bs/l",
+    "price": 2.77,
+    "market": "Mercado interno",
+    "kind": "Cierre anual",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2021-12-31",
+    "product": "Kerosene",
+    "unit": "Bs/l",
+    "price": 2.72,
+    "market": "Mercado interno",
+    "kind": "Cierre anual",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2021-12-31",
+    "product": "GLP",
+    "unit": "Bs/kg",
+    "price": 2.25,
+    "market": "Mercado interno",
+    "kind": "Cierre anual",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2021-12-31",
+    "product": "GNV",
+    "unit": "Bs/m³",
+    "price": 1.66,
+    "market": "Mercado interno",
+    "kind": "Cierre anual",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2021-12-31",
+    "product": "Gas Oil",
+    "unit": "Bs/l",
+    "price": 1.1,
+    "market": "Mercado interno",
+    "kind": "Cierre anual",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2021-12-31",
+    "product": "Gasolina Especial +",
+    "unit": "Bs/l",
+    "price": 3.74,
+    "market": "Mercado interno",
+    "kind": "Cierre anual",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2021-12-31",
+    "product": "Gasolina Súper Etanol 92",
+    "unit": "Bs/l",
+    "price": 4.5,
+    "market": "Mercado interno",
+    "kind": "Cierre anual",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2022-12-31",
+    "product": "Gasolina Premium",
+    "unit": "Bs/l",
+    "price": 4.79,
+    "market": "Mercado interno",
+    "kind": "Cierre anual",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2022-12-31",
+    "product": "Gasolina de Aviación",
+    "unit": "Bs/l",
+    "price": 4.57,
+    "market": "Mercado interno",
+    "kind": "Cierre anual",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2022-12-31",
+    "product": "Gasolina Súper 91",
+    "unit": "Bs/l",
+    "price": 4.4,
+    "market": "Mercado interno",
+    "kind": "Cierre anual",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2022-12-31",
+    "product": "Gasolina Especial",
+    "unit": "Bs/l",
+    "price": 3.74,
+    "market": "Mercado interno",
+    "kind": "Cierre anual",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2022-12-31",
+    "product": "Diésel Oil",
+    "unit": "Bs/l",
+    "price": 3.72,
+    "market": "Mercado interno",
+    "kind": "Cierre anual",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2022-12-31",
+    "product": "Jet Fuel Nacional",
+    "unit": "Bs/l",
+    "price": 2.77,
+    "market": "Mercado interno",
+    "kind": "Cierre anual",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2022-12-31",
+    "product": "Kerosene",
+    "unit": "Bs/l",
+    "price": 2.72,
+    "market": "Mercado interno",
+    "kind": "Cierre anual",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2022-12-31",
+    "product": "GLP",
+    "unit": "Bs/kg",
+    "price": 2.25,
+    "market": "Mercado interno",
+    "kind": "Cierre anual",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2022-12-31",
+    "product": "GNV",
+    "unit": "Bs/m³",
+    "price": 1.66,
+    "market": "Mercado interno",
+    "kind": "Cierre anual",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2022-12-31",
+    "product": "Gas Oil",
+    "unit": "Bs/l",
+    "price": 1.1,
+    "market": "Mercado interno",
+    "kind": "Cierre anual",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2022-12-31",
+    "product": "Gasolina Especial +",
+    "unit": "Bs/l",
+    "price": 3.74,
+    "market": "Mercado interno",
+    "kind": "Cierre anual",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2022-12-31",
+    "product": "Gasolina Súper Etanol 92",
+    "unit": "Bs/l",
+    "price": 4.5,
+    "market": "Mercado interno",
+    "kind": "Cierre anual",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2023-12-31",
+    "product": "Gasolina Premium",
+    "unit": "Bs/l",
+    "price": 4.79,
+    "market": "Mercado interno",
+    "kind": "Cierre anual",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2023-12-31",
+    "product": "Gasolina de Aviación",
+    "unit": "Bs/l",
+    "price": 4.57,
+    "market": "Mercado interno",
+    "kind": "Cierre anual",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2023-12-31",
+    "product": "Gasolina Súper 91",
+    "unit": "Bs/l",
+    "price": 4.4,
+    "market": "Mercado interno",
+    "kind": "Cierre anual",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2023-12-31",
+    "product": "Gasolina Especial",
+    "unit": "Bs/l",
+    "price": 3.74,
+    "market": "Mercado interno",
+    "kind": "Cierre anual",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2023-12-31",
+    "product": "Diésel Oil",
+    "unit": "Bs/l",
+    "price": 3.72,
+    "market": "Mercado interno",
+    "kind": "Cierre anual",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2023-12-31",
+    "product": "Jet Fuel Nacional",
+    "unit": "Bs/l",
+    "price": 2.77,
+    "market": "Mercado interno",
+    "kind": "Cierre anual",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2023-12-31",
+    "product": "Kerosene",
+    "unit": "Bs/l",
+    "price": 2.72,
+    "market": "Mercado interno",
+    "kind": "Cierre anual",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2023-12-31",
+    "product": "GLP",
+    "unit": "Bs/kg",
+    "price": 2.25,
+    "market": "Mercado interno",
+    "kind": "Cierre anual",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2023-12-31",
+    "product": "GNV",
+    "unit": "Bs/m³",
+    "price": 1.66,
+    "market": "Mercado interno",
+    "kind": "Cierre anual",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2023-12-31",
+    "product": "Gas Oil",
+    "unit": "Bs/l",
+    "price": 1.1,
+    "market": "Mercado interno",
+    "kind": "Cierre anual",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2023-12-31",
+    "product": "Gasolina Especial +",
+    "unit": "Bs/l",
+    "price": 3.74,
+    "market": "Mercado interno",
+    "kind": "Cierre anual",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2023-12-31",
+    "product": "Gasolina Súper Etanol 92",
+    "unit": "Bs/l",
+    "price": 4.5,
+    "market": "Mercado interno",
+    "kind": "Cierre anual",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2023-12-31",
+    "product": "Gasolina Premium +",
+    "unit": "Bs/l",
+    "price": 4.79,
+    "market": "Mercado interno",
+    "kind": "Cierre anual",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2024-12-31",
+    "product": "Gasolina Premium",
+    "unit": "Bs/l",
+    "price": 4.79,
+    "market": "Mercado interno",
+    "kind": "Cierre anual",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2024-12-31",
+    "product": "Gasolina de Aviación",
+    "unit": "Bs/l",
+    "price": 4.57,
+    "market": "Mercado interno",
+    "kind": "Cierre anual",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2024-12-31",
+    "product": "Gasolina Súper 91",
+    "unit": "Bs/l",
+    "price": 4.4,
+    "market": "Mercado interno",
+    "kind": "Cierre anual",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2024-12-31",
+    "product": "Gasolina Especial",
+    "unit": "Bs/l",
+    "price": 3.74,
+    "market": "Mercado interno",
+    "kind": "Cierre anual",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2024-12-31",
+    "product": "Diésel Oil",
+    "unit": "Bs/l",
+    "price": 3.72,
+    "market": "Mercado interno",
+    "kind": "Cierre anual",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2024-12-31",
+    "product": "Jet Fuel Nacional",
+    "unit": "Bs/l",
+    "price": 2.77,
+    "market": "Mercado interno",
+    "kind": "Cierre anual",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2024-12-31",
+    "product": "Kerosene",
+    "unit": "Bs/l",
+    "price": 2.72,
+    "market": "Mercado interno",
+    "kind": "Cierre anual",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2024-12-31",
+    "product": "GLP",
+    "unit": "Bs/kg",
+    "price": 2.25,
+    "market": "Mercado interno",
+    "kind": "Cierre anual",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2024-12-31",
+    "product": "GNV",
+    "unit": "Bs/m³",
+    "price": 1.66,
+    "market": "Mercado interno",
+    "kind": "Cierre anual",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2024-12-31",
+    "product": "Gas Oil",
+    "unit": "Bs/l",
+    "price": 1.1,
+    "market": "Mercado interno",
+    "kind": "Cierre anual",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2024-12-31",
+    "product": "Gasolina Especial +",
+    "unit": "Bs/l",
+    "price": 3.74,
+    "market": "Mercado interno",
+    "kind": "Cierre anual",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2024-12-31",
+    "product": "Gasolina Súper Etanol 92",
+    "unit": "Bs/l",
+    "price": 4.5,
+    "market": "Mercado interno",
+    "kind": "Cierre anual",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2024-12-31",
+    "product": "Gasolina Premium +",
+    "unit": "Bs/l",
+    "price": 6.18,
+    "market": "Mercado interno",
+    "kind": "Cierre anual",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2024-12-31",
+    "product": "Gasolina Ultra Premium",
+    "unit": "Bs/l",
+    "price": 6.82,
+    "market": "Mercado interno",
+    "kind": "Cierre anual",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2024-12-31",
+    "product": "Diésel Oil +",
+    "unit": "Bs/l",
+    "price": 3.72,
+    "market": "Mercado interno",
+    "kind": "Cierre anual",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2024-12-31",
+    "product": "Diésel ULS",
+    "unit": "Bs/l",
+    "price": 6.88,
+    "market": "Mercado interno",
+    "kind": "Cierre anual",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2024-12-31",
+    "product": "Diésel ULS +",
+    "unit": "Bs/l",
+    "price": 6.88,
+    "market": "Mercado interno",
+    "kind": "Cierre anual",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2025-10-06",
+    "product": "Gasolina Premium",
+    "unit": "Bs/l",
+    "price": 4.79,
+    "market": "Mercado interno",
+    "kind": "Corte publicado",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2025-10-06",
+    "product": "Gasolina de Aviación",
+    "unit": "Bs/l",
+    "price": 4.57,
+    "market": "Mercado interno",
+    "kind": "Corte publicado",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2025-10-06",
+    "product": "Gasolina Súper 91",
+    "unit": "Bs/l",
+    "price": 4.4,
+    "market": "Mercado interno",
+    "kind": "Corte publicado",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2025-10-06",
+    "product": "Gasolina Especial",
+    "unit": "Bs/l",
+    "price": 3.74,
+    "market": "Mercado interno",
+    "kind": "Corte publicado",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2025-10-06",
+    "product": "Diésel Oil",
+    "unit": "Bs/l",
+    "price": 3.72,
+    "market": "Mercado interno",
+    "kind": "Corte publicado",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2025-10-06",
+    "product": "Jet Fuel Nacional",
+    "unit": "Bs/l",
+    "price": 2.77,
+    "market": "Mercado interno",
+    "kind": "Corte publicado",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2025-10-06",
+    "product": "Kerosene",
+    "unit": "Bs/l",
+    "price": 2.72,
+    "market": "Mercado interno",
+    "kind": "Corte publicado",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2025-10-06",
+    "product": "GLP",
+    "unit": "Bs/kg",
+    "price": 2.25,
+    "market": "Mercado interno",
+    "kind": "Corte publicado",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2025-10-06",
+    "product": "GNV",
+    "unit": "Bs/m³",
+    "price": 1.66,
+    "market": "Mercado interno",
+    "kind": "Corte publicado",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2025-10-06",
+    "product": "Gas Oil",
+    "unit": "Bs/l",
+    "price": 1.1,
+    "market": "Mercado interno",
+    "kind": "Corte publicado",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2025-10-06",
+    "product": "Gasolina Especial +",
+    "unit": "Bs/l",
+    "price": 3.74,
+    "market": "Mercado interno",
+    "kind": "Corte publicado",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2025-10-06",
+    "product": "Gasolina Súper Etanol 92",
+    "unit": "Bs/l",
+    "price": 4.5,
+    "market": "Mercado interno",
+    "kind": "Corte publicado",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2025-10-06",
+    "product": "Gasolina Premium +",
+    "unit": "Bs/l",
+    "price": 7.22,
+    "market": "Mercado interno",
+    "kind": "Corte publicado",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2025-10-06",
+    "product": "Gasolina Ultra Premium",
+    "unit": "Bs/l",
+    "price": 7.98,
+    "market": "Mercado interno",
+    "kind": "Corte publicado",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2025-10-06",
+    "product": "Diésel Oil +",
+    "unit": "Bs/l",
+    "price": 8.78,
+    "market": "Mercado interno",
+    "kind": "Corte publicado",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2025-10-06",
+    "product": "Diésel ULS",
+    "unit": "Bs/l",
+    "price": 8.78,
+    "market": "Mercado interno",
+    "kind": "Corte publicado",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2025-10-06",
+    "product": "Diésel ULS +",
+    "unit": "Bs/l",
+    "price": 6.88,
+    "market": "Mercado interno",
+    "kind": "Corte publicado",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2025-12-17",
+    "product": "Gasolina Premium",
+    "unit": "Bs/l",
+    "price": 11,
+    "market": "Mercado interno",
+    "kind": "Corte publicado",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2025-12-17",
+    "product": "Gasolina de Aviación",
+    "unit": "Bs/l",
+    "price": 10.57,
+    "market": "Mercado interno",
+    "kind": "Corte publicado",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2025-12-17",
+    "product": "Gasolina Súper 91",
+    "unit": "Bs/l",
+    "price": 4.4,
+    "market": "Mercado interno",
+    "kind": "Corte publicado",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2025-12-17",
+    "product": "Gasolina Especial",
+    "unit": "Bs/l",
+    "price": 6.96,
+    "market": "Mercado interno",
+    "kind": "Corte publicado",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2025-12-17",
+    "product": "Diésel Oil",
+    "unit": "Bs/l",
+    "price": 9.8,
+    "market": "Mercado interno",
+    "kind": "Corte publicado",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2025-12-17",
+    "product": "Jet Fuel Nacional",
+    "unit": "Bs/l",
+    "price": 10.74,
+    "market": "Mercado interno",
+    "kind": "Corte publicado",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2025-12-17",
+    "product": "Kerosene",
+    "unit": "Bs/l",
+    "price": 5.64,
+    "market": "Mercado interno",
+    "kind": "Corte publicado",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2025-12-17",
+    "product": "GLP",
+    "unit": "Bs/kg",
+    "price": 2.25,
+    "market": "Mercado interno",
+    "kind": "Corte publicado",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2025-12-17",
+    "product": "GNV",
+    "unit": "Bs/m³",
+    "price": 2.73,
+    "market": "Mercado interno",
+    "kind": "Corte publicado",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2025-12-17",
+    "product": "Gas Oil",
+    "unit": "Bs/l",
+    "price": 5.69,
+    "market": "Mercado interno",
+    "kind": "Corte publicado",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2025-12-17",
+    "product": "Gasolina Especial +",
+    "unit": "Bs/l",
+    "price": 3.74,
+    "market": "Mercado interno",
+    "kind": "Corte publicado",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2025-12-17",
+    "product": "Gasolina Súper Etanol 92",
+    "unit": "Bs/l",
+    "price": 4.5,
+    "market": "Mercado interno",
+    "kind": "Corte publicado",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2025-12-17",
+    "product": "Gasolina Premium +",
+    "unit": "Bs/l",
+    "price": 7.22,
+    "market": "Mercado interno",
+    "kind": "Corte publicado",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2025-12-17",
+    "product": "Gasolina Ultra Premium",
+    "unit": "Bs/l",
+    "price": 7.98,
+    "market": "Mercado interno",
+    "kind": "Corte publicado",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2025-12-17",
+    "product": "Diésel Oil +",
+    "unit": "Bs/l",
+    "price": 8.78,
+    "market": "Mercado interno",
+    "kind": "Corte publicado",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2025-12-17",
+    "product": "Diésel ULS",
+    "unit": "Bs/l",
+    "price": 8.78,
+    "market": "Mercado interno",
+    "kind": "Corte publicado",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2025-12-17",
+    "product": "Diésel ULS +",
+    "unit": "Bs/l",
+    "price": 6.88,
+    "market": "Mercado interno",
+    "kind": "Corte publicado",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2025-12-31",
+    "product": "Gasolina Premium",
+    "unit": "Bs/l",
+    "price": 11,
+    "market": "Mercado interno",
+    "kind": "Cierre anual",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2025-12-31",
+    "product": "Gasolina de Aviación",
+    "unit": "Bs/l",
+    "price": 10.57,
+    "market": "Mercado interno",
+    "kind": "Cierre anual",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2025-12-31",
+    "product": "Gasolina Súper 91",
+    "unit": "Bs/l",
+    "price": 4.4,
+    "market": "Mercado interno",
+    "kind": "Cierre anual",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2025-12-31",
+    "product": "Gasolina Especial",
+    "unit": "Bs/l",
+    "price": 6.96,
+    "market": "Mercado interno",
+    "kind": "Cierre anual",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2025-12-31",
+    "product": "Diésel Oil",
+    "unit": "Bs/l",
+    "price": 9.8,
+    "market": "Mercado interno",
+    "kind": "Cierre anual",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2025-12-31",
+    "product": "Jet Fuel Nacional",
+    "unit": "Bs/l",
+    "price": 10.74,
+    "market": "Mercado interno",
+    "kind": "Cierre anual",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2025-12-31",
+    "product": "Kerosene",
+    "unit": "Bs/l",
+    "price": 5.64,
+    "market": "Mercado interno",
+    "kind": "Cierre anual",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2025-12-31",
+    "product": "GLP",
+    "unit": "Bs/kg",
+    "price": 2.25,
+    "market": "Mercado interno",
+    "kind": "Cierre anual",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2025-12-31",
+    "product": "GNV",
+    "unit": "Bs/m³",
+    "price": 2.73,
+    "market": "Mercado interno",
+    "kind": "Cierre anual",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2025-12-31",
+    "product": "Gas Oil",
+    "unit": "Bs/l",
+    "price": 5.69,
+    "market": "Mercado interno",
+    "kind": "Cierre anual",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2025-12-31",
+    "product": "Gasolina Especial +",
+    "unit": "Bs/l",
+    "price": 6.96,
+    "market": "Mercado interno",
+    "kind": "Cierre anual",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2025-12-31",
+    "product": "Gasolina Súper Etanol 92",
+    "unit": "Bs/l",
+    "price": 8.28,
+    "market": "Mercado interno",
+    "kind": "Cierre anual",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2025-12-31",
+    "product": "Gasolina Premium +",
+    "unit": "Bs/l",
+    "price": 7.22,
+    "market": "Mercado interno",
+    "kind": "Cierre anual",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2025-12-31",
+    "product": "Gasolina Ultra Premium",
+    "unit": "Bs/l",
+    "price": 7.98,
+    "market": "Mercado interno",
+    "kind": "Cierre anual",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2025-12-31",
+    "product": "Diésel Oil +",
+    "unit": "Bs/l",
+    "price": 8.78,
+    "market": "Mercado interno",
+    "kind": "Cierre anual",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2025-12-31",
+    "product": "Diésel ULS",
+    "unit": "Bs/l",
+    "price": 8.78,
+    "market": "Mercado interno",
+    "kind": "Cierre anual",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2025-12-31",
+    "product": "Diésel ULS +",
+    "unit": "Bs/l",
+    "price": 6.88,
+    "market": "Mercado interno",
+    "kind": "Cierre anual",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2026-01-31",
+    "product": "Gasolina Premium",
+    "unit": "Bs/l",
+    "price": 11,
+    "market": "Mercado interno",
+    "kind": "Cierre mensual",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2026-01-31",
+    "product": "Gasolina de Aviación",
+    "unit": "Bs/l",
+    "price": 10.57,
+    "market": "Mercado interno",
+    "kind": "Cierre mensual",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2026-01-31",
+    "product": "Gasolina Especial",
+    "unit": "Bs/l",
+    "price": 6.96,
+    "market": "Mercado interno",
+    "kind": "Cierre mensual",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2026-01-31",
+    "product": "Diésel Oil",
+    "unit": "Bs/l",
+    "price": 9.8,
+    "market": "Mercado interno",
+    "kind": "Cierre mensual",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2026-01-31",
+    "product": "Jet Fuel Nacional",
+    "unit": "Bs/l",
+    "price": 10.74,
+    "market": "Mercado interno",
+    "kind": "Cierre mensual",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2026-01-31",
+    "product": "Kerosene",
+    "unit": "Bs/l",
+    "price": 5.64,
+    "market": "Mercado interno",
+    "kind": "Cierre mensual",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2026-01-31",
+    "product": "GLP",
+    "unit": "Bs/kg",
+    "price": 2.25,
+    "market": "Mercado interno",
+    "kind": "Cierre mensual",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2026-01-31",
+    "product": "GNV",
+    "unit": "Bs/m³",
+    "price": 2.73,
+    "market": "Mercado interno",
+    "kind": "Cierre mensual",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2026-01-31",
+    "product": "Gas Oil",
+    "unit": "Bs/l",
+    "price": 5.69,
+    "market": "Mercado interno",
+    "kind": "Cierre mensual",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2026-01-31",
+    "product": "Gasolina Especial +",
+    "unit": "Bs/l",
+    "price": 6.96,
+    "market": "Mercado interno",
+    "kind": "Cierre mensual",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2026-01-31",
+    "product": "Gasolina Súper Etanol 92",
+    "unit": "Bs/l",
+    "price": 8.28,
+    "market": "Mercado interno",
+    "kind": "Cierre mensual",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2026-01-31",
+    "product": "Gasolina Premium +",
+    "unit": "Bs/l",
+    "price": 11,
+    "market": "Mercado interno",
+    "kind": "Cierre mensual",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2026-01-31",
+    "product": "Diésel Oil +",
+    "unit": "Bs/l",
+    "price": 9.8,
+    "market": "Mercado interno",
+    "kind": "Cierre mensual",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2026-01-31",
+    "product": "Diésel ULS",
+    "unit": "Bs/l",
+    "price": 10.6,
+    "market": "Mercado interno",
+    "kind": "Cierre mensual",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2026-01-31",
+    "product": "Diésel ULS +",
+    "unit": "Bs/l",
+    "price": 10.6,
+    "market": "Mercado interno",
+    "kind": "Cierre mensual",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2026-02-28",
+    "product": "Gasolina Premium",
+    "unit": "Bs/l",
+    "price": 11,
+    "market": "Mercado interno",
+    "kind": "Cierre mensual",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2026-02-28",
+    "product": "Gasolina de Aviación",
+    "unit": "Bs/l",
+    "price": 10.57,
+    "market": "Mercado interno",
+    "kind": "Cierre mensual",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2026-02-28",
+    "product": "Gasolina Especial",
+    "unit": "Bs/l",
+    "price": 6.96,
+    "market": "Mercado interno",
+    "kind": "Cierre mensual",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2026-02-28",
+    "product": "Diésel Oil",
+    "unit": "Bs/l",
+    "price": 9.8,
+    "market": "Mercado interno",
+    "kind": "Cierre mensual",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2026-02-28",
+    "product": "Jet Fuel Nacional",
+    "unit": "Bs/l",
+    "price": 10.74,
+    "market": "Mercado interno",
+    "kind": "Cierre mensual",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2026-02-28",
+    "product": "Kerosene",
+    "unit": "Bs/l",
+    "price": 5.64,
+    "market": "Mercado interno",
+    "kind": "Cierre mensual",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2026-02-28",
+    "product": "GLP",
+    "unit": "Bs/kg",
+    "price": 2.25,
+    "market": "Mercado interno",
+    "kind": "Cierre mensual",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2026-02-28",
+    "product": "GNV",
+    "unit": "Bs/m³",
+    "price": 2.73,
+    "market": "Mercado interno",
+    "kind": "Cierre mensual",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2026-02-28",
+    "product": "Gas Oil",
+    "unit": "Bs/l",
+    "price": 5.69,
+    "market": "Mercado interno",
+    "kind": "Cierre mensual",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2026-02-28",
+    "product": "Gasolina Especial +",
+    "unit": "Bs/l",
+    "price": 6.96,
+    "market": "Mercado interno",
+    "kind": "Cierre mensual",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2026-02-28",
+    "product": "Gasolina Súper Etanol 92",
+    "unit": "Bs/l",
+    "price": 8.28,
+    "market": "Mercado interno",
+    "kind": "Cierre mensual",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2026-02-28",
+    "product": "Gasolina Premium +",
+    "unit": "Bs/l",
+    "price": 11,
+    "market": "Mercado interno",
+    "kind": "Cierre mensual",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2026-02-28",
+    "product": "Diésel Oil +",
+    "unit": "Bs/l",
+    "price": 9.8,
+    "market": "Mercado interno",
+    "kind": "Cierre mensual",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2026-02-28",
+    "product": "Diésel ULS",
+    "unit": "Bs/l",
+    "price": 10.6,
+    "market": "Mercado interno",
+    "kind": "Cierre mensual",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2026-02-28",
+    "product": "Diésel ULS +",
+    "unit": "Bs/l",
+    "price": 10.6,
+    "market": "Mercado interno",
+    "kind": "Cierre mensual",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2026-03-31",
+    "product": "Gasolina Premium",
+    "unit": "Bs/l",
+    "price": 11,
+    "market": "Mercado interno",
+    "kind": "Cierre mensual",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2026-03-31",
+    "product": "Gasolina de Aviación",
+    "unit": "Bs/l",
+    "price": 10.57,
+    "market": "Mercado interno",
+    "kind": "Cierre mensual",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2026-03-31",
+    "product": "Gasolina Especial",
+    "unit": "Bs/l",
+    "price": 6.96,
+    "market": "Mercado interno",
+    "kind": "Cierre mensual",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2026-03-31",
+    "product": "Diésel Oil",
+    "unit": "Bs/l",
+    "price": 9.8,
+    "market": "Mercado interno",
+    "kind": "Cierre mensual",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2026-03-31",
+    "product": "Jet Fuel Nacional",
+    "unit": "Bs/l",
+    "price": 10.74,
+    "market": "Mercado interno",
+    "kind": "Cierre mensual",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2026-03-31",
+    "product": "Kerosene",
+    "unit": "Bs/l",
+    "price": 5.64,
+    "market": "Mercado interno",
+    "kind": "Cierre mensual",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2026-03-31",
+    "product": "GLP",
+    "unit": "Bs/kg",
+    "price": 2.25,
+    "market": "Mercado interno",
+    "kind": "Cierre mensual",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2026-03-31",
+    "product": "GNV",
+    "unit": "Bs/m³",
+    "price": 2.73,
+    "market": "Mercado interno",
+    "kind": "Cierre mensual",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2026-03-31",
+    "product": "Gas Oil",
+    "unit": "Bs/l",
+    "price": 5.69,
+    "market": "Mercado interno",
+    "kind": "Cierre mensual",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2026-03-31",
+    "product": "Gasolina Especial +",
+    "unit": "Bs/l",
+    "price": 6.96,
+    "market": "Mercado interno",
+    "kind": "Cierre mensual",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2026-03-31",
+    "product": "Gasolina Súper Etanol 92",
+    "unit": "Bs/l",
+    "price": 8.28,
+    "market": "Mercado interno",
+    "kind": "Cierre mensual",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2026-03-31",
+    "product": "Gasolina Premium +",
+    "unit": "Bs/l",
+    "price": 11,
+    "market": "Mercado interno",
+    "kind": "Cierre mensual",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2026-03-31",
+    "product": "Diésel Oil +",
+    "unit": "Bs/l",
+    "price": 9.8,
+    "market": "Mercado interno",
+    "kind": "Cierre mensual",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2026-03-31",
+    "product": "Diésel ULS",
+    "unit": "Bs/l",
+    "price": 10.6,
+    "market": "Mercado interno",
+    "kind": "Cierre mensual",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2026-03-31",
+    "product": "Diésel ULS +",
+    "unit": "Bs/l",
+    "price": 10.6,
+    "market": "Mercado interno",
+    "kind": "Cierre mensual",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2026-04-30",
+    "product": "Gasolina Premium",
+    "unit": "Bs/l",
+    "price": 11,
+    "market": "Mercado interno",
+    "kind": "Cierre mensual",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2026-04-30",
+    "product": "Gasolina de Aviación",
+    "unit": "Bs/l",
+    "price": 10.57,
+    "market": "Mercado interno",
+    "kind": "Cierre mensual",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2026-04-30",
+    "product": "Gasolina Especial",
+    "unit": "Bs/l",
+    "price": 6.96,
+    "market": "Mercado interno",
+    "kind": "Cierre mensual",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2026-04-30",
+    "product": "Diésel Oil",
+    "unit": "Bs/l",
+    "price": 9.8,
+    "market": "Mercado interno",
+    "kind": "Cierre mensual",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2026-04-30",
+    "product": "Jet Fuel Nacional",
+    "unit": "Bs/l",
+    "price": 10.74,
+    "market": "Mercado interno",
+    "kind": "Cierre mensual",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2026-04-30",
+    "product": "Kerosene",
+    "unit": "Bs/l",
+    "price": 5.64,
+    "market": "Mercado interno",
+    "kind": "Cierre mensual",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2026-04-30",
+    "product": "GLP",
+    "unit": "Bs/kg",
+    "price": 2.25,
+    "market": "Mercado interno",
+    "kind": "Cierre mensual",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2026-04-30",
+    "product": "GNV",
+    "unit": "Bs/m³",
+    "price": 2.73,
+    "market": "Mercado interno",
+    "kind": "Cierre mensual",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2026-04-30",
+    "product": "Gas Oil",
+    "unit": "Bs/l",
+    "price": 5.69,
+    "market": "Mercado interno",
+    "kind": "Cierre mensual",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2026-04-30",
+    "product": "Gasolina Especial +",
+    "unit": "Bs/l",
+    "price": 6.96,
+    "market": "Mercado interno",
+    "kind": "Cierre mensual",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2026-04-30",
+    "product": "Gasolina Súper Etanol 92",
+    "unit": "Bs/l",
+    "price": 8.28,
+    "market": "Mercado interno",
+    "kind": "Cierre mensual",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2026-04-30",
+    "product": "Gasolina Premium +",
+    "unit": "Bs/l",
+    "price": 11,
+    "market": "Mercado interno",
+    "kind": "Cierre mensual",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2026-04-30",
+    "product": "Diésel Oil +",
+    "unit": "Bs/l",
+    "price": 9.8,
+    "market": "Mercado interno",
+    "kind": "Cierre mensual",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2026-04-30",
+    "product": "Diésel ULS",
+    "unit": "Bs/l",
+    "price": 10.6,
+    "market": "Mercado interno",
+    "kind": "Cierre mensual",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2026-04-30",
+    "product": "Diésel ULS +",
+    "unit": "Bs/l",
+    "price": 10.6,
+    "market": "Mercado interno",
+    "kind": "Cierre mensual",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2026-05-31",
+    "product": "Gasolina Premium",
+    "unit": "Bs/l",
+    "price": 11,
+    "market": "Mercado interno",
+    "kind": "Cierre mensual",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2026-05-31",
+    "product": "Gasolina de Aviación",
+    "unit": "Bs/l",
+    "price": 10.57,
+    "market": "Mercado interno",
+    "kind": "Cierre mensual",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2026-05-31",
+    "product": "Gasolina Especial",
+    "unit": "Bs/l",
+    "price": 6.96,
+    "market": "Mercado interno",
+    "kind": "Cierre mensual",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2026-05-31",
+    "product": "Diésel Oil",
+    "unit": "Bs/l",
+    "price": 9.8,
+    "market": "Mercado interno",
+    "kind": "Cierre mensual",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2026-05-31",
+    "product": "Jet Fuel Nacional",
+    "unit": "Bs/l",
+    "price": 10.74,
+    "market": "Mercado interno",
+    "kind": "Cierre mensual",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2026-05-31",
+    "product": "Kerosene",
+    "unit": "Bs/l",
+    "price": 5.64,
+    "market": "Mercado interno",
+    "kind": "Cierre mensual",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2026-05-31",
+    "product": "GLP",
+    "unit": "Bs/kg",
+    "price": 2.25,
+    "market": "Mercado interno",
+    "kind": "Cierre mensual",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2026-05-31",
+    "product": "GNV",
+    "unit": "Bs/m³",
+    "price": 2.73,
+    "market": "Mercado interno",
+    "kind": "Cierre mensual",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2026-05-31",
+    "product": "Gas Oil",
+    "unit": "Bs/l",
+    "price": 5.69,
+    "market": "Mercado interno",
+    "kind": "Cierre mensual",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2026-05-31",
+    "product": "Gasolina Especial +",
+    "unit": "Bs/l",
+    "price": 6.96,
+    "market": "Mercado interno",
+    "kind": "Cierre mensual",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2026-05-31",
+    "product": "Gasolina Súper Etanol 92",
+    "unit": "Bs/l",
+    "price": 8.28,
+    "market": "Mercado interno",
+    "kind": "Cierre mensual",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2026-05-31",
+    "product": "Gasolina Premium +",
+    "unit": "Bs/l",
+    "price": 11,
+    "market": "Mercado interno",
+    "kind": "Cierre mensual",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2026-05-31",
+    "product": "Diésel Oil +",
+    "unit": "Bs/l",
+    "price": 9.8,
+    "market": "Mercado interno",
+    "kind": "Cierre mensual",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2026-05-31",
+    "product": "Diésel ULS",
+    "unit": "Bs/l",
+    "price": 10.6,
+    "market": "Mercado interno",
+    "kind": "Cierre mensual",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2026-05-31",
+    "product": "Diésel ULS +",
+    "unit": "Bs/l",
+    "price": 10.6,
+    "market": "Mercado interno",
+    "kind": "Cierre mensual",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2026-06-30",
+    "product": "Gasolina Premium",
+    "unit": "Bs/l",
+    "price": 11,
+    "market": "Mercado interno",
+    "kind": "Cierre mensual",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2026-06-30",
+    "product": "Gasolina de Aviación",
+    "unit": "Bs/l",
+    "price": 10.57,
+    "market": "Mercado interno",
+    "kind": "Cierre mensual",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2026-06-30",
+    "product": "Gasolina Especial",
+    "unit": "Bs/l",
+    "price": 6.96,
+    "market": "Mercado interno",
+    "kind": "Cierre mensual",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2026-06-30",
+    "product": "Diésel Oil",
+    "unit": "Bs/l",
+    "price": 9.8,
+    "market": "Mercado interno",
+    "kind": "Cierre mensual",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2026-06-30",
+    "product": "Jet Fuel Nacional",
+    "unit": "Bs/l",
+    "price": 10.74,
+    "market": "Mercado interno",
+    "kind": "Cierre mensual",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2026-06-30",
+    "product": "Kerosene",
+    "unit": "Bs/l",
+    "price": 5.64,
+    "market": "Mercado interno",
+    "kind": "Cierre mensual",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2026-06-30",
+    "product": "GLP",
+    "unit": "Bs/kg",
+    "price": 2.25,
+    "market": "Mercado interno",
+    "kind": "Cierre mensual",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2026-06-30",
+    "product": "GNV",
+    "unit": "Bs/m³",
+    "price": 2.73,
+    "market": "Mercado interno",
+    "kind": "Cierre mensual",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2026-06-30",
+    "product": "Gas Oil",
+    "unit": "Bs/l",
+    "price": 5.69,
+    "market": "Mercado interno",
+    "kind": "Cierre mensual",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2026-06-30",
+    "product": "Gasolina Especial +",
+    "unit": "Bs/l",
+    "price": 6.96,
+    "market": "Mercado interno",
+    "kind": "Cierre mensual",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2026-06-30",
+    "product": "Gasolina Súper Etanol 92",
+    "unit": "Bs/l",
+    "price": 8.28,
+    "market": "Mercado interno",
+    "kind": "Cierre mensual",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2026-06-30",
+    "product": "Gasolina Premium +",
+    "unit": "Bs/l",
+    "price": 11,
+    "market": "Mercado interno",
+    "kind": "Cierre mensual",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2026-06-30",
+    "product": "Diésel Oil +",
+    "unit": "Bs/l",
+    "price": 9.8,
+    "market": "Mercado interno",
+    "kind": "Cierre mensual",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2026-06-30",
+    "product": "Diésel ULS",
+    "unit": "Bs/l",
+    "price": 10.6,
+    "market": "Mercado interno",
+    "kind": "Cierre mensual",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2026-06-30",
+    "product": "Diésel ULS +",
+    "unit": "Bs/l",
+    "price": 10.6,
+    "market": "Mercado interno",
+    "kind": "Cierre mensual",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2026-07-09",
+    "product": "Gasolina de Aviación",
+    "unit": "Bs/l",
+    "price": 10.57,
+    "market": "Mercado interno",
+    "kind": "Corte publicado",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2026-07-09",
+    "product": "Gasolina Especial",
+    "unit": "Bs/l",
+    "price": 6.96,
+    "market": "Mercado interno",
+    "kind": "Corte publicado",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2026-07-09",
+    "product": "Diésel Oil",
+    "unit": "Bs/l",
+    "price": 9.8,
+    "market": "Mercado interno",
+    "kind": "Corte publicado",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2026-07-09",
+    "product": "Jet Fuel Nacional",
+    "unit": "Bs/l",
+    "price": 10.74,
+    "market": "Mercado interno",
+    "kind": "Corte publicado",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2026-07-09",
+    "product": "Kerosene",
+    "unit": "Bs/l",
+    "price": 5.64,
+    "market": "Mercado interno",
+    "kind": "Corte publicado",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2026-07-09",
+    "product": "GLP",
+    "unit": "Bs/kg",
+    "price": 2.25,
+    "market": "Mercado interno",
+    "kind": "Corte publicado",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2026-07-09",
+    "product": "GNV",
+    "unit": "Bs/m³",
+    "price": 2.73,
+    "market": "Mercado interno",
+    "kind": "Corte publicado",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2026-07-09",
+    "product": "Gas Oil",
+    "unit": "Bs/l",
+    "price": 5.69,
+    "market": "Mercado interno",
+    "kind": "Corte publicado",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2026-07-09",
+    "product": "Gasolina Especial +",
+    "unit": "Bs/l",
+    "price": 6.96,
+    "market": "Mercado interno",
+    "kind": "Corte publicado",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2026-07-09",
+    "product": "Gasolina Súper Etanol 92",
+    "unit": "Bs/l",
+    "price": 8.28,
+    "market": "Mercado interno",
+    "kind": "Corte publicado",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2026-07-09",
+    "product": "Diésel Oil +",
+    "unit": "Bs/l",
+    "price": 9.8,
+    "market": "Mercado interno",
+    "kind": "Corte publicado",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2026-07-09",
+    "product": "Diésel ULS",
+    "unit": "Bs/l",
+    "price": 10.6,
+    "market": "Mercado interno",
+    "kind": "Corte publicado",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2026-07-09",
+    "product": "Diésel ULS +",
+    "unit": "Bs/l",
+    "price": 10.6,
+    "market": "Mercado interno",
+    "kind": "Corte publicado",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2026-07-31",
+    "product": "Gasolina de Aviación",
+    "unit": "Bs/l",
+    "price": 10.57,
+    "market": "Mercado interno",
+    "kind": "Cierre mensual",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2026-07-31",
+    "product": "Gasolina Especial",
+    "unit": "Bs/l",
+    "price": 6.96,
+    "market": "Mercado interno",
+    "kind": "Cierre mensual",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2026-07-31",
+    "product": "Diésel Oil",
+    "unit": "Bs/l",
+    "price": 9.8,
+    "market": "Mercado interno",
+    "kind": "Cierre mensual",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2026-07-31",
+    "product": "Jet Fuel Nacional",
+    "unit": "Bs/l",
+    "price": 10.74,
+    "market": "Mercado interno",
+    "kind": "Cierre mensual",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2026-07-31",
+    "product": "Kerosene",
+    "unit": "Bs/l",
+    "price": 5.64,
+    "market": "Mercado interno",
+    "kind": "Cierre mensual",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2026-07-31",
+    "product": "GLP",
+    "unit": "Bs/kg",
+    "price": 2.25,
+    "market": "Mercado interno",
+    "kind": "Cierre mensual",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2026-07-31",
+    "product": "GNV",
+    "unit": "Bs/m³",
+    "price": 2.73,
+    "market": "Mercado interno",
+    "kind": "Cierre mensual",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2026-07-31",
+    "product": "Gas Oil",
+    "unit": "Bs/l",
+    "price": 5.69,
+    "market": "Mercado interno",
+    "kind": "Cierre mensual",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2026-07-31",
+    "product": "Gasolina Especial +",
+    "unit": "Bs/l",
+    "price": 6.96,
+    "market": "Mercado interno",
+    "kind": "Cierre mensual",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2026-07-31",
+    "product": "Gasolina Súper Etanol 92",
+    "unit": "Bs/l",
+    "price": 8.28,
+    "market": "Mercado interno",
+    "kind": "Cierre mensual",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2026-07-31",
+    "product": "Diésel Oil +",
+    "unit": "Bs/l",
+    "price": 9.8,
+    "market": "Mercado interno",
+    "kind": "Cierre mensual",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2026-07-31",
+    "product": "Diésel ULS",
+    "unit": "Bs/l",
+    "price": 10.6,
+    "market": "Mercado interno",
+    "kind": "Cierre mensual",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2026-07-31",
+    "product": "Diésel ULS +",
+    "unit": "Bs/l",
+    "price": 10.6,
+    "market": "Mercado interno",
+    "kind": "Cierre mensual",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2026-08-31",
+    "product": "Gasolina de Aviación",
+    "unit": "Bs/l",
+    "price": 10.57,
+    "market": "Mercado interno",
+    "kind": "Cierre mensual",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2026-08-31",
+    "product": "Gasolina Especial",
+    "unit": "Bs/l",
+    "price": 6.96,
+    "market": "Mercado interno",
+    "kind": "Cierre mensual",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2026-08-31",
+    "product": "Diésel Oil",
+    "unit": "Bs/l",
+    "price": 9.8,
+    "market": "Mercado interno",
+    "kind": "Cierre mensual",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2026-08-31",
+    "product": "Jet Fuel Nacional",
+    "unit": "Bs/l",
+    "price": 10.74,
+    "market": "Mercado interno",
+    "kind": "Cierre mensual",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2026-08-31",
+    "product": "Kerosene",
+    "unit": "Bs/l",
+    "price": 5.64,
+    "market": "Mercado interno",
+    "kind": "Cierre mensual",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2026-08-31",
+    "product": "GLP",
+    "unit": "Bs/kg",
+    "price": 2.25,
+    "market": "Mercado interno",
+    "kind": "Cierre mensual",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2026-08-31",
+    "product": "GNV",
+    "unit": "Bs/m³",
+    "price": 2.73,
+    "market": "Mercado interno",
+    "kind": "Cierre mensual",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2026-08-31",
+    "product": "Gas Oil",
+    "unit": "Bs/l",
+    "price": 5.69,
+    "market": "Mercado interno",
+    "kind": "Cierre mensual",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2026-08-31",
+    "product": "Gasolina Especial +",
+    "unit": "Bs/l",
+    "price": 6.96,
+    "market": "Mercado interno",
+    "kind": "Cierre mensual",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2026-08-31",
+    "product": "Gasolina Súper Etanol 92",
+    "unit": "Bs/l",
+    "price": 8.28,
+    "market": "Mercado interno",
+    "kind": "Cierre mensual",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2026-08-31",
+    "product": "Diésel Oil +",
+    "unit": "Bs/l",
+    "price": 9.8,
+    "market": "Mercado interno",
+    "kind": "Cierre mensual",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2026-08-31",
+    "product": "Diésel ULS",
+    "unit": "Bs/l",
+    "price": 10.6,
+    "market": "Mercado interno",
+    "kind": "Cierre mensual",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2026-08-31",
+    "product": "Diésel ULS +",
+    "unit": "Bs/l",
+    "price": 10.6,
+    "market": "Mercado interno",
+    "kind": "Cierre mensual",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2010-12-31",
+    "product": "Diésel Oil Internacional",
+    "unit": "Bs/l",
+    "price": 7.26,
+    "market": "Precio internacional",
+    "kind": "Cierre anual",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2010-12-31",
+    "product": "Gasolina Especial Internacional",
+    "unit": "Bs/l",
+    "price": 7.19,
+    "market": "Precio internacional",
+    "kind": "Cierre anual",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2010-12-31",
+    "product": "Jet Fuel Internacional",
+    "unit": "Bs/l",
+    "price": 6.69,
+    "market": "Precio internacional",
+    "kind": "Cierre anual",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2011-12-31",
+    "product": "Diésel Oil Internacional",
+    "unit": "Bs/l",
+    "price": 9.23,
+    "market": "Precio internacional",
+    "kind": "Cierre anual",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2011-12-31",
+    "product": "Gasolina Especial Internacional",
+    "unit": "Bs/l",
+    "price": 8.96,
+    "market": "Precio internacional",
+    "kind": "Cierre anual",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2011-12-31",
+    "product": "Jet Fuel Internacional",
+    "unit": "Bs/l",
+    "price": 7.76,
+    "market": "Precio internacional",
+    "kind": "Cierre anual",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2012-12-31",
+    "product": "Diésel Oil Internacional",
+    "unit": "Bs/l",
+    "price": 9.55,
+    "market": "Precio internacional",
+    "kind": "Cierre anual",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2012-12-31",
+    "product": "Gasolina Especial Internacional",
+    "unit": "Bs/l",
+    "price": 9.26,
+    "market": "Precio internacional",
+    "kind": "Cierre anual",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2012-12-31",
+    "product": "Jet Fuel Internacional",
+    "unit": "Bs/l",
+    "price": 7.83,
+    "market": "Precio internacional",
+    "kind": "Cierre anual",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2013-12-31",
+    "product": "Diésel Oil Internacional",
+    "unit": "Bs/l",
+    "price": 9.34,
+    "market": "Precio internacional",
+    "kind": "Cierre anual",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2013-12-31",
+    "product": "Gasolina Especial Internacional",
+    "unit": "Bs/l",
+    "price": 8.94,
+    "market": "Precio internacional",
+    "kind": "Cierre anual",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2013-12-31",
+    "product": "Jet Fuel Internacional",
+    "unit": "Bs/l",
+    "price": 7.57,
+    "market": "Precio internacional",
+    "kind": "Cierre anual",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2014-12-31",
+    "product": "Diésel Oil Internacional",
+    "unit": "Bs/l",
+    "price": 8.88,
+    "market": "Precio internacional",
+    "kind": "Cierre anual",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2014-12-31",
+    "product": "Gasolina Especial Internacional",
+    "unit": "Bs/l",
+    "price": 8.68,
+    "market": "Precio internacional",
+    "kind": "Cierre anual",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2014-12-31",
+    "product": "Jet Fuel Internacional",
+    "unit": "Bs/l",
+    "price": 6.65,
+    "market": "Precio internacional",
+    "kind": "Cierre anual",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2015-12-31",
+    "product": "Diésel Oil Internacional",
+    "unit": "Bs/l",
+    "price": 8.88,
+    "market": "Precio internacional",
+    "kind": "Cierre anual",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2015-12-31",
+    "product": "Gasolina Especial Internacional",
+    "unit": "Bs/l",
+    "price": 8.68,
+    "market": "Precio internacional",
+    "kind": "Cierre anual",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2015-12-31",
+    "product": "Jet Fuel Internacional",
+    "unit": "Bs/l",
+    "price": 6.65,
+    "market": "Precio internacional",
+    "kind": "Cierre anual",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2015-12-31",
+    "product": "GNV Internacional",
+    "unit": "Bs/m³",
+    "price": 2.62,
+    "market": "Precio internacional",
+    "kind": "Cierre anual",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2016-12-31",
+    "product": "Diésel Oil Internacional",
+    "unit": "Bs/l",
+    "price": 8.88,
+    "market": "Precio internacional",
+    "kind": "Cierre anual",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2016-12-31",
+    "product": "Gasolina Especial Internacional",
+    "unit": "Bs/l",
+    "price": 8.68,
+    "market": "Precio internacional",
+    "kind": "Cierre anual",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2016-12-31",
+    "product": "Jet Fuel Internacional",
+    "unit": "Bs/l",
+    "price": 6.65,
+    "market": "Precio internacional",
+    "kind": "Cierre anual",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2016-12-31",
+    "product": "GNV Internacional",
+    "unit": "Bs/m³",
+    "price": 2.31,
+    "market": "Precio internacional",
+    "kind": "Cierre anual",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2017-12-31",
+    "product": "Diésel Oil Internacional",
+    "unit": "Bs/l",
+    "price": 8.88,
+    "market": "Precio internacional",
+    "kind": "Cierre anual",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2017-12-31",
+    "product": "Gasolina Especial Internacional",
+    "unit": "Bs/l",
+    "price": 8.68,
+    "market": "Precio internacional",
+    "kind": "Cierre anual",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2017-12-31",
+    "product": "Jet Fuel Internacional",
+    "unit": "Bs/l",
+    "price": 6.65,
+    "market": "Precio internacional",
+    "kind": "Cierre anual",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2017-12-31",
+    "product": "GNV Internacional",
+    "unit": "Bs/m³",
+    "price": 2.54,
+    "market": "Precio internacional",
+    "kind": "Cierre anual",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2018-12-31",
+    "product": "Diésel Oil Internacional",
+    "unit": "Bs/l",
+    "price": 8.88,
+    "market": "Precio internacional",
+    "kind": "Cierre anual",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2018-12-31",
+    "product": "Gasolina Especial Internacional",
+    "unit": "Bs/l",
+    "price": 8.68,
+    "market": "Precio internacional",
+    "kind": "Cierre anual",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2018-12-31",
+    "product": "Jet Fuel Internacional",
+    "unit": "Bs/l",
+    "price": 6.65,
+    "market": "Precio internacional",
+    "kind": "Cierre anual",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2018-12-31",
+    "product": "GNV Internacional",
+    "unit": "Bs/m³",
+    "price": 3.03,
+    "market": "Precio internacional",
+    "kind": "Cierre anual",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2019-12-31",
+    "product": "Diésel Oil Internacional",
+    "unit": "Bs/l",
+    "price": 8.88,
+    "market": "Precio internacional",
+    "kind": "Cierre anual",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2019-12-31",
+    "product": "Gasolina Especial Internacional",
+    "unit": "Bs/l",
+    "price": 8.68,
+    "market": "Precio internacional",
+    "kind": "Cierre anual",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2019-12-31",
+    "product": "Jet Fuel Internacional",
+    "unit": "Bs/l",
+    "price": 6.65,
+    "market": "Precio internacional",
+    "kind": "Cierre anual",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2019-12-31",
+    "product": "GNV Internacional",
+    "unit": "Bs/m³",
+    "price": 2.81,
+    "market": "Precio internacional",
+    "kind": "Cierre anual",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2020-12-31",
+    "product": "Diésel Oil Internacional",
+    "unit": "Bs/l",
+    "price": 8.88,
+    "market": "Precio internacional",
+    "kind": "Cierre anual",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2020-12-31",
+    "product": "Gasolina Especial Internacional",
+    "unit": "Bs/l",
+    "price": 8.68,
+    "market": "Precio internacional",
+    "kind": "Cierre anual",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2020-12-31",
+    "product": "Jet Fuel Internacional",
+    "unit": "Bs/l",
+    "price": 6.65,
+    "market": "Precio internacional",
+    "kind": "Cierre anual",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2020-12-31",
+    "product": "GNV Internacional",
+    "unit": "Bs/m³",
+    "price": 2.36,
+    "market": "Precio internacional",
+    "kind": "Cierre anual",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2021-12-31",
+    "product": "Diésel Oil Internacional",
+    "unit": "Bs/l",
+    "price": 8.88,
+    "market": "Precio internacional",
+    "kind": "Cierre anual",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2021-12-31",
+    "product": "Gasolina Especial Internacional",
+    "unit": "Bs/l",
+    "price": 8.68,
+    "market": "Precio internacional",
+    "kind": "Cierre anual",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2021-12-31",
+    "product": "Jet Fuel Internacional",
+    "unit": "Bs/l",
+    "price": 6.65,
+    "market": "Precio internacional",
+    "kind": "Cierre anual",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2021-12-31",
+    "product": "GNV Internacional",
+    "unit": "Bs/m³",
+    "price": 2.96,
+    "market": "Precio internacional",
+    "kind": "Cierre anual",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2021-12-31",
+    "product": "Gasolina Especial + Internacional",
+    "unit": "Bs/l",
+    "price": 8.68,
+    "market": "Precio internacional",
+    "kind": "Cierre anual",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2022-12-31",
+    "product": "Diésel Oil Internacional",
+    "unit": "Bs/l",
+    "price": 9.97,
+    "market": "Precio internacional",
+    "kind": "Cierre anual",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2022-12-31",
+    "product": "Gasolina Especial Internacional",
+    "unit": "Bs/l",
+    "price": 9.41,
+    "market": "Precio internacional",
+    "kind": "Cierre anual",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2022-12-31",
+    "product": "Jet Fuel Internacional",
+    "unit": "Bs/l",
+    "price": 7.56,
+    "market": "Precio internacional",
+    "kind": "Cierre anual",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2022-12-31",
+    "product": "GNV Internacional",
+    "unit": "Bs/m³",
+    "price": 3.44,
+    "market": "Precio internacional",
+    "kind": "Cierre anual",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2022-12-31",
+    "product": "Gasolina Especial + Internacional",
+    "unit": "Bs/l",
+    "price": 9.41,
+    "market": "Precio internacional",
+    "kind": "Cierre anual",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2023-12-31",
+    "product": "Diésel Oil Internacional",
+    "unit": "Bs/l",
+    "price": 8.88,
+    "market": "Precio internacional",
+    "kind": "Cierre anual",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2023-12-31",
+    "product": "Gasolina Especial Internacional",
+    "unit": "Bs/l",
+    "price": 8.68,
+    "market": "Precio internacional",
+    "kind": "Cierre anual",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2023-12-31",
+    "product": "Jet Fuel Internacional",
+    "unit": "Bs/l",
+    "price": 6.74,
+    "market": "Precio internacional",
+    "kind": "Cierre anual",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2023-12-31",
+    "product": "GNV Internacional",
+    "unit": "Bs/m³",
+    "price": 3.26,
+    "market": "Precio internacional",
+    "kind": "Cierre anual",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2023-12-31",
+    "product": "Gasolina Especial + Internacional",
+    "unit": "Bs/l",
+    "price": 8.68,
+    "market": "Precio internacional",
+    "kind": "Cierre anual",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2024-12-31",
+    "product": "Diésel Oil Internacional",
+    "unit": "Bs/l",
+    "price": 8.88,
+    "market": "Precio internacional",
+    "kind": "Cierre anual",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2024-12-31",
+    "product": "Gasolina Especial Internacional",
+    "unit": "Bs/l",
+    "price": 8.68,
+    "market": "Precio internacional",
+    "kind": "Cierre anual",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2024-12-31",
+    "product": "Jet Fuel Internacional",
+    "unit": "Bs/l",
+    "price": 6.65,
+    "market": "Precio internacional",
+    "kind": "Cierre anual",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2024-12-31",
+    "product": "GNV Internacional",
+    "unit": "Bs/m³",
+    "price": 3.06,
+    "market": "Precio internacional",
+    "kind": "Cierre anual",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2024-12-31",
+    "product": "Gasolina Especial + Internacional",
+    "unit": "Bs/l",
+    "price": 8.68,
+    "market": "Precio internacional",
+    "kind": "Cierre anual",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2025-12-31",
+    "product": "Diésel Oil Internacional",
+    "unit": "Bs/l",
+    "price": 8.88,
+    "market": "Precio internacional",
+    "kind": "Cierre anual",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2025-12-31",
+    "product": "Gasolina Especial Internacional",
+    "unit": "Bs/l",
+    "price": 8.68,
+    "market": "Precio internacional",
+    "kind": "Cierre anual",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2025-12-31",
+    "product": "Jet Fuel Internacional",
+    "unit": "Bs/l",
+    "price": 8.21,
+    "market": "Precio internacional",
+    "kind": "Cierre anual",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2025-12-31",
+    "product": "GNV Internacional",
+    "unit": "Bs/m³",
+    "price": 2.92,
+    "market": "Precio internacional",
+    "kind": "Cierre anual",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2025-12-31",
+    "product": "Gasolina Especial + Internacional",
+    "unit": "Bs/l",
+    "price": 8.68,
+    "market": "Precio internacional",
+    "kind": "Cierre anual",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2026-01-31",
+    "product": "Diésel Oil Internacional",
+    "unit": "Bs/l",
+    "price": 9.8,
+    "market": "Precio internacional",
+    "kind": "Cierre mensual",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2026-01-31",
+    "product": "Gasolina Especial Internacional",
+    "unit": "Bs/l",
+    "price": 8.68,
+    "market": "Precio internacional",
+    "kind": "Cierre mensual",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2026-01-31",
+    "product": "Jet Fuel Internacional",
+    "unit": "Bs/l",
+    "price": 8.21,
+    "market": "Precio internacional",
+    "kind": "Cierre mensual",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2026-01-31",
+    "product": "GNV Internacional",
+    "unit": "Bs/m³",
+    "price": 2.95,
+    "market": "Precio internacional",
+    "kind": "Cierre mensual",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2026-01-31",
+    "product": "Gasolina Especial + Internacional",
+    "unit": "Bs/l",
+    "price": 8.68,
+    "market": "Precio internacional",
+    "kind": "Cierre mensual",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2026-02-28",
+    "product": "Diésel Oil Internacional",
+    "unit": "Bs/l",
+    "price": 9.8,
+    "market": "Precio internacional",
+    "kind": "Cierre mensual",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2026-02-28",
+    "product": "Gasolina Especial Internacional",
+    "unit": "Bs/l",
+    "price": 8.68,
+    "market": "Precio internacional",
+    "kind": "Cierre mensual",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2026-02-28",
+    "product": "Jet Fuel Internacional",
+    "unit": "Bs/l",
+    "price": 8.21,
+    "market": "Precio internacional",
+    "kind": "Cierre mensual",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2026-02-28",
+    "product": "GNV Internacional",
+    "unit": "Bs/m³",
+    "price": 2.99,
+    "market": "Precio internacional",
+    "kind": "Cierre mensual",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2026-02-28",
+    "product": "Gasolina Especial + Internacional",
+    "unit": "Bs/l",
+    "price": 8.68,
+    "market": "Precio internacional",
+    "kind": "Cierre mensual",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2026-03-31",
+    "product": "Diésel Oil Internacional",
+    "unit": "Bs/l",
+    "price": 9.8,
+    "market": "Precio internacional",
+    "kind": "Cierre mensual",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2026-03-31",
+    "product": "Gasolina Especial Internacional",
+    "unit": "Bs/l",
+    "price": 8.68,
+    "market": "Precio internacional",
+    "kind": "Cierre mensual",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2026-03-31",
+    "product": "Jet Fuel Internacional",
+    "unit": "Bs/l",
+    "price": 8.21,
+    "market": "Precio internacional",
+    "kind": "Cierre mensual",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2026-03-31",
+    "product": "GNV Internacional",
+    "unit": "Bs/m³",
+    "price": 2.88,
+    "market": "Precio internacional",
+    "kind": "Cierre mensual",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2026-03-31",
+    "product": "Gasolina Especial + Internacional",
+    "unit": "Bs/l",
+    "price": 8.68,
+    "market": "Precio internacional",
+    "kind": "Cierre mensual",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2026-04-30",
+    "product": "Diésel Oil Internacional",
+    "unit": "Bs/l",
+    "price": 9.8,
+    "market": "Precio internacional",
+    "kind": "Cierre mensual",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2026-04-30",
+    "product": "Gasolina Especial Internacional",
+    "unit": "Bs/l",
+    "price": 8.68,
+    "market": "Precio internacional",
+    "kind": "Cierre mensual",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2026-04-30",
+    "product": "Jet Fuel Internacional",
+    "unit": "Bs/l",
+    "price": 8.42,
+    "market": "Precio internacional",
+    "kind": "Cierre mensual",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2026-04-30",
+    "product": "GNV Internacional",
+    "unit": "Bs/m³",
+    "price": 2.9,
+    "market": "Precio internacional",
+    "kind": "Cierre mensual",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2026-04-30",
+    "product": "Gasolina Especial + Internacional",
+    "unit": "Bs/l",
+    "price": 8.68,
+    "market": "Precio internacional",
+    "kind": "Cierre mensual",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2026-05-31",
+    "product": "Diésel Oil Internacional",
+    "unit": "Bs/l",
+    "price": 9.81,
+    "market": "Precio internacional",
+    "kind": "Cierre mensual",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2026-05-31",
+    "product": "Gasolina Especial Internacional",
+    "unit": "Bs/l",
+    "price": 8.68,
+    "market": "Precio internacional",
+    "kind": "Cierre mensual",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2026-05-31",
+    "product": "Jet Fuel Internacional",
+    "unit": "Bs/l",
+    "price": 8.42,
+    "market": "Precio internacional",
+    "kind": "Cierre mensual",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2026-05-31",
+    "product": "GNV Internacional",
+    "unit": "Bs/m³",
+    "price": 2.91,
+    "market": "Precio internacional",
+    "kind": "Cierre mensual",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2026-05-31",
+    "product": "Gasolina Especial + Internacional",
+    "unit": "Bs/l",
+    "price": 8.68,
+    "market": "Precio internacional",
+    "kind": "Cierre mensual",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2026-06-30",
+    "product": "Diésel Oil Internacional",
+    "unit": "Bs/l",
+    "price": 9.98,
+    "market": "Precio internacional",
+    "kind": "Cierre mensual",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2026-06-30",
+    "product": "Gasolina Especial Internacional",
+    "unit": "Bs/l",
+    "price": 8.68,
+    "market": "Precio internacional",
+    "kind": "Cierre mensual",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2026-06-30",
+    "product": "Jet Fuel Internacional",
+    "unit": "Bs/l",
+    "price": 8.42,
+    "market": "Precio internacional",
+    "kind": "Cierre mensual",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2026-06-30",
+    "product": "GNV Internacional",
+    "unit": "Bs/m³",
+    "price": 3.2,
+    "market": "Precio internacional",
+    "kind": "Cierre mensual",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2026-06-30",
+    "product": "Gasolina Especial + Internacional",
+    "unit": "Bs/l",
+    "price": 8.68,
+    "market": "Precio internacional",
+    "kind": "Cierre mensual",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2026-07-31",
+    "product": "Diésel Oil Internacional",
+    "unit": "Bs/l",
+    "price": 9.98,
+    "market": "Precio internacional",
+    "kind": "Cierre mensual",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2026-07-31",
+    "product": "Gasolina Especial Internacional",
+    "unit": "Bs/l",
+    "price": 8.68,
+    "market": "Precio internacional",
+    "kind": "Cierre mensual",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2026-07-31",
+    "product": "Jet Fuel Internacional",
+    "unit": "Bs/l",
+    "price": 8.42,
+    "market": "Precio internacional",
+    "kind": "Cierre mensual",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2026-07-31",
+    "product": "GNV Internacional",
+    "unit": "Bs/m³",
+    "price": 3.2,
+    "market": "Precio internacional",
+    "kind": "Cierre mensual",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2026-07-31",
+    "product": "Gasolina Especial + Internacional",
+    "unit": "Bs/l",
+    "price": 8.68,
+    "market": "Precio internacional",
+    "kind": "Cierre mensual",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2026-08-31",
+    "product": "Diésel Oil Internacional",
+    "unit": "Bs/l",
+    "price": 9.98,
+    "market": "Precio internacional",
+    "kind": "Cierre mensual",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2026-08-31",
+    "product": "Gasolina Especial Internacional",
+    "unit": "Bs/l",
+    "price": 8.68,
+    "market": "Precio internacional",
+    "kind": "Cierre mensual",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2026-08-31",
+    "product": "Jet Fuel Internacional",
+    "unit": "Bs/l",
+    "price": 8.42,
+    "market": "Precio internacional",
+    "kind": "Cierre mensual",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2026-08-31",
+    "product": "GNV Internacional",
+    "unit": "Bs/m³",
+    "price": 3.2,
+    "market": "Precio internacional",
+    "kind": "Cierre mensual",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  },
+  {
+    "date": "2026-08-31",
+    "product": "Gasolina Especial + Internacional",
+    "unit": "Bs/l",
+    "price": 8.68,
+    "market": "Precio internacional",
+    "kind": "Cierre mensual",
+    "source": "https://www.anh.gob.bo/w2019/contenido.php?s=13"
+  }
+]

@@ -9802,3 +9802,35 @@ button.download-btn {
 .transp .heat-grid {
   grid-template-columns: minmax(6.5rem, 1.2fr) repeat(5, minmax(5.8rem, 1fr)) !important;
 }
+
+.transport-price-range {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.5rem;
+  padding: 0 0.875rem;
+}
+
+.transport-price-range label {
+  display: grid;
+  gap: 0.25rem;
+  min-width: 0;
+  color: var(--ink-soft);
+  font-size: 0.75rem;
+}
+
+.transport-price-range input {
+  width: 100%;
+  min-width: 0;
+  padding: 0.4rem 0.5rem;
+  border: 1px solid var(--rule);
+  border-radius: 0.5rem;
+  background: var(--panel);
+  color: var(--ink);
+  font: inherit;
+  font-size: 0.85rem;
+}
+
+.transport-price-range input:focus-visible {
+  outline: 2px solid var(--official);
+  outline-offset: 2px;
+}
