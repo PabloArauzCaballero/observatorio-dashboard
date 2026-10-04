@@ -3,6 +3,7 @@
 import { useMemo, useState } from 'react';
 import {
   CandleReading,
+  ChartLegend,
   DayCandles,
   Histogram,
   RateChart,
@@ -14,6 +15,8 @@ import {
 import type { RatePoint } from './charts';
 import { Icon } from './icons';
 import type { IconName } from './icons';
+import { CANDLE_KEY, ShapeToggle } from './level-candles';
+import { Panel } from '@/components/ui/panel';
 import { CANDLE_DAILY_LIMIT, CANDLE_WEEK_LIMIT, sessionCandles } from '@/lib/candles';
 import type { CandleSession } from '@/lib/candles';
 import {
@@ -71,6 +74,10 @@ export interface FxExplorerProps {
 }
 
 type SeriesChoice = 'MID' | 'BUY' | 'SELL' | 'OFICIAL';
+
+/** Quién publica las cifras de cada panel de la sección, y qué se calcula encima. */
+const FX_SOURCE =
+  'Banco Central de Bolivia (oficial) y mercados P2P en bolivianos (paralelo); cálculo del Observatorio';
 
 const RANGES: ReadonlyArray<{ key: string; label: string; days: number | null }> = [
   { key: '90d', label: '90 días', days: 90 },
@@ -321,60 +328,57 @@ export function FxExplorer({ rows, official, readingCount }: FxExplorerProps) {
   const active =
     (range === 'todo' ? 0 : 1) + (series === 'MID' ? 0 : 1) + (pointInTimeOnly ? 1 : 0);
 
-  const query = new URLSearchParams({
-    dataset: 'series',
-    ...(floor ? { desde: floor } : {}),
-  });
+  /** Las medidas de la estadística técnica: las tarjetas y las filas que se bajan salen de aquí. */
+  const statCards: ReadonlyArray<{
+    label: string;
+    icon: IconName;
+    value: string;
+    hint: string;
+  }> = [
+    {
+      label: 'Volatilidad anualizada',
+      icon: 'pulso',
+      value: `${number(stats.volatilityAnnual, 1)} %`,
+      hint: 'desviación típica de los retornos diarios, √365',
+    },
+    {
+      label: 'Retorno medio diario',
+      icon: 'sigma',
+      value: signed(stats.meanDaily),
+      hint: `${stats.observations.toLocaleString('es-BO')} observaciones`,
+    },
+    {
+      label: 'Asimetría',
+      icon: 'area',
+      value: number(stats.skewness, 2),
+      hint: stats.skewness > 0 ? 'sesgo a depreciaciones' : 'sesgo a apreciaciones',
+    },
+    {
+      label: 'Curtosis en exceso',
+      icon: 'barras',
+      value: number(stats.excessKurtosis, 2),
+      hint: stats.excessKurtosis > 0 ? 'colas más gruesas que la normal' : 'colas más finas',
+    },
+    {
+      label: 'VaR 95 % diario',
+      icon: 'escudo',
+      value: `${number(stats.valueAtRisk95, 2)} %`,
+      hint: 'pérdida no superada en 19 de cada 20 días',
+    },
+    ...(stats.worstDay
+      ? [
+          {
+            label: 'Peor jornada',
+            icon: 'rayo' as IconName,
+            value: signed(stats.worstDay.ret),
+            hint: stats.worstDay.date,
+          },
+        ]
+      : []),
+  ];
 
   return (
     <>
-      <div className="briefcard">
-        <span className="briefcard-mark">
-          <Icon name="balanza" size={20} />
-        </span>
-        <div>
-          <h2>Qué muestra esta sección</h2>
-          <p>
-            Bolivia tiene dos precios para el dólar: el oficial, que administra el Banco Central, y
-            el paralelo del mercado. La distancia entre ellos es la{' '}
-            <strong>brecha cambiaria</strong>, y mide la escasez de divisas. Cuando la brecha se
-            cierra la pregunta no desaparece, cambia de sitio: pasa a ser{' '}
-            <strong>si el dólar está caro o barato de verdad</strong> una vez descontada la
-            inflación, que es algo que el precio nominal no puede contestar. Las dos cifras están
-            arriba, en la lectura.
-          </p>
-          <div className="brief-points">
-            <div className="brief-point">
-              <span className="brief-point-mark">
-                <Icon name="monedas" size={17} />
-              </span>
-              <div>
-                <b>Nivel real, no nominal</b>
-                <span>deflactado por la UFV, que se publica a diario</span>
-              </div>
-            </div>
-            <div className="brief-point">
-              <span className="brief-point-mark">
-                <Icon name="banco" size={17} />
-              </span>
-              <div>
-                <b>Separado por régimen</b>
-                <span>un tramo fijo y uno en movimiento no se promedian</span>
-              </div>
-            </div>
-            <div className="brief-point">
-              <span className="brief-point-mark">
-                <Icon name="refrescar" size={17} />
-              </span>
-              <div>
-                <b>Todo recalcula</b>
-                <span>con los filtros de esta sección</span>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
       <div className="workspace">
         <aside className="rail">
           <div className="rail-top">
@@ -498,20 +502,6 @@ export function FxExplorer({ rows, official, readingCount }: FxExplorerProps) {
         </aside>
 
         <div className="workspace-main" id="tablero" tabIndex={-1}>
-          <div className="strap">
-            <Icon name="linea" size={17} />
-            <h2>{chosen?.label}</h2>
-            <span className="tile-hint">{selected.length.toLocaleString('es-BO')} jornadas</span>
-            <div className="download">
-              <a className="download-btn" href={`/api/export?${query.toString()}&format=csv`}>
-                CSV
-              </a>
-              <a className="download-btn" href={`/api/export?${query.toString()}&format=json`}>
-                JSON
-              </a>
-            </div>
-          </div>
-
           {returns.length < 5 ? (
             <div className="callout">
               La selección deja menos de cinco jornadas encadenadas: no alcanza para estimar nada.
@@ -519,55 +509,26 @@ export function FxExplorer({ rows, official, readingCount }: FxExplorerProps) {
             </div>
           ) : (
             <>
-              <div className="panel">
-                <div className="tile-head card-head">
-                  <Icon name={candles ? 'velas' : 'linea'} size={17} />
-                  <h2>Tipo de cambio en bolivianos por dólar</h2>
-                  <span className="tile-hint">
-                    {first && last ? `${first.date} → ${last.date}` : 'sin datos'}
-                  </span>
-                  <button
-                    type="button"
-                    className={candles ? 'card-toggle card-toggle-on' : 'card-toggle'}
-                    onClick={() => setCandles(!candles)}
-                    title={
-                      candles ? 'Ver la serie como línea' : 'Ver una vela por jornada del paralelo'
-                    }
-                    aria-pressed={candles}
-                  >
-                    <Icon name={candles ? 'linea' : 'velas'} size={16} />
-                  </button>
+              <Panel
+                id="dolar-oficial-y-paralelo"
+                title="Dólar oficial y paralelo (Bs por USD)"
+                lede="El paralelo, con los dos lados que publica la fuente, y el tipo de cambio oficial del Banco Central."
+                meta={
+                  first && last
+                    ? `${selected.length.toLocaleString('es-BO')} jornadas · ${first.date} → ${last.date}`
+                    : 'sin datos'
+                }
+                source={FX_SOURCE}
+              >
+                <div className="fx-filters">
+                  <ShapeToggle candles={candles} onChange={setCandles} />
                 </div>
                 {candles ? (
                   <>
-                    <p className="panel-sub" style={{ marginBottom: 'var(--s2)' }}>
-                      {weekly ? (
-                        <>
-                          Una vela por <b>semana</b> del paralelo: abre en el punto medio de su
-                          primera jornada, cierra en el de la última, y la mecha va del mínimo al
-                          máximo que el tipo de cambio alcanzó dentro de esa semana. Con más de{' '}
-                          {CANDLE_DAILY_LIMIT} jornadas se agrupa así porque, con una cotización
-                          por día, el cierre de una vela diaria <b>es</b> la apertura de la
-                          siguiente y los cuerpos se pegan en una cinta continua.
-                          {candleSet.clipped
-                            ? ` Se dibujan las últimas ${CANDLE_WEEK_LIMIT} semanas. `
-                            : ' '}
-                          Elegí «90 días» a la izquierda para verlas jornada por jornada.
-                        </>
-                      ) : (
-                        <>
-                          Una vela por <b>jornada</b>. El cuerpo va del punto medio de la jornada
-                          anterior al de esta, así que su altura <b>es</b> la variación del día; la
-                          mecha son los dos lados que publica la fuente, de modo que una mecha larga
-                          es una jornada en la que compra y venta se separaron.
-                        </>
-                      )}{' '}
-                      <b>No es una vela intradía</b>: el observatorio guarda una lectura por día, y
-                      dibujar cuatro precios a partir de una sola cotización sería inventarlos.
-                    </p>
                     {/* The candles honour the drag, so they carry the way out of it. */}
                     <ZoomExit zoom={levelZoom} format={sayDate} />
-                    <DayCandles data={candleSet.candles} unit="Bs/USD" />
+                    <DayCandles data={candleSet.candles} unit="Bs por USD" />
+                    <ChartLegend items={CANDLE_KEY} />
                     {/*
                      * La variación del tramo, leída de las mismas velas: sin
                      * esto la vista de velas enseñaba el movimiento y obligaba
@@ -575,101 +536,117 @@ export function FxExplorer({ rows, official, readingCount }: FxExplorerProps) {
                      */}
                     <CandleReading
                       data={candleSet.candles}
-                      unit="Bs/USD"
+                      unit="Bs por USD"
                       grouping={candleSet.grouping}
                     />
+                    <details className="panel-note">
+                      <summary>Cómo leer las velas</summary>
+                      <p>
+                        {weekly ? (
+                          <>
+                            Una vela por <b>semana</b> del paralelo: abre en el punto medio de su
+                            primera jornada, cierra en el de la última, y la mecha va del mínimo al
+                            máximo que el tipo de cambio alcanzó dentro de esa semana. Con más de{' '}
+                            {CANDLE_DAILY_LIMIT} jornadas se agrupa así porque, con una cotización
+                            por día, el cierre de una vela diaria <b>es</b> la apertura de la
+                            siguiente y los cuerpos se pegan en una cinta continua.
+                            {candleSet.clipped
+                              ? ` Se dibujan las últimas ${CANDLE_WEEK_LIMIT} semanas. `
+                              : ' '}
+                            Elegí «90 días» a la izquierda para verlas jornada por jornada.
+                          </>
+                        ) : (
+                          <>
+                            Una vela por <b>jornada</b>. El cuerpo va del punto medio de la jornada
+                            anterior al de esta, así que su altura <b>es</b> la variación del día;
+                            la mecha son los dos lados que publica la fuente, de modo que una mecha
+                            larga es una jornada en la que compra y venta se separaron.
+                          </>
+                        )}{' '}
+                        <b>No es una vela intradía</b>: el observatorio guarda una lectura por día,
+                        y dibujar cuatro precios a partir de una sola cotización sería inventarlos.
+                      </p>
+                    </details>
                   </>
                 ) : (
                   <>
-                    <p className="panel-sub" style={{ marginBottom: 'var(--s2)' }}>
-                      Bolivianos por dólar. Naranja: los dos lados que publica la fuente para el
-                      paralelo. Azul: tipo de cambio oficial. El eje no arranca en cero, porque un
-                      movimiento de dos bolivianos es enorme y una base en cero lo aplanaría.
-                    </p>
                     <RateChart data={visibleRows} tall zoom={levelZoom} />
+                    <details className="panel-note">
+                      <summary>Cómo leer este gráfico</summary>
+                      <p>
+                        Bolivianos por dólar. Naranja: los dos lados que publica la fuente para el
+                        paralelo. Azul: tipo de cambio oficial. El eje no arranca en cero, porque un
+                        movimiento de dos bolivianos es enorme y una base en cero lo aplanaría.
+                      </p>
+                    </details>
                   </>
                 )}
-              </div>
+              </Panel>
 
-              <div className="panel">
-                <div className="panel-head">
-                  <h2>Estadística técnica de la serie</h2>
-                  <p className="panel-sub">
-                    Las medidas con las que se describe un activo que cotiza: cuánto se mueve al
-                    día, qué tan gruesa es la cola de los días malos y cuánto se aparta del máximo.
-                    Están aquí y no arriba porque responden «qué tan violento fue el movimiento»,
-                    que no es la pregunta que se le hace a una moneda administrada, y porque{' '}
-                    <b>ninguna de ellas distingue los dos regímenes</b>: calculadas sobre toda la
-                    historia mezclan un tramo fijo con uno en movimiento y describen un promedio que
-                    no existió. Para leerlas de una en una, acotá el periodo a la izquierda.
-                  </p>
-                </div>
-                <button
-                  type="button"
-                  className={technical ? 'chip chip-on' : 'chip'}
-                  onClick={() => setTechnical(!technical)}
-                  aria-expanded={technical}
-                >
-                  <Icon name={technical ? 'plegar' : 'desplegar'} size={14} />
-                  {technical ? 'Ocultar la estadística técnica' : 'Ver la estadística técnica'}
-                </button>
-              </div>
+              <Panel
+                id="estadistica-tecnica"
+                title="Estadística técnica del tipo de cambio (retornos diarios, %)"
+                lede={`Las medidas con las que se describe un activo que cotiza, calculadas sobre «${
+                  chosen?.label ?? ''
+                }»: cuánto se mueve al día, qué tan gruesa es la cola de los días malos y cuánto se aparta del máximo.`}
+                meta={
+                  <button
+                    type="button"
+                    className="menu-btn"
+                    onClick={() => setTechnical(!technical)}
+                    aria-expanded={technical}
+                  >
+                    {technical ? 'Ocultar' : 'Ver la estadística técnica'}
+                  </button>
+                }
+                source={FX_SOURCE}
+                data={() =>
+                  technical
+                    ? {
+                        unidad: 'retornos diarios, %',
+                        nota: `Calculado sobre: ${chosen?.label ?? ''}`,
+                        columnas: ['Medida', 'Valor', 'Detalle'],
+                        filas: statCards.map((card) => [card.label, card.value, card.hint]),
+                      }
+                    : undefined
+                }
+              >
+                {technical ? (
+                  <>
+                    <div className="stat-strip">
+                      {statCards.map((card) => (
+                        <Stat
+                          key={card.label}
+                          label={card.label}
+                          icon={card.icon}
+                          value={card.value}
+                          hint={card.hint}
+                        />
+                      ))}
+                    </div>
+                    <details className="panel-note">
+                      <summary>Cómo leer estas medidas</summary>
+                      <p>
+                        Están aquí y no arriba porque responden «qué tan violento fue el
+                        movimiento», que no es la pregunta que se le hace a una moneda administrada,
+                        y porque <b>ninguna de ellas distingue los dos regímenes</b>: calculadas
+                        sobre toda la historia mezclan un tramo fijo con uno en movimiento y
+                        describen un promedio que no existió. Para leerlas de una en una, acotá el
+                        periodo a la izquierda.
+                      </p>
+                    </details>
+                  </>
+                ) : null}
+              </Panel>
 
               {technical ? (
                 <>
-                  <div className="stat-strip">
-                    <Stat
-                      label="Volatilidad anualizada"
-                      icon="pulso"
-                      value={`${number(stats.volatilityAnnual, 1)} %`}
-                      hint="desviación típica de los retornos diarios, √365"
-                    />
-                    <Stat
-                      label="Retorno medio diario"
-                      icon="sigma"
-                      value={signed(stats.meanDaily)}
-                      hint={`${stats.observations.toLocaleString('es-BO')} observaciones`}
-                    />
-                    <Stat
-                      label="Asimetría"
-                      icon="area"
-                      value={number(stats.skewness, 2)}
-                      hint={stats.skewness > 0 ? 'sesgo a depreciaciones' : 'sesgo a apreciaciones'}
-                    />
-                    <Stat
-                      label="Curtosis en exceso"
-                      icon="barras"
-                      value={number(stats.excessKurtosis, 2)}
-                      hint={
-                        stats.excessKurtosis > 0
-                          ? 'colas más gruesas que la normal'
-                          : 'colas más finas'
-                      }
-                    />
-                    <Stat
-                      label="VaR 95 % diario"
-                      icon="escudo"
-                      value={`${number(stats.valueAtRisk95, 2)} %`}
-                      hint="pérdida no superada en 19 de cada 20 días"
-                    />
-                    {stats.worstDay ? (
-                      <Stat
-                        label="Peor jornada"
-                        icon="rayo"
-                        value={signed(stats.worstDay.ret)}
-                        hint={stats.worstDay.date}
-                      />
-                    ) : null}
-                  </div>
-
-                  <div className="panel">
-                    <div className="panel-head">
-                      <h2>Variación diaria del tipo de cambio (%)</h2>
-                      <p className="panel-sub">
-                        Variación logarítmica de {chosen?.label.toLocaleLowerCase('es')}. Las barras
-                        hacen visibles los saltos que una línea de nivel suaviza.
-                      </p>
-                    </div>
+                  <Panel
+                    id="variacion-diaria"
+                    title="Variación diaria del tipo de cambio (%)"
+                    lede={`Variación logarítmica de ${chosen?.label.toLocaleLowerCase('es') ?? ''}. Las barras hacen visibles los saltos que una línea de nivel suaviza.`}
+                    source={FX_SOURCE}
+                  >
                     <SeriesChart
                       data={returnSeries}
                       kind="bar"
@@ -679,17 +656,15 @@ export function FxExplorer({ rows, official, readingCount }: FxExplorerProps) {
                       zeroLine
                       {...(boundary ? { boundary } : {})}
                     />
-                  </div>
+                  </Panel>
 
-                  <div className="grid-two">
-                    <div className="panel">
-                      <div className="panel-head">
-                        <h2>Volatilidad anualizada del tipo de cambio (%)</h2>
-                        <p className="panel-sub">
-                          Ventana móvil de {span} días, anualizada. Responde a «¿está el mercado más
-                          nervioso ahora que hace un mes?».
-                        </p>
-                      </div>
+                  <div className="grid-pair fx-par">
+                    <Panel
+                      id="volatilidad-anualizada"
+                      title="Volatilidad anualizada del tipo de cambio (%)"
+                      lede={`Ventana móvil de ${span} días, anualizada. Responde a «¿está el mercado más nervioso ahora que hace un mes?».`}
+                      source={FX_SOURCE}
+                    >
                       {volatility.length >= 2 ? (
                         <SeriesChart
                           data={volatility}
@@ -705,31 +680,25 @@ export function FxExplorer({ rows, official, readingCount }: FxExplorerProps) {
                           Se necesitan más de {span} jornadas para una primera estimación.
                         </div>
                       )}
-                    </div>
+                    </Panel>
 
-                    <div className="panel">
-                      <div className="panel-head">
-                        <h2>Jornadas por tramo de variación diaria</h2>
-                        <p className="panel-sub">
-                          Días por tramo; en rojo, la cola inferior del 5 %. Si las barras extremas
-                          son más altas de lo que sería normal, los días excepcionales no son tan
-                          excepcionales.
-                        </p>
-                      </div>
+                    <Panel
+                      id="jornadas-por-tramo"
+                      title="Jornadas por tramo de variación diaria (cantidad de jornadas)"
+                      lede="Días por tramo; en rojo, la cola inferior del 5 %. Si las barras extremas son más altas de lo que sería normal, los días excepcionales no son tan excepcionales."
+                      source={FX_SOURCE}
+                    >
                       <Histogram data={buckets} />
-                    </div>
+                    </Panel>
                   </div>
 
-                  <div className="grid-two">
-                    <div className="panel">
-                      <div className="panel-head">
-                        <h2>Correlación entre el oficial y el paralelo (−1 a 1)</h2>
-                        <p className="panel-sub">
-                          Ventana móvil de {Math.max(span, 60)} días. Cerca de cero mientras el
-                          oficial estuvo fijo: un precio que no se mueve no puede acompañar a otro.
-                          Se despega cuando empieza a seguir al mercado.
-                        </p>
-                      </div>
+                  <div className="grid-pair fx-par">
+                    <Panel
+                      id="correlacion-oficial-paralelo"
+                      title="Correlación entre el oficial y el paralelo (−1 a 1)"
+                      lede={`Ventana móvil de ${Math.max(span, 60)} días. Cerca de cero mientras el oficial estuvo fijo: un precio que no se mueve no puede acompañar a otro. Se despega cuando empieza a seguir al mercado.`}
+                      source={FX_SOURCE}
+                    >
                       {correlation.length >= 2 ? (
                         <SeriesChart
                           data={correlation}
@@ -746,16 +715,14 @@ export function FxExplorer({ rows, official, readingCount }: FxExplorerProps) {
                           estimarla.
                         </div>
                       )}
-                    </div>
+                    </Panel>
 
-                    <div className="panel">
-                      <div className="panel-head">
-                        <h2>Distancia al máximo alcanzado (%)</h2>
-                        <p className="panel-sub">
-                          Distancia respecto al mayor nivel alcanzado hasta cada fecha. En un tipo
-                          de cambio que se deprecia, volver a cero significa un nuevo récord.
-                        </p>
-                      </div>
+                    <Panel
+                      id="distancia-al-maximo"
+                      title="Distancia al máximo alcanzado (%)"
+                      lede="Distancia respecto al mayor nivel alcanzado hasta cada fecha. En un tipo de cambio que se deprecia, volver a cero significa un nuevo récord."
+                      source={FX_SOURCE}
+                    >
                       <SeriesChart
                         data={fall}
                         kind="area"
@@ -764,14 +731,14 @@ export function FxExplorer({ rows, official, readingCount }: FxExplorerProps) {
                         label="Distancia al máximo alcanzado"
                         zeroLine
                       />
-                    </div>
+                    </Panel>
                   </div>
                 </>
               ) : null}
             </>
           )}
 
-          <p className="panel-sub">
+          <p className="panel-source">
             {readingCount.toLocaleString('es-BO')} puntos de serie leídos del núcleo del
             observatorio.
           </p>

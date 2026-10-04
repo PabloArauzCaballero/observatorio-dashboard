@@ -1,6 +1,7 @@
 'use client';
 
 import { Icon } from './icons';
+import { Panel } from '@/components/ui/panel';
 import { reportDownloadIntent } from '@/lib/analytics';
 
 /**
@@ -21,18 +22,18 @@ export function FxEconometricsCard() {
   const announce = (): void => reportDownloadIntent('econometria');
 
   return (
-    <div className="panel">
-      <div className="panel-head">
-        <h2>Pruebas econométricas del tipo de cambio</h2>
-        <p className="panel-sub">
-          Raíz unitaria del paralelo y de la brecha, cointegración entre oficial y paralelo,
-          causalidad de Granger, quiebre estructural, volatilidad GARCH y traspaso a precios.
-        </p>
-        <p className="panel-sub">
-          Cada prueba con su estadístico, su valor crítico o p-valor, la ventana y la decisión, y
-          las conclusiones que se derivan de ellas.
-        </p>
-      </div>
+    <Panel
+      id="pruebas-econometricas"
+      title="Pruebas econométricas del tipo de cambio (informe en PDF)"
+      lede="Raíz unitaria del paralelo y de la brecha, cointegración entre oficial y paralelo, causalidad de Granger, quiebre estructural, volatilidad GARCH y traspaso a precios."
+      source="Cálculo del Observatorio sobre el oficial del Banco Central, el paralelo de los mercados P2P en bolivianos y la UFV"
+      downloadable={false}
+      className="fx-econ"
+    >
+      <p className="panel-note">
+        Cada prueba con su estadístico, su valor crítico o p-valor, la ventana y la decisión, y las
+        conclusiones que se derivan de ellas.
+      </p>
       <div className="download">
         <a
           className="download-btn download-btn-on"
@@ -43,6 +44,6 @@ export function FxEconometricsCard() {
           <Icon name="descarga" size={13} /> Descargar el informe (PDF)
         </a>
       </div>
-    </div>
+    </Panel>
   );
 }

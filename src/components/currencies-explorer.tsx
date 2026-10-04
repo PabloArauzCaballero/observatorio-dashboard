@@ -2,12 +2,24 @@
 
 import { useMemo, useState } from 'react';
 import { additive, toggle as toggleChoice } from '@/lib/choice';
-import { CATALOG, DOLLAR, REGIONS, entryOf, measured, perDollar, sayDate, sayScale, scaleOf, summarize } from '@/lib/currencies-board';
+import {
+  CATALOG,
+  DOLLAR,
+  REGIONS,
+  entryOf,
+  measured,
+  perDollar,
+  sayDate,
+  sayScale,
+  scaleOf,
+  summarize,
+} from '@/lib/currencies-board';
 import type { CurrencyBoard, CurrencySeries, Measure, Region } from '@/lib/currencies-board';
 import { DatedLines, seriesTone } from './charts';
 import type { DatedLinePoint } from './charts';
 import { FilterHint } from './filters';
 import { Icon } from './icons';
+import { Panel } from '@/components/ui/panel';
 
 /**
  * El boliviano frente a las principales monedas, con filtros que se cruzan.
@@ -23,7 +35,11 @@ import { Icon } from './icons';
  */
 
 const MEASURES: ReadonlyArray<{ key: Measure; label: string; hint: string }> = [
-  { key: 'LEVEL', label: 'Nivel', hint: 'Bolivianos que vale la moneda (por la cantidad que dice cada una).' },
+  {
+    key: 'LEVEL',
+    label: 'Nivel',
+    hint: 'Bolivianos que vale la moneda (por la cantidad que dice cada una).',
+  },
   { key: 'INDEX', label: 'Índice', hint: 'Base 100 en el primer dato visible de cada moneda.' },
   { key: 'YOY', label: 'Var. anual', hint: 'Cambio contra la misma fecha de un año antes, en %.' },
 ];
@@ -32,7 +48,10 @@ const START: readonly string[] = ['CNY', 'JPY', 'EUR', 'BRL'];
 const MOST_DRAWN = 6;
 
 const number = (value: number, decimals = 2): string =>
-  new Intl.NumberFormat('es-BO', { minimumFractionDigits: 0, maximumFractionDigits: decimals }).format(value);
+  new Intl.NumberFormat('es-BO', {
+    minimumFractionDigits: 0,
+    maximumFractionDigits: decimals,
+  }).format(value);
 
 const decimalsFor = (values: readonly number[]): number => {
   const top = Math.max(...values.map((value) => Math.abs(value)), 0);
@@ -63,21 +82,28 @@ export function CurrenciesExplorer({ board }: { board: CurrencyBoard }) {
 
   if (!coins.length) {
     return (
-      <div className="panel">
-        <div className="panel-head">
-          <h2>Otras monedas: el boliviano frente al mundo</h2>
-          <p className="panel-sub">
-            Todavía no hay cotizaciones cargadas en esta base. Se llenan con la tabla de cotizaciones
-            del Banco Central de Bolivia.
-          </p>
-        </div>
-      </div>
+      <Panel
+        id="monedas-sin-datos"
+        title="Otras monedas: el boliviano frente al mundo (Bs)"
+        lede="Todavía no hay cotizaciones cargadas en esta base. Se llenan con la tabla de cotizaciones del Banco Central de Bolivia."
+        source="Banco Central de Bolivia, tabla de cotizaciones (bcb.gob.bo)"
+        downloadable={false}
+      >
+        {null}
+      </Panel>
     );
   }
 
   const listed = coins.filter((one) => region === null || entryOf(one.iso)?.region === region);
   const drawn = coins.filter((one) => chosen.has(one.iso)).slice(0, MOST_DRAWN);
   const focus = coins.filter((one) => entryOf(one.iso)?.focus);
+  /** Las monedas de foco con su última cifra en bolivianos, ya multiplicada por su escala. */
+  const focusCards = focus.flatMap((one) => {
+    const summary = summarize(one);
+    if (!summary.last) return [];
+    const scale = scaleOf(one.iso);
+    return [{ one, summary, scale, bs: summary.last[1] * scale }];
+  });
 
   const rows = new Map<string, DatedLinePoint>();
   for (const one of drawn) {
@@ -87,7 +113,9 @@ export function CurrenciesExplorer({ board }: { board: CurrencyBoard }) {
       rows.set(date, row);
     }
   }
-  const data = [...rows.values()].sort((left, right) => String(left.date).localeCompare(String(right.date)));
+  const data = [...rows.values()].sort((left, right) =>
+    String(left.date).localeCompare(String(right.date)),
+  );
   const values = data.flatMap((row) =>
     drawn.map((one) => row[one.iso]).filter((value): value is number => typeof value === 'number'),
   );
@@ -99,49 +127,64 @@ export function CurrenciesExplorer({ board }: { board: CurrencyBoard }) {
         ? `Las monedas elegidas en índice (base 100 = primer dato visible desde ${from})`
         : 'Variación interanual de cada moneda frente al boliviano (%)';
   const label = (one: CurrencySeries): string =>
-    measure === 'LEVEL' && scaleOf(one.iso) !== 1 ? `${one.label} (${sayScale(one.iso)})` : one.label;
+    measure === 'LEVEL' && scaleOf(one.iso) !== 1
+      ? `${one.label} (${sayScale(one.iso)})`
+      : one.label;
 
   return (
     <>
-      <div className="panel">
-        <div className="panel-head">
-          <h2>Otras monedas: el boliviano frente a las principales del mundo</h2>
-          <p className="panel-sub">
-            {coins.length} monedas según la tabla de cotizaciones del Banco Central de Bolivia; la
-            última es del {board.latestDate ? sayDate(board.latestDate) : '—'}. Bolivia vende y compra
-            mucho con China: su moneda es el <b>yuan (CNY)</b>; el <b>yen (JPY)</b> es la de Japón. Las
-            cotizaciones son indicativas salvo la del dólar, y los cruces salen del dólar oficial.
-          </p>
-        </div>
+      <Panel
+        id="monedas-principales"
+        title="Las monedas de mayor peso en el comercio frente al boliviano (Bs)"
+        lede={`${coins.length} monedas según la tabla de cotizaciones del Banco Central de Bolivia; la última es del ${board.latestDate ? sayDate(board.latestDate) : '—'}.`}
+        source="Banco Central de Bolivia, tabla de cotizaciones (bcb.gob.bo)"
+        data={{
+          unidad: 'Bs',
+          columnas: ['Moneda', 'Código', 'Por', 'Bs', 'Fecha', 'Variación en un año (%)'],
+          filas: focusCards.map(({ one, summary, scale }) => [
+            one.label,
+            one.iso,
+            scale,
+            summary.last ? summary.last[1] * scale : null,
+            summary.last ? summary.last[0] : null,
+            summary.year,
+          ]),
+        }}
+      >
         <div className="stat-strip">
-          {focus.map((one) => {
-            const summary = summarize(one);
-            if (!summary.last) return null;
-            const scale = scaleOf(one.iso);
-            return (
-              <div className="stat" key={one.iso} title={one.note}>
-                <span className="stat-label">{one.label}</span>
-                <span className="stat-value">
-                  {number(summary.last[1] * scale, decimalsFor([summary.last[1] * scale]))} Bs
-                </span>
-                <span className="stat-hint">
-                  {sayScale(one.iso)} · {sayDate(summary.last[0])}
-                  {summary.year === null ? '' : ` · ${signed(summary.year)} en un año`}
-                </span>
-              </div>
-            );
-          })}
+          {focusCards.map(({ one, summary, bs }) => (
+            <div className="stat" key={one.iso} title={one.note}>
+              <span className="stat-label">{one.label}</span>
+              <span className="stat-value">{number(bs, decimalsFor([bs]))} Bs</span>
+              <span className="stat-hint">
+                {sayScale(one.iso)} · {summary.last ? sayDate(summary.last[0]) : '—'}
+                {summary.year === null ? '' : ` · ${signed(summary.year)} en un año`}
+              </span>
+            </div>
+          ))}
         </div>
-      </div>
+        <details className="panel-note">
+          <summary>Cómo leer estas cifras</summary>
+          <p>
+            Bolivia vende y compra mucho con China: su moneda es el <b>yuan (CNY)</b>; el{' '}
+            <b>yen (JPY)</b> es la de Japón. Las cotizaciones son indicativas salvo la del dólar, y
+            los cruces salen del dólar oficial.
+          </p>
+        </details>
+      </Panel>
 
       <div className="workspace workspace-filters-first">
         <aside className="rail" id="monedas-filtros">
           <div className="rail-top">
             <Icon name="filtro" size={15} />
             <span className="rail-title">Filtros</span>
-            <span className="rail-count">{chosen.size} moneda{chosen.size === 1 ? '' : 's'}</span>
+            <span className="rail-count">
+              {chosen.size} moneda{chosen.size === 1 ? '' : 's'}
+            </span>
           </div>
-          <FilterHint>Ctrl+clic suma varias a la selección; se dibujan hasta {MOST_DRAWN}.</FilterHint>
+          <FilterHint>
+            Ctrl+clic suma varias a la selección; se dibujan hasta {MOST_DRAWN}.
+          </FilterHint>
 
           <div className="rail-sec">
             <div className="rail-head">
@@ -245,23 +288,12 @@ export function CurrenciesExplorer({ board }: { board: CurrencyBoard }) {
         </aside>
 
         <div className="workspace-main stack">
-          <div className="panel">
-            <div className="panel-head">
-              <h2>{title}</h2>
-              <p className="panel-sub">
-                Cada línea es lo que vale la moneda en bolivianos según el BCB. La historia es
-                semanal hasta fines de septiembre de 2026 y diaria desde entonces. El dólar oficial pasó de 6,96 a flotar
-                el 27-jun-2026: antes, el boliviano frente a otra moneda sólo se movía con ella
-                contra el dólar.
-              </p>
-            </div>
-            {drawn
-              .filter((one) => one.spliced)
-              .map((one) => (
-                <p className="panel-sub" key={one.iso}>
-                  <Icon name="info" size={12} /> {one.label}: {one.spliced}
-                </p>
-              ))}
+          <Panel
+            id="monedas-grafico"
+            title={title}
+            lede="Cada línea es lo que vale la moneda en bolivianos según el BCB."
+            source="Banco Central de Bolivia, tabla de cotizaciones (bcb.gob.bo)"
+          >
             {data.length > 1 ? (
               <DatedLines
                 data={data}
@@ -279,16 +311,29 @@ export function CurrenciesExplorer({ board }: { board: CurrencyBoard }) {
             ) : (
               <div className="callout">No hay datos de estas monedas en los años elegidos.</div>
             )}
-          </div>
-
-          <div className="panel">
-            <div className="panel-head">
-              <h2>Las {coins.length} monedas del BCB frente al boliviano (Bs y variación en %)</h2>
-              <p className="panel-sub">
-                «Por» es la cantidad de moneda extranjera a la que se refiere la cifra: 100 yenes,
-                1.000 wones. «Por US$» son las unidades que entran en un dólar oficial.
+            {drawn
+              .filter((one) => one.spliced)
+              .map((one) => (
+                <p className="panel-note" key={one.iso}>
+                  <Icon name="info" size={12} /> {one.label}: {one.spliced}
+                </p>
+              ))}
+            <details className="panel-note">
+              <summary>Cómo leer este gráfico</summary>
+              <p>
+                La historia es semanal hasta fines de septiembre de 2026 y diaria desde entonces. El
+                dólar oficial pasó de 6,96 a flotar el 27-jun-2026: antes, el boliviano frente a
+                otra moneda sólo se movía con ella contra el dólar.
               </p>
-            </div>
+            </details>
+          </Panel>
+
+          <Panel
+            id="monedas-tabla"
+            title={`Las ${coins.length} monedas del BCB frente al boliviano (Bs y variación en %)`}
+            lede="«Por» es la cantidad de moneda extranjera a la que se refiere la cifra: 100 yenes, 1.000 wones. «Por US$» son las unidades que entran en un dólar oficial."
+            source="Banco Central de Bolivia, tabla de cotizaciones (bcb.gob.bo); cada cifra guarda la fila de la tabla de la que salió"
+          >
             <div className="table-wrap">
               <table className="grid-table">
                 <thead>
@@ -306,7 +351,11 @@ export function CurrenciesExplorer({ board }: { board: CurrencyBoard }) {
                 </thead>
                 <tbody>
                   {[...coins]
-                    .sort((left, right) => Object.keys(CATALOG).indexOf(left.iso) - Object.keys(CATALOG).indexOf(right.iso))
+                    .sort(
+                      (left, right) =>
+                        Object.keys(CATALOG).indexOf(left.iso) -
+                        Object.keys(CATALOG).indexOf(right.iso),
+                    )
                     .map((one) => {
                       const summary = summarize(one);
                       if (!summary.last) return null;
@@ -320,9 +369,16 @@ export function CurrenciesExplorer({ board }: { board: CurrencyBoard }) {
                           <td>{one.country}</td>
                           <td>{scale === 1 ? '1' : number(scale, 0)}</td>
                           <td className="num">
-                            <b>{number(summary.last[1] * scale, decimalsFor([summary.last[1] * scale]))}</b>
+                            <b>
+                              {number(
+                                summary.last[1] * scale,
+                                decimalsFor([summary.last[1] * scale]),
+                              )}
+                            </b>
                           </td>
-                          <td className="num">{units === null ? '—' : number(units, units >= 100 ? 1 : 3)}</td>
+                          <td className="num">
+                            {units === null ? '—' : number(units, units >= 100 ? 1 : 3)}
+                          </td>
                           <td className="num">{signed(summary.day)}</td>
                           <td className="num">{signed(summary.month)}</td>
                           <td className="num">{signed(summary.year)}</td>
@@ -333,11 +389,7 @@ export function CurrenciesExplorer({ board }: { board: CurrencyBoard }) {
                 </tbody>
               </table>
             </div>
-          </div>
-          <p className="panel-sub">
-            <Icon name="info" size={12} /> Fuente: tabla de cotizaciones del Banco Central de
-            Bolivia (bcb.gob.bo). Cada cifra guarda la fila de la tabla de la que salió.
-          </p>
+          </Panel>
         </div>
       </div>
     </>

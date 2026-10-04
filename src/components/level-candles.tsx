@@ -1,8 +1,10 @@
 'use client';
 
 import { useMemo, useState } from 'react';
+import type { ReactNode } from 'react';
 
-import { CandleReading, DayCandles } from './charts';
+import { CandleReading, ChartLegend, DayCandles } from './charts';
+import type { LegendItem } from './charts';
 import { CANDLE_DAILY_LIMIT, CANDLE_WEEK_LIMIT, sessionCandles } from '@/lib/candles';
 import type { CandleSession } from '@/lib/candles';
 
@@ -32,6 +34,48 @@ const RANGES: ReadonlyArray<{ key: string; label: string; days: number | null }>
   { key: 'todo', label: 'Todo', days: null },
 ];
 
+/**
+ * La clave de la vela, bajo el dibujo. El color de «sube» es el de `--up`, que en el
+ * tablero es el rojo de «por encima de la referencia»: un dólar que sube es lo adverso.
+ */
+export const CANDLE_KEY: ReadonlyArray<LegendItem> = [
+  { label: 'Cierra por encima de su apertura (sube)', color: 'var(--up)' },
+  { label: 'Cierra por debajo de su apertura (baja)', color: 'var(--down)' },
+];
+
+/**
+ * El interruptor entre línea y velas: dos pastillas, no un icono. Va en la fila de
+ * filtros del panel que lo usa, con `aria-pressed`, igual que cualquier otro filtro.
+ */
+export function ShapeToggle({
+  candles,
+  onChange,
+}: {
+  candles: boolean;
+  onChange: (candles: boolean) => void;
+}) {
+  return (
+    <div className="chips" role="group" aria-label="Forma del gráfico">
+      <button
+        type="button"
+        className={candles ? 'chip' : 'chip chip-on'}
+        aria-pressed={!candles}
+        onClick={() => onChange(false)}
+      >
+        Línea
+      </button>
+      <button
+        type="button"
+        className={candles ? 'chip chip-on' : 'chip'}
+        aria-pressed={candles}
+        onClick={() => onChange(true)}
+      >
+        Velas
+      </button>
+    </div>
+  );
+}
+
 export interface LevelCandlesProps {
   sessions: readonly CandleSession[];
   unit: string;
@@ -44,6 +88,8 @@ export interface LevelCandlesProps {
   sidesNote?: string;
   /** La ventana con la que se abre; «todo» si no se dice. */
   defaultRange?: '90d' | '1a' | 'todo';
+  /** Lo que va al comienzo de la fila de filtros: el interruptor línea/velas del panel. */
+  lead?: ReactNode;
 }
 
 export function LevelCandles({
@@ -52,6 +98,7 @@ export function LevelCandles({
   decimals = 2,
   sidesNote,
   defaultRange = 'todo',
+  lead,
 }: LevelCandlesProps) {
   const [range, setRange] = useState<string>(defaultRange);
 
@@ -84,56 +131,60 @@ export function LevelCandles({
 
   return (
     <div className="chart-stack">
-      <div className="candle-ranges" role="group" aria-label="Ventana de las velas">
-        {RANGES.map((entry) => (
-          <button
-            key={entry.key}
-            type="button"
-            className={range === entry.key ? 'chip chip-on' : 'chip'}
-            onClick={() => setRange(entry.key)}
-            title={`${countFor(entry.days).toLocaleString('es-BO')} jornadas`}
-          >
-            {entry.label}
-          </button>
-        ))}
+      <div className="fx-filters">
+        {lead}
+        <div className="chips" role="group" aria-label="Ventana de las velas">
+          {RANGES.map((entry) => (
+            <button
+              key={entry.key}
+              type="button"
+              className={range === entry.key ? 'chip chip-on' : 'chip'}
+              aria-pressed={range === entry.key}
+              onClick={() => setRange(entry.key)}
+              title={`${countFor(entry.days).toLocaleString('es-BO')} jornadas`}
+            >
+              {entry.label}
+            </button>
+          ))}
+        </div>
       </div>
-      <p className="panel-sub" style={{ marginBottom: 'var(--s1)' }}>
-        {weekly ? (
-          <>
-            Una vela por <b>semana</b>: abre en el punto medio de su primera jornada, cierra en el
-            de la última, y la mecha va del mínimo al máximo que el precio alcanzó dentro de esa
-            semana. Con más de {CANDLE_DAILY_LIMIT} jornadas se agrupa así porque, con una
-            cotización por día, el cierre de una vela diaria <b>es</b> la apertura de la siguiente
-            y los cuerpos se pegan en una cinta continua.
-            {set.clipped ? (
-              <> Se dibujan las últimas {CANDLE_WEEK_LIMIT} semanas. </>
-            ) : (
-              ' '
-            )}
-            Elegí «90 días» para verlas jornada por jornada.
-          </>
-        ) : (
-          <>
-            Una vela por <b>jornada</b>. El cuerpo va del punto medio de la jornada anterior al de
-            esta, así que su altura <b>es</b> la variación del día;{' '}
-            {sidesNote ? (
-              <>
-                la mecha va del menor al mayor de los precios publicados ese día —{sidesNote}—, de
-                modo que una mecha larga es una jornada en la que compra y venta se separaron.
-              </>
-            ) : (
-              <>
-                la serie no publica lados, así que la mecha coincide con el cuerpo en vez de
-                estirarse con precios que nadie cotizó.
-              </>
-            )}
-          </>
-        )}{' '}
-        <b>No es una vela intradía</b>: el observatorio guarda una lectura por día, y dibujar cuatro
-        precios a partir de una sola cotización sería inventarlos.
-      </p>
       <DayCandles data={set.candles} unit={unit} />
+      <ChartLegend items={CANDLE_KEY} />
       <CandleReading data={set.candles} unit={unit} grouping={set.grouping} decimals={decimals} />
+      <details className="panel-note">
+        <summary>Cómo leer las velas</summary>
+        <p>
+          {weekly ? (
+            <>
+              Una vela por <b>semana</b>: abre en el punto medio de su primera jornada, cierra en el
+              de la última, y la mecha va del mínimo al máximo que el precio alcanzó dentro de esa
+              semana. Con más de {CANDLE_DAILY_LIMIT} jornadas se agrupa así porque, con una
+              cotización por día, el cierre de una vela diaria <b>es</b> la apertura de la siguiente
+              y los cuerpos se pegan en una cinta continua.
+              {set.clipped ? <> Se dibujan las últimas {CANDLE_WEEK_LIMIT} semanas. </> : ' '}
+              Elegí «90 días» para verlas jornada por jornada.
+            </>
+          ) : (
+            <>
+              Una vela por <b>jornada</b>. El cuerpo va del punto medio de la jornada anterior al de
+              esta, así que su altura <b>es</b> la variación del día;{' '}
+              {sidesNote ? (
+                <>
+                  la mecha va del menor al mayor de los precios publicados ese día —{sidesNote}—, de
+                  modo que una mecha larga es una jornada en la que compra y venta se separaron.
+                </>
+              ) : (
+                <>
+                  la serie no publica lados, así que la mecha coincide con el cuerpo en vez de
+                  estirarse con precios que nadie cotizó.
+                </>
+              )}
+            </>
+          )}{' '}
+          <b>No es una vela intradía</b>: el observatorio guarda una lectura por día, y dibujar
+          cuatro precios a partir de una sola cotización sería inventarlos.
+        </p>
+      </details>
     </div>
   );
 }
