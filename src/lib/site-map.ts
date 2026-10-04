@@ -69,7 +69,14 @@ export const SITE: readonly SiteSection[] = [
   {
     label: 'Transporte',
     icon: 'camion',
-    pages: paginas('Carreteras', 'Ferrocarriles', 'Ríos y puertos'),
+    pages: paginas(
+      'Carreteras',
+      'Ferrocarriles',
+      'Ríos y puertos',
+      'Vehículos 0 km',
+      'Carburantes',
+      'Pasajes',
+    ),
   },
   { label: 'Prensa', icon: 'ventana', pages: paginas('Cobertura', 'Temas') },
   { label: 'Método', icon: 'info', pages: [] },
