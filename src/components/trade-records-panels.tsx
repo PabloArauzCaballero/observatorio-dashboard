@@ -204,6 +204,7 @@ export function RankingPanel({
             }))}
             unit=" M USD"
             height={Math.max(240, items.length * 24)}
+            declare={false}
             {...(onPick ? { onPick } : {})}
           />
           <BarsKey label={`Valor ${flow === 'X' ? 'FOB' : 'CIF en frontera'}, millones de USD`} />
