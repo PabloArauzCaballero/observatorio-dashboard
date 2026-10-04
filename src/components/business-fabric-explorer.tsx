@@ -1,8 +1,23 @@
 'use client';
 
-import { useMemo, useState } from 'react';
-import { ChartLegend, HeatGrid, ShareBars, WorldLines, YearStackBars, seriesTone } from './charts';
-import type { HeatCell, LegendItem, StackPart, WorldLineSeries, YearStackRow } from './charts';
+import { useMemo, useState, type ReactNode } from 'react';
+import {
+  ChartLegend,
+  DivergingBars,
+  HeatGrid,
+  ShareBars,
+  WorldLines,
+  YearStackBars,
+  seriesTone,
+} from './charts';
+import type {
+  DivergingRow,
+  HeatCell,
+  LegendItem,
+  StackPart,
+  WorldLineSeries,
+  YearStackRow,
+} from './charts';
 import { DepartmentsMap } from './departments-map';
 import { FilterHint, PickedCount } from './filters';
 import { Icon } from './icons';
@@ -10,6 +25,8 @@ import styles from './business.module.css';
 import { BusinessSizePanel } from './business-size-panel';
 import { BusinessDirectoryPanel } from './business-directory-panel';
 import { Panel } from '@/components/ui/panel';
+import { ProveedorDePanel, useAlmacenDePanel } from '@/components/ui/panel-data';
+import { ViewToggle } from '@/components/ui/view-toggle';
 import { ANY, additive, picked, toggle, without } from '@/lib/choice';
 import type { Choice } from '@/lib/choice';
 import {
@@ -63,6 +80,22 @@ const departmentKey = (what: string, chosen: boolean): LegendItem[] =>
         { color: 'var(--series-rest)', label: 'Los demás departamentos' },
       ]
     : [{ color: 'var(--official)', label: what }];
+
+/**
+ * Dibuja una figura sin que sus cifras lleguen al menú del panel.
+ *
+ * El panel de crecimiento ya declara la tabla completa en `data` (todas las categorías, con
+ * el inicio, el fin, la tasa y la parte). `DivergingBars` declara además su propia hoja, y el
+ * lector bajaría dos conjuntos según qué vista tenga abierta. Aquí las cifras de la figura caen
+ * en un almacén que nadie lee: se baja lo mismo en las dos vistas.
+ */
+function SinCifrasPropias({ children }: { children: ReactNode }) {
+  const aparte = useAlmacenDePanel();
+  return <ProveedorDePanel almacen={aparte}>{children}</ProveedorDePanel>;
+}
+
+/** Cuántas categorías dibuja el gráfico de crecimiento; la tabla las trae todas. */
+const GROWTH_BARS = 12;
 
 const placeLabel = (key: string): string => PLACES.find((one) => one.key === key)?.label ?? key;
 const say = (value: number, decimals = 0): string =>
@@ -214,6 +247,18 @@ export function BusinessFabricExplorer({ board }: { board: FabricBoard }) {
     const share = end !== null && lastTotal ? (end / lastTotal) * 100 : null;
     return { ...one, start, end, rate, share };
   });
+
+  /*
+   * El gráfico del crecimiento: las categorías más grandes (`growth` ya viene ordenado por
+   * tamaño) con tasa calculable; la tabla de al lado trae todas.
+   */
+  const growthRated = growth.filter((one) => one.rate !== null);
+  const growthShown = growthRated.slice(0, GROWTH_BARS);
+  const growthBars: DivergingRow[] = growthShown.map((one) => ({
+    name: one.label,
+    value: one.rate ?? 0,
+    meta: `${first}: ${one.start === null ? '—' : say(one.start)} · ${last}: ${one.end === null ? '—' : say(one.end)}${one.share === null ? '' : ` · ${say(one.share, 1)} % del total de ${last}`}`,
+  }));
 
   const owners = board.owners;
   const ownerYear = owners[0]?.year ?? null;
@@ -703,30 +748,86 @@ export function BusinessFabricExplorer({ board }: { board: FabricBoard }) {
               ]),
             })}
           >
-            <div className="table-wrap">
-              <table className="grid-table">
-                <thead>
-                  <tr>
-                    <th>{dimension === 'FORM' ? 'Tipo societario' : 'Actividad'}</th>
-                    <th className="num">{first}</th>
-                    <th className="num">{last}</th>
-                    <th className="num">Tasa anual</th>
-                    <th className="num">Parte de {last}</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {growth.map((one) => (
-                    <tr key={one.key}>
-                      <td>{one.label}</td>
-                      <td className="num">{one.start === null ? '—' : say(one.start)}</td>
-                      <td className="num">{one.end === null ? '—' : say(one.end)}</td>
-                      <td className="num">{one.rate === null ? '—' : `${say(one.rate, 1)} %`}</td>
-                      <td className="num">{one.share === null ? '—' : `${say(one.share, 1)} %`}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+            <ViewToggle
+              chart={
+                growthBars.length ? (
+                  <>
+                    {growthBars.some((row) => row.value < 0) ? (
+                      /* Con caídas hay dos lados del cero: barras divergentes. */
+                      <SinCifrasPropias>
+                        <DivergingBars
+                          data={growthBars}
+                          unit="% anual"
+                          height={Math.max(220, growthBars.length * 30 + 40)}
+                        />
+                      </SinCifrasPropias>
+                    ) : (
+                      <>
+                        <ShareBars
+                          data={growthBars.map((row) => ({
+                            name: row.name,
+                            value: row.value,
+                            ...(row.meta ? { note: row.meta } : {}),
+                          }))}
+                          unit="%"
+                          decimals={1}
+                          height={Math.max(220, growthBars.length * 30 + 40)}
+                          declare={false}
+                        />
+                        <ChartLegend
+                          items={[
+                            {
+                              color: 'var(--official)',
+                              label: 'Crecimiento anual compuesto de la categoría (% anual)',
+                            },
+                          ]}
+                        />
+                      </>
+                    )}
+                    {growthRated.length > growthShown.length ? (
+                      <p className="chart-note">
+                        Se muestran {growthShown.length} de {growthRated.length} categorías, las más
+                        grandes; la tabla trae todas.
+                      </p>
+                    ) : null}
+                  </>
+                ) : (
+                  <div className="callout">
+                    Ninguna categoría tiene cifra en los dos extremos del rango.
+                  </div>
+                )
+              }
+              table={
+                <div className="table-wrap">
+                  <table className="grid-table">
+                    <thead>
+                      <tr>
+                        <th>{dimension === 'FORM' ? 'Tipo societario' : 'Actividad'}</th>
+                        <th className="num">{first}</th>
+                        <th className="num">{last}</th>
+                        <th className="num">Tasa anual</th>
+                        <th className="num">Parte de {last}</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {growth.map((one) => (
+                        <tr key={one.key}>
+                          <td>{one.label}</td>
+                          <td className="num">{one.start === null ? '—' : say(one.start)}</td>
+                          <td className="num">{one.end === null ? '—' : say(one.end)}</td>
+                          <td className="num">
+                            {one.rate === null ? '—' : `${say(one.rate, 1)} %`}
+                          </td>
+                          <td className="num">
+                            {one.share === null ? '—' : `${say(one.share, 1)} %`}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              }
+            />
           </Panel>
 
           {owners.length ? (
