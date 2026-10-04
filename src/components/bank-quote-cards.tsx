@@ -182,7 +182,7 @@ export function BankQuoteCards() {
           : 'Los bancos que ofrecen dólar digital y desde cuándo lo hacen.'
       }
       meta={board.latestRead ? `última lectura: ${sayLong(board.latestRead)}` : undefined}
-      source="el archivo público de BISA, el precio anotado de la aplicación de otros bancos y las páginas y comunicados de cada banco (cada fila dice cuál)"
+      source="el archivo público de cotizaciones de BISA y la cinta de cotizaciones de la portada del BCP (historia del BCP: copias en web.archive.org); para los demás bancos, sus páginas y comunicados (cada fila dice cuál)"
       data={{
         unidad: 'Bs por ficha',
         columnas: [
