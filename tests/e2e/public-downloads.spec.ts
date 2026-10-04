@@ -48,7 +48,7 @@ async function subTabs(page: Page): Promise<string[]> {
 
 async function openMenu(panel: Locator): Promise<string[]> {
   await panel.scrollIntoViewIfNeeded();
-  await panel.locator('.menu-btn').first().click();
+  await panel.locator('.menu-btn[aria-haspopup="menu"]').first().click();
   const items = await panel.getByRole('menuitem').allInnerTexts();
   return items.map((text) => text.replace(/\s+/g, ' ').trim());
 }
@@ -59,7 +59,7 @@ async function closeMenu(page: Page): Promise<void> {
 
 /** Los paneles de primer nivel con menú. */
 function panelsOf(page: Page): Locator {
-  return page.locator('[data-panel-id]:has(> .panel-top .menu-btn)');
+  return page.locator('[data-panel-id]:has(> .panel-top .menu-btn[aria-haspopup="menu"])');
 }
 
 test.describe('descargas de los paneles', () => {
@@ -142,10 +142,11 @@ test.describe('descargas de los paneles', () => {
       panel.getByRole('menuitem', { name: /^Datos para Excel/ }).click(),
     ]);
     expect(xlsx.suggestedFilename()).toMatch(/\.xlsx$/);
-    const head = await (await xlsx.createReadStream()).read(4);
-    expect(Buffer.from(head).toString('latin1').slice(0, 2), 'un .xlsx es un zip («PK»)').toBe(
-      'PK',
-    );
+    const libro: Buffer[] = [];
+    for await (const chunk of await xlsx.createReadStream()) libro.push(chunk as Buffer);
+    const bytes = Buffer.concat(libro);
+    expect(bytes.subarray(0, 2).toString('latin1'), 'un .xlsx es un zip («PK»)').toBe('PK');
+    expect(bytes.length, 'el libro trae datos').toBeGreaterThan(1000);
   });
 
   test('«Hoy»: la brecha baja como PNG al doble de ancho y como SVG que se lee', async ({
