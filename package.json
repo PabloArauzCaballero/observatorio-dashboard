@@ -11,7 +11,8 @@
     "start": "next start",
     "typecheck": "tsc --noEmit",
     "lint": "next lint",
-    "test:unit": "node --test tests/unit/asistente.test.mjs tests/unit/dollar-quotes.test.mjs tests/unit/asistente-enlaces.test.mjs tests/unit/site-map.test.mjs tests/unit/tablas-y-graficos.test.mjs tests/unit/aduana.test.mjs tests/unit/asistente-respaldo.test.mjs tests/unit/redes-empresas.test.mjs tests/unit/tejido-empresarial.test.mjs tests/unit/tejido-directorio.test.mjs tests/unit/street-analysis.test.mjs tests/unit/street-names.test.mjs tests/unit/road-transport.test.mjs tests/unit/export.test.mjs tests/unit/chart-axis.test.mjs tests/unit/transport-prices.test.mjs",
+    "test:unit": "node --test tests/unit/asistente.test.mjs tests/unit/dollar-quotes.test.mjs tests/unit/asistente-enlaces.test.mjs tests/unit/site-map.test.mjs tests/unit/tablas-y-graficos.test.mjs tests/unit/aduana.test.mjs tests/unit/asistente-respaldo.test.mjs tests/unit/redes-empresas.test.mjs tests/unit/tejido-empresarial.test.mjs tests/unit/tejido-directorio.test.mjs tests/unit/street-analysis.test.mjs tests/unit/street-names.test.mjs tests/unit/road-transport.test.mjs tests/unit/export.test.mjs tests/unit/chart-axis.test.mjs tests/unit/transport-prices.test.mjs tests/unit/exogenous-factors.test.mjs tests/unit/exogenous-prices-calendar.test.mjs tests/unit/exogenous-factor-comparison.test.mjs",
+    "test:exogenous": "node --test tests/unit/exogenous-factors.test.mjs tests/unit/exogenous-prices-calendar.test.mjs tests/unit/exogenous-factor-comparison.test.mjs",
     "evaluar:asistente": "node scripts/evaluar-asistente.mjs"
   },
   "dependencies": {

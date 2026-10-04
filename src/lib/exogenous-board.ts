@@ -235,6 +235,13 @@ function yearAgo(period: string): string {
   return period.length === 4 ? String(year) : `${year}${period.slice(4)}`;
 }
 
+/** Retrocede períodos de calendario, aunque falten observaciones entre ellos. */
+function periodsAgo(period: string, frequency: ExogenousSeries['frequency'], count: number): string {
+  if (frequency === 'ANNUAL') return String(yearOf(period) - count);
+  const month = yearOf(period) * 12 + Number(period.slice(5, 7)) - 1 - count;
+  return `${Math.floor(month / 12)}-${String(month % 12 + 1).padStart(2, '0')}`;
+}
+
 /**
  * La serie como el lector la pidió, recortada a sus años.
  *
@@ -251,42 +258,44 @@ export function measured(
   const inRange = points.filter(([period]) => yearOf(period) >= from && yearOf(period) <= to);
   if (measure === 'LEVEL') return inRange;
   if (measure === 'INDEX') {
-    const base = inRange.find(([, value]) => value !== 0)?.[1];
-    if (base === undefined) return [];
+    const base = inRange[0]?.[1];
+    if (base === undefined || !Number.isFinite(base) || base <= 0) return [];
     return inRange.map(([period, value]) => [period, (value / base) * 100]);
   }
   const all = new Map(points);
   return inRange.flatMap(([period, value]): ExogenousPoint[] => {
-    const before = all.get(yearAgo(period));
-    return before ? [[period, (value / before - 1) * 100]] : [];
+    const change = ratio(value, all.get(yearAgo(period)));
+    return change === null ? [] : [[period, change]];
   });
 }
 
 export interface Summary {
   last: ExogenousPoint | null;
-  /** Contra el punto anterior: el mes pasado, o el año pasado si es anual. */
+  /** Contra el período calendario anterior; nulo si falta esa observación. */
   change: number | null;
   /** Contra hace un año. */
   yearChange: number | null;
-  /** Dónde está el último contra el promedio de los cinco años anteriores. */
+  /** Contra 60 meses o 5 años previos completos; nulo si falta algún período. */
   versusFiveYears: number | null;
 }
 
 const ratio = (now: number, before: number | undefined): number | null =>
-  before === undefined || before === 0 ? null : (now / before - 1) * 100;
+  before === undefined || before <= 0 || !Number.isFinite(before) || !Number.isFinite(now)
+    ? null : (now / before - 1) * 100;
 
 export function summarize(series: ExogenousSeries): Summary {
   const last = series.points.at(-1) ?? null;
   if (!last) return { last, change: null, yearChange: null, versusFiveYears: null };
   const all = new Map(series.points);
-  const earlier = series.points.slice(0, -1);
-  const window = earlier.filter(([period]) => yearOf(period) >= yearOf(last[0]) - 5);
-  const average = window.length
-    ? window.reduce((sum, [, value]) => sum + value, 0) / window.length
+  const window = Array.from({ length: series.frequency === 'MONTHLY' ? 60 : 5 }, (_, index) =>
+    all.get(periodsAgo(last[0], series.frequency, index + 1)),
+  );
+  const average = window.every((value): value is number => value !== undefined && Number.isFinite(value))
+    ? window.reduce((sum, value) => sum + value, 0) / window.length
     : undefined;
   return {
     last,
-    change: ratio(last[1], earlier.at(-1)?.[1]),
+    change: ratio(last[1], all.get(periodsAgo(last[0], series.frequency, 1))),
     yearChange: ratio(last[1], all.get(yearAgo(last[0]))),
     versusFiveYears: ratio(last[1], average),
   };
