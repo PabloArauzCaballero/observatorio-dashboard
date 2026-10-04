@@ -170,19 +170,16 @@ function LatestChart({
 
   return (
     <>
-      <div className="chips" role="group" aria-label="Serie que se dibuja">
-        {withData.map((one) => (
-          <button
-            key={one.code}
-            type="button"
-            className={one.code === column.code ? 'chip chip-on' : 'chip'}
-            aria-pressed={one.code === column.code}
-            onClick={() => setCode(one.code)}
-          >
-            {one.label}
-          </button>
-        ))}
-      </div>
+      <label className="neighbours-indicator">
+        <span>Indicador</span>
+        <select value={column.code} onChange={(event) => setCode(event.target.value)}>
+          {withData.map((one) => (
+            <option key={one.code} value={one.code}>
+              {one.label}
+            </option>
+          ))}
+        </select>
+      </label>
       <MacroViewChart
         {...(signed
           ? {}
@@ -308,6 +305,7 @@ function Block<T extends LatestByPlace>({
   return (
     <Panel
       id={id}
+      className="neighbours-panel"
       title={title}
       lede={lede}
       source={SOURCE}
@@ -360,7 +358,7 @@ export function NeighboursSection({
       <div className="grid-three">
         <Block
           id="vecinos-energia"
-          title="Energía de Bolivia y sus vecinos (% y kg por habitante, último dato)"
+          title="Energía"
           lede="Las series que distinguen una matriz de otra."
           note="Cada columna lleva su unidad en la cabecera y el año del dato entre paréntesis. Una importación neta negativa es un exportador de energía."
           what="la matriz energética de los vecinos"
@@ -370,7 +368,7 @@ export function NeighboursSection({
         />
         <Block
           id="vecinos-recursos"
-          title="Recursos naturales de Bolivia y sus vecinos (% de cada serie, último dato)"
+          title="Recursos naturales"
           lede="Las series que distinguen un caso de otro."
           note="Perú y Chile también viven de minerales; lo que cambia entre ellos y Bolivia está en las dos últimas columnas. Cada columna lleva su unidad en la cabecera y el año del dato entre paréntesis."
           what="los recursos naturales de los vecinos"
@@ -380,7 +378,7 @@ export function NeighboursSection({
         />
         <Block
           id="vecinos-ambiente"
-          title="Medio ambiente de Bolivia y sus vecinos (cada columna en su unidad, último dato)"
+          title="Medio ambiente"
           lede="Las series que distinguen un territorio de otro."
           note="Un estrés hídrico bajo y un bosque alto son, los dos, herencia de la geografía; lo que compara de verdad es cómo se mueven. Cada columna lleva su unidad en la cabecera y el año del dato entre paréntesis."
           what="el medio ambiente de los vecinos"

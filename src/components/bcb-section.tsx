@@ -3,7 +3,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { DatedLines, seriesTone } from './charts';
 import type { DatedLineSeries } from './charts';
-import { FilterHint } from './filters';
 import { Icon } from './icons';
 import { OnOpenNotice } from './on-open';
 import { AUTO_DRAWN, FREQUENCY_LABEL, MAX_SELECTED, PAGE, shortLabels } from '@/lib/bcb-board';
@@ -415,7 +414,9 @@ export function BcbSection() {
               {active ? `${active} activo${active === 1 ? '' : 's'}` : 'sin filtro'}
             </span>
           </div>
-          <FilterHint>Cada filtro recorta los de abajo.</FilterHint>
+          <p className="rail-hint-top">
+            Elegí una opción por filtro. Volvé a tocarla para quitarla. Cada filtro recorta los de abajo.
+          </p>
 
           <div className="rail-sec">
             <div className="rail-head">
