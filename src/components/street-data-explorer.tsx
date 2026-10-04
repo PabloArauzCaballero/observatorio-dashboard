@@ -1,9 +1,11 @@
 'use client';
 
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { ChartLegend, ShareBars } from './charts';
+import { ChartLegend, ShareBars, seriesTone } from './charts';
 import { Pager } from './pager';
+import { SinDeclarar } from './transport-views';
 import { Panel } from '@/components/ui/panel';
+import { ViewToggle } from '@/components/ui/view-toggle';
 import {
   STREET_LENGTH_LABEL,
   STREET_PAVEMENT_LABEL,
@@ -112,41 +114,78 @@ function BreakdownPanel({
 }) {
   if (!data.length) return null;
   return (
-    <Panel id={id} className="transp" title={`${title} (${unit})`} lede={note} source={SOURCE}>
-      <ShareBars
-        data={data}
-        unit={unit}
-        decimals={unit === 'registros' ? 0 : 1}
-        height={Math.max(190, data.length * 36)}
+    <Panel
+      id={id}
+      className="transp"
+      title={`${title} (${unit})`}
+      lede={note}
+      source={SOURCE}
+      data={{
+        unidad: unit,
+        columnas: [
+          'Categoría',
+          `Valor mostrado (${unit})`,
+          'Registros',
+          'Kilómetros',
+          'Km pavimentados',
+          'Tramos o vías',
+        ],
+        filas: data.map((row) => [
+          row.name,
+          row.value,
+          row.parts[0]?.value ?? 0,
+          row.parts[1]?.value ?? 0,
+          row.parts[2]?.value ?? 0,
+          row.parts[3]?.value ?? 0,
+        ]),
+      }}
+    >
+      <ViewToggle
+        chart={
+          <>
+            <SinDeclarar>
+              <ShareBars
+                data={data}
+                unit={unit}
+                decimals={unit === 'registros' ? 0 : 1}
+                tone={seriesTone(0)}
+                height={Math.max(190, data.length * 36)}
+              />
+            </SinDeclarar>
+            <ChartLegend items={[{ label: `${title} (${unit})`, color: seriesTone(0) }]} />
+          </>
+        }
+        table={
+          <div className="table-wrap">
+            <table className="grid-table">
+              <thead>
+                <tr>
+                  <th>Categoría</th>
+                  <th className="num">Valor mostrado</th>
+                  <th className="num">Registros</th>
+                  <th className="num">Kilómetros</th>
+                  <th className="num">Km pavimentados</th>
+                  <th className="num">Tramos o vías</th>
+                </tr>
+              </thead>
+              <tbody>
+                {data.map((row) => (
+                  <tr key={row.name}>
+                    <th>{row.name}</th>
+                    <td className="num">
+                      {number(row.value, unit === 'registros' ? 0 : 1)} {unit}
+                    </td>
+                    <td className="num">{number(row.parts[0]?.value ?? 0)}</td>
+                    <td className="num">{number(row.parts[1]?.value ?? 0, 1)}</td>
+                    <td className="num">{number(row.parts[2]?.value ?? 0, 1)}</td>
+                    <td className="num">{number(row.parts[3]?.value ?? 0)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        }
       />
-      <ChartLegend items={[{ label: `${title} (${unit})`, color: 'var(--official)' }]} />
-      <table className="street-breakdown-data">
-        <caption>{title}: datos representados en el gráfico</caption>
-        <thead>
-          <tr>
-            <th>Categoría</th>
-            <th>Valor mostrado</th>
-            <th>Registros</th>
-            <th>Kilómetros</th>
-            <th>Km pavimentados</th>
-            <th>Tramos o vías</th>
-          </tr>
-        </thead>
-        <tbody>
-          {data.map((row) => (
-            <tr key={row.name}>
-              <th>{row.name}</th>
-              <td>
-                {number(row.value, unit === 'registros' ? 0 : 1)} {unit}
-              </td>
-              <td>{number(row.parts[0]?.value ?? 0)}</td>
-              <td>{number(row.parts[1]?.value ?? 0, 1)}</td>
-              <td>{number(row.parts[2]?.value ?? 0, 1)}</td>
-              <td>{number(row.parts[3]?.value ?? 0)}</td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
     </Panel>
   );
 }

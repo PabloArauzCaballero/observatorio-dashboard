@@ -3,7 +3,8 @@
 import { useCallback, useMemo, useState } from 'react';
 import { ANY, accepts, additive, describe, multiTitle, picked, toggle } from '@/lib/choice';
 import type { Choice } from '@/lib/choice';
-import { MacroChart } from './charts';
+import { ChartLegend, HeatGrid, MacroChart, ShareBars, seriesTone } from './charts';
+import type { HeatCell } from './charts';
 import { DerivedReading } from './derived-reading';
 import { FilterHint, PickedCount } from './filters';
 import { Icon } from './icons';
@@ -13,6 +14,8 @@ import type { StreetDataRow } from '@/lib/street-analysis';
 import { useStreetIndex } from './use-street-index';
 import { Pager } from './pager';
 import { Panel } from '@/components/ui/panel';
+import { SinDeclarar, TOP, TopNote, uniqueNames } from './transport-views';
+import { ViewToggle } from '@/components/ui/view-toggle';
 import { RoadsMap } from './roads-map';
 import { StreetDataExplorer } from './street-data-explorer';
 import type { RoadColorBy } from './roads-map';
@@ -742,7 +745,7 @@ export function RoadsExplorer({ board }: { board: RoadBoard }) {
           {liveRoute ? <RouteSections route={liveRoute} sections={inCut} /> : null}
 
           <RoutesTable
-            key={`${[...department].join(',')}|${[...network].join(',')}|${[...surface].join(',')}|${query}|${sort.key}${sort.down}`}
+            cut={`${[...department].join(',')}|${[...network].join(',')}|${[...surface].join(',')}|${query}|${sort.key}${sort.down}`}
             rows={rows}
             route={liveRoute}
             where={where}
@@ -840,6 +843,26 @@ function RouteSections({ route, sections }: { route: string; sections: readonly 
     SURFACE_GROUPS.find((one) => one.group === SURFACE_GROUP[section.surface])?.label ?? '';
   const statusLabel = (section: RoadSection): string =>
     section.status === 'EN_CONSTRUCCION' ? 'En construcción' : 'En servicio';
+  /* Un tramo por barra, rotulado por departamento y rodadura; los iguales se distinguen. */
+  const top = mine.slice(0, TOP);
+  const names = uniqueNames(
+    top.map((section) => ({
+      name: `${departmentName(section.department)} · ${surfaceLabel(section)}`,
+      qualifier: statusLabel(section),
+    })),
+  );
+  const bars = top.map((section, index) => ({
+    name: names[index] ?? '',
+    value: section.lengthKm,
+    note: [
+      `${departmentName(section.department)} · ${surfaceLabel(section)}`,
+      statusLabel(section),
+      section.highwayClass,
+      section.name,
+    ]
+      .filter(Boolean)
+      .join(' · '),
+  }));
   return (
     <Panel
       id="tramos-de-la-ruta"
@@ -870,36 +893,59 @@ function RouteSections({ route, sections }: { route: string; sections: readonly 
         ]),
       })}
     >
-      <div className="table-wrap">
-        <table className="grid-table roads-table">
-          <thead>
-            <tr>
-              <th>Departamento</th>
-              <th>Rodadura</th>
-              <th>Estado</th>
-              <th>Clase</th>
-              <th>Nombre en OpenStreetMap</th>
-              <th className="num">Km</th>
-              <th className="num">% de la ruta</th>
-            </tr>
-          </thead>
-          <tbody>
-            {mine.map((section) => (
-              <tr key={section.sectionId}>
-                <td>{departmentName(section.department)}</td>
-                <td>{surfaceLabel(section)}</td>
-                <td>{statusLabel(section)}</td>
-                <td>{section.highwayClass}</td>
-                <td>{section.name ?? '—'}</td>
-                <td className="num">{number(section.lengthKm, 1)}</td>
-                <td className="num">
-                  {total > 0 ? number((section.lengthKm / total) * 100, 1) : '—'} %
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+      <ViewToggle
+        chart={
+          <>
+            <SinDeclarar>
+              <ShareBars
+                data={bars}
+                unit="km"
+                decimals={1}
+                tone={seriesTone(0)}
+                height={Math.max(190, bars.length * 34 + 16)}
+              />
+            </SinDeclarar>
+            <ChartLegend
+              items={[
+                { color: seriesTone(0), label: `Longitud de cada tramo de la ruta ${route} (km)` },
+              ]}
+            />
+            <TopNote shown={bars.length} total={mine.length} noun="tramos" />
+          </>
+        }
+        table={
+          <div className="table-wrap">
+            <table className="grid-table roads-table">
+              <thead>
+                <tr>
+                  <th>Departamento</th>
+                  <th>Rodadura</th>
+                  <th>Estado</th>
+                  <th>Clase</th>
+                  <th>Nombre en OpenStreetMap</th>
+                  <th className="num">Km</th>
+                  <th className="num">% de la ruta</th>
+                </tr>
+              </thead>
+              <tbody>
+                {mine.map((section) => (
+                  <tr key={section.sectionId}>
+                    <td>{departmentName(section.department)}</td>
+                    <td>{surfaceLabel(section)}</td>
+                    <td>{statusLabel(section)}</td>
+                    <td>{section.highwayClass}</td>
+                    <td>{section.name ?? '—'}</td>
+                    <td className="num">{number(section.lengthKm, 1)}</td>
+                    <td className="num">
+                      {total > 0 ? number((section.lengthKm / total) * 100, 1) : '—'} %
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        }
+      />
     </Panel>
   );
 }
@@ -938,6 +984,23 @@ function OfficialComparison({ board }: { board: RoadBoard }) {
     };
   });
   const cell = (value: number | null) => (value === null ? '—' : number(value));
+  /* El mapa de calor cruza departamento y medida; lo que el INE no publica queda como hueco. */
+  const columns = [
+    'Fundamental oficial',
+    'Fundamental con código',
+    'Departamental oficial',
+    'Departamental con código',
+    'Sin código en el mapa',
+  ] as const;
+  const cells = rows.flatMap((row) => {
+    const values = [row.officialF, row.tracedF, row.officialD, row.tracedD, row.uncoded];
+    return columns.flatMap((column, index): HeatCell[] => {
+      const value = values[index];
+      return value === null || value === undefined
+        ? []
+        : [{ row: row.name, column, value, hint: 'km' }];
+    });
+  });
   return (
     <Panel
       id="trazada-frente-a-oficial"
@@ -965,47 +1028,63 @@ function OfficialComparison({ board }: { board: RoadBoard }) {
         ]),
       }}
     >
-      <div className="table-wrap">
-        <table className="grid-table roads-table">
-          <thead>
-            <tr>
-              <th>Departamento</th>
-              <th className="num">Fundamental oficial</th>
-              <th className="num">Fundamental con código</th>
-              <th className="num">Departamental oficial</th>
-              <th className="num">Departamental con código</th>
-              <th className="num">Sin código en el mapa</th>
-            </tr>
-          </thead>
-          <tbody>
-            {rows.map((row) => (
-              <tr key={row.department}>
-                <td>{row.name}</td>
-                <td className="num">{cell(row.officialF)}</td>
-                <td className="num">{number(row.tracedF)}</td>
-                <td className="num">{cell(row.officialD)}</td>
-                <td className="num">{number(row.tracedD)}</td>
-                <td className="num">{number(row.uncoded)}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+      <ViewToggle
+        chart={
+          <SinDeclarar>
+            <HeatGrid
+              rows={rows.map((row) => row.name)}
+              columns={columns}
+              cells={cells}
+              unit="km"
+            />
+          </SinDeclarar>
+        }
+        table={
+          <div className="table-wrap">
+            <table className="grid-table roads-table">
+              <thead>
+                <tr>
+                  <th>Departamento</th>
+                  <th className="num">Fundamental oficial</th>
+                  <th className="num">Fundamental con código</th>
+                  <th className="num">Departamental oficial</th>
+                  <th className="num">Departamental con código</th>
+                  <th className="num">Sin código en el mapa</th>
+                </tr>
+              </thead>
+              <tbody>
+                {rows.map((row) => (
+                  <tr key={row.department}>
+                    <td>{row.name}</td>
+                    <td className="num">{cell(row.officialF)}</td>
+                    <td className="num">{number(row.tracedF)}</td>
+                    <td className="num">{cell(row.officialD)}</td>
+                    <td className="num">{number(row.tracedD)}</td>
+                    <td className="num">{number(row.uncoded)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        }
+      />
     </Panel>
   );
 }
 
 /**
- * Las rutas del recorte, veinte por página, con el `Pager` de todo el
- * tablero arriba y abajo. Se remonta al cambiar el recorte o el orden, para
- * que quien estaba en la página cuatro no aterrice en una página cuatro que
- * ya no existe.
+ * Las rutas del recorte: las más largas como barras apiladas por rodadura, o todas en tabla.
+ *
+ * El panel (y con él la vista elegida) no se remonta al cambiar el recorte o el orden; sí
+ * la página de la tabla, que se vuelve a montar con `cut` para que quien estaba en la página
+ * cuatro no aterrice en una página cuatro que ya no existe.
  */
 function RoutesTable({
   rows,
   route,
   where,
   sort,
+  cut,
   onSort,
   onPick,
 }: {
@@ -1013,44 +1092,40 @@ function RoutesTable({
   route: string | null;
   where: string;
   sort: { key: SortKey; down: boolean };
+  /** Lo que define el recorte y el orden: cambia cuando la tabla debe volver a su primera página. */
+  cut: string;
   onSort: (key: SortKey) => void;
   onPick: (route: string) => void;
 }) {
-  const [offset, setOffset] = useState(0);
-
-  const pages = Math.max(1, Math.ceil(rows.length / PAGE_SIZE));
-  const page = Math.min(pages, Math.floor(offset / PAGE_SIZE) + 1);
-  const shown = rows.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
-  const first = rows.length ? (page - 1) * PAGE_SIZE + 1 : 0;
-  const last = (page - 1) * PAGE_SIZE + shown.length;
   const totalKm = rows.reduce((sum, row) => sum + row.totalKm, 0);
 
-  const head = (key: SortKey, numeric = true) => {
-    const active = sort.key === key;
-    return (
-      <th
-        className={numeric ? 'num' : undefined}
-        aria-sort={active ? (sort.down ? 'descending' : 'ascending') : 'none'}
-      >
-        <button
-          type="button"
-          className={active ? 'roads-sort roads-sort-on' : 'roads-sort'}
-          onClick={() => onSort(key)}
-          title={`Ordenar por ${SORT_TITLE[key]}`}
-        >
-          {SORT_LABEL[key]}
-          <span aria-hidden="true">{active ? (sort.down ? ' ↓' : ' ↑') : ''}</span>
-        </button>
-      </th>
-    );
-  };
+  /* Las más largas del recorte; el reparto por rodadura va en el detalle de cada barra. */
+  const longest = [...rows].sort((left, right) => right.totalKm - left.totalKm).slice(0, TOP);
+  const names = uniqueNames(
+    longest.map((row) => ({
+      name: row.route ?? 'Sin ruta',
+      qualifier: row.departments.map(departmentName).join(', '),
+    })),
+  );
+  const bars = longest.map((row, index) => ({
+    name: names[index] ?? '',
+    value: row.totalKm,
+    ...(route !== null ? { emphasis: row.route === route } : {}),
+    ...(row.route ? { pick: row.route } : {}),
+    parts: SURFACE_GROUPS.map((one) => ({
+      name: one.label,
+      value: row.bySurface[one.group],
+      unit: 'km',
+    })).filter((part) => part.value > 0),
+    note: `${NETWORK_SHORT[row.network]} · ${Math.round(row.pavedShare)} % pavimentada`,
+  }));
 
   return (
     <Panel
       id="km-por-ruta"
       className="transp"
       title={`Km por ruta y rodadura, ${where} (km)`}
-      lede="Cada cifra es la parte de la ruta que cae en el recorte elegido, no la ruta entera. Las vías sin ruta F-n ni Dn van en una fila por departamento. Toca una ruta para aislarla en el mapa; toca un encabezado para ordenar."
+      lede="Cada cifra es la parte de la ruta que cae en el recorte elegido, no la ruta entera. Las vías sin ruta F-n ni Dn van en una fila por departamento. Toca una ruta para aislarla en el mapa; en la tabla, un encabezado ordena."
       meta={`${number(rows.length)} ${rows.length === 1 ? 'fila' : 'filas'} · ${number(totalKm)} km`}
       source="OpenStreetMap contributors (ODbL)"
       data={() => ({
@@ -1080,6 +1155,88 @@ function RoutesTable({
         nota: 'Son todas las rutas del recorte, no solo la página que se ve.',
       })}
     >
+      {rows.length === 0 ? (
+        <div className="callout">Ninguna ruta coincide con el recorte y la búsqueda.</div>
+      ) : (
+        <ViewToggle
+          chart={
+            <>
+              <SinDeclarar>
+                <ShareBars
+                  data={bars}
+                  unit="km"
+                  decimals={0}
+                  tone={seriesTone(0)}
+                  height={Math.max(220, bars.length * 34 + 16)}
+                  onPick={onPick}
+                />
+              </SinDeclarar>
+              <ChartLegend
+                items={[{ color: seriesTone(0), label: `Km por ruta, ${where} (km)` }]}
+              />
+              <TopNote shown={longest.length} total={rows.length} noun="rutas" />
+            </>
+          }
+          table={
+            <RoutesPage
+              key={cut}
+              rows={rows}
+              route={route}
+              sort={sort}
+              onSort={onSort}
+              onPick={onPick}
+            />
+          }
+        />
+      )}
+    </Panel>
+  );
+}
+
+/** La tabla de rutas, veinte por página, con el `Pager` de todo el tablero arriba y abajo. */
+function RoutesPage({
+  rows,
+  route,
+  sort,
+  onSort,
+  onPick,
+}: {
+  rows: RouteRow[];
+  route: string | null;
+  sort: { key: SortKey; down: boolean };
+  onSort: (key: SortKey) => void;
+  onPick: (route: string) => void;
+}) {
+  const [offset, setOffset] = useState(0);
+
+  const pages = Math.max(1, Math.ceil(rows.length / PAGE_SIZE));
+  const page = Math.min(pages, Math.floor(offset / PAGE_SIZE) + 1);
+  const shown = rows.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+  const first = rows.length ? (page - 1) * PAGE_SIZE + 1 : 0;
+  const last = (page - 1) * PAGE_SIZE + shown.length;
+
+  const head = (key: SortKey, numeric = true) => {
+    const active = sort.key === key;
+    return (
+      <th
+        className={numeric ? 'num' : undefined}
+        aria-sort={active ? (sort.down ? 'descending' : 'ascending') : 'none'}
+      >
+        <button
+          type="button"
+          className={active ? 'roads-sort roads-sort-on' : 'roads-sort'}
+          onClick={() => onSort(key)}
+          title={`Ordenar por ${SORT_TITLE[key]}`}
+        >
+          {SORT_LABEL[key]}
+          <span aria-hidden="true">{active ? (sort.down ? ' ↓' : ' ↑') : ''}</span>
+        </button>
+      </th>
+    );
+  };
+
+  return (
+    <>
       <Pager
         page={page}
         pages={pages}
@@ -1092,77 +1249,73 @@ function RoutesTable({
         noun="rutas"
       />
 
-      {rows.length === 0 ? (
-        <div className="callout">Ninguna ruta coincide con el recorte y la búsqueda.</div>
-      ) : (
-        <div className="table-wrap">
-          <table className="grid-table roads-table">
-            <thead>
-              <tr>
-                {head('route', false)}
-                {head('network', false)}
-                <th>Departamentos</th>
-                {head('PAVIMENTADA')}
-                {head('RIPIO')}
-                {head('TIERRA')}
-                {head('SIN_DATO')}
-                {head('totalKm')}
-                {head('pavedShare')}
-              </tr>
-            </thead>
-            <tbody>
-              {shown.map((row) => {
-                const on = row.route !== null && row.route === route;
-                return (
-                  <tr key={row.key} className={on ? 'roads-row-on' : undefined}>
-                    <td>
-                      {row.route ? (
-                        <button
-                          type="button"
-                          className={on ? 'roads-shield roads-shield-on' : 'roads-shield'}
-                          data-network={row.network}
-                          aria-pressed={on}
-                          title={`${on ? 'Quitar del mapa' : 'Ver en el mapa'} la ruta ${row.route}${row.names.length ? ` · tramos: ${row.names.slice(0, 6).join(' · ')}` : ''}`}
-                          onClick={() => onPick(row.route!)}
-                        >
-                          {row.route}
-                        </button>
-                      ) : (
-                        <span className="roads-shield roads-shield-none">sin ruta</span>
-                      )}
-                    </td>
-                    <td title={NETWORK_LABEL[row.network]}>{NETWORK_SHORT[row.network]}</td>
-                    <td>{row.departments.map(departmentName).join(', ')}</td>
-                    <td className="num">
-                      {row.bySurface.PAVIMENTADA ? number(row.bySurface.PAVIMENTADA, 1) : '—'}
-                    </td>
-                    <td className="num">
-                      {row.bySurface.RIPIO ? number(row.bySurface.RIPIO, 1) : '—'}
-                    </td>
-                    <td className="num">
-                      {row.bySurface.TIERRA ? number(row.bySurface.TIERRA, 1) : '—'}
-                    </td>
-                    <td className="num">
-                      {row.bySurface.SIN_DATO ? number(row.bySurface.SIN_DATO, 1) : '—'}
-                    </td>
-                    <td className="num">
-                      <b>{number(row.totalKm, 1)}</b>
-                    </td>
-                    <td className="num">
-                      <span className="roads-share">
-                        <span className="roads-share-bar" aria-hidden="true">
-                          <i style={{ width: `${row.pavedShare}%` }} />
-                        </span>
-                        {Math.round(row.pavedShare)} %
+      <div className="table-wrap">
+        <table className="grid-table roads-table">
+          <thead>
+            <tr>
+              {head('route', false)}
+              {head('network', false)}
+              <th>Departamentos</th>
+              {head('PAVIMENTADA')}
+              {head('RIPIO')}
+              {head('TIERRA')}
+              {head('SIN_DATO')}
+              {head('totalKm')}
+              {head('pavedShare')}
+            </tr>
+          </thead>
+          <tbody>
+            {shown.map((row) => {
+              const on = row.route !== null && row.route === route;
+              return (
+                <tr key={row.key} className={on ? 'roads-row-on' : undefined}>
+                  <td>
+                    {row.route ? (
+                      <button
+                        type="button"
+                        className={on ? 'roads-shield roads-shield-on' : 'roads-shield'}
+                        data-network={row.network}
+                        aria-pressed={on}
+                        title={`${on ? 'Quitar del mapa' : 'Ver en el mapa'} la ruta ${row.route}${row.names.length ? ` · tramos: ${row.names.slice(0, 6).join(' · ')}` : ''}`}
+                        onClick={() => onPick(row.route!)}
+                      >
+                        {row.route}
+                      </button>
+                    ) : (
+                      <span className="roads-shield roads-shield-none">sin ruta</span>
+                    )}
+                  </td>
+                  <td title={NETWORK_LABEL[row.network]}>{NETWORK_SHORT[row.network]}</td>
+                  <td>{row.departments.map(departmentName).join(', ')}</td>
+                  <td className="num">
+                    {row.bySurface.PAVIMENTADA ? number(row.bySurface.PAVIMENTADA, 1) : '—'}
+                  </td>
+                  <td className="num">
+                    {row.bySurface.RIPIO ? number(row.bySurface.RIPIO, 1) : '—'}
+                  </td>
+                  <td className="num">
+                    {row.bySurface.TIERRA ? number(row.bySurface.TIERRA, 1) : '—'}
+                  </td>
+                  <td className="num">
+                    {row.bySurface.SIN_DATO ? number(row.bySurface.SIN_DATO, 1) : '—'}
+                  </td>
+                  <td className="num">
+                    <b>{number(row.totalKm, 1)}</b>
+                  </td>
+                  <td className="num">
+                    <span className="roads-share">
+                      <span className="roads-share-bar" aria-hidden="true">
+                        <i style={{ width: `${row.pavedShare}%` }} />
                       </span>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
-      )}
+                      {Math.round(row.pavedShare)} %
+                    </span>
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
 
       <Pager
         page={page}
@@ -1175,6 +1328,6 @@ function RoutesTable({
         where="abajo"
         noun="rutas"
       />
-    </Panel>
+    </>
   );
 }

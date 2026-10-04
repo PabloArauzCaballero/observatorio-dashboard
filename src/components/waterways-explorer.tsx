@@ -3,12 +3,15 @@
 import { useCallback, useMemo, useState } from 'react';
 import { ANY, accepts, describe } from '@/lib/choice';
 import type { Choice } from '@/lib/choice';
+import { ChartLegend, ShareBars, seriesTone } from './charts';
 import { FilterHint } from './filters';
 import { Icon } from './icons';
 import { NetworkMap } from './network-map';
 import type { MapLine, MapPoint } from './network-map';
 import { Pager } from './pager';
 import { Panel } from '@/components/ui/panel';
+import { SinDeclarar, TOP, TopNote, uniqueNames } from './transport-views';
+import { ViewToggle } from '@/components/ui/view-toggle';
 import { FilterGroup, km, squash } from './transport-filters';
 import { departmentName } from '@/lib/roads-board';
 import { WATERWAY_CATEGORIES } from '@/lib/transport-board';
@@ -164,6 +167,15 @@ export function WaterwaysExplorer({ board }: { board: WaterBoard }) {
   const pages = Math.max(1, Math.ceil(rows.length / PAGE_SIZE));
   const page = Math.min(pages, Math.floor(offset / PAGE_SIZE) + 1);
   const shown = rows.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+
+  /* Los ríos más largos del recorte como barras; tocar uno lo aísla en el mapa, como en la tabla. */
+  const longest = [...rows].sort((left, right) => right.km - left.km).slice(0, TOP);
+  const barNames = uniqueNames(
+    longest.map((row) => ({
+      name: row.name ?? 'Ríos sin nombre en el mapa',
+      qualifier: CATEGORY[row.category].label,
+    })),
+  );
 
   const navigableKm = scope
     .filter((one) => CATEGORY[one.category].navigable)
@@ -379,65 +391,108 @@ export function WaterwaysExplorer({ board }: { board: WaterBoard }) {
               nota: 'Son todas las filas del recorte, no solo la página que se ve.',
             })}
           >
-            <Pager
-              page={page}
-              pages={pages}
-              first={rows.length ? (page - 1) * PAGE_SIZE + 1 : 0}
-              last={(page - 1) * PAGE_SIZE + shown.length}
-              total={rows.length}
-              onGo={setOffset}
-              pageSize={PAGE_SIZE}
-              where="arriba"
-              noun="ríos"
-            />
             {rows.length === 0 ? (
               <div className="callout">Ningún río coincide con el recorte y la búsqueda.</div>
             ) : (
-              <div className="table-wrap">
-                <table className="grid-table roads-table">
-                  <thead>
-                    <tr>
-                      <th>Río o cruce</th>
-                      <th>Navegabilidad</th>
-                      <th>Departamentos</th>
-                      <th className="num">boat=yes km</th>
-                      <th className="num">Total km</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {shown.map((row) => {
-                      const on = row.name !== null && row.name === liveRiver;
-                      return (
-                        <tr
-                          key={`${row.category}|${row.name}`}
-                          className={on ? 'roads-row-on' : undefined}
-                        >
-                          <td>
-                            {row.name ? (
-                              <button
-                                type="button"
-                                className="table-link"
-                                aria-pressed={on}
-                                onClick={() => pickRiver(row.name!)}
+              <ViewToggle
+                chart={
+                  <>
+                    <SinDeclarar>
+                      <ShareBars
+                        data={longest.map((row, index) => ({
+                          name: barNames[index] ?? '',
+                          value: row.km,
+                          ...(liveRiver !== null ? { emphasis: row.name === liveRiver } : {}),
+                          ...(row.name ? { pick: row.name } : {}),
+                          parts: row.boat
+                            ? [
+                                {
+                                  name: 'Marcado navegable en OpenStreetMap',
+                                  value: row.boat,
+                                  unit: 'km',
+                                },
+                              ]
+                            : [],
+                          note: `${row.name ?? 'Ríos sin nombre en el mapa'} · ${CATEGORY[row.category].label}`,
+                        }))}
+                        unit="km"
+                        decimals={1}
+                        tone={seriesTone(0)}
+                        height={Math.max(190, longest.length * 34 + 16)}
+                        onPick={pickRiver}
+                      />
+                    </SinDeclarar>
+                    <ChartLegend
+                      items={[{ color: seriesTone(0), label: `Km por río, ${where} (km)` }]}
+                    />
+                    <TopNote shown={longest.length} total={rows.length} noun="ríos" />
+                    <p className="panel-note">
+                      Quién afirma que cada río se navega va en el detalle de la barra y en la
+                      tabla.
+                    </p>
+                  </>
+                }
+                table={
+                  <>
+                    <Pager
+                      page={page}
+                      pages={pages}
+                      first={rows.length ? (page - 1) * PAGE_SIZE + 1 : 0}
+                      last={(page - 1) * PAGE_SIZE + shown.length}
+                      total={rows.length}
+                      onGo={setOffset}
+                      pageSize={PAGE_SIZE}
+                      where="arriba"
+                      noun="ríos"
+                    />
+                    <div className="table-wrap">
+                      <table className="grid-table roads-table">
+                        <thead>
+                          <tr>
+                            <th>Río o cruce</th>
+                            <th>Navegabilidad</th>
+                            <th>Departamentos</th>
+                            <th className="num">boat=yes km</th>
+                            <th className="num">Total km</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {shown.map((row) => {
+                            const on = row.name !== null && row.name === liveRiver;
+                            return (
+                              <tr
+                                key={`${row.category}|${row.name}`}
+                                className={on ? 'roads-row-on' : undefined}
                               >
-                                {row.name}
-                              </button>
-                            ) : (
-                              'Ríos sin nombre en el mapa'
-                            )}
-                          </td>
-                          <td>{CATEGORY[row.category].label}</td>
-                          <td>{[...row.departments].map(departmentName).join(', ')}</td>
-                          <td className="num">{row.boat ? km(row.boat, 1) : '—'}</td>
-                          <td className="num">
-                            <b>{km(row.km, 1)}</b>
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </div>
+                                <td>
+                                  {row.name ? (
+                                    <button
+                                      type="button"
+                                      className="table-link"
+                                      aria-pressed={on}
+                                      onClick={() => pickRiver(row.name!)}
+                                    >
+                                      {row.name}
+                                    </button>
+                                  ) : (
+                                    'Ríos sin nombre en el mapa'
+                                  )}
+                                </td>
+                                <td>{CATEGORY[row.category].label}</td>
+                                <td>{[...row.departments].map(departmentName).join(', ')}</td>
+                                <td className="num">{row.boat ? km(row.boat, 1) : '—'}</td>
+                                <td className="num">
+                                  <b>{km(row.km, 1)}</b>
+                                </td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
+                  </>
+                }
+              />
             )}
           </Panel>
         </div>

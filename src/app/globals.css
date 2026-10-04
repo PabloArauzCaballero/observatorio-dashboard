@@ -9794,3 +9794,11 @@ button.download-btn {
 .site-block[data-retener='si'] {
   min-height: 70vh;
 }
+
+/* === Transporte: tablas que pasan a gráfico (ViewToggle) === */
+
+/* El mapa de calor de «trazada frente a oficial» tiene cinco columnas con rótulos de dos palabras:
+   con el mínimo del componente se pisaban en móvil; la caja ya desplaza en horizontal. */
+.transp .heat-grid {
+  grid-template-columns: minmax(6.5rem, 1.2fr) repeat(5, minmax(5.8rem, 1fr)) !important;
+}
