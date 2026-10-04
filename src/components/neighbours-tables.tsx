@@ -2,6 +2,9 @@
 
 import { Icon } from './icons';
 import { OnOpenNotice } from './on-open';
+import { Panel } from '@/components/ui/panel';
+import { celda } from '@/components/ui/panel-data';
+import type { DatosDeFigura } from '@/components/ui/panel-data';
 import { ENERGY_PLACES, type EnergyBoard } from '@/lib/energy-board';
 import { ENVIRONMENT_PLACES, type EnvironmentBoard } from '@/lib/environment-board';
 import { RESOURCE_PLACES, type ResourceBoard } from '@/lib/resources-board';
@@ -46,6 +49,36 @@ interface Column {
 /** La forma común de los tres tableros: el último dato de cada lugar por serie. */
 interface LatestByPlace {
   latest: Record<string, Record<string, { year: number; value: number }>>;
+}
+
+/**
+ * Las cifras del cuadro tal como se bajan: el valor sin redondear y el año aparte.
+ *
+ * En pantalla cada celda dice «12 % (2021)»; en un archivo eso es texto y no se puede
+ * ordenar ni sumar. Cada columna se parte en dos: el valor y el año del dato.
+ */
+function datasetOf(
+  board: LatestByPlace,
+  places: ReadonlyArray<{ code: string; label: string }>,
+  columns: ReadonlyArray<Column>,
+): DatosDeFigura {
+  const named = (column: Column): string =>
+    column.unit.trim() ? `${column.label} (${column.unit.trim()})` : column.label;
+  return {
+    unidad: 'cada columna en la unidad de su cabecera',
+    columnas: [
+      'País',
+      ...columns.flatMap((column) => [named(column), `${column.label}: año del dato`]),
+    ],
+    filas: places.map((place) => [
+      place.label,
+      ...columns.flatMap((column) => {
+        const reading = board.latest[column.code]?.[place.code];
+        return [celda(reading?.value), celda(reading?.year)];
+      }),
+    ]),
+    nota: 'El último dato publicado de cada país; no todos cierran el mismo año.',
+  };
 }
 
 /**
@@ -140,22 +173,31 @@ export interface OpenedBoard<T> {
   failed: boolean;
 }
 
+const SOURCE =
+  'Banco Mundial, Indicadores del Desarrollo Mundial (WDI), leídos del panel de treinta economías del Observatorio';
+
 /**
- * Un bloque de la sección: su cabecera, y el cuadro o el aviso de que no está.
+ * Un panel de la sección: el cuadro, o el aviso de que no está.
  *
  * Un tablero sin series —el núcleo todavía no las cargó— no dibuja una tabla de
- * guiones: dice que falta, igual que lo dice el capítulo de origen.
+ * guiones: dice que falta, igual que lo dice el capítulo de origen. Mientras no
+ * hay cuadro tampoco hay descarga que ofrecer.
  */
 function Block<T extends LatestByPlace>({
+  id,
   title,
-  lead,
+  lede,
+  note,
   what,
   opened,
   places,
   columns,
 }: {
+  id: string;
   title: string;
-  lead: string;
+  lede: string;
+  /** La lectura larga, plegada bajo el cuadro. */
+  note: string;
   what: string;
   opened: OpenedBoard<T>;
   places: ReadonlyArray<{ code: string; label: string }>;
@@ -163,12 +205,16 @@ function Block<T extends LatestByPlace>({
 }) {
   const board = opened.payload?.board ?? null;
   const empty = board !== null && Object.keys(board.latest).length === 0;
+  const ready = board !== null && !empty;
   return (
-    <div className="panel">
-      <div className="panel-head">
-        <h2>{title}</h2>
-        <p className="panel-sub">{lead}</p>
-      </div>
+    <Panel
+      id={id}
+      title={title}
+      lede={lede}
+      source={SOURCE}
+      downloadable={ready}
+      {...(ready ? { data: () => datasetOf(board, places, columns) } : {})}
+    >
       {board === null ? (
         <OnOpenNotice what={what} failed={opened.failed} />
       ) : empty ? (
@@ -177,14 +223,20 @@ function Block<T extends LatestByPlace>({
           llena solo cuando el núcleo las tenga cargadas.
         </div>
       ) : (
-        <LatestTable board={board} places={places} columns={columns} />
+        <>
+          <LatestTable board={board} places={places} columns={columns} />
+          <details className="panel-note">
+            <summary>Cómo leerlo</summary>
+            <p>{note}</p>
+          </details>
+        </>
       )}
-    </div>
+    </Panel>
   );
 }
 
 /**
- * La sección entera: un rótulo y los tres bloques, en el orden de los capítulos
+ * La sección entera: un rótulo y los tres paneles, en el orden de los capítulos
  * de origen. Los tres tableros los pide quien monta la sección, para que las
  * lecturas arranquen a la vez que la del tablero mundial y no después.
  */
@@ -198,37 +250,42 @@ export function NeighboursSection({
   environment: OpenedBoard<EnvironmentBoard>;
 }) {
   return (
-    <section className="stack" aria-labelledby="vecinos-titulo" id="vecinos">
-      <div className="strap">
-        <Icon name="mapa" size={17} />
-        <h2 id="vecinos-titulo">Bolivia y sus vecinos</h2>
-        <span className="tile-hint">el último dato de cada país en tres capítulos</span>
+    <section className="panel-group" aria-labelledby="vecinos-titulo" id="vecinos">
+      <div className="panel-group-head">
+        <h3 id="vecinos-titulo">Bolivia y sus vecinos</h3>
+        <p>El último dato de cada país en energía, recursos naturales y medio ambiente.</p>
       </div>
       <Block
-        title="Energía"
-        lead="Las series que distinguen una matriz de otra. Cada columna lleva su unidad en la cabecera y el año del dato entre paréntesis. Una importación neta negativa es un exportador de energía."
+        id="vecinos-energia"
+        title="Energía de Bolivia y sus vecinos (% y kg por habitante, último dato)"
+        lede="Las series que distinguen una matriz de otra."
+        note="Cada columna lleva su unidad en la cabecera y el año del dato entre paréntesis. Una importación neta negativa es un exportador de energía."
         what="la matriz energética de los vecinos"
         opened={energy}
         places={ENERGY_PLACES}
         columns={ENERGY_COLUMNS}
       />
       <Block
-        title="Recursos naturales"
-        lead="Las series que distinguen un caso de otro. Perú y Chile también viven de minerales; lo que cambia entre ellos y Bolivia está en las dos últimas columnas."
+        id="vecinos-recursos"
+        title="Recursos naturales de Bolivia y sus vecinos (% de cada serie, último dato)"
+        lede="Las series que distinguen un caso de otro."
+        note="Perú y Chile también viven de minerales; lo que cambia entre ellos y Bolivia está en las dos últimas columnas. Cada columna lleva su unidad en la cabecera y el año del dato entre paréntesis."
         what="los recursos naturales de los vecinos"
         opened={resources}
         places={RESOURCE_PLACES}
         columns={RESOURCE_COLUMNS}
       />
       <Block
-        title="Medio ambiente"
-        lead="Las series que distinguen un territorio de otro. Un estrés hídrico bajo y un bosque alto son, los dos, herencia de la geografía; lo que compara de verdad es cómo se mueven."
+        id="vecinos-ambiente"
+        title="Medio ambiente de Bolivia y sus vecinos (cada columna en su unidad, último dato)"
+        lede="Las series que distinguen un territorio de otro."
+        note="Un estrés hídrico bajo y un bosque alto son, los dos, herencia de la geografía; lo que compara de verdad es cómo se mueven. Cada columna lleva su unidad en la cabecera y el año del dato entre paréntesis."
         what="el medio ambiente de los vecinos"
         opened={environment}
         places={ENVIRONMENT_PLACES}
         columns={ENVIRONMENT_COLUMNS}
       />
-      <p className="panel-sub">
+      <p className="guest-note">
         <Icon name="info" size={12} /> Series del Banco Mundial (Indicadores del Desarrollo
         Mundial), leídas del panel de treinta economías que recoge el núcleo del observatorio. Las
         historias completas de cada serie están en «Series de Bolivia», bajo Energía, Recursos
