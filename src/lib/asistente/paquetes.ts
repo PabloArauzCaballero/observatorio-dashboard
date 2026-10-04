@@ -8,6 +8,7 @@ import { ENERGY_CODES, ENERGY_INDICATORS, ENERGY_PLACE_CODES, buildEnergyBoard }
 import { ENVIRONMENT_CODES, ENVIRONMENT_INDICATORS, ENVIRONMENT_PLACE_CODES, buildEnvironmentBoard } from '@/lib/environment-board';
 import { buildExportersBoard, concentration } from '@/lib/exporters-board';
 import { readExogenousBoard } from '@/lib/exogenous';
+import { readFactorIndex } from '@/lib/exogenous-factors';
 import { summarize } from '@/lib/exogenous-board';
 import { assembleEconometrics } from '@/lib/fx-econometrics-report';
 import { econometricConclusions } from '@/lib/fx-econometrics-reading';
@@ -627,7 +628,7 @@ async function empresas(): Promise<Salida> {
 }
 
 async function exogenas(): Promise<Salida> {
-  const board = await readExogenousBoard();
+  const [board, factors] = await Promise.all([readExogenousBoard(), readFactorIndex()]);
   const filas: Celda[][] = [];
   const lineas = board.series.map((s) => {
     const resumen = summarize(s);
@@ -636,8 +637,17 @@ async function exogenas(): Promise<Salida> {
     filas.push([s.name, s.market, s.unit, resumen.last[0], r(resumen.last[1], decimales), r(resumen.yearChange, 1), r(resumen.versusFiveYears, 1), s.publisher]);
     return `- ${s.name} (${s.market}; ${s.unit}; ${s.publisher}): ${resumen.last[0]} ${num(resumen.last[1], decimales)}; contra hace un año ${signo(resumen.yearChange)}; contra el promedio de cinco años ${signo(resumen.versusFiveYears)}`;
   });
+  const diverse = factors.series.filter((s) => s.origin === 'FACTOR').map((s) =>
+    `- ${s.name}: ${s.latestValue === null ? 'sin valor' : num(s.latestValue)} ${s.unit}; período ${s.latestPeriod ?? 'sin período'}; frecuencia ${s.frequency}; ${s.geography}; papel ${s.economicRole}; ${s.note}; fuente ${s.sourceUrl}.`,
+  );
   return {
-    texto: [`PRECIOS INTERNACIONALES QUE AFECTAN A BOLIVIA (último mes ${board.latestMonth ?? 's/f'}):`, ...lineas.filter(Boolean)].join('\n'),
+    texto: [
+      'FACTORES ECONÓMICOS Y RESULTADOS SECTORIALES. Cada serie tiene su propio período; las variables locales pueden ser resultados y no causas externas. Los rezagos del catálogo son hipótesis.',
+      ...diverse,
+      ...factors.warnings,
+      `REFERENCIAS DE PRECIOS (mes máximo entre series ${board.latestMonth ?? 's/f'}; no implica actualización de todas):`,
+      ...lineas.filter(Boolean),
+    ].join('\n'),
     tabla: tabla(
       'exogenas',
       board.latestMonth ? `Precios internacionales, último mes ${board.latestMonth}` : 'Precios internacionales',

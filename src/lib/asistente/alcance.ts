@@ -183,7 +183,7 @@ const REGLAS: ReadonlyArray<{ patron: RegExp; paquetes: readonly PaqueteId[] }> 
     paquetes: ['EMPRESAS'],
   },
   {
-    patron: palabra(['precios? internacional', 'materias primas', 'commodit', 'exogen', 'flete', 'contenedor', 'freight', 'trigo', 'fertilizante', 'cobre', 'aluminio', 'crudo', 'brent', 'wti$']),
+    patron: palabra(['precios? internacional', 'materias primas', 'commodit', 'exogen', 'factores? economic', 'factores? externo', 'exposicion sectorial', 'demanda externa', 'enso$', 'sofr$', 'tasa.*(?:fed|reserva federal)', 'flete', 'contenedor', 'freight', 'trigo', 'fertilizante', 'cobre', 'aluminio', 'crudo', 'brent', 'wti$']),
     paquetes: ['EXOGENAS'],
   },
   { patron: palabra(['bitcoin', 'btc$', 'cripto', 'oro$']), paquetes: ['MERCADOS'] },
