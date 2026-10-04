@@ -23,7 +23,8 @@ export interface PostRecord {
   sentiment: CommentSentiment | null;
 }
 
-export type PostSort = 'interactions' | 'date' | 'views' | 'comments';
+export type PostSort = 'interactions' | 'date' | 'views' | 'comments' | 'analyzed';
+export type CommentTone = 'all' | 'analyzed' | 'positive' | 'negative';
 
 export interface PostQuery {
   /** Vacío = todas las empresas. */
@@ -34,6 +35,7 @@ export interface PostQuery {
   to: string | null;
   format: string | null;
   text: string;
+  commentTone: CommentTone;
   sort: PostSort;
   offset: number;
   limit: number;
@@ -55,7 +57,8 @@ export interface PostPage {
 }
 
 const ISO_DAY = /^\d{4}-\d{2}-\d{2}$/u;
-const SORTS: readonly PostSort[] = ['interactions', 'date', 'views', 'comments'];
+const SORTS: readonly PostSort[] = ['interactions', 'date', 'views', 'comments', 'analyzed'];
+const TONES: readonly CommentTone[] = ['all', 'analyzed', 'positive', 'negative'];
 export const MAX_PAGE = 60;
 
 const fold = (text: string): string =>
@@ -85,6 +88,7 @@ export function parseQuery(body: unknown): PostQuery {
     to: day(input.to),
     format: typeof input.format === 'string' && /^[A-Z]{3,8}$/u.test(input.format) ? input.format : null,
     text: typeof input.text === 'string' ? input.text.trim().slice(0, 80) : '',
+    commentTone: TONES.find((one) => one === input.commentTone) ?? 'all',
     sort,
     offset: whole(input.offset, 0, 100_000),
     limit: Math.max(1, whole(input.limit, 25, MAX_PAGE)),
@@ -93,6 +97,7 @@ export function parseQuery(body: unknown): PostQuery {
 
 const key = (post: PostRecord, sort: PostSort): number => {
   if (sort === 'date') return post.date ? Date.parse(post.date) : Number.NEGATIVE_INFINITY;
+  if (sort === 'analyzed') return post.sentiment?.analyzed ?? Number.NEGATIVE_INFINITY;
   const value = sort === 'views' ? post.views : sort === 'comments' ? post.comments : post.interactions;
   return value ?? Number.NEGATIVE_INFINITY;
 };
@@ -108,7 +113,12 @@ export function queryPosts(all: readonly PostRecord[], query: PostQuery): PostPa
       (!platforms || platforms.has(post.platform)) &&
       (!query.from || (post.date !== null && post.date >= query.from)) &&
       (!query.to || (post.date !== null && post.date <= query.to)) &&
-      (!needle || fold(post.text).includes(needle)),
+      (!needle || fold(post.text).includes(needle)) &&
+      (query.commentTone === 'all' ||
+        (post.sentiment !== null && post.sentiment.analyzed > 0 &&
+          (query.commentTone === 'analyzed' ||
+            (query.commentTone === 'positive' && post.sentiment.netScore > 0) ||
+            (query.commentTone === 'negative' && post.sentiment.netScore < 0)))),
   );
   const matching = query.format ? inScope.filter((post) => post.format === query.format) : inScope;
 

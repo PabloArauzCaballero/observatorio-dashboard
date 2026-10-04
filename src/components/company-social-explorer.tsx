@@ -3,6 +3,7 @@
 import { useMemo, useState } from 'react';
 import { ChartLegend, DivergingBars, ShareBars, sayDate } from './charts';
 import { CompanySocialMix } from './company-social-mix';
+import { AudienceWordCloud, CommentSentimentSummary } from './company-social-insights';
 import { CompanySocialPosts } from './company-social-posts';
 import { SOCIAL_SOURCE } from './company-social-source';
 import { CompanySocialTable } from './company-social-table';
@@ -15,6 +16,7 @@ import type { Choice } from '@/lib/choice';
 import {
   PLATFORM_LABEL,
   SOCIAL_PLATFORMS,
+  commentBreakdown,
   type CompanySocialBoard,
 } from '@/lib/company-social-board';
 import {
@@ -74,7 +76,7 @@ export function CompanySocialExplorer({ board }: { board: CompanySocialBoard }) 
   const [topOnly, setTopOnly] = useState(false);
   const [tone, setTone] = useState<SocialFilters['tone']>('all');
   const [focus, setFocus] = useState<Choice>(ANY);
-  const [scope, setScope] = useState<'COMPANY' | 'AUDIENCE'>('COMPANY');
+  const [scope, setScope] = useState<'COMPANY' | 'AUDIENCE'>('AUDIENCE');
   const [kind, setKind] = useState<TermKind>('WORD');
 
   const filters: SocialFilters = { platforms, sectors, query, topOnly, tone };
@@ -103,6 +105,7 @@ export function CompanySocialExplorer({ board }: { board: CompanySocialBoard }) 
     .map((company) => companySentiment(company, platforms))
     .filter((one) => one !== null);
   const analyzed = sentiments.reduce((sum, one) => sum + one.analyzed, 0);
+  const breakdown = commentBreakdown(chosen, platforms);
   const net = analyzed
     ? sentiments.reduce((sum, one) => sum + one.net * one.analyzed, 0) / analyzed
     : null;
@@ -134,6 +137,7 @@ export function CompanySocialExplorer({ board }: { board: CompanySocialBoard }) 
       meta: `${count(sentiment?.analyzed ?? 0)} comentarios${sentiment?.irony != null ? ` · ${sentiment.irony.toFixed(0)} % irónicos` : ''}`,
     }));
   const terms = sumTerms(board.terms, slugs, scope, kind, 20);
+  const cloudTerms = sumTerms(board.terms, slugs, 'AUDIENCE', 'WORD', 45);
   const posts = topPosts(board.posts, slugs, platforms);
   const kindLabel = KINDS.find((one) => one.value === kind) ?? KINDS[0];
 
@@ -168,7 +172,7 @@ export function CompanySocialExplorer({ board }: { board: CompanySocialBoard }) 
         id="empresas-redes-resumen"
         className="emp-hero"
         title={`Redes sociales de las empresas Merco: seguidores, interacción y sentimiento (lectura del ${board.readingDate ? sayDate(board.readingDate) : '—'})`}
-        lede="Las cuentas oficiales que cada empresa enlaza desde su propia web, leídas sin iniciar sesión."
+        lede="Perfiles sociales encontrados en webs corporativas y buscadores, leídos sin iniciar sesión. Algunos hallazgos siguen pendientes de verificar."
         source={SOCIAL_SOURCE}
         data={() => ({
           unidad: 'seguidores',
@@ -420,6 +424,26 @@ export function CompanySocialExplorer({ board }: { board: CompanySocialBoard }) 
           </Panel>
 
           <Panel
+            id="empresas-redes-reparto-comentarios"
+            title="Sentimiento expresado en los comentarios visibles"
+            lede="Porcentaje de comentarios clasificados en los perfiles de las empresas y redes elegidas. La ironía se mide aparte."
+            source={SOCIAL_SOURCE}
+          >
+            {breakdown ? (
+              <div className="social-sentiment-breakdown">
+                <div><strong>{count(breakdown.analyzed)}</strong><span>comentarios analizados</span></div>
+                <div><strong>{breakdown.positivePct.toFixed(1)} %</strong><span>positivos</span></div>
+                <div><strong>{breakdown.neutralPct.toFixed(1)} %</strong><span>neutros</span></div>
+                <div><strong>{breakdown.negativePct.toFixed(1)} %</strong><span>negativos</span></div>
+                {breakdown.ironyPct !== null ? (
+                  <div><strong>{breakdown.ironyPct.toFixed(1)} %</strong><span>irónicos</span></div>
+                ) : null}
+              </div>
+            ) : <div className="callout">Sin comentarios visibles para este filtro.</div>}
+            <p className="panel-note">Son señales del texto que captó el modelo; no describen el estado emocional de cada persona.</p>
+          </Panel>
+
+          <Panel
             id="empresas-redes-sentimiento"
             title="Sentimiento neto de los comentarios (puntos: % positivos − % negativos)"
             lede={`Solo empresas con ${MIN_COMMENTS} o más comentarios clasificados.`}
@@ -477,6 +501,9 @@ export function CompanySocialExplorer({ board }: { board: CompanySocialBoard }) 
                 </button>
               ))}
             </div>
+            {scope === 'AUDIENCE' && kind === 'WORD' && cloudTerms.length ? (
+              <AudienceWordCloud terms={cloudTerms} />
+            ) : null}
             {terms.length ? (
               <>
                 <ShareBars
@@ -570,12 +597,7 @@ export function CompanySocialExplorer({ board }: { board: CompanySocialBoard }) 
                           <span>{count(post.shares)} compartidos</span>
                         ) : null}
                         {post.views !== null ? <span>{count(post.views)} vistas</span> : null}
-                        {post.sentiment ? (
-                          <span>
-                            neto {signed(post.sentiment.netScore)} ({post.sentiment.analyzed}{' '}
-                            comentarios)
-                          </span>
-                        ) : null}
+                        {post.sentiment ? <CommentSentimentSummary sentiment={post.sentiment} /> : null}
                         <a href={post.url} target="_blank" rel="noopener noreferrer">
                           Ver el post
                         </a>

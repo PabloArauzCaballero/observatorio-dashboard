@@ -9812,3 +9812,43 @@ button.download-btn {
   outline: 2px solid var(--official);
   outline-offset: 2px;
 }
+
+.social-sentiment-breakdown {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(8rem, 1fr));
+  gap: 0.65rem;
+}
+.social-sentiment-breakdown > div {
+  display: grid;
+  gap: 0.2rem;
+  padding: 0.8rem;
+  border: 1px solid var(--rule);
+  border-radius: 8px;
+  font-variant-numeric: tabular-nums;
+}
+.social-sentiment-breakdown span,
+.social-comment-summary { color: var(--ink-soft); font-size: 0.8rem; }
+.social-sentiment-breakdown strong { font-size: 1.35rem; }
+.social-word-cloud {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.55rem 1.1rem;
+  margin: 0;
+  padding: 1rem;
+  border: 1px solid var(--rule);
+  border-radius: 8px;
+  list-style: none;
+}
+.social-word-cloud li { line-height: 1.35; overflow-wrap: anywhere; }
+.social-word-cloud span { color: var(--official); font-weight: 650; }
+.social-comment-summary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem 0.85rem;
+  margin-top: 0.6rem;
+  padding-top: 0.55rem;
+  border-top: 1px solid var(--rule);
+  font-variant-numeric: tabular-nums;
+}
+.social-comment-summary strong { color: var(--ink); }
