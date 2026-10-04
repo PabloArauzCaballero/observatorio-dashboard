@@ -1,7 +1,10 @@
 'use client';
 
 import { useMemo, useState } from 'react';
+import { ChartLegend, ShareBars, seriesTone } from './charts';
+import { ChipPicker, SinDeclarar, TOP, TopNote, uniqueNames } from './transport-views';
 import { Panel } from '@/components/ui/panel';
+import { ViewToggle } from '@/components/ui/view-toggle';
 import type { FareBand } from '@/lib/transport';
 
 const SMALL = new Set(['de', 'del', 'la', 'las', 'los', 'y']);
@@ -23,6 +26,20 @@ const ROAD: Record<FareBand['road'], string> = {
   OLD: 'Vía antigua',
 };
 
+/** Las tres categorías de servicio del tarifario, con sus bandas mínima y máxima. */
+type Service = 'normal' | 'semicama' | 'cama';
+const SERVICES: ReadonlyArray<{ id: Service; label: string }> = [
+  { id: 'normal', label: 'Normal' },
+  { id: 'semicama', label: 'Semicama' },
+  { id: 'cama', label: 'Cama' },
+];
+const bandOf = (band: FareBand, service: Service): [number | null, number | null] =>
+  service === 'normal'
+    ? [band.normalMin, band.normalMax]
+    : service === 'semicama'
+      ? [band.semicamaMin, band.semicamaMax]
+      : [band.camaMin, band.camaMax];
+
 const fare = (min: number | null, max: number | null): string =>
   min === null || max === null ? '—' : `Bs ${min}–${max}`;
 
@@ -37,6 +54,7 @@ const SOURCE: Record<FareBand['regulation'], string> = {
 export function FaresExplorer({ fares }: { fares: FareBand[] }) {
   const [regulation, setRegulation] = useState<FareBand['regulation']>('ATT_0032_2025');
   const [query, setQuery] = useState('');
+  const [service, setService] = useState<Service>('normal');
   const shown = useMemo(
     () =>
       fares.filter(
@@ -49,6 +67,20 @@ export function FaresExplorer({ fares }: { fares: FareBand[] }) {
   const currentCount = fares.filter((band) => band.regulation === 'ATT_0032_2025').length;
   const historicalCount = fares.filter((band) => band.regulation === 'ATT_0178_2013').length;
   const year = regulation === 'ATT_0032_2025' ? '2025' : '2013';
+  const serviceLabel = SERVICES.find((one) => one.id === service)?.label ?? '';
+
+  /* Las rutas más caras del servicio elegido: la barra llega a la tarifa máxima de la banda. */
+  const priced = shown.flatMap((band) => {
+    const [min, max] = bandOf(band, service);
+    return max === null ? [] : [{ band, min, max }];
+  });
+  const ranked = [...priced].sort((left, right) => right.max - left.max).slice(0, TOP);
+  const barNames = uniqueNames(
+    ranked.map(({ band }) => ({
+      name: `${label(band.origin)} → ${label(band.destination)}`,
+      qualifier: ROAD[band.road].toLowerCase(),
+    })),
+  );
 
   return (
     <Panel
@@ -138,32 +170,69 @@ export function FaresExplorer({ fares }: { fares: FareBand[] }) {
         La vía nueva y la vía antigua se mantienen como filas separadas cuando la resolución fija
         precios distintos.
       </p>
-      <div className="table-wrap">
-        <table className="grid-table">
-          <thead>
-            <tr>
-              <th>Ruta</th>
-              <th>Vía</th>
-              <th>Normal</th>
-              <th>Semicama</th>
-              <th>Cama</th>
-            </tr>
-          </thead>
-          <tbody>
-            {shown.map((band) => (
-              <tr key={`${band.regulation}-${band.origin}-${band.destination}-${band.road}`}>
-                <th>
-                  {label(band.origin)} → {label(band.destination)}
-                </th>
-                <td>{ROAD[band.road]}</td>
-                <td>{fare(band.normalMin, band.normalMax)}</td>
-                <td>{fare(band.semicamaMin, band.semicamaMax)}</td>
-                <td>{fare(band.camaMin, band.camaMax)}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+      <ViewToggle
+        chart={
+          <>
+            <ChipPicker label="Servicio" value={service} options={SERVICES} onChange={setService} />
+            <SinDeclarar>
+              <ShareBars
+                data={ranked.map(({ min, max }, index) => ({
+                  name: barNames[index] ?? '',
+                  value: max,
+                  ...(min === null
+                    ? {}
+                    : { parts: [{ name: 'Tarifa mínima', value: min, unit: 'Bs' }] }),
+                }))}
+                unit="Bs"
+                decimals={0}
+                tone={seriesTone(0)}
+                height={Math.max(190, ranked.length * 34 + 16)}
+              />
+            </SinDeclarar>
+            <ChartLegend
+              items={[
+                {
+                  color: seriesTone(0),
+                  label: `Tarifa máxima de la banda, servicio ${serviceLabel.toLowerCase()} (Bs por pasaje)`,
+                },
+              ]}
+            />
+            <TopNote
+              shown={ranked.length}
+              total={priced.length}
+              noun="rutas con tarifa publicada"
+            />
+          </>
+        }
+        table={
+          <div className="table-wrap">
+            <table className="grid-table">
+              <thead>
+                <tr>
+                  <th>Ruta</th>
+                  <th>Vía</th>
+                  <th>Normal</th>
+                  <th>Semicama</th>
+                  <th>Cama</th>
+                </tr>
+              </thead>
+              <tbody>
+                {shown.map((band) => (
+                  <tr key={`${band.regulation}-${band.origin}-${band.destination}-${band.road}`}>
+                    <th>
+                      {label(band.origin)} → {label(band.destination)}
+                    </th>
+                    <td>{ROAD[band.road]}</td>
+                    <td>{fare(band.normalMin, band.normalMax)}</td>
+                    <td>{fare(band.semicamaMin, band.semicamaMax)}</td>
+                    <td>{fare(band.camaMin, band.camaMax)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        }
+      />
     </Panel>
   );
 }
