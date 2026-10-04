@@ -8872,3 +8872,71 @@ button.download-btn {
 .panel-extremes span {
   white-space: nowrap;
 }
+
+/* Prensa y Método ---------------------------------------------------------- */
+
+/* Anchos de las dos columnas de la lista por años, que antes iban en línea. */
+.barlist-row .barlist-name-year {
+  width: 60px;
+}
+
+.barlist-row .barlist-n-wide {
+  width: 152px;
+}
+
+/* El dominio de una nota: texto de pie, no un color suelto en línea. */
+.filing-foot .filing-domain {
+  color: var(--ink-faint);
+}
+
+/* Controles de un solo panel, en una fila encima de su figura. */
+.panel-tools {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.3rem;
+}
+
+.panel-tools .chip {
+  padding: 0.18rem 0.6rem;
+  font-size: var(--text-xs);
+}
+
+/*
+ * Encabezado de un grupo de paneles dentro de una página («Panorama», el tema
+ * abierto, «Notas metodológicas»). Antes era una franja con borde y sombra; los
+ * paneles ya son secciones separadas por línea fina, y esto es solo su título.
+ */
+.group-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--s1) var(--s2);
+  padding-top: var(--s3);
+  border-top: 1px solid var(--rule);
+}
+
+.group-head h2 {
+  margin: 0;
+  font-family: var(--serif);
+  font-size: var(--text-xl);
+  font-weight: 600;
+  letter-spacing: -0.015em;
+  line-height: 1.2;
+  text-wrap: balance;
+}
+
+.group-head .group-hint {
+  color: var(--ink-soft);
+  font-size: var(--text-sm);
+}
+
+.group-head .download {
+  margin-left: auto;
+}
+
+@media (max-width: 720px) {
+  .group-head .download {
+    margin-left: 0;
+  }
+}

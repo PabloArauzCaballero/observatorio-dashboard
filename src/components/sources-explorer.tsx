@@ -17,6 +17,7 @@ import type { Choice } from '@/lib/choice';
 import { FilterHint, PickedCount } from './filters';
 import { Icon } from './icons';
 import { Pager } from './pager';
+import { Panel } from '@/components/ui/panel';
 import type { IconName } from './icons';
 import type { SourceNote } from '@/lib/series';
 
@@ -185,6 +186,21 @@ export function SourcesExplorer({
   };
 
   const notes: Note[] = [
+    {
+      icon: 'escudo',
+      title: 'Nada sin fuente',
+      body: (
+        <>
+          Toda lectura de este informe cita el documento del que se leyó y conserva su{' '}
+          <strong>huella sha256</strong>. Una cifra sin documento no se publica.
+        </>
+      ),
+    },
+    {
+      icon: 'refrescar',
+      title: 'Correcciones, no borrados',
+      body: <>Una lectura corregida crea una revisión: la anterior no se borra.</>,
+    },
     {
       icon: 'balanza',
       title: 'Los dos lados del paralelo no son una horquilla compra/venta',
@@ -432,60 +448,40 @@ export function SourcesExplorer({
       </aside>
 
       <div className="workspace-main" id="tablero" tabIndex={-1}>
-        <div className="briefcard">
-          <span className="briefcard-mark">
-            <Icon name="diana" size={20} />
-          </span>
-          <div>
-            <h2>De dónde sale cada cifra</h2>
-            <p>
-              Toda lectura de este informe cita el documento del que se leyó y conserva su{' '}
-              <strong>huella sha256</strong>. Abajo está una fila por serie y publicador, con
-              cuántas lecturas tiene y de cuántos documentos se armó.
-            </p>
-            <div className="brief-points">
-              <div className="brief-point">
-                <span className="brief-point-mark">
-                  <Icon name="escudo" size={17} />
-                </span>
-                <div>
-                  <b>Nada sin fuente</b>
-                  <span>una cifra sin documento no se publica</span>
-                </div>
-              </div>
-              <div className="brief-point">
-                <span className="brief-point-mark">
-                  <Icon name="capas" size={17} />
-                </span>
-                <div>
-                  <b>Frecuencias aparte</b>
-                  <span>lo anual y lo diario nunca comparten eje</span>
-                </div>
-              </div>
-              <div className="brief-point">
-                <span className="brief-point-mark">
-                  <Icon name="refrescar" size={17} />
-                </span>
-                <div>
-                  <b>Correcciones, no borrados</b>
-                  <span>una lectura corregida crea una revisión</span>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div className="strap">
-          <Icon name={PUBLISHER_ICON[list(publisher)[0] ?? ''] ?? 'capas'} size={17} />
-          <h2>{describe(publisher, (value) => value, 'Todas las fuentes')}</h2>
-          <span className="tile-hint">
-            {selected.length} serie{selected.length === 1 ? '' : 's'} ·{' '}
-            {readings.toLocaleString('es-BO')} lecturas
-          </span>
-        </div>
-
         {selected.length ? (
-          <>
+          <Panel
+            id="metodo-series"
+            title="Series y fuentes del Observatorio (cantidad de series)"
+            lede="Una fila por serie y publicador: cuántas lecturas tiene, de cuántos documentos se armó y desde cuándo."
+            meta={`${describe(publisher, (value) => value, 'Todas las fuentes')} · ${selected.length} serie${selected.length === 1 ? '' : 's'}`}
+            source="catálogo de fuentes del Observatorio: cada fila enlaza al documento de su publicador"
+            data={() => ({
+              unidad: 'series',
+              columnas: [
+                'Serie',
+                'Código',
+                'Publicador',
+                'Frecuencia',
+                'Lecturas',
+                'Documentos',
+                'Desde',
+                'Hasta',
+                'Enlace a la fuente',
+              ],
+              filas: selected.map((source) => [
+                named(source),
+                source.indicator,
+                source.publisher,
+                source.frequency ? (FREQUENCY_LABEL[source.frequency] ?? source.frequency) : null,
+                source.readings,
+                source.documents,
+                source.firstDay,
+                source.lastDay,
+                source.sourceUrl,
+              ]),
+              nota: 'Todas las series de la selección, no solo las de la página que se ve.',
+            })}
+          >
             {/*
               Un paginador arriba y otro abajo, como en Macroeconomía. Veinte
               filas son bastante más que una pantalla, así que un control solo
@@ -573,15 +569,18 @@ export function SourcesExplorer({
               where="abajo"
               noun="series"
             />
-          </>
+            <p className="panel-sub">
+              El núcleo del observatorio guarda {readingCount.toLocaleString('es-BO')} puntos de
+              serie en total, con o sin filtro.
+            </p>
+          </Panel>
         ) : (
           <div className="callout">Ninguna serie coincide con esta selección.</div>
         )}
 
-        <div className="strap">
-          <Icon name="info" size={17} />
+        <div className="group-head">
           <h2>Notas metodológicas</h2>
-          <span className="tile-hint">{notes.length} advertencias</span>
+          <span className="group-hint">{notes.length} advertencias</span>
         </div>
 
         <div className="note-grid">
@@ -597,11 +596,6 @@ export function SourcesExplorer({
             </article>
           ))}
         </div>
-
-        <p className="panel-sub">
-          El núcleo del observatorio guarda {readingCount.toLocaleString('es-BO')} puntos de serie
-          en total, con o sin filtro.
-        </p>
       </div>
     </div>
   );

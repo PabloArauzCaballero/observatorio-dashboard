@@ -2,6 +2,7 @@
 
 import { OnOpenNotice, useOnOpen } from './on-open';
 import { SourcesExplorer } from './sources-explorer';
+import { TabHeader } from '@/components/ui/tab-header';
 import type { SourceNote } from '@/lib/series';
 
 /**
@@ -19,13 +20,22 @@ export function SourcesSection() {
     reversal: string | null;
   }>('/api/fuentes');
 
-  if (!payload) return <OnOpenNotice what="las fuentes" failed={failed} />;
-
   return (
-    <SourcesExplorer
-      sources={payload.sources}
-      readingCount={payload.readingCount}
-      reversal={payload.reversal}
-    />
+    <>
+      <TabHeader
+        id="metodo"
+        title="Método"
+        lede="De dónde sale cada cifra del Observatorio, con quién la publica, cuántas lecturas hay y qué advertencias hay que conocer antes de citarla."
+      />
+      {payload ? (
+        <SourcesExplorer
+          sources={payload.sources}
+          readingCount={payload.readingCount}
+          reversal={payload.reversal}
+        />
+      ) : (
+        <OnOpenNotice what="las fuentes" failed={failed} />
+      )}
+    </>
   );
 }
