@@ -74,6 +74,8 @@ const PATHS = {
   velas:
     '<path d="M3.5 20.5V3.5M3.5 20.5h17"/><path d="M8 7v11M8 9.5h0M8 9.5a0 0 0 0 1 0 0"/><rect x="6.4" y="9.5" width="3.2" height="6" rx=".8"/><path d="M15 5v14"/><rect x="13.4" y="7.5" width="3.2" height="7.5" rx=".8"/>',
   ventana: '<rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 9h18M8 4v5"/>',
+  sol: '<circle cx="12" cy="12" r="3.8"/><path d="M12 3v2M12 19v2M3 12h2M19 12h2M5.6 5.6 7 7M17 17l1.4 1.4M5.6 18.4 7 17M17 7l1.4-1.4"/>',
+  luna: '<path d="M20 14.2A8.2 8.2 0 0 1 9.8 4a8.2 8.2 0 1 0 10.2 10.2z"/>',
 } as const;
 
 export type IconName = keyof typeof PATHS;

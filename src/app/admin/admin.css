@@ -39,7 +39,28 @@
   color: var(--ink);
 }
 
+/*
+ * El rediseño del tablero público cambió estos cinco tokens de `globals.css`
+ * (papel blanco, superficies planas, radio de 8 px, Newsreader y Public Sans).
+ * La consola no forma parte de ese rediseño, así que conserva aquí los valores
+ * que tenía: sin esto cambiaría de aspecto sin que nadie lo pidiera.
+ */
+.admin,
+.admin-login-wrap {
+  --paper: #fbfbfc;
+  --shadow: 0 1px 2px rgb(16 24 40 / 0.04), 0 8px 24px -12px rgb(16 24 40 / 0.14);
+  --radius: 10px;
+  --serif: ui-serif, Georgia, 'Times New Roman', serif;
+  --sans: ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+}
+
 @media (prefers-color-scheme: dark) {
+  .admin,
+  .admin-login-wrap {
+    --paper: #0e1116;
+    --shadow: 0 1px 2px rgb(0 0 0 / 0.3), 0 10px 28px -14px rgb(0 0 0 / 0.7);
+  }
+
   .admin {
     --state-warn: #e0a83c;
     --state-unknown: #98a1b0;

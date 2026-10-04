@@ -12,6 +12,8 @@ import { DollarQuotesCard } from '@/components/dollar-quotes';
 import { BoardNews, TodayBoardPanel } from '@/components/today-board';
 import type { SummaryFigure } from '@/components/summary-explorer';
 import { Tabs } from '@/components/tabs';
+import { ThemeToggle } from '@/components/theme-toggle';
+import { THEME_BOOT } from '@/lib/theme';
 // Las pestañas que se leen al abrirse, en su propio trozo de JavaScript.
 import {
   CitiesSection,
@@ -609,6 +611,8 @@ async function Stamp() {
 export default function Page() {
   return (
     <main>
+      {/* Fija el tema elegido antes del primer pintado; solo existe en el tablero público. */}
+      <script dangerouslySetInnerHTML={{ __html: THEME_BOOT }} />
       {/* The pane holds a hundred controls; this is the way past them. */}
       <a className="skip-link" href="#tablero">
         Saltar los filtros e ir al tablero
@@ -629,6 +633,7 @@ export default function Page() {
             <Stamp />
           </Suspense>
         </div>
+        <ThemeToggle />
         <Donate />
       </header>
 
