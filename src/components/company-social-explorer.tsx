@@ -1,9 +1,9 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { ChartLegend, DivergingBars, ShareBars, sayDate } from './charts';
 import { CompanySocialMix } from './company-social-mix';
-import { AudienceWordCloud, CommentSentimentSummary } from './company-social-insights';
+import { AudienceWordCloud } from './company-social-insights';
 import { CompanySocialPosts } from './company-social-posts';
 import { SOCIAL_SOURCE } from './company-social-source';
 import { CompanySocialTable } from './company-social-table';
@@ -28,7 +28,6 @@ import {
   followersOf,
   sectorChoices,
   sumTerms,
-  topPosts,
   type SocialFilters,
   type TermKind,
 } from '@/lib/company-social-view';
@@ -90,9 +89,17 @@ export function CompanySocialExplorer({ board }: { board: CompanySocialBoard }) 
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [board, platforms, query, topOnly, tone],
   );
-  const chosen = focus.size ? companies.filter((company) => focus.has(company.slug)) : companies;
+  useEffect(() => {
+    const available = new Set(companies.map((company) => company.slug));
+    setFocus((current) => {
+      const surviving = [...current].filter((slug) => available.has(slug));
+      return surviving.length === current.size ? current : new Set(surviving);
+    });
+  }, [companies]);
+  const visibleFocus = useMemo(() => new Set([...focus].filter((slug) => companies.some((company) => company.slug === slug))), [focus, companies]);
+  const chosen = visibleFocus.size ? companies.filter((company) => visibleFocus.has(company.slug)) : companies;
   const slugs = useMemo(() => new Set(chosen.map((company) => company.slug)), [chosen]);
-  const covered = coverage(chosen);
+  const covered = coverage(chosen).filter((row) => !platforms.size || platforms.has(row.platform));
 
   const followers = chosen.reduce(
     (sum, company) => sum + (followersOf(company, platforms) ?? 0),
@@ -100,6 +107,7 @@ export function CompanySocialExplorer({ board }: { board: CompanySocialBoard }) 
   );
   const postsRead = chosen
     .flatMap((company) => company.accounts)
+    .filter((account) => !platforms.size || platforms.has(account.platform))
     .reduce((sum, account) => sum + account.postsRead, 0);
   const sentiments = chosen
     .map((company) => companySentiment(company, platforms))
@@ -111,7 +119,7 @@ export function CompanySocialExplorer({ board }: { board: CompanySocialBoard }) 
     : null;
 
   const byPlatform = covered
-    .filter((row) => (platforms.size === 0 || platforms.has(row.platform)) && row.followers > 0)
+    .filter((row) => row.followers > 0)
     .map((row) => ({
       name: row.label,
       value: row.followers,
@@ -127,7 +135,7 @@ export function CompanySocialExplorer({ board }: { board: CompanySocialBoard }) 
     .filter((row): row is { name: string; value: number; pick: string } => row.value !== null)
     .sort((left, right) => right.value - left.value)
     .slice(0, 15)
-    .map((row) => ({ ...row, value: Number(row.value.toFixed(3)), emphasis: focus.has(row.pick) }));
+    .map((row) => ({ ...row, value: Number(row.value.toFixed(3)), emphasis: visibleFocus.has(row.pick) }));
   const tones = chosen
     .map((company) => ({ company, sentiment: companySentiment(company, platforms) }))
     .filter((row) => row.sentiment && row.sentiment.analyzed >= MIN_COMMENTS)
@@ -138,7 +146,6 @@ export function CompanySocialExplorer({ board }: { board: CompanySocialBoard }) 
     }));
   const terms = sumTerms(board.terms, slugs, scope, kind, 20);
   const cloudTerms = sumTerms(board.terms, slugs, 'AUDIENCE', 'WORD', 45);
-  const posts = topPosts(board.posts, slugs, platforms);
   const kindLabel = KINDS.find((one) => one.value === kind) ?? KINDS[0];
 
   const reset = (): void => {
@@ -155,7 +162,8 @@ export function CompanySocialExplorer({ board }: { board: CompanySocialBoard }) 
     (query.trim() ? 1 : 0) +
     (topOnly ? 1 : 0) +
     (tone !== 'all' ? 1 : 0) +
-    (focus.size ? 1 : 0);
+    (visibleFocus.size ? 1 : 0);
+  const filterKey = JSON.stringify([[...platforms].sort(), [...sectors].sort(), query.trim(), topOnly, tone]);
 
   if (!board.companies.length) {
     return (
@@ -363,8 +371,9 @@ export function CompanySocialExplorer({ board }: { board: CompanySocialBoard }) 
           <CompanySocialTable
             companies={companies}
             platforms={platforms}
-            focus={focus}
-            onFocus={(slug, add) => setFocus((current) => toggle(current, slug, add))}
+            focus={visibleFocus}
+            filterKey={filterKey}
+            onFocus={(slug, add) => setFocus((current) => toggle(new Set([...current].filter((one) => companies.some((company) => company.slug === one))), slug, add))}
           />
 
           <div className="grid-pair">
@@ -503,10 +512,12 @@ export function CompanySocialExplorer({ board }: { board: CompanySocialBoard }) 
                 </button>
               ))}
             </div>
-            {scope === 'AUDIENCE' && kind === 'WORD' && cloudTerms.length ? (
+            {!platforms.size && scope === 'AUDIENCE' && kind === 'WORD' && cloudTerms.length ? (
               <AudienceWordCloud terms={cloudTerms} />
             ) : null}
-            {terms.length ? (
+            {platforms.size ? (
+              <div className="callout">Los términos se recopilan por empresa, sin distinguir la red. Quita el filtro de red para verlos.</div>
+            ) : terms.length ? (
               <>
                 <ShareBars
                   data={terms.map((row) => ({
@@ -527,96 +538,11 @@ export function CompanySocialExplorer({ board }: { board: CompanySocialBoard }) 
             )}
           </Panel>
 
-          <Panel
-            id="empresas-redes-mejores-posts"
-            title="Posts con más interacciones (cantidad de interacciones por post)"
-            lede="Los de las empresas y redes elegidas."
-            source={SOCIAL_SOURCE}
-            data={() => ({
-              etiqueta: 'Posts',
-              unidad: 'interacciones',
-              columnas: [
-                'Empresa',
-                'Red',
-                'Fecha',
-                'Texto',
-                'Interacciones',
-                'Me gusta',
-                'Comentarios',
-                'Compartidos',
-                'Vistas',
-                'Sentimiento neto',
-                'Comentarios leídos',
-                'Cómo se halló',
-                'Enlace',
-              ],
-              filas: posts.map((post) => [
-                board.companies.find((one) => one.slug === post.slug)?.name ?? post.slug,
-                PLATFORM_LABEL[post.platform],
-                post.date,
-                post.text,
-                post.interactions,
-                post.likes,
-                post.comments,
-                post.shares,
-                post.views,
-                post.sentiment ? post.sentiment.netScore : null,
-                post.sentiment ? post.sentiment.analyzed : null,
-                post.discovery === 'SEARCH' ? 'buscador' : 'perfil',
-                post.url,
-              ]),
-            })}
-          >
-            <details className="panel-note">
-              <summary>Cómo leerlo</summary>
-              <p>
-                Likes, comentarios y compartidos suman las interacciones. Los videos de TikTok
-                llegan por buscador, no por la grilla del perfil, y se marcan así.
-              </p>
-            </details>
-            {posts.length ? (
-              <ol className="social-posts">
-                {posts.map((post) => {
-                  const company = board.companies.find((one) => one.slug === post.slug);
-                  return (
-                    <li key={`${post.platform}-${post.url}`} className="social-post">
-                      <div className="social-post-head">
-                        <b>{company?.name ?? post.slug}</b>
-                        <span className="social-post-meta">
-                          {PLATFORM_LABEL[post.platform]} ·{' '}
-                          {post.date ? sayDate(post.date) : 'sin fecha'}
-                          {post.discovery === 'SEARCH' ? ' · hallado por buscador' : ''}
-                        </span>
-                      </div>
-                      <p className="social-post-text">{post.text || '(sin texto)'}</p>
-                      <div className="social-post-figures">
-                        <span>{count(post.interactions ?? 0)} interacciones</span>
-                        {post.likes !== null ? <span>{count(post.likes)} me gusta</span> : null}
-                        {post.comments !== null ? (
-                          <span>{count(post.comments)} comentarios</span>
-                        ) : null}
-                        {post.shares !== null ? (
-                          <span>{count(post.shares)} compartidos</span>
-                        ) : null}
-                        {post.views !== null ? <span>{count(post.views)} vistas</span> : null}
-                        {post.sentiment ? <CommentSentimentSummary sentiment={post.sentiment} /> : null}
-                        <a href={post.url} target="_blank" rel="noopener noreferrer">
-                          Ver el post
-                        </a>
-                      </div>
-                    </li>
-                  );
-                })}
-              </ol>
-            ) : (
-              <div className="callout">Sin posts leídos para las empresas y redes elegidas.</div>
-            )}
-          </Panel>
-
           <CompanySocialPosts
             slugs={
               chosen.length === board.companies.length ? [] : chosen.map((company) => company.slug)
             }
+            emptySelection={chosen.length === 0}
             platforms={[...platforms]}
             companies={board.companies}
           />

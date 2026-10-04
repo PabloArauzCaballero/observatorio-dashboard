@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { CompanyLogo } from './company-logo';
 import { SOCIAL_SOURCE } from './company-social-source';
 import { Pager } from './pager';
@@ -30,7 +30,7 @@ import {
 
 type SortKey = 'merco' | 'total' | 'engagement' | 'pace' | 'net' | SocialPlatform;
 
-const PAGE = 20;
+const PAGE = 8;
 const STATUS_LABEL: Record<string, string> = {
   RESTRICTED: 'restringida',
   BLOCKED: 'bloqueada',
@@ -57,18 +57,24 @@ export function CompanySocialTable({
   companies,
   platforms,
   focus,
+  filterKey,
   onFocus,
 }: {
   companies: readonly SocialCompany[];
   platforms: Choice;
   focus: Choice;
+  filterKey: string;
   onFocus: (slug: string, additive: boolean) => void;
 }) {
   const [sort, setSort] = useState<{ key: SortKey; down: boolean }>({ key: 'total', down: true });
-  const [offset, setOffset] = useState(0);
+  const [cursor, setCursor] = useState({ filterKey, offset: 0 });
+  useEffect(() => setCursor({ filterKey, offset: 0 }), [filterKey]);
+  const offset = cursor.filterKey === filterKey ? cursor.offset : 0;
+  const go = (next: number): void => setCursor({ filterKey, offset: next });
   const shownPlatforms = SOCIAL_PLATFORMS.filter(
     (platform) => platforms.size === 0 || platforms.has(platform),
   );
+  const sortKey: SortKey = SOCIAL_PLATFORMS.includes(sort.key as SocialPlatform) && !shownPlatforms.includes(sort.key as SocialPlatform) ? 'total' : sort.key;
 
   const valueOf = (company: SocialCompany, key: SortKey): number | null => {
     if (key === 'merco') return company.mercoRank === null ? null : -company.mercoRank;
@@ -79,8 +85,8 @@ export function CompanySocialTable({
     return company.accounts.find((account) => account.platform === key)?.followers ?? null;
   };
   const rows = [...companies].sort((left, right) => {
-    const a = valueOf(left, sort.key);
-    const b = valueOf(right, sort.key);
+    const a = valueOf(left, sortKey);
+    const b = valueOf(right, sortKey);
     if (a === null && b === null) return left.name.localeCompare(right.name, 'es');
     if (a === null) return 1;
     if (b === null) return -1;
@@ -91,7 +97,7 @@ export function CompanySocialTable({
   const shown = rows.slice((page - 1) * PAGE, page * PAGE);
 
   const head = (key: SortKey, numeric = true) => {
-    const active = sort.key === key;
+    const active = sortKey === key;
     return (
       <th
         key={key}
@@ -103,7 +109,7 @@ export function CompanySocialTable({
           className={active ? 'roads-sort roads-sort-on' : 'roads-sort'}
           onClick={() => {
             setSort((current) => ({ key, down: current.key === key ? !current.down : true }));
-            setOffset(0);
+            go(0);
           }}
         >
           {SORT_LABEL[key]}
@@ -166,7 +172,7 @@ export function CompanySocialTable({
         last={(page - 1) * PAGE + shown.length}
         total={rows.length}
         pageSize={PAGE}
-        onGo={setOffset}
+        onGo={go}
         where="arriba"
         noun="empresas"
       />
@@ -273,6 +279,17 @@ export function CompanySocialTable({
           </table>
         </div>
       )}
+      <Pager
+        page={page}
+        pages={pages}
+        first={rows.length ? (page - 1) * PAGE + 1 : 0}
+        last={(page - 1) * PAGE + shown.length}
+        total={rows.length}
+        pageSize={PAGE}
+        onGo={go}
+        where="abajo"
+        noun="empresas"
+      />
     </Panel>
   );
 }

@@ -166,39 +166,8 @@ export function topPosts(posts: readonly SocialPost[], slugs: ReadonlySet<string
     .slice(0, limit);
 }
 
-const FORMAT_LABEL: Record<string, string> = {
-  POST: 'Post de Instagram',
-  REEL: 'Reel',
-  VIDEO: 'Video',
-  PHOTO: 'Foto',
-  TEXT: 'Texto o enlace',
-};
-
 const shapesIn = (shapes: readonly PostShape[], slugs: ReadonlySet<string>, platforms: Choice) =>
   shapes.filter((shape) => slugs.has(shape.slug) && (platforms.size === 0 || platforms.has(shape.platform)));
-
-/** Qué forma tienen los posts y cuánto rinde cada una (interacciones medianas por post). */
-export function formatMix(shapes: readonly PostShape[], slugs: ReadonlySet<string>, platforms: Choice) {
-  const groups = new Map<string, number[]>();
-  for (const shape of shapesIn(shapes, slugs, platforms)) {
-    if (!shape.format) continue;
-    const list = groups.get(shape.format) ?? [];
-    list.push(shape.interactions ?? 0);
-    groups.set(shape.format, list);
-  }
-  const total = [...groups.values()].reduce((sum, list) => sum + list.length, 0);
-  return [...groups.entries()]
-    .map(([format, list]) => {
-      const sorted = [...list].sort((left, right) => left - right);
-      return {
-        name: FORMAT_LABEL[format] ?? format,
-        value: total ? (100 * list.length) / total : 0,
-        posts: list.length,
-        median: sorted[Math.floor(sorted.length / 2)] ?? 0,
-      };
-    })
-    .sort((left, right) => right.value - left.value);
-}
 
 /** A qué hora de La Paz se publica (sólo los posts cuya red da el instante). */
 export function hourMix(shapes: readonly PostShape[], slugs: ReadonlySet<string>, platforms: Choice) {
