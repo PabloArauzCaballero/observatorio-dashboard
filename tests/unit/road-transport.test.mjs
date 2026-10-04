@@ -181,7 +181,7 @@ test('pasajes es una página principal de transporte con ambos tarifarios oficia
     'utf8',
   );
 
-  assert.match(transport, /labels=\{\['Automotor', 'Pasajes', 'Carreteras'/u);
+  assert.match(transport, /labels=\{\[[^\]]*'Automotor'[^\]]*'Pasajes'[^\]]*'Carreteras'/u);
   assert.match(transport, /<FaresSection \/>/u);
   assert.doesNotMatch(road, /'Pasajes'/u);
   assert.match(fares, /ATT_0032_2025/u);
