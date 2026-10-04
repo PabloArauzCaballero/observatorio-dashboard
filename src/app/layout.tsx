@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import localFont from 'next/font/local';
 import { VisitReporter } from '@/components/visit-reporter';
 import './globals.css';
+import './automotive.css';
 
 /*
  * Dos familias y nada más, alojadas en el propio repositorio: el build no

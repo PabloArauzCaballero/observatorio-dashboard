@@ -10,6 +10,10 @@ import { TabHeader } from '@/components/ui/tab-header';
 import { RoadTransportSection } from './road-transport-section';
 import { FreightSection } from './freight-section';
 import { FaresSection } from './fares-section';
+import { AutomotiveMarket } from './automotive-market';
+import { AutomotiveCompetition } from './automotive-competition';
+import { AutomotiveInternational } from './automotive-international';
+import { AutomotiveScenarios } from './automotive-scenarios';
 import type { RailBoard, WaterBoard } from '@/lib/transport-board';
 
 /**
@@ -28,12 +32,16 @@ export function TransportSection() {
         lede="Vehículos, pasajes, carreteras, trenes, ríos y fletes de Bolivia. Las cifras de vehículos y tarifas son oficiales; los mapas muestran lo que OpenStreetMap ha trazado, que no es un inventario oficial."
       />
       <SubSections
-        labels={['Automotor', 'Vehículos 0 km', 'Carburantes', 'Pasajes', 'Tarifas publicadas', 'Carreteras', 'Ferrocarriles', 'Ríos y puertos', 'Fletes']}
-        icons={['camion', 'camion', 'gota', 'etiqueta', 'etiqueta', 'mapa', 'linea', 'gota', 'cajas']}
+        labels={['Automotor', 'Vehículos 0 km', 'Estudio automotor', 'Competencia automotriz', 'Precios internacionales', 'Escenarios automotores', 'Carburantes', 'Pasajes', 'Tarifas publicadas', 'Carreteras', 'Ferrocarriles', 'Ríos y puertos', 'Fletes']}
+        icons={['camion', 'camion', 'camion', 'camion', 'etiqueta', 'barras', 'gota', 'etiqueta', 'etiqueta', 'mapa', 'linea', 'gota', 'cajas']}
         enlace
       >
         <RoadTransportSection />
         <VehiclePricesExplorer />
+        <AutomotiveMarket />
+        <AutomotiveCompetition />
+        <AutomotiveInternational />
+        <AutomotiveScenarios />
         <FuelPricesExplorer />
         <FaresSection />
         <PassengerFaresExplorer />

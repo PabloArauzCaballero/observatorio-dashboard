@@ -1,0 +1,23 @@
+.automotive-study { display: grid; gap: 1.5rem; min-width: 0; }
+.automotive-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 310px), 1fr)); gap: 1rem; margin-block: 1rem; }
+.automotive-cards > article, .automotive-kpis > article { padding: 1rem; border: 1px solid var(--grid, #d1d5db); border-radius: 8px; min-width: 0; }
+.automotive-cards h3, .automotive-cards h4 { margin-top: .25rem; }
+.automotive-cards p { line-height: 1.65; }
+.automotive-kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 210px), 1fr)); gap: .75rem; margin-block: 1rem; }
+.automotive-kpis small, .automotive-kpis strong, .automotive-kpis span { display: block; }
+.automotive-kpis strong { font-size: clamp(1.5rem, 2vw, 2rem); margin-block: .5rem; font-variant-numeric: tabular-nums; }
+.automotive-kpis span { font-size: .85rem; line-height: 1.5; }
+.automotive-evidence { display: flex; flex-wrap: wrap; gap: .4rem 1rem; margin-block: .5rem; font-size: .8rem; }
+.automotive-evidence a { text-decoration: underline; text-underline-offset: 3px; }
+.automotive-badge { display: inline-block; border: 1px solid currentColor; padding: .2rem .5rem; border-radius: 4px; font-size: .75rem; font-weight: 500; }
+.automotive-price { font-size: 1.65rem; font-variant-numeric: tabular-nums; }
+.automotive-pair, .automotive-note { border-top: 1px solid var(--grid, #d1d5db); padding-block: 1rem; }
+.automotive-inputs { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 240px), 1fr)); gap: 1rem; margin-block: 1rem; }
+.automotive-inputs label, .automotive-select { display: grid; gap: .4rem; font-size: .85rem; }
+.automotive-inputs input, .automotive-select select { min-height: 42px; border: 1px solid var(--grid, #9ca3af); border-radius: 4px; padding: .5rem; color: inherit; background: var(--chart-surface, white); width: 100%; }
+.automotive-select { max-width: 320px; margin-block: 1rem; }
+.automotive-study details { margin-block: 1rem; }
+.automotive-study summary { cursor: pointer; padding-block: .5rem; font-weight: 600; }
+.automotive-source { overflow-wrap: anywhere; font-size: .8rem; padding-block: .6rem; }
+.automotive-study .table-wrap { max-width: 100%; overflow-x: auto; }
+.automotive-study .table td { min-width: 100px; max-width: 420px; white-space: normal; vertical-align: top; }

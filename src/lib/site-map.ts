@@ -71,7 +71,11 @@ export const SITE: readonly SiteSection[] = [
     icon: 'camion',
     pages: paginas(
       'Automotor',
-      'Vehículos 0 km',
+        'Vehículos 0 km',
+        'Estudio automotor',
+        'Competencia automotriz',
+        'Precios internacionales',
+        'Escenarios automotores',
       'Carburantes',
       'Pasajes',
       'Tarifas publicadas',

@@ -1,0 +1,748 @@
+{
+  "annual": [
+    {
+      "year": 2019,
+      "heading": "8702",
+      "usd": 117060113,
+      "kg": 17688221,
+      "months": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        12
+      ],
+      "provisional": false
+    },
+    {
+      "year": 2019,
+      "heading": "8703",
+      "usd": 434202105,
+      "kg": 46216087,
+      "months": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        12
+      ],
+      "provisional": false
+    },
+    {
+      "year": 2019,
+      "heading": "8704",
+      "usd": 204517486,
+      "kg": 31666357,
+      "months": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        12
+      ],
+      "provisional": false
+    },
+    {
+      "year": 2020,
+      "heading": "8702",
+      "usd": 46376411,
+      "kg": 6723174,
+      "months": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        12
+      ],
+      "provisional": false
+    },
+    {
+      "year": 2020,
+      "heading": "8703",
+      "usd": 272933126,
+      "kg": 28368069,
+      "months": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        12
+      ],
+      "provisional": false
+    },
+    {
+      "year": 2020,
+      "heading": "8704",
+      "usd": 125925258,
+      "kg": 19202967,
+      "months": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        12
+      ],
+      "provisional": false
+    },
+    {
+      "year": 2021,
+      "heading": "8702",
+      "usd": 42856511,
+      "kg": 6741151,
+      "months": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        12
+      ],
+      "provisional": false
+    },
+    {
+      "year": 2021,
+      "heading": "8703",
+      "usd": 370540260,
+      "kg": 38353576,
+      "months": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        12
+      ],
+      "provisional": false
+    },
+    {
+      "year": 2021,
+      "heading": "8704",
+      "usd": 186914019,
+      "kg": 27359672,
+      "months": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        12
+      ],
+      "provisional": false
+    },
+    {
+      "year": 2022,
+      "heading": "8702",
+      "usd": 52549452,
+      "kg": 7451557,
+      "months": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        12
+      ],
+      "provisional": false
+    },
+    {
+      "year": 2022,
+      "heading": "8703",
+      "usd": 449267181,
+      "kg": 43236812,
+      "months": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        12
+      ],
+      "provisional": false
+    },
+    {
+      "year": 2022,
+      "heading": "8704",
+      "usd": 198982210,
+      "kg": 26010172,
+      "months": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        12
+      ],
+      "provisional": false
+    },
+    {
+      "year": 2023,
+      "heading": "8702",
+      "usd": 52715980,
+      "kg": 6848411,
+      "months": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        12
+      ],
+      "provisional": false
+    },
+    {
+      "year": 2023,
+      "heading": "8703",
+      "usd": 534633406,
+      "kg": 47291978,
+      "months": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        12
+      ],
+      "provisional": false
+    },
+    {
+      "year": 2023,
+      "heading": "8704",
+      "usd": 254401037,
+      "kg": 31486612,
+      "months": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        12
+      ],
+      "provisional": false
+    },
+    {
+      "year": 2024,
+      "heading": "8702",
+      "usd": 39127132,
+      "kg": 4169484,
+      "months": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        12
+      ],
+      "provisional": true
+    },
+    {
+      "year": 2024,
+      "heading": "8703",
+      "usd": 337857573,
+      "kg": 30643730,
+      "months": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        12
+      ],
+      "provisional": true
+    },
+    {
+      "year": 2024,
+      "heading": "8704",
+      "usd": 135688424,
+      "kg": 16115211,
+      "months": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        12
+      ],
+      "provisional": true
+    },
+    {
+      "year": 2025,
+      "heading": "8702",
+      "usd": 39067393,
+      "kg": 4602680,
+      "months": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        12
+      ],
+      "provisional": true
+    },
+    {
+      "year": 2025,
+      "heading": "8703",
+      "usd": 286593687,
+      "kg": 25321733,
+      "months": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        12
+      ],
+      "provisional": true
+    },
+    {
+      "year": 2025,
+      "heading": "8704",
+      "usd": 137639291,
+      "kg": 16085055,
+      "months": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        12
+      ],
+      "provisional": true
+    },
+    {
+      "year": 2026,
+      "heading": "8702",
+      "usd": 57687602,
+      "kg": 7290820,
+      "months": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8
+      ],
+      "provisional": true
+    },
+    {
+      "year": 2026,
+      "heading": "8703",
+      "usd": 301212781,
+      "kg": 26576921,
+      "months": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8
+      ],
+      "provisional": true
+    },
+    {
+      "year": 2026,
+      "heading": "8704",
+      "usd": 151262141,
+      "kg": 20083733,
+      "months": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8
+      ],
+      "provisional": true
+    }
+  ],
+  "origins": [
+    {
+      "year": 2025,
+      "heading": "8703",
+      "code": "215",
+      "name": "China",
+      "usd": 86698439
+    },
+    {
+      "year": 2025,
+      "heading": "8703",
+      "code": "399",
+      "name": "Japón",
+      "usd": 67368052
+    },
+    {
+      "year": 2025,
+      "heading": "8703",
+      "code": "361",
+      "name": "India",
+      "usd": 42718655
+    },
+    {
+      "year": 2025,
+      "heading": "8703",
+      "code": "365",
+      "name": "Indonesia",
+      "usd": 18228673
+    },
+    {
+      "year": 2025,
+      "heading": "8703",
+      "code": "249",
+      "name": "Estados Unidos",
+      "usd": 15705831
+    },
+    {
+      "year": 2025,
+      "heading": "8703",
+      "code": "493",
+      "name": "México",
+      "usd": 15034663
+    },
+    {
+      "year": 2025,
+      "heading": "8703",
+      "code": "105",
+      "name": "Brasil",
+      "usd": 13612337
+    },
+    {
+      "year": 2025,
+      "heading": "8703",
+      "code": "190",
+      "name": "Corea del Sur",
+      "usd": 9708515
+    }
+  ],
+  "sources": [
+    {
+      "year": 2019,
+      "publisher": "INSTITUTO NACIONAL DE ESTADISTICA",
+      "title": "IMPORTACIONES 2019",
+      "sourceUrl": "https://nube.ine.gob.bo/index.php/s/vpoXdzn8epcGCob/download",
+      "upstreamSha256": "448377ac4a024c6bb3c53743f61bb2e928e3e87ce59415995a6a9e9c50c643ea",
+      "retrievedAt": "2026-09-27T22:16:32.565Z",
+      "seedSha256": "3119d49bdef0c6aae14fc8426626b848aef95ea5eabcd41632fad184fc9923a6",
+      "months": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        12
+      ],
+      "provisional": false
+    },
+    {
+      "year": 2020,
+      "publisher": "INSTITUTO NACIONAL DE ESTADISTICA",
+      "title": "IMPORTACIONES 2020",
+      "sourceUrl": "https://nube.ine.gob.bo/index.php/s/JuvhMH4gAswGivq/download",
+      "upstreamSha256": "981e28e5900f49b35082df61033e3b09f7546ec979dbd80415d56d4c7675214f",
+      "retrievedAt": "2026-09-27T22:18:33.796Z",
+      "seedSha256": "4d7b4600e96fd4f765e1e6bfeab5b535240be004563fd13c37af89dbf0c9e7fe",
+      "months": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        12
+      ],
+      "provisional": false
+    },
+    {
+      "year": 2021,
+      "publisher": "INSTITUTO NACIONAL DE ESTADISTICA",
+      "title": "IMPORTACIONES_2021",
+      "sourceUrl": "https://nube.ine.gob.bo/index.php/s/RVX5d4lxxSIBjnL/download",
+      "upstreamSha256": "2156daea46790e337a1bed1d888adc3662a0b35068624bebaa282835b2f94533",
+      "retrievedAt": "2026-09-27T22:20:42.836Z",
+      "seedSha256": "7562e4a845b63f796d91d3ad4e458c75adbff1f879ad432e7958b99958addf7f",
+      "months": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        12
+      ],
+      "provisional": false
+    },
+    {
+      "year": 2022,
+      "publisher": "INSTITUTO NACIONAL DE ESTADISTICA",
+      "title": "IMPORTACIONES 2022",
+      "sourceUrl": "https://nube.ine.gob.bo/index.php/s/bKcZ9KDiPxlgD1U/download",
+      "upstreamSha256": "2d41e15ac7f707ffc75b35059ec86bfe5d99db94b6c1b1733fac61f06b137ab1",
+      "retrievedAt": "2026-09-27T22:23:11.779Z",
+      "seedSha256": "fc24fd0ac272573a3bce10dad18dffc2726be99ffd4a66f62327a0a54a35c708",
+      "months": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        12
+      ],
+      "provisional": false
+    },
+    {
+      "year": 2023,
+      "publisher": "INSTITUTO NACIONAL DE ESTADISTICA",
+      "title": "IMPORTACIONES 2023",
+      "sourceUrl": "https://nube.ine.gob.bo/index.php/s/qPDlbEBgzWWXTHE/download",
+      "upstreamSha256": "16a71026872c28e8d396d4cf7a420cde9e78ab2a024aa96d436005454d87a4aa",
+      "retrievedAt": "2026-09-27T22:26:03.891Z",
+      "seedSha256": "ea928ddd0ae3745ae45cf00c40a76c5ab6e40cdceb928db4cae88b46ae340738",
+      "months": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        12
+      ],
+      "provisional": false
+    },
+    {
+      "year": 2024,
+      "publisher": "INSTITUTO NACIONAL DE ESTADISTICA",
+      "title": "IMPORTACIONES 2024p",
+      "sourceUrl": "https://nube.ine.gob.bo/index.php/s/ZlU0vAllzi2kOvE/download",
+      "upstreamSha256": "d66c862515f6bbbf17341a9955c920df8bb125dda05af549ecf9648d61168ec8",
+      "retrievedAt": "2026-09-27T22:28:33.134Z",
+      "seedSha256": "3aac097d24f2cb74c8e78e4862affec489dded052d9bf79286ef42cdda3e5daf",
+      "months": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        12
+      ],
+      "provisional": true
+    },
+    {
+      "year": 2025,
+      "publisher": "INSTITUTO NACIONAL DE ESTADISTICA",
+      "title": "IMPORTACIONES 2025p",
+      "sourceUrl": "https://nube.ine.gob.bo/index.php/s/22yfb3bJv9SDxim/download",
+      "upstreamSha256": "8811260d578b125c38d8a8a0cb3888840bc1d2d293191caa506eeac2eca7c97c",
+      "retrievedAt": "2026-09-27T22:30:24.814Z",
+      "seedSha256": "a01573cc7ca9a45184f18e0096703a64b49d14343639f7b5541d9fa8c8442d5b",
+      "months": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        12
+      ],
+      "provisional": true
+    },
+    {
+      "year": 2026,
+      "publisher": "INSTITUTO NACIONAL DE ESTADISTICA",
+      "title": "IMPORTACIONES ENE A AGO 2026p",
+      "sourceUrl": "https://nube.ine.gob.bo/index.php/s/c39BkmutwWJDfSX/download",
+      "upstreamSha256": "25de54038b53855433a36dbb2b57d3471bbc3db720903f39381b39858920a819",
+      "retrievedAt": "2026-10-01T02:05:16.576Z",
+      "seedSha256": "6ac9298f5c6ca9eb386c19d166959870676036953ca2ed18ab9a4355ce9f3649",
+      "months": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8
+      ],
+      "provisional": true
+    }
+  ],
+  "grain": "M_DETAIL",
+  "unit": "USD CIF frontera",
+  "observedAt": "2026-10-04",
+  "definition": "Suma del cubo anual por NANDINA y país de origen. Unidades físicas no disponibles. 2024, 2025 y 2026 son provisionales; 2026 comprende enero–agosto y se muestra separado."
+}

@@ -31,7 +31,7 @@ import {
 } from '@/lib/vehicle-price-analysis';
 import type { VehicleOffer } from '@/lib/vehicle-price-analysis';
 
-type Vehicle = VehicleOffer & { source: string; transmission: string; traction: string };
+type Vehicle = VehicleOffer & { source: string; transmission: string; traction: string; dealer?: string | null; conditions?: string; availability?: string };
 type Fuel = (typeof fuelsJson)[number];
 type Fare = (typeof faresJson)[number];
 type Field<T> = (row: T) => string;
@@ -221,6 +221,7 @@ function VehiclePriceBoard({
         }}
       >
         <StatStrip stats={stats} />
+        <p className="panel-note">Ofertas observadas, sin cuota de mercado. La investigación ampliada de redes, conflictos y equivalencia por país está en las páginas Competencia automotriz y Precios internacionales. Impuestos finales, vigencia y disponibilidad requieren confirmación.</p>
         <details className="panel-note">
           <summary>Cómo leer estos precios</summary>
           <p>
@@ -480,6 +481,8 @@ function VehiclePriceBoard({
                 'Clase',
                 'Observado',
                 'Oferta',
+                'Vendedor',
+                'Condiciones',
               ],
               filas: detail.map((row) => [
                 row.type,
@@ -494,6 +497,8 @@ function VehiclePriceBoard({
                 row.priceType,
                 row.observedAt,
                 row.source,
+                row.dealer ?? 'No identificado',
+                row.conditions ?? 'No informadas',
               ]),
             }}
           >
@@ -513,6 +518,7 @@ function VehiclePriceBoard({
                       <th>Clase</th>
                       <th>Observado</th>
                       <th>Oferta</th>
+                      <th>Vendedor / condiciones</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -535,6 +541,7 @@ function VehiclePriceBoard({
                             Ver anuncio
                           </a>
                         </td>
+                        <td>{row.dealer ?? 'No identificado'}<br />{row.conditions ?? 'No informadas'}<br />Stock: {row.availability ?? 'No verificada'}.</td>
                       </tr>
                     ))}
                   </tbody>
