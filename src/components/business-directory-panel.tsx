@@ -9,8 +9,8 @@ import {
   type BusinessDirectoryFilters,
   type BusinessDirectoryPage,
 } from '@/lib/business-directory-contract';
-import { Icon } from './icons';
 import styles from './business.module.css';
+import { Panel } from '@/components/ui/panel';
 
 const say = (value: number): string => value.toLocaleString('es-BO');
 
@@ -47,20 +47,20 @@ export function BusinessDirectoryPanel() {
   const maxTerm = Math.max(...(result?.terms.map((term) => term.value) ?? [1]));
 
   return (
-    <section className="panel" aria-labelledby="directorio-empresarial-titulo">
-      <div className="panel-head panel-head-kind">
-        <div>
-          <h2 id="directorio-empresarial-titulo">Directorio de empresas disponible</h2>
-          <p className="panel-sub">
-            Nombres y datos públicos de los registros SEPREC reunidos por el Observatorio. La cobertura es parcial:
-            la base oficial completa se solicita mediante el Trámite 58 del SEPREC.
-          </p>
-        </div>
-        <a className="chip" href={directoryExcelUrl(filters)} aria-label="Descargar todas las empresas filtradas en Excel">
-          <Icon name="descarga" size={13} /> Excel
-        </a>
-      </div>
-
+    <Panel
+      id="tejido-directorio"
+      title="Directorio de empresas disponible (cantidad de empresas)"
+      lede="Nombres y datos públicos de los registros SEPREC reunidos por el Observatorio. La cobertura es parcial: la base oficial completa se solicita mediante el Trámite 58 del SEPREC."
+      meta={result ? `${say(result.total)} coincidencias` : undefined}
+      source="SEPREC, directorio parcial de empresas reunido por el Observatorio"
+      extraDownloads={[
+        {
+          etiqueta: 'Todas las empresas filtradas',
+          nota: 'Excel',
+          href: directoryExcelUrl(filters),
+        },
+      ]}
+    >
       {status === 'error' ? (
         <div className="callout" role="status">
           {directoryUnavailableMessage()}{' '}
@@ -73,11 +73,15 @@ export function BusinessDirectoryPanel() {
       {result ? (
         <>
           <div className={styles.directorySummary}>
-            <strong>{say(result.total)} coincidencias</strong>
             <span>
-              Cobertura {result.meta.coverage.toLocaleLowerCase('es')} · {say(result.meta.availableRecords)} registros disponibles
+              Cobertura {result.meta.coverage.toLocaleLowerCase('es')} ·{' '}
+              {say(result.meta.availableRecords)} registros disponibles
             </span>
-            <span>{result.meta.cutDate ? `Corte ${new Date(result.meta.cutDate).toLocaleDateString('es-BO')}` : 'Corte no declarado por la fuente'}</span>
+            <span>
+              {result.meta.cutDate
+                ? `Corte ${new Date(result.meta.cutDate).toLocaleDateString('es-BO')}`
+                : 'Corte no declarado por la fuente'}
+            </span>
           </div>
 
           <form className={styles.directoryFilters} onSubmit={submitSearch}>
@@ -94,29 +98,57 @@ export function BusinessDirectoryPanel() {
               <span>Departamento</span>
               <select
                 value={filters.department ?? ''}
-                onChange={(event) => setFilters((current) => ({ ...current, department: event.target.value, municipality: '', page: 1 }))}
+                onChange={(event) =>
+                  setFilters((current) => ({
+                    ...current,
+                    department: event.target.value,
+                    municipality: '',
+                    page: 1,
+                  }))
+                }
               >
                 <option value="">Todos</option>
-                {result.meta.departments.map((department) => <option key={department} value={department}>{department}</option>)}
+                {result.meta.departments.map((department) => (
+                  <option key={department} value={department}>
+                    {department}
+                  </option>
+                ))}
               </select>
             </label>
             <label>
               <span>Municipio</span>
               <select
                 value={filters.municipality ?? ''}
-                onChange={(event) => setFilters((current) => ({ ...current, municipality: event.target.value, page: 1 }))}
+                onChange={(event) =>
+                  setFilters((current) => ({
+                    ...current,
+                    municipality: event.target.value,
+                    page: 1,
+                  }))
+                }
               >
                 <option value="">Todos</option>
-                {result.meta.municipalities.map((municipality) => <option key={municipality} value={municipality}>{municipality}</option>)}
+                {result.meta.municipalities.map((municipality) => (
+                  <option key={municipality} value={municipality}>
+                    {municipality}
+                  </option>
+                ))}
               </select>
             </label>
-            <button type="submit" className="chip chip-on">Buscar</button>
+            <button type="submit" className="chip chip-on">
+              Buscar
+            </button>
           </form>
 
           {result.terms.length ? (
             <div className={styles.wordCloudBlock}>
-              <div className={styles.subhead}>Palabras más repetidas en los nombres de empresas</div>
-              <div className={styles.wordCloud} aria-label="Nube de palabras de nombres empresariales">
+              <div className={styles.subhead}>
+                Palabras más repetidas en los nombres de empresas
+              </div>
+              <div
+                className={styles.wordCloud}
+                aria-label="Nube de palabras de nombres empresariales"
+              >
                 {result.terms.map((term) => {
                   const selected = filters.word === term.term;
                   const scale = 0.82 + (term.value / maxTerm) * 1.05;
@@ -128,7 +160,13 @@ export function BusinessDirectoryPanel() {
                       style={{ fontSize: `${scale}rem` }}
                       aria-pressed={selected}
                       title={`${say(term.value)} empresas`}
-                      onClick={() => setFilters((current) => ({ ...current, word: selected ? '' : term.term, page: 1 }))}
+                      onClick={() =>
+                        setFilters((current) => ({
+                          ...current,
+                          word: selected ? '' : term.term,
+                          page: 1,
+                        }))
+                      }
                     >
                       {term.label} <small>{say(term.value)}</small>
                     </button>
@@ -154,7 +192,9 @@ export function BusinessDirectoryPanel() {
                 {result.rows.map((company) => (
                   <tr key={company.placeId}>
                     <td>{company.registrationId}</td>
-                    <td><strong>{company.name}</strong></td>
+                    <td>
+                      <strong>{company.name}</strong>
+                    </td>
                     <td>{company.department ?? '—'}</td>
                     <td>{company.municipality ?? '—'}</td>
                     <td>{company.address ?? '—'}</td>
@@ -163,32 +203,47 @@ export function BusinessDirectoryPanel() {
               </tbody>
             </table>
           </div>
-          {!result.rows.length ? <div className="callout">No hay empresas que coincidan con estos filtros.</div> : null}
+          {!result.rows.length ? (
+            <div className="callout">No hay empresas que coincidan con estos filtros.</div>
+          ) : null}
 
           <div className={styles.directoryPager} aria-label="Paginación del directorio">
             <button
               type="button"
               className="chip"
               disabled={result.page <= 1}
-              onClick={() => setFilters((current) => ({ ...current, page: Math.max(1, result.page - 1) }))}
+              onClick={() =>
+                setFilters((current) => ({ ...current, page: Math.max(1, result.page - 1) }))
+              }
             >
               Anterior
             </button>
-            <span>Página {result.page} de {pageCount}</span>
+            <span>
+              Página {result.page} de {pageCount}
+            </span>
             <button
               type="button"
               className="chip"
               disabled={result.page >= pageCount}
-              onClick={() => setFilters((current) => ({ ...current, page: Math.min(pageCount, result.page + 1) }))}
+              onClick={() =>
+                setFilters((current) => ({
+                  ...current,
+                  page: Math.min(pageCount, result.page + 1),
+                }))
+              }
             >
               Siguiente
             </button>
           </div>
-          <p className={styles.foot}>{result.meta.note} {result.meta.licence}.</p>
+          <p className={styles.foot}>
+            {result.meta.note} {result.meta.licence}.
+          </p>
         </>
       ) : status === 'loading' ? (
-        <div className="callout" role="status">Cargando directorio empresarial…</div>
+        <div className="callout" role="status">
+          Cargando directorio empresarial…
+        </div>
       ) : null}
-    </section>
+    </Panel>
   );
 }

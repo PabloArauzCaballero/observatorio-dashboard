@@ -380,7 +380,7 @@ test('la ficha histórica de empresarios abre con nombre visible antes del podio
 
   assert.match(source, /const initialOwner = latestEstimate\?\.person \?\?/u);
   assert.match(historySource, /aria-label="Empresario con historial"/u);
-  assert.match(historySource, /className=\{`panel \$\{styles\.historyPicker\}`\}/u);
+  assert.match(historySource, /className=\{`panel-group \$\{styles\.ficha\}`\}/u);
   assert.ok(
     source.indexOf('<BusinessOwnerHistory') <
       source.indexOf('Podio histórico de estimaciones documentables'),
