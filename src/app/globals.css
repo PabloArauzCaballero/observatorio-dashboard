@@ -8872,3 +8872,66 @@ button.download-btn {
 .panel-extremes span {
   white-space: nowrap;
 }
+
+/* Transporte: paneles migrados a `Panel` ----------------------------------- */
+
+/* El cuerpo de un panel de Transporte separa lo que lleva dentro: controles, figura, tabla. */
+.transp > .panel-body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s2);
+  min-width: 0;
+}
+
+/* Las dos columnas de «Panel» no desbordan: una tabla ancha se desplaza dentro de su marco. */
+.transp {
+  position: relative;
+  min-width: 0;
+}
+
+/* Una nota breve bajo el contenido de un panel. */
+.transp .panel-note,
+.transp-controls .panel-note {
+  margin: 0;
+  color: var(--ink-soft);
+  font-size: var(--text-xs);
+  line-height: 1.5;
+  max-width: 72ch;
+}
+
+/* Controles que gobiernan dos paneles a la vez (el tráfico ferroviario). */
+.transp-controls {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s1);
+}
+
+.transp-controls .roads-map-tools {
+  margin-bottom: 0;
+}
+
+/* El buscador del riel ocupa el ancho de su columna. */
+.rail-input {
+  width: 100%;
+}
+
+/* La tabla de apoyo a la lectura del gráfico va escondida a la vista: como bloque, su recorte sí
+   contiene el texto y no ensancha la página en un teléfono. */
+.transp .street-breakdown-data {
+  display: block;
+}
+
+/* Selectores y buscador de una fila de controles: el mismo aspecto, también en tema oscuro. */
+.transp .chips select,
+.transp .field-label select,
+.transp .chips input[type='text'],
+.transp .chips input:not([type]) {
+  min-height: var(--control-h-md);
+  padding: 0.42rem 0.7rem;
+  border: 1px solid var(--rule);
+  border-radius: var(--radius-md);
+  background: var(--panel);
+  color: var(--ink);
+  font: inherit;
+  font-size: var(--text-sm);
+}

@@ -3,6 +3,8 @@
 import { useMemo, useState } from 'react';
 import type { PointerEvent as ReactPointerEvent } from 'react';
 import { DEPARTMENTS, MAP_BOX, PLACE_POINTS, projectRoadPoint } from '@/lib/bolivia-map';
+import { ChartLegend } from './charts';
+import type { LegendItem } from './charts';
 import { FULL, MapTools, fitBox, useMapCamera } from './map-camera';
 import type { Box } from './map-camera';
 
@@ -165,6 +167,27 @@ export function NetworkMap({
     });
   };
 
+  /*
+   * La leyenda es la de todo gráfico del tablero (`ChartLegend`), y no una propia: así
+   * viaja dentro de la imagen que baja el panel. Las vías son trazos —discontinuos donde
+   * el mapa los dibuja así— y los puntos y las capitales, marcas llenas.
+   */
+  const legendItems: LegendItem[] = [
+    ...legend.map(
+      (entry): LegendItem => ({
+        label:
+          entry.km !== undefined
+            ? `${entry.label} · ${Math.round(entry.km).toLocaleString('es-BO')} km`
+            : entry.label,
+        color: entry.color,
+        shape: 'line',
+        ...(entry.dash ? { dashed: true } : {}),
+      }),
+    ),
+    ...(points.length ? [{ label: pointLabel, color: 'var(--ink-soft)' }] : []),
+    { label: 'Capital de departamento', color: 'var(--ink)' },
+  ];
+
   const hoveredLine =
     hover?.kind === 'line' ? drawn.find((one) => one.line.id === hover.id) : undefined;
   const hoveredPoint =
@@ -222,7 +245,8 @@ export function NetworkMap({
             ) : null}
           </g>
 
-          <g className="roads-map-hits">
+          {/* Las zonas sensibles al cursor no se dibujan: fuera de la imagen que baja el panel. */}
+          <g className="roads-map-hits" data-export="skip">
             {on.map(({ line, d }) => (
               <path
                 key={line.id}
@@ -315,39 +339,7 @@ export function NetworkMap({
         ) : null}
       </div>
 
-      <div className="roads-map-legend">
-        {legend.map((entry) => (
-          <span key={entry.key} className="roads-map-legend-item">
-            <i
-              style={
-                entry.dash
-                  ? {
-                      backgroundImage: `repeating-linear-gradient(to right, ${entry.color} 0, ${entry.color} ${
-                        entry.dash.split(' ')[0]
-                      }px, transparent ${entry.dash.split(' ')[0]}px, transparent ${
-                        Number(entry.dash.split(' ')[0]) + Number(entry.dash.split(' ')[1])
-                      }px)`,
-                    }
-                  : { background: entry.color }
-              }
-            />
-            {entry.label}
-            {entry.km !== undefined ? (
-              <em>{Math.round(entry.km).toLocaleString('es-BO')} km</em>
-            ) : null}
-          </span>
-        ))}
-        {points.length ? (
-          <span className="roads-map-legend-item">
-            <b className="network-map-legend-point" />
-            {pointLabel}
-          </span>
-        ) : null}
-        <span className="roads-map-legend-item">
-          <b className="roads-map-legend-dot" />
-          Capital de departamento
-        </span>
-      </div>
+      <ChartLegend items={legendItems} />
 
       <figcaption className="roads-map-foot">{foot}</figcaption>
     </figure>

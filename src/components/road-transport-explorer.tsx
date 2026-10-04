@@ -4,74 +4,170 @@ import { useState } from 'react';
 import { SeriesChart } from './charts';
 import { Download } from './download';
 import { SubTabs } from './tabs';
+import { Panel } from '@/components/ui/panel';
 import type { FleetPoint } from '@/lib/transport';
 import type { RoadTransportBoard } from '@/lib/road-transport-board';
+import { departmentName } from '@/lib/roads-board';
 
 const count = (value: number | null): string =>
   value === null ? '—' : value.toLocaleString('es-BO');
 const pct = (value: number | null): string =>
   value === null ? '—' : `${value.toLocaleString('es-BO', { maximumFractionDigits: 1 })} %`;
-const label = (value: string | null): string => (value ?? 'TOTAL').replaceAll('_', ' ');
+
+/** Las clases con tilde o con nombre compuesto, como las escribe un lector. */
+const PALABRAS: Record<string, string> = {
+  AUTOMOVIL: 'automóvil',
+  MICROBUS: 'microbús',
+  MINIBUS: 'minibús',
+  CAMION: 'camión',
+  FURGON: 'furgón',
+  PUBLICO: 'público',
+  TRACTO_CAMION: 'tractocamión',
+  MAQUINARIA_PESADA: 'maquinaria pesada',
+  TRIMOVIL_CAMION: 'trimóvil camión',
+  UNSPECIFIED: 'sin especificar',
+};
+
+/** Las bandas de capacidad de carga (toneladas): «GT_3_LE_5» es «más de 3 hasta 5». */
+const CAPACIDAD: Record<string, string> = {
+  LE_1_4: 'Hasta 1,4 t',
+  GT_1_4_LE_3: 'Más de 1,4 hasta 3 t',
+  GT_3_LE_5: 'Más de 3 hasta 5 t',
+  GT_5_LE_11: 'Más de 5 hasta 11 t',
+  GT_11_LE_13: 'Más de 11 hasta 13 t',
+  GT_13: 'Más de 13 t',
+};
+
+/** Un código del registro, en minúscula de oración: «TRACTO_CAMION» pasa a «Tractocamión». */
+const label = (value: string | null): string => {
+  const code = value ?? 'TOTAL';
+  const known = CAPACIDAD[code] ?? PALABRAS[code];
+  const text = known ?? code.replaceAll('_', ' ').toLowerCase();
+  return text.charAt(0).toUpperCase() + text.slice(1);
+};
+
+/** Quién publica el parque automotor y de dónde sale su registro. */
+const FLEET_SOURCE = 'Instituto Nacional de Estadística, con datos del RUAT';
+const GNV_SOURCE = 'Instituto Nacional de Estadística (cuadros EEC-GNV)';
+
+/** Los años que el último tablero cubre, para no escribirlos a mano en los títulos. */
+const span = (first: string | null, latest: string | null): string =>
+  `${first ?? '—'}–${latest ?? '—'}`;
 
 function Panorama({ board }: { board: RoadTransportBoard }) {
+  const { summary } = board;
   const series = board.fleet.filter(
     (point) =>
       point.dimension === 'DEPARTMENT_SERVICE' &&
       point.department === 'BOLIVIA' &&
       point.service === 'TOTAL',
   );
+  /** Las cifras de cabecera: lo que se ve y, con el mismo orden, lo que se baja. */
+  const figures: ReadonlyArray<{
+    label: string;
+    shown: string;
+    value: number | null;
+    unit: string;
+    hint: string;
+  }> = [
+    {
+      label: `Parque automotor ${summary.latestYear}`,
+      shown: count(summary.latestFleet),
+      value: summary.latestFleet,
+      unit: 'vehículos',
+      hint: 'vehículos registrados · preliminar',
+    },
+    {
+      label: `Desde ${summary.firstYear}`,
+      shown: `+${pct(summary.growthPercent)}`,
+      value: summary.growthPercent,
+      unit: '%',
+      hint: `base: ${count(summary.firstFleet)}`,
+    },
+    {
+      label: 'Servicio público',
+      shown: count(summary.publicFleet),
+      value: summary.publicFleet,
+      unit: 'vehículos',
+      hint: 'todos los tipos',
+    },
+    {
+      label: 'Bus + micro + minibús público',
+      shown: count(summary.publicPassengerFleet),
+      value: summary.publicPassengerFleet,
+      unit: 'vehículos',
+      hint: `detalle ${summary.latestYear}`,
+    },
+    {
+      label: 'Conversiones GNV',
+      shown: count(summary.gnvConversions),
+      value: summary.gnvConversions,
+      unit: 'operaciones',
+      hint: 'último año publicado',
+    },
+    {
+      label: 'Cilindros recalificados',
+      shown: count(summary.gnvRequalifications),
+      value: summary.gnvRequalifications,
+      unit: 'operaciones',
+      hint: 'último año publicado',
+    },
+  ];
   return (
-    <>
+    <Panel
+      id="parque-automotor"
+      className="transp"
+      title={`Parque automotor nacional, ${span(summary.firstYear, summary.latestYear)} (vehículos registrados)`}
+      lede="Stock registrado al cierre de cada gestión; el último año es preliminar."
+      source={FLEET_SOURCE}
+      data={{
+        etiqueta: 'Cifras clave',
+        columnas: ['Cifra', 'Valor', 'Unidad', 'Detalle'],
+        filas: figures.map((figure) => [figure.label, figure.value, figure.unit, figure.hint]),
+      }}
+    >
       <div className="stat-strip">
         <div className="stat">
-          <span className="stat-label">Parque automotor {board.summary.latestYear}</span>
-          <span className="stat-value">{count(board.summary.latestFleet)}</span>
-          <span className="stat-hint">vehículos registrados · preliminar</span>
+          <span className="stat-label">{figures[0]?.label}</span>
+          <span className="stat-value">{figures[0]?.shown}</span>
+          <span className="stat-hint">{figures[0]?.hint}</span>
         </div>
         <div className="stat">
-          <span className="stat-label">Desde {board.summary.firstYear}</span>
-          <span className="stat-value">+{pct(board.summary.growthPercent)}</span>
-          <span className="stat-hint">base: {count(board.summary.firstFleet)}</span>
+          <span className="stat-label">{figures[1]?.label}</span>
+          <span className="stat-value">{figures[1]?.shown}</span>
+          <span className="stat-hint">{figures[1]?.hint}</span>
         </div>
         <div className="stat">
-          <span className="stat-label">Servicio público</span>
-          <span className="stat-value">{count(board.summary.publicFleet)}</span>
-          <span className="stat-hint">todos los tipos</span>
+          <span className="stat-label">{figures[2]?.label}</span>
+          <span className="stat-value">{figures[2]?.shown}</span>
+          <span className="stat-hint">{figures[2]?.hint}</span>
         </div>
         <div className="stat">
-          <span className="stat-label">Bus + micro + minibús público</span>
-          <span className="stat-value">{count(board.summary.publicPassengerFleet)}</span>
-          <span className="stat-hint">detalle {board.summary.latestYear}</span>
+          <span className="stat-label">{figures[3]?.label}</span>
+          <span className="stat-value">{figures[3]?.shown}</span>
+          <span className="stat-hint">{figures[3]?.hint}</span>
         </div>
         <div className="stat">
-          <span className="stat-label">Conversiones GNV</span>
-          <span className="stat-value">{count(board.summary.gnvConversions)}</span>
-          <span className="stat-hint">último año publicado</span>
+          <span className="stat-label">{figures[4]?.label}</span>
+          <span className="stat-value">{figures[4]?.shown}</span>
+          <span className="stat-hint">{figures[4]?.hint}</span>
         </div>
         <div className="stat">
-          <span className="stat-label">Cilindros recalificados</span>
-          <span className="stat-value">{count(board.summary.gnvRequalifications)}</span>
-          <span className="stat-hint">último año publicado</span>
+          <span className="stat-label">{figures[5]?.label}</span>
+          <span className="stat-value">{figures[5]?.shown}</span>
+          <span className="stat-hint">{figures[5]?.hint}</span>
         </div>
       </div>
-      <div className="panel">
-        <div className="panel-head">
-          <h3>Parque automotor nacional, 2003–2025</h3>
-          <p className="panel-sub">
-            Stock registrado al cierre de cada gestión; el último año es preliminar.
-          </p>
-        </div>
-        <SeriesChart
-          data={series.map((point) => ({ date: `${point.period}-01-01`, value: point.value }))}
-          kind="area"
-          tone="var(--series-1)"
-          unit="vehículos"
-          label="Parque automotor"
-          decimals={0}
-          height="tall"
-        />
-      </div>
-    </>
+      <SeriesChart
+        data={series.map((point) => ({ date: `${point.period}-01-01`, value: point.value }))}
+        kind="area"
+        tone="var(--series-1)"
+        unit="vehículos"
+        label="Parque automotor"
+        decimals={0}
+        height="tall"
+      />
+    </Panel>
   );
 }
 
@@ -95,13 +191,24 @@ function Departments({ fleet }: { fleet: FleetPoint[] }) {
     rows.find((point) => point.department === department && point.service === service)?.value ??
     null;
   return (
-    <div className="panel">
-      <div className="panel-head">
-        <h3>Por departamento y servicio</h3>
-        <p className="panel-sub">
-          Total, particular, público y oficial para cada gestión publicada.
-        </p>
-      </div>
+    <Panel
+      id="parque-por-departamento"
+      className="transp"
+      title={`Parque automotor por departamento y servicio, ${year} (vehículos)`}
+      lede="Total, particular, público y oficial para cada gestión publicada."
+      source={FLEET_SOURCE}
+      data={() => ({
+        unidad: 'vehículos',
+        columnas: ['Departamento', 'Total', 'Particular', 'Público', 'Oficial'],
+        filas: departments.map((department) => [
+          departmentName(department),
+          at(department, 'TOTAL'),
+          at(department, 'PARTICULAR'),
+          at(department, 'PUBLICO'),
+          at(department, 'OFICIAL'),
+        ]),
+      })}
+    >
       <label className="field-label">
         Gestión{' '}
         <select value={year} onChange={(event) => setYear(event.target.value)}>
@@ -111,7 +218,7 @@ function Departments({ fleet }: { fleet: FleetPoint[] }) {
         </select>
       </label>
       <div className="table-wrap">
-        <table>
+        <table className="grid-table">
           <thead>
             <tr>
               <th>Departamento</th>
@@ -124,7 +231,7 @@ function Departments({ fleet }: { fleet: FleetPoint[] }) {
           <tbody>
             {departments.map((department) => (
               <tr key={department}>
-                <th>{label(department)}</th>
+                <th>{departmentName(department)}</th>
                 <td>{count(at(department, 'TOTAL'))}</td>
                 <td>{count(at(department, 'PARTICULAR'))}</td>
                 <td>{count(at(department, 'PUBLICO'))}</td>
@@ -134,7 +241,7 @@ function Departments({ fleet }: { fleet: FleetPoint[] }) {
           </tbody>
         </table>
       </div>
-    </div>
+    </Panel>
   );
 }
 
@@ -160,23 +267,30 @@ function Classes({ fleet }: { fleet: FleetPoint[] }) {
     .sort((a, b) => b.value - a.value);
   return (
     <div className="grid-two">
-      <div className="panel">
-        <div className="panel-head">
-          <h3>Historia por clase</h3>
-          <p className="panel-sub">
-            Automóvil, bus, microbús, minibús, camión, tractocamión, moto y más.
-          </p>
-        </div>
+      <Panel
+        id="parque-por-clase"
+        className="transp"
+        title={`${label(vehicleClass)}, servicio ${label(service).toLowerCase()}, por gestión (vehículos)`}
+        lede="Elige el servicio y la clase de vehículo: automóvil, bus, microbús, minibús, camión, tractocamión, moto y más."
+        source={FLEET_SOURCE}
+      >
         <div className="chips">
           <select
+            aria-label="Tipo de servicio"
             value={service}
             onChange={(event) => setService(event.target.value as FleetPoint['service'])}
           >
             {['PARTICULAR', 'PUBLICO', 'OFICIAL'].map((one) => (
-              <option key={one}>{label(one)}</option>
+              <option key={one} value={one}>
+                {label(one)}
+              </option>
             ))}
           </select>
-          <select value={vehicleClass} onChange={(event) => setVehicleClass(event.target.value)}>
+          <select
+            aria-label="Clase de vehículo"
+            value={vehicleClass}
+            onChange={(event) => setVehicleClass(event.target.value)}
+          >
             {classes.map((one) => (
               <option key={one} value={one}>
                 {label(one)}
@@ -192,13 +306,20 @@ function Classes({ fleet }: { fleet: FleetPoint[] }) {
           label={`${label(vehicleClass)} · ${label(service)}`}
           decimals={0}
         />
-      </div>
-      <div className="panel">
-        <div className="panel-head">
-          <h3>Composición {label(service)}, 2025</h3>
-        </div>
+      </Panel>
+      <Panel
+        id="parque-composicion"
+        className="transp"
+        title={`Composición del parque ${label(service).toLowerCase()} por clase, 2025 (vehículos)`}
+        source={FLEET_SOURCE}
+        data={() => ({
+          unidad: 'vehículos',
+          columnas: ['Clase', 'Vehículos'],
+          filas: latest.map((point) => [label(point.vehicleClass), point.value]),
+        })}
+      >
         <div className="table-wrap">
-          <table>
+          <table className="grid-table">
             <thead>
               <tr>
                 <th>Clase</th>
@@ -215,7 +336,7 @@ function Classes({ fleet }: { fleet: FleetPoint[] }) {
             </tbody>
           </table>
         </div>
-      </div>
+      </Panel>
     </div>
   );
 }
@@ -227,19 +348,37 @@ function CapacityGnv({ board }: { board: RoadTransportBoard }) {
       point.period === '2025' &&
       point.capacityBand !== 'TOTAL',
   );
+  /*
+   * El total anual lleva `TOTAL` como clase (el trimestral, `null`). El filtro pedía solo
+   * `null` con año de cuatro cifras, que no existe: las dos gráficas salían vacías.
+   */
   const annual = board.gnv.filter(
     (point) =>
-      point.department === 'BOLIVIA' && point.vehicleClass === null && point.period.length === 4,
+      point.department === 'BOLIVIA' &&
+      (point.vehicleClass === null || point.vehicleClass === 'TOTAL') &&
+      point.period.length === 4,
   );
   return (
-    <div className="grid-two">
-      <div className="panel">
-        <div className="panel-head">
-          <h3>Capacidad de carga, 2025</h3>
-          <p className="panel-sub">Bandas en toneladas por servicio y clase.</p>
-        </div>
+    <>
+      <Panel
+        id="parque-capacidad"
+        className="transp"
+        title="Parque automotor por servicio, clase y capacidad de carga, 2025 (vehículos)"
+        lede="Bandas de capacidad en toneladas."
+        source={FLEET_SOURCE}
+        data={() => ({
+          unidad: 'vehículos',
+          columnas: ['Servicio', 'Clase', 'Capacidad', 'Vehículos'],
+          filas: capacity.map((point) => [
+            label(point.service),
+            label(point.vehicleClass),
+            label(point.capacityBand),
+            point.value,
+          ]),
+        })}
+      >
         <div className="table-wrap">
-          <table>
+          <table className="grid-table">
             <thead>
               <tr>
                 <th>Servicio</th>
@@ -260,47 +399,61 @@ function CapacityGnv({ board }: { board: RoadTransportBoard }) {
             </tbody>
           </table>
         </div>
-      </div>
-      <div className="panel">
-        <div className="panel-head">
-          <h3>Actividad GNV</h3>
-          <p className="panel-sub">
-            Conversiones y recalificación de cilindros; también hay detalle trimestral,
-            departamental y por clase en la descarga.
-          </p>
+      </Panel>
+      <Panel
+        id="actividad-gnv"
+        className="transp"
+        title="Conversiones a GNV y recalificación de cilindros por año (operaciones)"
+        lede="Total nacional. El detalle trimestral, departamental y por clase está en la descarga de «Fuentes»."
+        source={GNV_SOURCE}
+      >
+        <div className="grid-pair">
+          {(['CONVERSION', 'CYLINDER_REQUALIFICATION'] as const).map((metric, index) => (
+            <div key={metric}>
+              <h4>{metric === 'CONVERSION' ? 'Conversiones' : 'Recalificaciones'}</h4>
+              <SeriesChart
+                data={annual
+                  .filter((point) => point.metric === metric)
+                  .map((point) => ({ date: `${point.period}-01-01`, value: point.value }))}
+                kind="bar"
+                tone={`var(--series-${index + 1})`}
+                unit="operaciones"
+                label={
+                  metric === 'CONVERSION' ? 'Conversiones a GNV' : 'Recalificaciones de cilindros'
+                }
+                decimals={0}
+                height="small"
+              />
+            </div>
+          ))}
         </div>
-        {(['CONVERSION', 'CYLINDER_REQUALIFICATION'] as const).map((metric, index) => (
-          <div key={metric}>
-            <h4>{metric === 'CONVERSION' ? 'Conversiones' : 'Recalificaciones'}</h4>
-            <SeriesChart
-              data={annual
-                .filter((point) => point.metric === metric)
-                .map((point) => ({ date: `${point.period}-01-01`, value: point.value }))}
-              kind="bar"
-              tone={`var(--series-${index + 1})`}
-              unit="operaciones"
-              label={metric}
-              decimals={0}
-              height="small"
-            />
-          </div>
-        ))}
-      </div>
-    </div>
+      </Panel>
+    </>
   );
 }
 
 function Sources({ board }: { board: RoadTransportBoard }) {
   return (
-    <div className="panel">
-      <div className="panel-head">
-        <h3>Fuentes, cobertura y límites</h3>
-        <p className="panel-sub">
-          Cada fila conserva editor, enlace y SHA-256; no se completan vacíos con estimaciones.
-        </p>
-      </div>
+    <Panel
+      id="fuentes-transporte-terrestre"
+      className="transp"
+      title="Fuentes, cobertura y límites del transporte terrestre (cantidad de fuentes)"
+      lede="Cada fila conserva editor, enlace y SHA-256; no se completan vacíos con estimaciones."
+      meta={`${board.sources.length} fuentes`}
+      source="Instituto Nacional de Estadística, Autoridad de Regulación y Fiscalización de Telecomunicaciones y Transportes (ATT) y las demás fuentes de la tabla"
+      data={{
+        unidad: 'fuentes',
+        columnas: ['Editor', 'Conjunto', 'Enlace', 'Huella SHA-256'],
+        filas: board.sources.map((source) => [
+          source.publisher,
+          source.sourceTitle,
+          source.sourceUrl,
+          source.evidenceSha256,
+        ]),
+      }}
+    >
       <div className="table-wrap">
-        <table>
+        <table className="grid-table">
           <thead>
             <tr>
               <th>Editor</th>
@@ -330,38 +483,22 @@ function Sources({ board }: { board: RoadTransportBoard }) {
         para esos cuadros llegaron vacíos; quedan identificados para incorporarlos cuando el editor
         repare la descarga.
       </div>
-    </div>
+      <Download dataset="transporte-terrestre" label="Descargar todo el dato terrestre" />
+    </Panel>
   );
 }
 
 export function RoadTransportExplorer({ board }: { board: RoadTransportBoard }) {
   return (
-    <>
-      <div className="panel">
-        <div className="panel-head">
-          <h2>Transporte automotor de Bolivia</h2>
-          <p className="panel-sub">
-            Parque 2003–2025, servicios, clases, buses, micros, minibuses, capacidad y GNV.
-          </p>
-        </div>
-        <Download dataset="transporte-terrestre" label="Descargar todo el dato terrestre" />
-      </div>
-      <SubTabs
-        labels={[
-          'Panorama',
-          'Departamentos',
-          'Clases y micros',
-          'Capacidad y GNV',
-          'Fuentes',
-        ]}
-        icons={['linea', 'mapa', 'camion', 'cajas', 'hoja']}
-      >
-        <Panorama board={board} />
-        <Departments fleet={board.fleet} />
-        <Classes fleet={board.fleet} />
-        <CapacityGnv board={board} />
-        <Sources board={board} />
-      </SubTabs>
-    </>
+    <SubTabs
+      labels={['Panorama', 'Departamentos', 'Clases y micros', 'Capacidad y GNV', 'Fuentes']}
+      icons={['linea', 'mapa', 'camion', 'cajas', 'hoja']}
+    >
+      <Panorama board={board} />
+      <Departments fleet={board.fleet} />
+      <Classes fleet={board.fleet} />
+      <CapacityGnv board={board} />
+      <Sources board={board} />
+    </SubTabs>
   );
 }

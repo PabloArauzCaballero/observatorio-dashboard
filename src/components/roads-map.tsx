@@ -8,6 +8,8 @@ import { NETWORKS, SURFACE_GROUP, SURFACE_GROUPS, departmentName } from '@/lib/r
 import { streetKey } from '@/lib/street-names';
 import { STREET_CLASS_LABEL, STREET_SURFACE_LABEL } from '@/lib/street-types';
 import type { LonLatBox } from '@/lib/street-types';
+import { ChartLegend } from './charts';
+import type { LegendItem } from './charts';
 import { FULL, MapTools, fitBox, useMapCamera } from './map-camera';
 import type { Box } from './map-camera';
 import { StreetsCanvas, nearestWay, useStreetCells } from './streets-layer';
@@ -678,6 +680,23 @@ export function RoadsMap({
     return entries.map((entry) => ({ ...entry, km: totals.get(entry.key) ?? 0 }));
   }, [on, colorBy]);
 
+  /*
+   * La leyenda es la de todo gráfico del tablero (`ChartLegend`): así viaja dentro de la
+   * imagen que baja el panel. Las calles de las ciudades se dibujan en un lienzo aparte
+   * y no entran en esa imagen, por eso su aviso va en el pie del mapa y no aquí.
+   */
+  const legendItems: LegendItem[] = [
+    ...legend.map(
+      (entry): LegendItem => ({
+        label: `${entry.label} · ${Math.round(entry.km).toLocaleString('es-BO')} km`,
+        color: entry.color,
+        shape: 'line',
+      }),
+    ),
+    { label: 'En construcción', color: 'var(--ink-faint)', shape: 'line', dashed: true },
+    { label: 'Capital de departamento', color: 'var(--ink)' },
+  ];
+
   const tipBelow = hover ? hover.y < hover.height * 0.55 : true;
 
   return (
@@ -760,7 +779,8 @@ export function RoadsMap({
             ) : null}
           </g>
 
-          <g className="roads-map-hits">
+          {/* Las zonas sensibles al cursor no se dibujan: fuera de la imagen que baja el panel. */}
+          <g className="roads-map-hits" data-export="skip">
             <RoadHits on={on} onTrack={onTrack} onPick={onPickSection} />
           </g>
 
@@ -893,32 +913,13 @@ export function RoadsMap({
         ) : null}
       </div>
 
-      <div className="roads-map-legend">
-        {legend.map((entry) => (
-          <span key={entry.key} className="roads-map-legend-item">
-            <i style={{ background: entry.color }} />
-            {entry.label}
-            <em>{Math.round(entry.km).toLocaleString('es-BO')} km</em>
-          </span>
-        ))}
-        <span className="roads-map-legend-item">
-          <i className="roads-map-legend-dash" />
-          En construcción
-        </span>
-        <span className="roads-map-legend-item">
-          <i style={{ background: NETWORK_COLOR.SIN_REFERENCIA, height: 1 }} />
-          Calles de las ciudades (desde ×25)
-        </span>
-        <span className="roads-map-legend-item">
-          <b className="roads-map-legend-dot" />
-          Capital de departamento
-        </span>
-      </div>
+      <ChartLegend items={legendItems} />
 
       <figcaption className="roads-map-foot">
         Rueda del ratón, pellizco o doble clic para acercar; arrastra para moverte. Pasa el cursor por
         una vía para ver qué es y haz clic para aislar su ruta o su calle. Al acercarte a una ciudad
-        aparecen sus calles; OpenStreetMap nombra sólo una de cada cuatro. Geometría © OpenStreetMap.
+        aparecen sus calles (desde ×25, en gris fino); OpenStreetMap nombra sólo una de cada cuatro.
+        La imagen que se descarga no incluye esas calles.
       </figcaption>
     </figure>
   );

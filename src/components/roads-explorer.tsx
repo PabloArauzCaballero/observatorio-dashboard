@@ -12,6 +12,7 @@ import { splitStreetType, streetKey } from '@/lib/street-names';
 import type { StreetDataRow } from '@/lib/street-analysis';
 import { useStreetIndex } from './use-street-index';
 import { Pager } from './pager';
+import { Panel } from '@/components/ui/panel';
 import { RoadsMap } from './roads-map';
 import { StreetDataExplorer } from './street-data-explorer';
 import type { RoadColorBy } from './roads-map';
@@ -46,9 +47,15 @@ const CONCLUSION_ICON: Record<string, IconName> = {
 };
 
 const number = (value: number, decimals = 0): string =>
-  value.toLocaleString('es-BO', { minimumFractionDigits: decimals, maximumFractionDigits: decimals });
+  value.toLocaleString('es-BO', {
+    minimumFractionDigits: decimals,
+    maximumFractionDigits: decimals,
+  });
 
-const NETWORK_LABEL = Object.fromEntries(NETWORKS.map((one) => [one.network, one.label])) as Record<string, string>;
+const NETWORK_LABEL = Object.fromEntries(NETWORKS.map((one) => [one.network, one.label])) as Record<
+  string,
+  string
+>;
 const NETWORK_SHORT: Record<RoadSection['network'], string> = {
   FUNDAMENTAL: 'Fundamental',
   DEPARTAMENTAL: 'Departamental',
@@ -79,7 +86,10 @@ function officialKm(
   for (const geography of geographies) {
     for (const one of wanted) {
       const point = official.find(
-        (candidate) => candidate.geography === geography && candidate.network === one && candidate.surface === 'TOTAL',
+        (candidate) =>
+          candidate.geography === geography &&
+          candidate.network === one &&
+          candidate.surface === 'TOTAL',
       );
       if (point) {
         km += point.lengthKm;
@@ -108,7 +118,8 @@ interface RouteRow {
   pavedShare: number;
 }
 
-type SortKey = 'route' | 'network' | 'PAVIMENTADA' | 'RIPIO' | 'TIERRA' | 'SIN_DATO' | 'totalKm' | 'pavedShare';
+type SortKey =
+  'route' | 'network' | 'PAVIMENTADA' | 'RIPIO' | 'TIERRA' | 'SIN_DATO' | 'totalKm' | 'pavedShare';
 
 /* Cortos, para que la tabla quepa; el nombre largo va en el `title`. */
 const SORT_LABEL: Record<SortKey, string> = {
@@ -134,7 +145,8 @@ const SORT_TITLE: Record<SortKey, string> = {
 };
 
 /** El número de una ruta, para que F-9 vaya antes que F-10. */
-const routeNumber = (route: string | null): number => Number(route?.replaceAll(/\D+/gu, '') || Infinity);
+const routeNumber = (route: string | null): number =>
+  Number(route?.replaceAll(/\D+/gu, '') || Infinity);
 
 /**
  * Las filas de la tabla, sumadas sobre los tramos del recorte.
@@ -160,7 +172,8 @@ function rowsOf(sections: readonly RoadSection[]): RouteRow[] {
     row.totalKm += section.lengthKm;
     row.bySurface[SURFACE_GROUP[section.surface]] += section.lengthKm;
     if (!row.departments.includes(section.department)) row.departments.push(section.department);
-    if (section.name && !row.names.includes(section.name) && row.names.length < 40) row.names.push(section.name);
+    if (section.name && !row.names.includes(section.name) && row.names.length < 40)
+      row.names.push(section.name);
     rows.set(key, row);
   }
   return [...rows.values()].map((row) => ({
@@ -245,8 +258,7 @@ function streetsOf(sections: readonly RoadSection[]): StreetDataRow[] {
     if (section.surface === 'PAVIMENTO') row.paved += section.lengthKm;
     row.departmentKm[section.department] =
       (row.departmentKm[section.department] ?? 0) + section.lengthKm;
-    row.departmentWays[section.department] =
-      (row.departmentWays[section.department] ?? 0) + 1;
+    row.departmentWays[section.department] = (row.departmentWays[section.department] ?? 0) + 1;
     if (section.surface === 'PAVIMENTO') {
       row.departmentPavedKm[section.department] =
         (row.departmentPavedKm[section.department] ?? 0) + section.lengthKm;
@@ -301,9 +313,15 @@ export function RoadsExplorer({ board }: { board: RoadBoard }) {
 
   const byDepartment = useMemo(() => tally('department', (section) => section.department), [tally]);
   const byNetwork = useMemo(() => tally('network', (section) => section.network), [tally]);
-  const bySurface = useMemo(() => tally('surface', (section) => SURFACE_GROUP[section.surface]), [tally]);
+  const bySurface = useMemo(
+    () => tally('surface', (section) => SURFACE_GROUP[section.surface]),
+    [tally],
+  );
 
-  const inCut = useMemo(() => board.sections.filter((section) => passes(section)), [board.sections, passes]);
+  const inCut = useMemo(
+    () => board.sections.filter((section) => passes(section)),
+    [board.sections, passes],
+  );
 
   const allRows = useMemo(() => rowsOf(inCut), [inCut]);
 
@@ -334,7 +352,10 @@ export function RoadsExplorer({ board }: { board: RoadBoard }) {
     return [...found].sort((left, right) => {
       const a = value(left);
       const b = value(right);
-      const order = typeof a === 'number' && typeof b === 'number' ? a - b : String(a).localeCompare(String(b), 'es');
+      const order =
+        typeof a === 'number' && typeof b === 'number'
+          ? a - b
+          : String(a).localeCompare(String(b), 'es');
       return (sort.down ? -order : order) || right.totalKm - left.totalKm;
     });
   }, [allRows, query, sort]);
@@ -352,20 +373,27 @@ export function RoadsExplorer({ board }: { board: RoadBoard }) {
     if (!cityStreets) return [];
     if (network.size && !network.has('SIN_REFERENCIA')) return [];
     return cityStreets
-      .filter((entry) => !department.size || (entry.department !== null && department.has(entry.department)))
+      .filter(
+        (entry) =>
+          !department.size || (entry.department !== null && department.has(entry.department)),
+      )
       .map(urbanRow);
   }, [cityStreets, department, network]);
   const streetRows = useMemo(() => {
     const all = [...allStreets, ...urbanRows];
-    return query ? all.filter((row) => squash(`${row.name} ${row.city ?? ''}`).includes(query)) : all;
+    return query
+      ? all.filter((row) => squash(`${row.name} ${row.city ?? ''}`).includes(query))
+      : all;
   }, [allStreets, urbanRows, query]);
   /* Lo que el mapa traza y OpenStreetMap no nombra: se dice, no se esconde. */
   const unnamedKm = useMemo(
-    () => inCut.filter((section) => !section.name).reduce((sum, section) => sum + section.lengthKm, 0),
+    () =>
+      inCut.filter((section) => !section.name).reduce((sum, section) => sum + section.lengthKm, 0),
     [inCut],
   );
   /* Una calle que el nuevo recorte ya no tiene deja de estar elegida. */
-  const liveStreet = street && (street.urban || allStreets.some((row) => row.key === street.key)) ? street : null;
+  const liveStreet =
+    street && (street.urban || allStreets.some((row) => row.key === street.key)) ? street : null;
 
   const matches = useCallback(
     (section: RoadSection): boolean =>
@@ -393,7 +421,8 @@ export function RoadsExplorer({ board }: { board: RoadBoard }) {
   const official = officialKm(board.official, department, network);
   /* Un solo departamento elegido: su propia serie del INE; si no, la del país. */
   const onlyDepartment = department.size === 1 ? [...department][0]! : null;
-  const annual = (onlyDepartment ? board.annualByGeography[onlyDepartment] : undefined) ?? board.annual;
+  const annual =
+    (onlyDepartment ? board.annualByGeography[onlyDepartment] : undefined) ?? board.annual;
   const annualWhere = onlyDepartment ? departmentName(onlyDepartment) : 'todo el país';
   const filtered = department.size + network.size + surface.size > 0 || Boolean(query);
   const framesRoute = liveRoute !== null && routeFrom === 'tabla';
@@ -418,64 +447,93 @@ export function RoadsExplorer({ board }: { board: RoadBoard }) {
   const pickStreet = (next: StreetPick, from: 'mapa' | 'tabla'): void => {
     setStreetFrom(from);
     setStreet((current) =>
-      current && current.key === next.key && current.bounds?.join() === next.bounds?.join() ? null : next,
+      current && current.key === next.key && current.bounds?.join() === next.bounds?.join()
+        ? null
+        : next,
     );
   };
 
   const where = describe(department, departmentName, 'todo el país');
 
+  /** Las tres cifras de cabecera: lo que se ve y, con el mismo orden, lo que se baja. */
+  const headline: ReadonlyArray<{
+    label: string;
+    shown: string;
+    value: number | null;
+    unit: string;
+    hint: string;
+  }> = [
+    {
+      label: `Km trazados ${liveRoute ? `(ruta ${liveRoute})` : filtered ? '(selección)' : '(red principal)'}`,
+      shown: `${number(figures.total)} km`,
+      value: figures.total,
+      unit: 'km',
+      hint:
+        filtered || liveRoute
+          ? `de ${number(board.totalKm)} km en todo el país`
+          : 'troncales a terciarias y toda vía con código · OpenStreetMap',
+    },
+    {
+      label: 'Pavimentado',
+      shown: `${figures.share.toFixed(1).replace('.', ',')} %`,
+      value: figures.share,
+      unit: '%',
+      hint: `${number(figures.paved)} km de lo trazado, no de la red total del país`,
+    },
+    {
+      label: `Longitud oficial (INE, ${board.asOfPeriod ?? '—'})`,
+      shown: official ? `${number(official.km)} km` : '—',
+      value: official?.km ?? null,
+      unit: 'km',
+      hint: official
+        ? `${where} · ${
+            official.networks[0] === 'TOTAL'
+              ? 'Red Fundamental y Departamental'
+              : official.networks
+                  .map((one) => `Red ${NETWORK_SHORT[one as RoadSection['network']]}`)
+                  .join(' y ')
+          } · ABC y SEDECA vía el INE`
+        : 'El INE no cuenta las vías sin código de ruta',
+    },
+  ];
+
   return (
     <>
-      <div className="panel">
-        <div className="panel-head">
-          <h2>Red vial de Bolivia (km trazados por OpenStreetMap)</h2>
-          <p className="panel-sub">
-            Las vías troncales, primarias, secundarias y terciarias que OpenStreetMap traza dentro
-            del país, y toda vía menor que lleve un código de ruta F o D propio o de su relación de
-            ruta, cortadas por departamento y agrupadas en tramos que comparten ruta, rodadura y
-            estado. El Sistema de Información Vial y la Transitabilidad de la ABC no respondieron al
-            construir este corpus, así que la geometría viene de OpenStreetMap y el kilometraje
-            oficial, por separado, del INE.
-          </p>
+      <Panel
+        id="red-vial"
+        className="transp"
+        title="Red vial de Bolivia: km trazados y longitud oficial (km)"
+        lede="Las vías troncales, primarias, secundarias y terciarias que OpenStreetMap traza dentro del país, y toda vía menor con código de ruta F o D, cortadas por departamento y agrupadas en tramos que comparten ruta, rodadura y estado."
+        source="OpenStreetMap contributors (geometría) e Instituto Nacional de Estadística, con datos de la ABC y los SEDECA (longitud oficial)"
+        data={() => ({
+          etiqueta: 'Cifras de la selección',
+          columnas: ['Cifra', 'Valor', 'Unidad', 'Detalle'],
+          filas: headline.map((one) => [one.label, one.value, one.unit, one.hint]),
+        })}
+      >
+        <div className="stat-strip">
+          {headline.map((one) => (
+            <div className="stat" key={one.label}>
+              <span className="stat-label">{one.label}</span>
+              <span className="stat-value">{one.shown}</span>
+              <span className="stat-hint">{one.hint}</span>
+            </div>
+          ))}
         </div>
-        <DerivedReading
-          title="Qué dice esta red"
-          note="Cada frase sale de los tramos y de la serie del INE de este capítulo. Dice cuánto hay y dónde se concentra; no dice el estado de transitabilidad del día."
-          conclusions={board.conclusions}
-          icons={CONCLUSION_ICON}
-          defaultOpen={false}
-        />
-      </div>
+        <p className="panel-note">
+          El Sistema de Información Vial y la Transitabilidad de la ABC no respondieron al construir
+          este corpus, así que la geometría viene de OpenStreetMap y el kilometraje oficial, por
+          separado, del INE.
+        </p>
+      </Panel>
 
-      <div className="grid-three">
-        <div className="panel stat">
-          <span className="stat-label">
-            Km trazados {liveRoute ? `(ruta ${liveRoute})` : filtered ? '(selección)' : '(red principal)'}
-          </span>
-          <span className="stat-value">{number(figures.total)} km</span>
-          <span className="stat-hint">
-            {filtered || liveRoute ? `de ${number(board.totalKm)} km en todo el país` : 'troncales a terciarias y toda vía con código · OpenStreetMap'}
-          </span>
-        </div>
-        <div className="panel stat">
-          <span className="stat-label">Pavimentado</span>
-          <span className="stat-value">{figures.share.toFixed(1).replace('.', ',')} %</span>
-          <span className="stat-hint">{number(figures.paved)} km de lo trazado, no de la red total del país</span>
-        </div>
-        <div className="panel stat">
-          <span className="stat-label">Longitud oficial (INE, {board.asOfPeriod ?? '—'})</span>
-          <span className="stat-value">{official ? `${number(official.km)} km` : '—'}</span>
-          <span className="stat-hint">
-            {official
-              ? `${where} · ${
-                  official.networks[0] === 'TOTAL'
-                    ? 'Red Fundamental y Departamental'
-                    : official.networks.map((one) => `Red ${NETWORK_SHORT[one as RoadSection['network']]}`).join(' y ')
-                } · ABC y SEDECA vía el INE`
-              : 'El INE no cuenta las vías sin código de ruta'}
-          </span>
-        </div>
-      </div>
+      <DerivedReading
+        title="Qué dice esta red"
+        note="Cada frase sale de los tramos y de la serie del INE de este capítulo. Dice cuánto hay y dónde se concentra; no dice el estado de transitabilidad del día."
+        conclusions={board.conclusions}
+        icons={CONCLUSION_ICON}
+        defaultOpen={false}
+      />
 
       <div className="workspace">
         <aside className="rail">
@@ -511,7 +569,9 @@ export function RoadsExplorer({ board }: { board: RoadBoard }) {
                     className={on ? 'rail-item rail-item-on' : 'rail-item'}
                     aria-pressed={on}
                     title={multiTitle(one.name, on)}
-                    onClick={(event) => setDepartment((current) => toggle(current, one.department, additive(event)))}
+                    onClick={(event) =>
+                      setDepartment((current) => toggle(current, one.department, additive(event)))
+                    }
                   >
                     <Icon name="mapa" size={16} />
                     <span className="rail-name">{one.name}</span>
@@ -538,9 +598,15 @@ export function RoadsExplorer({ board }: { board: RoadBoard }) {
                     className={on ? 'rail-item rail-item-on' : 'rail-item'}
                     aria-pressed={on}
                     title={multiTitle(one.label, on)}
-                    onClick={(event) => setNetwork((current) => toggle(current, one.network, additive(event)))}
+                    onClick={(event) =>
+                      setNetwork((current) => toggle(current, one.network, additive(event)))
+                    }
                   >
-                    <i className="roads-swatch" style={{ background: one.color }} aria-hidden="true" />
+                    <i
+                      className="roads-swatch"
+                      style={{ background: one.color }}
+                      aria-hidden="true"
+                    />
                     <span className="rail-name">{one.label}</span>
                     <span className="rail-n">{number(byNetwork.get(one.network) ?? 0)}</span>
                   </button>
@@ -565,9 +631,15 @@ export function RoadsExplorer({ board }: { board: RoadBoard }) {
                     className={on ? 'rail-item rail-item-on' : 'rail-item'}
                     aria-pressed={on}
                     title={multiTitle(one.label, on)}
-                    onClick={(event) => setSurface((current) => toggle(current, one.group, additive(event)))}
+                    onClick={(event) =>
+                      setSurface((current) => toggle(current, one.group, additive(event)))
+                    }
                   >
-                    <i className="roads-swatch" style={{ background: one.color }} aria-hidden="true" />
+                    <i
+                      className="roads-swatch"
+                      style={{ background: one.color }}
+                      aria-hidden="true"
+                    />
                     <span className="rail-name">{one.label}</span>
                     <span className="rail-n">{number(bySurface.get(one.group) ?? 0)}</span>
                   </button>
@@ -588,7 +660,7 @@ export function RoadsExplorer({ board }: { board: RoadBoard }) {
                 placeholder="F-4, Panamericana, Yucumo…"
                 value={search}
                 onChange={(event) => setSearch(event.target.value)}
-                style={{ width: '100%' }}
+                className="rail-input"
               />
             </div>
           </div>
@@ -603,17 +675,13 @@ export function RoadsExplorer({ board }: { board: RoadBoard }) {
         </aside>
 
         <div className="workspace-main stack">
-          <div className="panel">
-            <div className="panel-head">
-              <h2>
-                Mapa de la red vial por {colorBy === 'red' ? 'tipo de red' : 'rodadura'} ({where}
-                {liveRoute ? `, ruta ${liveRoute}` : ''})
-              </h2>
-              <p className="panel-sub">
-                La Red Fundamental va en trazo grueso, la Departamental en medio y las vías sin código de ruta
-                asignada en fino, debajo. Cada escudo es el número de una ruta.
-              </p>
-            </div>
+          <Panel
+            id="mapa-red-vial"
+            className="transp"
+            title={`Mapa de la red vial por ${colorBy === 'red' ? 'tipo de red' : 'rodadura'}, ${where}${liveRoute ? `, ruta ${liveRoute}` : ''} (km trazados)`}
+            lede="La Red Fundamental va en trazo grueso, la Departamental en medio y las vías sin código de ruta asignada en fino, debajo. Cada escudo es el número de una ruta."
+            source="OpenStreetMap contributors (ODbL)"
+          >
             <div className="chips roads-map-tools">
               <span className="roads-map-tools-label">Colorear por</span>
               <button
@@ -658,7 +726,10 @@ export function RoadsExplorer({ board }: { board: RoadBoard }) {
                 pickStreet(
                   {
                     key: next,
-                    label: allStreets.find((row) => row.key === next)?.name ?? cityStreets?.find((one) => one.key === next)?.name ?? 'Calle',
+                    label:
+                      allStreets.find((row) => row.key === next)?.name ??
+                      cityStreets?.find((one) => one.key === next)?.name ??
+                      'Calle',
                     bounds: null,
                     urban: true,
                   },
@@ -666,8 +737,9 @@ export function RoadsExplorer({ board }: { board: RoadBoard }) {
                 )
               }
             />
-            {liveRoute ? <RouteSections route={liveRoute} sections={inCut} /> : null}
-          </div>
+          </Panel>
+
+          {liveRoute ? <RouteSections route={liveRoute} sections={inCut} /> : null}
 
           <RoutesTable
             key={`${[...department].join(',')}|${[...network].join(',')}|${[...surface].join(',')}|${query}|${sort.key}${sort.down}`}
@@ -677,7 +749,9 @@ export function RoadsExplorer({ board }: { board: RoadBoard }) {
             sort={sort}
             onSort={(key) =>
               setSort((current) =>
-                current.key === key ? { key, down: !current.down } : { key, down: key !== 'route' && key !== 'network' },
+                current.key === key
+                  ? { key, down: !current.down }
+                  : { key, down: key !== 'route' && key !== 'network' },
               )
             }
             onPick={(next) => pickRoute(next, 'tabla')}
@@ -692,7 +766,15 @@ export function RoadsExplorer({ board }: { board: RoadBoard }) {
             urbanIndexState={indexFailed ? 'failed' : cityStreets ? 'ready' : 'loading'}
             onSeen={() => setTableSeen(true)}
             onPick={(row) =>
-              pickStreet({ key: row.key, label: row.city ? `${row.name} (${row.city})` : row.name, bounds: row.bounds, urban: row.city !== null }, 'tabla')
+              pickStreet(
+                {
+                  key: row.key,
+                  label: row.city ? `${row.name} (${row.city})` : row.name,
+                  bounds: row.bounds,
+                  urban: row.city !== null,
+                },
+                'tabla',
+              )
             }
           />
         </div>
@@ -701,18 +783,14 @@ export function RoadsExplorer({ board }: { board: RoadBoard }) {
       <OfficialComparison board={board} />
 
       {annual.length ? (
-        <div className="panel">
-          <div className="panel-head">
-            <h2>
-              Longitud oficial de caminos por rodadura, {annualWhere}, 2000-{board.asOfPeriod ?? '—'} (km, INE)
-            </h2>
-            <p className="panel-sub">
-              Kilómetros de la Red Fundamental y Departamental juntas. Sigue al filtro de
-              departamento cuando se elige uno solo. No es la misma cifra que el mapa de arriba: ésta
-              es el inventario oficial y aquélla, lo que OpenStreetMap ha trazado.
-            </p>
-          </div>
-          <div className="grid-two">
+        <Panel
+          id="longitud-oficial-por-rodadura"
+          className="transp"
+          title={`Longitud oficial de caminos por rodadura, ${annualWhere}, 2000-${board.asOfPeriod ?? '—'} (km)`}
+          lede="Kilómetros de la Red Fundamental y Departamental juntas. Sigue al filtro de departamento cuando se elige uno solo. No es la misma cifra que el mapa de arriba: ésta es el inventario oficial y aquélla, lo que OpenStreetMap ha trazado."
+          source="Instituto Nacional de Estadística, con datos de la ABC y los SEDECA"
+        >
+          <div className="grid-pair">
             {annual.map((serie) => {
               const name =
                 serie.surface === 'TOTAL'
@@ -724,15 +802,20 @@ export function RoadsExplorer({ board }: { board: RoadBoard }) {
                       : 'Tierra';
               return (
                 <div key={serie.surface}>
-                  <p className="panel-sub">{name} (km)</p>
+                  <h4>{name} (km)</h4>
                   {serie.data.length > 1 ? (
-                    <MacroChart data={serie.data} unit="km" tone="var(--official)" label={`${name}, km (INE)`} />
+                    <MacroChart
+                      data={serie.data}
+                      unit="km"
+                      tone="var(--official)"
+                      label={`${name}, INE`}
+                    />
                   ) : null}
                 </div>
               );
             })}
           </div>
-        </div>
+        </Panel>
       ) : null}
     </>
   );
@@ -753,11 +836,40 @@ function RouteSections({ route, sections }: { route: string; sections: readonly 
     .sort((left, right) => right.lengthKm - left.lengthKm);
   if (!mine.length) return null;
   const total = mine.reduce((sum, section) => sum + section.lengthKm, 0);
+  const surfaceLabel = (section: RoadSection): string =>
+    SURFACE_GROUPS.find((one) => one.group === SURFACE_GROUP[section.surface])?.label ?? '';
+  const statusLabel = (section: RoadSection): string =>
+    section.status === 'EN_CONSTRUCCION' ? 'En construcción' : 'En servicio';
   return (
-    <div className="roads-sections">
-      <h3 className="roads-sections-title">
-        Tramos de la ruta {route} ({number(mine.length)} {mine.length === 1 ? 'tramo' : 'tramos'} · {number(total, 1)} km)
-      </h3>
+    <Panel
+      id="tramos-de-la-ruta"
+      className="transp"
+      title={`Tramos de la ruta ${route} (km)`}
+      lede="Es el grano más fino del dato: un tramo es el pedazo de la ruta que comparte departamento, rodadura y estado. Se ve dónde cambia la rodadura o el departamento y cuánto pesa cada pedazo."
+      meta={`${number(mine.length)} ${mine.length === 1 ? 'tramo' : 'tramos'} · ${number(total, 1)} km`}
+      source="OpenStreetMap contributors (ODbL)"
+      data={() => ({
+        unidad: 'km',
+        columnas: [
+          'Departamento',
+          'Rodadura',
+          'Estado',
+          'Clase',
+          'Nombre en OpenStreetMap',
+          'Km',
+          '% de la ruta',
+        ],
+        filas: mine.map((section) => [
+          departmentName(section.department),
+          surfaceLabel(section),
+          statusLabel(section),
+          section.highwayClass,
+          section.name,
+          section.lengthKm,
+          total > 0 ? (section.lengthKm / total) * 100 : null,
+        ]),
+      })}
+    >
       <div className="table-wrap">
         <table className="grid-table roads-table">
           <thead>
@@ -775,18 +887,20 @@ function RouteSections({ route, sections }: { route: string; sections: readonly 
             {mine.map((section) => (
               <tr key={section.sectionId}>
                 <td>{departmentName(section.department)}</td>
-                <td>{SURFACE_GROUPS.find((one) => one.group === SURFACE_GROUP[section.surface])?.label}</td>
-                <td>{section.status === 'EN_CONSTRUCCION' ? 'En construcción' : 'En servicio'}</td>
+                <td>{surfaceLabel(section)}</td>
+                <td>{statusLabel(section)}</td>
                 <td>{section.highwayClass}</td>
                 <td>{section.name ?? '—'}</td>
                 <td className="num">{number(section.lengthKm, 1)}</td>
-                <td className="num">{total > 0 ? number((section.lengthKm / total) * 100, 1) : '—'} %</td>
+                <td className="num">
+                  {total > 0 ? number((section.lengthKm / total) * 100, 1) : '—'} %
+                </td>
               </tr>
             ))}
           </tbody>
         </table>
       </div>
-    </div>
+    </Panel>
   );
 }
 
@@ -803,10 +917,15 @@ function OfficialComparison({ board }: { board: RoadBoard }) {
   const rows = board.kmByDepartment.map((department) => {
     const mine = board.sections.filter((section) => section.department === department.department);
     const traced = (network: RoadSection['network']) =>
-      mine.filter((section) => section.network === network).reduce((sum, section) => sum + section.lengthKm, 0);
+      mine
+        .filter((section) => section.network === network)
+        .reduce((sum, section) => sum + section.lengthKm, 0);
     const official = (network: 'FUNDAMENTAL' | 'DEPARTAMENTAL') =>
       board.official.find(
-        (point) => point.geography === department.department && point.network === network && point.surface === 'TOTAL',
+        (point) =>
+          point.geography === department.department &&
+          point.network === network &&
+          point.surface === 'TOTAL',
       )?.lengthKm ?? null;
     return {
       department: department.department,
@@ -820,19 +939,32 @@ function OfficialComparison({ board }: { board: RoadBoard }) {
   });
   const cell = (value: number | null) => (value === null ? '—' : number(value));
   return (
-    <section className="panel places-table">
-      <div className="tile-head">
-        <Icon name="balanza" size={14} />
-        <h3 className="tile-title">
-          Red vial trazada frente a la oficial por departamento (km, INE {board.asOfPeriod ?? '—'} y OpenStreetMap)
-        </h3>
-      </div>
-      <p className="panel-sub">
-        «Oficial» es el inventario de la ABC y los SEDECA que publica el INE; «con código», lo que
-        OpenStreetMap traza con su número de ruta F o D. La columna «sin código» son secundarias y
-        terciarias trazadas sin número: ahí está la mayor parte de la Red Departamental que el mapa
-        no nombra, y también caminos municipales que el INE no cuenta.
-      </p>
+    <Panel
+      id="trazada-frente-a-oficial"
+      className="transp"
+      title={`Red vial trazada frente a la oficial por departamento (km, INE ${board.asOfPeriod ?? '—'} y OpenStreetMap)`}
+      lede="«Oficial» es el inventario de la ABC y los SEDECA que publica el INE; «con código», lo que OpenStreetMap traza con su número de ruta F o D. La columna «sin código» son secundarias y terciarias trazadas sin número: ahí está la mayor parte de la Red Departamental que el mapa no nombra, y también caminos municipales que el INE no cuenta."
+      source="Instituto Nacional de Estadística, con datos de la ABC y los SEDECA (oficial), y OpenStreetMap contributors (trazado)"
+      data={{
+        unidad: 'km',
+        columnas: [
+          'Departamento',
+          'Fundamental oficial (km)',
+          'Fundamental con código (km)',
+          'Departamental oficial (km)',
+          'Departamental con código (km)',
+          'Sin código en el mapa (km)',
+        ],
+        filas: rows.map((row) => [
+          row.name,
+          row.officialF,
+          row.tracedF,
+          row.officialD,
+          row.tracedD,
+          row.uncoded,
+        ]),
+      }}
+    >
       <div className="table-wrap">
         <table className="grid-table roads-table">
           <thead>
@@ -859,7 +991,7 @@ function OfficialComparison({ board }: { board: RoadBoard }) {
           </tbody>
         </table>
       </div>
-    </section>
+    </Panel>
   );
 }
 
@@ -914,20 +1046,40 @@ function RoutesTable({
   };
 
   return (
-    <section className="panel places-table roads-routes">
-      <div className="tile-head">
-        <Icon name="cajas" size={14} />
-        <h3 className="tile-title">Km por ruta y rodadura ({where})</h3>
-        <span className="places-table-count">
-          {number(rows.length)} {rows.length === 1 ? 'fila' : 'filas'} · {number(totalKm)} km
-        </span>
-      </div>
-      <p className="panel-sub">
-        Cada cifra es la parte de la ruta que cae en el recorte elegido, no la ruta entera. Las vías
-        sin ruta F-n ni Dn van en una fila por departamento. Toca una ruta para aislarla en el mapa;
-        toca un encabezado para ordenar.
-      </p>
-
+    <Panel
+      id="km-por-ruta"
+      className="transp"
+      title={`Km por ruta y rodadura, ${where} (km)`}
+      lede="Cada cifra es la parte de la ruta que cae en el recorte elegido, no la ruta entera. Las vías sin ruta F-n ni Dn van en una fila por departamento. Toca una ruta para aislarla en el mapa; toca un encabezado para ordenar."
+      meta={`${number(rows.length)} ${rows.length === 1 ? 'fila' : 'filas'} · ${number(totalKm)} km`}
+      source="OpenStreetMap contributors (ODbL)"
+      data={() => ({
+        unidad: 'km',
+        columnas: [
+          'Ruta',
+          'Red',
+          'Departamentos',
+          'Pavimentada (km)',
+          'Ripio (km)',
+          'Tierra (km)',
+          'Sin dato (km)',
+          'Total (km)',
+          'Pavimentado (%)',
+        ],
+        filas: rows.map((row) => [
+          row.route ?? 'Sin ruta',
+          NETWORK_LABEL[row.network] ?? null,
+          row.departments.map(departmentName).join(', '),
+          row.bySurface.PAVIMENTADA,
+          row.bySurface.RIPIO,
+          row.bySurface.TIERRA,
+          row.bySurface.SIN_DATO,
+          row.totalKm,
+          row.pavedShare,
+        ]),
+        nota: 'Son todas las rutas del recorte, no solo la página que se ve.',
+      })}
+    >
       <Pager
         page={page}
         pages={pages}
@@ -981,10 +1133,18 @@ function RoutesTable({
                     </td>
                     <td title={NETWORK_LABEL[row.network]}>{NETWORK_SHORT[row.network]}</td>
                     <td>{row.departments.map(departmentName).join(', ')}</td>
-                    <td className="num">{row.bySurface.PAVIMENTADA ? number(row.bySurface.PAVIMENTADA, 1) : '—'}</td>
-                    <td className="num">{row.bySurface.RIPIO ? number(row.bySurface.RIPIO, 1) : '—'}</td>
-                    <td className="num">{row.bySurface.TIERRA ? number(row.bySurface.TIERRA, 1) : '—'}</td>
-                    <td className="num">{row.bySurface.SIN_DATO ? number(row.bySurface.SIN_DATO, 1) : '—'}</td>
+                    <td className="num">
+                      {row.bySurface.PAVIMENTADA ? number(row.bySurface.PAVIMENTADA, 1) : '—'}
+                    </td>
+                    <td className="num">
+                      {row.bySurface.RIPIO ? number(row.bySurface.RIPIO, 1) : '—'}
+                    </td>
+                    <td className="num">
+                      {row.bySurface.TIERRA ? number(row.bySurface.TIERRA, 1) : '—'}
+                    </td>
+                    <td className="num">
+                      {row.bySurface.SIN_DATO ? number(row.bySurface.SIN_DATO, 1) : '—'}
+                    </td>
                     <td className="num">
                       <b>{number(row.totalKm, 1)}</b>
                     </td>
@@ -1015,6 +1175,6 @@ function RoutesTable({
         where="abajo"
         noun="rutas"
       />
-    </section>
+    </Panel>
   );
 }
