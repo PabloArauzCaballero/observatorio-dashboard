@@ -357,36 +357,38 @@ export function NeighboursSection({
         <h3 id="vecinos-titulo">Bolivia y sus vecinos</h3>
         <p>El último dato de cada país en energía, recursos naturales y medio ambiente.</p>
       </div>
-      <Block
-        id="vecinos-energia"
-        title="Energía de Bolivia y sus vecinos (% y kg por habitante, último dato)"
-        lede="Las series que distinguen una matriz de otra."
-        note="Cada columna lleva su unidad en la cabecera y el año del dato entre paréntesis. Una importación neta negativa es un exportador de energía."
-        what="la matriz energética de los vecinos"
-        opened={energy}
-        places={ENERGY_PLACES}
-        columns={ENERGY_COLUMNS}
-      />
-      <Block
-        id="vecinos-recursos"
-        title="Recursos naturales de Bolivia y sus vecinos (% de cada serie, último dato)"
-        lede="Las series que distinguen un caso de otro."
-        note="Perú y Chile también viven de minerales; lo que cambia entre ellos y Bolivia está en las dos últimas columnas. Cada columna lleva su unidad en la cabecera y el año del dato entre paréntesis."
-        what="los recursos naturales de los vecinos"
-        opened={resources}
-        places={RESOURCE_PLACES}
-        columns={RESOURCE_COLUMNS}
-      />
-      <Block
-        id="vecinos-ambiente"
-        title="Medio ambiente de Bolivia y sus vecinos (cada columna en su unidad, último dato)"
-        lede="Las series que distinguen un territorio de otro."
-        note="Un estrés hídrico bajo y un bosque alto son, los dos, herencia de la geografía; lo que compara de verdad es cómo se mueven. Cada columna lleva su unidad en la cabecera y el año del dato entre paréntesis."
-        what="el medio ambiente de los vecinos"
-        opened={environment}
-        places={ENVIRONMENT_PLACES}
-        columns={ENVIRONMENT_COLUMNS}
-      />
+      <div className="grid-three">
+        <Block
+          id="vecinos-energia"
+          title="Energía de Bolivia y sus vecinos (% y kg por habitante, último dato)"
+          lede="Las series que distinguen una matriz de otra."
+          note="Cada columna lleva su unidad en la cabecera y el año del dato entre paréntesis. Una importación neta negativa es un exportador de energía."
+          what="la matriz energética de los vecinos"
+          opened={energy}
+          places={ENERGY_PLACES}
+          columns={ENERGY_COLUMNS}
+        />
+        <Block
+          id="vecinos-recursos"
+          title="Recursos naturales de Bolivia y sus vecinos (% de cada serie, último dato)"
+          lede="Las series que distinguen un caso de otro."
+          note="Perú y Chile también viven de minerales; lo que cambia entre ellos y Bolivia está en las dos últimas columnas. Cada columna lleva su unidad en la cabecera y el año del dato entre paréntesis."
+          what="los recursos naturales de los vecinos"
+          opened={resources}
+          places={RESOURCE_PLACES}
+          columns={RESOURCE_COLUMNS}
+        />
+        <Block
+          id="vecinos-ambiente"
+          title="Medio ambiente de Bolivia y sus vecinos (cada columna en su unidad, último dato)"
+          lede="Las series que distinguen un territorio de otro."
+          note="Un estrés hídrico bajo y un bosque alto son, los dos, herencia de la geografía; lo que compara de verdad es cómo se mueven. Cada columna lleva su unidad en la cabecera y el año del dato entre paréntesis."
+          what="el medio ambiente de los vecinos"
+          opened={environment}
+          places={ENVIRONMENT_PLACES}
+          columns={ENVIRONMENT_COLUMNS}
+        />
+      </div>
       <p className="guest-note">
         <Icon name="info" size={12} /> Series del Banco Mundial (Indicadores del Desarrollo
         Mundial), leídas del panel de treinta economías que recoge el núcleo del observatorio. Las

@@ -118,19 +118,42 @@ test.describe('sitio público · revisión visual y de accesibilidad', () => {
     expect(failures, failures.join('\n')).toHaveLength(0);
   });
 
-  test('un enlace profundo ?pestana=&pagina= lleva a la página y se queda en ella', async ({
+  test('un enlace profundo ?pestana=&pagina= abre solo esa página, y el índice la marca', async ({
     page,
   }) => {
     await page.setViewportSize({ width: 1280, height: 800 });
     await page.goto('/?pestana=macroeconomia&pagina=variables-exogenas');
     const destino = page.locator('[data-site-id="macroeconomia--variables-exogenas"]');
-    await expect(destino).toHaveAttribute('data-montado', 'si', { timeout: 60_000 });
-    await expect
-      .poll(async () => Math.round((await destino.boundingBox())?.y ?? 9999), { timeout: 15_000 })
-      .toBeLessThan(120);
+    await expect(destino).toBeVisible({ timeout: 60_000 });
+    // Una sola página a la vez: ninguna otra de la sección está en el documento.
+    await expect(page.locator('[data-site-kind="pagina"]')).toHaveCount(1);
     await expect(page).toHaveURL(/pestana=macroeconomia&pagina=variables-exogenas/);
-    await expect(page.locator('nav.site-index [aria-current="location"]')).toHaveText(
+    await expect(page.locator('nav.site-index [aria-current="page"]')).toHaveText(
       'Variables exógenas',
     );
+  });
+
+  test('elegir otra página del índice cambia la página y la dirección sin recargar', async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width: 1280, height: 800 });
+    await page.goto('/?pestana=macroeconomia&pagina=series-de-bolivia');
+    await expect(page.locator('[data-site-id="macroeconomia--series-de-bolivia"]')).toBeVisible({
+      timeout: 60_000,
+    });
+    await page.evaluate(() => {
+      (window as unknown as { __marca: string }).__marca = 'sin-recarga';
+    });
+    await page.locator('nav.site-index .site-page', { hasText: 'Social Info' }).click();
+    await expect(page.locator('[data-site-id="macroeconomia--social-info"]')).toBeVisible({
+      timeout: 60_000,
+    });
+    await expect(page.locator('[data-site-id="macroeconomia--series-de-bolivia"]')).toHaveCount(0);
+    await expect(page).toHaveURL(/pagina=social-info/);
+    expect(await page.evaluate(() => (window as unknown as { __marca?: string }).__marca)).toBe(
+      'sin-recarga',
+    );
+    await page.goBack();
+    await expect(page.locator('[data-site-id="macroeconomia--series-de-bolivia"]')).toBeVisible();
   });
 });

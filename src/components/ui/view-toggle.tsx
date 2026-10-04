@@ -3,7 +3,7 @@
 import { useState, type ReactNode } from 'react';
 import { Icon } from '@/components/icons';
 
-export type Vista = 'grafico' | 'tabla';
+export type Vista = 'grafico' | 'tabla' | 'variacion';
 
 /**
  * Gráfico y tabla del mismo dato, a elección de quien lee.
@@ -18,29 +18,44 @@ export type Vista = 'grafico' | 'tabla';
  *
  *   <ViewToggle chart={<ShareBars … />} table={<table className="table">…</table>} />
  *
- * Los dos lados se pasan ya armados; sólo se monta el que está abierto, así la tabla no
+ * Una tercera vista opcional, `variation`, enseña el cambio de un año al siguiente cuando lo
+ * que importa de una serie no es el nivel sino cuánto se movió.
+ *
+ * Los lados se pasan ya armados; sólo se monta el que está abierto, así la tabla no
  * paga el dibujo de un gráfico que nadie ve ni al revés. El control reutiliza los chips de
  * `ChartKindSwitch` para que los dos selectores se vean igual.
  */
 export function ViewToggle({
   chart,
   table,
+  variation,
   initial = 'grafico',
   label = 'Vista de los datos',
   chartLabel = 'Gráfico',
   tableLabel = 'Tabla',
+  variationLabel = 'Variación',
 }: {
   chart: ReactNode;
   table: ReactNode;
+  /** El cambio de un año al siguiente; si no se pasa, la vista no se ofrece. */
+  variation?: ReactNode;
   initial?: Vista;
   label?: string;
   chartLabel?: string;
   tableLabel?: string;
+  variationLabel?: string;
 }) {
   const [vista, setVista] = useState<Vista>(initial);
-  const opciones: ReadonlyArray<{ id: Vista; etiqueta: string; icono: 'barras' | 'ventana' }> = [
+  const opciones: ReadonlyArray<{
+    id: Vista;
+    etiqueta: string;
+    icono: 'barras' | 'ventana' | 'tendencia';
+  }> = [
     { id: 'grafico', etiqueta: chartLabel, icono: 'barras' },
     { id: 'tabla', etiqueta: tableLabel, icono: 'ventana' },
+    ...(variation
+      ? [{ id: 'variacion' as const, etiqueta: variationLabel, icono: 'tendencia' as const }]
+      : []),
   ];
 
   return (
@@ -60,7 +75,7 @@ export function ViewToggle({
         ))}
       </div>
       <div className="view-toggle-body" data-vista={vista}>
-        {vista === 'grafico' ? chart : table}
+        {vista === 'grafico' ? chart : vista === 'tabla' ? table : variation}
       </div>
     </div>
   );
