@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { Panel } from './ui/panel';
 import { ViewToggle } from './ui/view-toggle';
-import { ShareBars, ChartLegend } from './charts';
+import { ShareBars, ChartLegend, MacroChart } from './charts';
 import { num } from './automotive-shared';
 import type { AutomotiveStudy } from '@/lib/automotive-analysis';
 
@@ -26,7 +26,7 @@ function TradeDetail({ heading, study }: { heading: string; study: AutomotiveStu
   const origin = study.trade.origins;
   return <>
     <p><strong>2025: USD {num(latest.usd / 1e6, 2)} millones CIF</strong>, {num((latest.usd / prior.usd - 1) * 100, 2)}% frente a 2024. Peso: {num(latest.kg / 1e6, 2)} millones de kg ({num((latest.kg / prior.kg - 1) * 100, 2)}%). Cifras provisionales; valor y peso no miden ventas ni cantidad de unidades.</p>
-    <ViewToggle chart={<><ShareBars data={rows.map(row => ({ name: `${row.year}${row.provisional ? ' (p)' : ''}`, value: row.usd / 1e6 }))} unit="millones USD CIF" decimals={2} height={300} /><ChartLegend items={[{ color: 'var(--official)', label: `Importaciones anuales, partida ${heading} (millones USD CIF)` }]} /></>} table={<div className="table-wrap"><table className="table"><thead><tr><th>Año</th><th>USD CIF</th><th>kg</th><th>Período</th><th>Estado</th></tr></thead><tbody>{rows.map(row => <tr key={row.year}><td>{row.year}</td><td>{num(row.usd, 2)}</td><td>{num(row.kg, 2)}</td><td>Enero–diciembre</td><td>{row.provisional ? 'Provisional' : 'Sin marca provisional en fuente'}</td></tr>)}</tbody></table></div>} />
+    <ViewToggle chart={<MacroChart data={rows.map(row => ({ year: row.year, period: `${row.year}${row.provisional ? ' (p)' : ''}`, value: row.usd / 1e6 }))} unit="millones USD CIF" tone="var(--official)" label={`Importaciones anuales, partida ${heading}`} />} table={<div className="table-wrap"><table className="table"><thead><tr><th>Año</th><th>USD CIF</th><th>kg</th><th>Período</th><th>Estado</th></tr></thead><tbody>{rows.map(row => <tr key={row.year}><td>{row.year}</td><td>{num(row.usd, 2)}</td><td>{num(row.kg, 2)}</td><td>Enero–diciembre</td><td>{row.provisional ? 'Provisional' : 'Sin marca provisional en fuente'}</td></tr>)}</tbody></table></div>} />
     {partial && <p className="callout">Enero–agosto 2026: USD {num(partial.usd / 1e6, 2)} millones CIF, provisional. No se compara con un año completo ni se anualiza.</p>}
     {heading === '8703' && <><h3>Principales orígenes en 2025 · partida 8703</h3><ViewToggle chart={<><ShareBars data={origin.map(row => ({ name: row.name, value: row.usd / 1e6 }))} unit="millones USD CIF" decimals={2} height={320} /><ChartLegend items={[{ color: 'var(--official)', label: 'Ocho principales países de origen, 2025 (p)' }]} /></>} table={<div className="table-wrap"><table className="table"><thead><tr><th>Origen</th><th>USD CIF</th><th>% de 8703</th></tr></thead><tbody>{origin.map(row => <tr key={row.code}><td>{row.name}</td><td>{num(row.usd)}</td><td>{num(row.usd / latest.usd * 100, 2)}%</td></tr>)}</tbody></table></div>} /><p>China, Japón e India concentran {num(origin.slice(0, 3).reduce((sum, row) => sum + row.usd, 0) / latest.usd * 100, 1)}% del valor importado 8703. Para el negocio, conviene medir exposición a fábricas, rutas, monedas y repuestos; esta concentración no describe cuota de marcas.</p></>}
     <p>La caída del valor importado de pasajeros frente a la expansión del parque registrado aconseja revisar reposición y caja con datos propios. No permite atribuir la contracción a una sola causa: precios, composición y cantidad pueden variar simultáneamente.</p>

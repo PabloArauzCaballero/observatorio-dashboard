@@ -29,7 +29,7 @@ export function TransportSection() {
       <TabHeader
         id="transporte"
         title="Transporte"
-        lede="Vehículos, pasajes, carreteras, trenes, ríos y fletes de Bolivia. Las cifras de vehículos y tarifas son oficiales; los mapas muestran lo que OpenStreetMap ha trazado, que no es un inventario oficial."
+        lede="Mercado automotor, pasajes e infraestructura de Bolivia. Parque y tarifas de fuentes oficiales; precios de anuncios comerciales y análisis empresarial con sus condiciones. Los mapas recogen lo trazado en OpenStreetMap."
       />
       <SubSections
         labels={['Automotor', 'Vehículos 0 km', 'Estudio automotor', 'Competencia automotriz', 'Precios internacionales', 'Escenarios automotores', 'Carburantes', 'Pasajes', 'Tarifas publicadas', 'Carreteras', 'Ferrocarriles', 'Ríos y puertos', 'Fletes']}

@@ -14,8 +14,8 @@ export const studyDownloads = [
   { etiqueta: 'Red comercial (CSV)', href: '/api/transporte/estudio?formato=csv&conjunto=dealers' },
 ];
 
-export function StudyBars(props: ComponentProps<typeof ShareBars>) {
-  return <><ShareBars {...props} /><ChartLegend items={[{ color: props.tone ?? 'var(--official)', label: `Valores publicados (${props.unit ?? '%'})` }]} /></>;
+export function StudyBars({ legend, ...props }: ComponentProps<typeof ShareBars> & { legend?: string }) {
+  return <><ShareBars {...props} /><ChartLegend items={[{ color: props.tone ?? 'var(--official)', label: legend ?? `Valores mostrados (${props.unit ?? '%'})` }]} /></>;
 }
 
 export function StudyLoader({ children }: { children: (study: AutomotiveStudy) => ReactNode }) {

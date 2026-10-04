@@ -1,6 +1,7 @@
 node_modules/
 output/
 __pycache__/
+.playwright-cli/
 .next/
 out/
 build/

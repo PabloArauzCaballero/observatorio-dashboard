@@ -18,7 +18,7 @@ function Competition({ study }: { study: AutomotiveStudy }) {
   const quoted = rows.filter(row => row.currency === 'USD' && !row.status.startsWith('Conflicto') && row.modelYear !== null);
   return <>
     <StudyCaveat study={study} />
-    <Panel id="automotor-redes" data={{ columnas: ['Red', 'Marcas', 'Ciudades publicadas', 'Estado', 'L?mites'], filas: study.dealers.map(d => [d.name,d.brands.join(', '),d.cities.join(', '),d.status,d.caveat]) }} title="Competidores y redes comerciales documentadas" lede="Se distingue la empresa, sus marcas y las ciudades publicadas. No es un censo vigente completo ni un ranking de ventas." source="Sitios y documentos oficiales de cada red" updated={study.observedAt} extraDownloads={studyDownloads}>
+    <Panel id="automotor-redes" data={{ columnas: ['Red', 'Marcas', 'Ciudades publicadas', 'Estado', 'Límites'], filas: study.dealers.map(d => [d.name,d.brands.join(', '),d.cities.join(', '),d.status,d.caveat]) }} title="Competidores y redes comerciales documentadas" lede="Se distingue la empresa, sus marcas y las ciudades publicadas. No es un censo vigente completo ni un ranking de ventas." source="Sitios y documentos oficiales de cada red" updated={study.observedAt} extraDownloads={studyDownloads}>
       <div className="automotive-cards">{study.dealers.map(dealer => <article key={dealer.id}>
         <span className="automotive-badge">{dealer.status}</span><h3>{dealer.name}</h3>
         <p><strong>Marcas documentadas:</strong> {dealer.brands.join(', ')}.</p><p><strong>Ciudades publicadas:</strong> {dealer.cities.join(', ') || 'Sin lista comprobada en este corte'}.</p>

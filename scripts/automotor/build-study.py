@@ -120,7 +120,7 @@ fleet=dict(sourceId='ine-fleet',definition='Stock de registros municipales RUAT 
  ages=[dict(name=n,value=v) for n,v in [('≤1969',17588),('1970–1975',28871),('1976–1980',56103),('1981–1985',78863),('1986–1990',165018),('1991–1995',221872),('1996–2000',292579),('2001–2005',108527),('2006–2010',214670),('2011–2015',473102),('2016–2020',495317),('2021–2025',504770),('2026–2030',14896)]],
  caveats=['Pando tiene cobertura limitada: RUAT requiere importación definitiva y Cobija es zona franca. No interpretar su bajo registro como demanda inexistente.', 'Año modelo no es fecha de venta: el boletín incluye modelos 2026–2030 dentro del stock de 2025.', 'No hay ventas por marca o matriculaciones nuevas en este conjunto. No se calcula cuota de concesionarios.'])
 
-study=dict(version='2026-10-04.1',observedAt=day,title='Mercado automotor boliviano · estudio empresarial',sources=sources,dealers=dealers,
+study=dict(version='2026-10-04.2',observedAt=day,title='Mercado automotor boliviano · estudio empresarial',sources=sources,dealers=dealers,
  historicalDealers=[dict(name=n,brands=b,period='enero 2023–junio 2024',sourceId='aemp',status='Padrón histórico; representación actual sin certificar') for n,b in historical],
  offers=offers,comparisons=comparisons,fleet=fleet,trade=read('automotive-trade.json'),
  conflicts=[

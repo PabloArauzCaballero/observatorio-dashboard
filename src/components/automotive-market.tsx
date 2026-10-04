@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { StudyBars } from './automotive-shared';
+import { MacroChart } from './charts';
 import { Panel } from './ui/panel';
 import { ViewToggle } from './ui/view-toggle';
 import { Evidence, num, StudyCaveat, studyDownloads, StudyLoader } from './automotive-shared';
@@ -18,7 +19,7 @@ function Market({ study }: { study: AutomotiveStudy }) {
   const rows = dimension === 'classes' ? study.fleet.classes : dimension === 'ages' ? study.fleet.ages : study.fleet.departments;
   return <>
     <StudyCaveat study={study} />
-    <Panel id="automotor-decision" data={{ columnas: ['Decisi?n', 'Evidencia', 'Acci?n', 'Indicador', 'L?mite'], filas: study.decisions.map(d => [d.title,d.evidence,d.action,d.trigger,d.limit]) }} title="Mercado automotor: decisiones para el negocio" source="INE/RUAT, sitios oficiales de marcas, ASFI y Aduana; elaboración del Observatorio" updated={study.observedAt} extraDownloads={studyDownloads}>
+    <Panel id="automotor-decision" data={{ columnas: ['Decisión', 'Evidencia', 'Acción', 'Indicador', 'Límite'], filas: study.decisions.map(d => [d.title,d.evidence,d.action,d.trigger,d.limit]) }} title="Mercado automotor: decisiones para el negocio" source="INE/RUAT, sitios oficiales de marcas, ASFI y Aduana; elaboración del Observatorio" updated={study.observedAt} extraDownloads={studyDownloads}>
       <div className="automotive-kpis">
         <article><small>Parque registrado · 2025</small><strong>{num(signals.total)}</strong><span>Incluye motocicletas; +{num(signals.growth, 2)}% anual.</span></article>
         <article><small>Parque sin motocicletas</small><strong>{num(signals.nonMotorcycle)}</strong><span>+{num(signals.nonMotorcycleGrowth, 2)}% anual. Incluye otras clases.</span></article>
@@ -42,7 +43,7 @@ function Market({ study }: { study: AutomotiveStudy }) {
       {study.fleet.caveats.map(note => <p className="panel-note" key={note}>{note}</p>)}<Evidence study={study} ids={['ine-fleet']} />
     </Panel>
     <AutomotiveTrade study={study} />
-    <Panel id="automotor-entorno" data={{ columnas: ['Tema', 'Hecho', 'Implicaci?n', 'Estado'], filas: study.environment.map(d => [d.topic,d.fact,d.implication,d.status]) }} title="Entorno externo y decisiones de abastecimiento" source="ASFI, Aduana y fuentes oficiales enlazadas" updated={study.observedAt} extraDownloads={studyDownloads}>
+    <Panel id="automotor-entorno" data={{ columnas: ['Tema', 'Hecho', 'Implicación', 'Estado'], filas: study.environment.map(d => [d.topic,d.fact,d.implication,d.status]) }} title="Entorno externo y decisiones de abastecimiento" source="ASFI, Aduana y fuentes oficiales enlazadas" updated={study.observedAt} extraDownloads={studyDownloads}>
       <div className="automotive-cards">{study.environment.map(row => <article key={row.topic}><h3>{row.topic}</h3><p>{row.fact}</p><p><strong>Para el negocio:</strong> {row.implication}</p><p className="panel-note">{row.status}</p><Evidence study={study} ids={row.sourceIds} /></article>)}</div>
       <h3>Datos que aún limitan las decisiones</h3><ul>{study.gaps.map(gap => <li key={gap}>{gap}</li>)}</ul>
     </Panel>
