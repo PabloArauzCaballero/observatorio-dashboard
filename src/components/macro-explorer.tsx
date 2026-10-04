@@ -15,13 +15,13 @@ import {
 } from '@/lib/choice';
 import type { Choice } from '@/lib/choice';
 import { FilterHint, PickedCount } from './filters';
-import { MacroChart, YearCandles } from './charts';
+import { ChartLegend, MacroChart, YearCandles } from './charts';
 import type { CandlePoint } from './charts';
 import { Icon } from './icons';
 import type { IconName } from './icons';
 import { InfoPopover } from './info-popover';
 import { MacroAnalysis } from './macro-analysis';
-import { DistributionStrip, TrendSpark } from './macro-analysis-charts';
+import { DistributionStrip, TrendSpark, titleWithUnit, unitName } from './macro-analysis-charts';
 import {
   SECTOR_ICON,
   SECTOR_LABEL,
@@ -33,6 +33,8 @@ import {
 } from './macro-vocabulary';
 import { Pager } from './pager';
 import { YearFloor } from './year-floor';
+import { Panel } from '@/components/ui/panel';
+import { celda } from '@/components/ui/panel-data';
 import { DEFINITION_AUTHOR, GLOSSARY, UNIT_MEANING } from '@/lib/indicator-glossary';
 import { unpackMacro } from '@/lib/macro-transport';
 import type { MacroBundle } from '@/lib/macro-transport';
@@ -96,7 +98,7 @@ interface Chapter {
   dataset: 'macro' | 'panel';
   title: string;
   lead: ReactNode;
-  points: ReadonlyArray<{ icon: IconName; title: string; detail: string }>;
+  points: ReadonlyArray<{ title: string; detail: string }>;
 }
 
 const CHAPTER: Record<'medidas' | 'catalogo', Chapter> = {
@@ -105,20 +107,18 @@ const CHAPTER: Record<'medidas' | 'catalogo', Chapter> = {
     title: 'Contexto macroeconómico',
     lead: (
       <>
-        series anuales que el observatorio sigue para Bolivia —el Banco Mundial, el Fondo, Comtrade
-        y el banco central—, desde 1960 y hasta el último año publicado. Elegí un rubro a la
-        izquierda: las tarjetas, el conteo y la descarga siguen esa selección. Tocá el <b>ⓘ</b> de
-        una tarjeta para saber qué mide, y el <b>desplegar</b> para ver sus observaciones año por
-        año. Al pie de esa lista, bajo «Paneles», hay tres capítulos enteros leídos del panel del
-        Banco Mundial: <b>Energía</b>, la matriz energética; <b>Recursos naturales</b>, lo que el
-        subsuelo deja y lo que se agota al sacarlo; y <b>Medio ambiente</b>, el bosque, las
-        emisiones, el aire y el agua.
+        series anuales que el observatorio sigue para Bolivia: Banco Mundial, Fondo Monetario,
+        Comtrade y Banco Central, desde 1960 hasta el último año publicado. Elegí un rubro a la
+        izquierda y las tarjetas siguen esa selección. Tocá el <b>ⓘ</b> de una tarjeta para saber
+        qué mide, y el <b>desplegar</b> para ver sus observaciones año por año. Al pie de la lista,
+        bajo «Paneles», hay capítulos enteros: <b>Departamentos</b>, <b>Cuentas públicas</b>,{' '}
+        <b>Energía</b>, <b>Recursos naturales</b> y <b>Medio ambiente</b>.
       </>
     ),
     points: [
-      { icon: 'balanza', title: 'Deuda por acreedor', detail: '14 series: BM, BIRF, AIF, plazo y servicio' },
-      { icon: 'reloj', title: 'Desde 1960', detail: 'toda la historia que publica la fuente' },
-      { icon: 'descarga', title: 'CSV con el filtro', detail: 'se descarga lo que estás viendo' },
+      { title: 'Deuda por acreedor', detail: '14 series: BM, BIRF, AIF, plazo y servicio' },
+      { title: 'Desde 1960', detail: 'toda la historia que publica la fuente' },
+      { title: 'Cada tarjeta se baja sola', detail: 'imagen, datos y enlace desde «Descargar»' },
     ],
   },
   catalogo: {
@@ -135,9 +135,12 @@ const CHAPTER: Record<'medidas' | 'catalogo', Chapter> = {
       </>
     ),
     points: [
-      { icon: 'buscar', title: 'Buscá por nombre', detail: 'el título es el del Banco Mundial, en inglés' },
-      { icon: 'mapa', title: 'Solo Bolivia', detail: 'la comparación con otros países va en «Bolivia ante el mundo»' },
-      { icon: 'info', title: 'Unidad nativa', detail: 'cada serie en la unidad que publica la fuente' },
+      { title: 'Buscá por nombre', detail: 'el título es el del Banco Mundial, en inglés' },
+      {
+        title: 'Solo Bolivia',
+        detail: 'la comparación con otros países va en «Bolivia ante el mundo»',
+      },
+      { title: 'Unidad nativa', detail: 'cada serie en la unidad que publica la fuente' },
     ],
   },
 };
@@ -329,6 +332,29 @@ export function MacroExplorer({
     return latest ? { latest, rows } : null;
   }, [opened, selected]);
 
+  /**
+   * Las descriptivas de las veinte filas en pantalla, y de ninguna más.
+   *
+   * Calcularlas para las mil quinientas series del catálogo costaría casi un
+   * segundo cada vez que el lector mueve un filtro, y todas menos veinte no se
+   * verían. Se calculan por página y solo cuando se mira la tabla; el resto se
+   * calcula cuando el lector llegue a esa página, que es cuando importan.
+   */
+  const tableStats = useMemo(() => {
+    const out = new Map<string, MacroStats>();
+    if (!asTable) return out;
+    const byCode = new Map<string, MacroPoint[]>();
+    for (const point of selected) {
+      const held = byCode.get(point.indicatorCode);
+      if (held) held.push(point);
+      else byCode.set(point.indicatorCode, [point]);
+    }
+    for (const row of shown) {
+      out.set(row.indicatorCode, macroStats(byCode.get(row.indicatorCode) ?? []));
+    }
+    return out;
+  }, [asTable, shown, selected]);
+
   const active = counts(sector) + (search.trim() ? 1 : 0) + (from > minYear ? 1 : 0);
   const query = new URLSearchParams({
     dataset: chapter.dataset,
@@ -449,10 +475,9 @@ export function MacroExplorer({
                 setOffset(0);
                 setFrom(Number(event.target.value));
               }}
-              style={{ width: '100%' }}
             />
           </div>
-          <div className="rail-pills" style={{ marginTop: '0.4rem' }}>
+          <div className="rail-pills">
             {[minYear, 1990, 2010, 2020].map((year) => (
               <button
                 key={year}
@@ -543,40 +568,40 @@ export function MacroExplorer({
           />
         ) : (
           <>
-            <div className="briefcard">
-              <span className="briefcard-mark">
-                <Icon name="globo" size={20} />
-              </span>
-              <div>
-                <h2>{chapter.title}</h2>
-                <p>
-                  <b>{catalogue}</b> {chapter.lead}
-                </p>
-                <div className="brief-points">
-                  {chapter.points.map((point) => (
-                    <div className="brief-point" key={point.title}>
-                      <span className="brief-point-mark">
-                        <Icon name={point.icon} size={17} />
-                      </span>
-                      <div>
-                        <b>{point.title}</b>
-                        <span>{point.detail}</span>
-                      </div>
+            <header className="page-intro">
+              <h3 className="page-intro-title">{chapter.title}</h3>
+              <p className="page-intro-lede">
+                <b>{catalogue}</b> {chapter.lead}
+              </p>
+              <div className="brief-points">
+                {chapter.points.map((point) => (
+                  <div className="brief-point" key={point.title}>
+                    <div>
+                      <b>{point.title}</b>
+                      <span>{point.detail}</span>
                     </div>
-                  ))}
-                </div>
+                  </div>
+                ))}
               </div>
-            </div>
+            </header>
 
-            <div className="strap">
-              <Icon name={SECTOR_ICON[list(sector)[0] ?? ''] ?? 'cajas'} size={17} />
-              <h2>
-                {describe(sector, (value) => SECTOR_LABEL[value] ?? value, 'Todos los rubros')}
-              </h2>
-              <span className="tile-hint">
-                {cards.length} indicador{cards.length === 1 ? '' : 'es'}
-                {pages === 1 ? '' : ` · ${first}–${last} en pantalla`}
-              </span>
+            {/*
+              La barra de la lista: qué se está viendo, cómo se ve y cómo se baja
+              la selección entera. Cada tarjeta es un panel con su propio menú
+              «Descargar» (imagen, datos del indicador y enlace); esta barra baja
+              TODO lo filtrado, de todas las páginas, que es lo que un menú de
+              tarjeta no puede hacer.
+            */}
+            <div className="list-bar">
+              <div className="list-bar-text">
+                <h3>
+                  {describe(sector, (value) => SECTOR_LABEL[value] ?? value, 'Todos los rubros')}
+                </h3>
+                <span className="tile-hint">
+                  {cards.length} indicador{cards.length === 1 ? '' : 'es'}
+                  {pages === 1 ? '' : ` · ${first}–${last} en pantalla`}
+                </span>
+              </div>
               <div className="download">
                 <button
                   type="button"
@@ -594,44 +619,56 @@ export function MacroExplorer({
                 >
                   <Icon name="barras" size={13} /> Tabla
                 </button>
-                <a className="download-btn" href={`/api/export?${query.toString()}&format=csv`}>
-                  CSV
+                <a
+                  className="download-btn"
+                  href={`/api/export?${query.toString()}&format=csv`}
+                  title="Todas las series de la selección, de todas las páginas"
+                >
+                  Selección en CSV
                 </a>
-                <a className="download-btn" href={`/api/export?${query.toString()}&format=json`}>
-                  JSON
+                <a
+                  className="download-btn"
+                  href={`/api/export?${query.toString()}&format=json`}
+                  title="Todas las series de la selección, de todas las páginas"
+                >
+                  Selección en JSON
                 </a>
               </div>
             </div>
 
             {cards.length && asTable ? (
-              <>
-                <Pager
-                  page={page}
-                  pages={pages}
-                  first={first}
-                  last={last}
-                  total={cards.length}
-                  onGo={setOffset}
-                  pageSize={PAGE_SIZE}
-                  where="arriba"
-                />
-                <MacroTable
-                  rows={shown}
-                  series={selected}
-                  total={cards.length}
-                  onOpen={setOpened}
-                />
-                <Pager
-                  page={page}
-                  pages={pages}
-                  first={first}
-                  last={last}
-                  total={cards.length}
-                  onGo={setOffset}
-                  pageSize={PAGE_SIZE}
-                  where="abajo"
-                />
-              </>
+              <MacroTable
+                id={`${corpus}-tabla`}
+                rows={shown}
+                stats={tableStats}
+                observations={selected.length}
+                total={cards.length}
+                onOpen={setOpened}
+                before={
+                  <Pager
+                    page={page}
+                    pages={pages}
+                    first={first}
+                    last={last}
+                    total={cards.length}
+                    onGo={setOffset}
+                    pageSize={PAGE_SIZE}
+                    where="arriba"
+                  />
+                }
+                after={
+                  <Pager
+                    page={page}
+                    pages={pages}
+                    first={first}
+                    last={last}
+                    total={cards.length}
+                    onGo={setOffset}
+                    pageSize={PAGE_SIZE}
+                    where="abajo"
+                  />
+                }
+              />
             ) : null}
 
             {cards.length && !asTable ? (
@@ -652,7 +689,7 @@ export function MacroExplorer({
                   pageSize={PAGE_SIZE}
                   where="arriba"
                 />
-                <div className="card-grid">
+                <div className="card-grid card-grid-flat">
                   {shown.map((point) => (
                     <MacroCard
                       key={point.indicatorCode}
@@ -696,6 +733,8 @@ export function MacroExplorer({
  */
 function MacroCard({ point, series }: { point: MacroPoint; series: MacroPoint[] }) {
   const [candles, setCandles] = useState(false);
+  const unitText = unitName(point.unit);
+  const name = point.name ?? point.indicatorCode;
   /** Whether they have opened the readings behind the line. */
   const [expanded, setExpanded] = useState(false);
   const definition = GLOSSARY[point.indicatorCode];
@@ -722,9 +761,23 @@ function MacroCard({ point, series }: { point: MacroPoint; series: MacroPoint[] 
     return out;
   }, [series]);
 
+  /*
+   * La tarjeta es un panel entero y no un mini-panel sin menú.
+   *
+   * El menú de arriba de la lista baja la selección completa, pero un lector
+   * que quiere UN gráfico para un informe necesita su imagen con título,
+   * unidad, leyenda y fuente, y los datos de ese indicador, no los de los
+   * otros veinte. Cuesta un botón por tarjeta; el menú no monta nada hasta
+   * que se abre.
+   */
   return (
-    <article className="card">
-      <header className="card-head">
+    <Panel
+      id={`indicador-${point.indicatorCode.toLowerCase().replace(/[^a-z0-9]+/g, '-')}`}
+      title={titleWithUnit(name, point.unit)}
+      source={point.publisher ?? 'Observatorio Económico de Bolivia (ver «Método»)'}
+      className="card"
+    >
+      <div className="card-head">
         <span className="card-sector">
           <Icon name={SECTOR_ICON[point.sector] ?? 'cajas'} size={12} />{' '}
           {SECTOR_LABEL[point.sector] ?? point.sector}
@@ -750,8 +803,8 @@ function MacroCard({ point, series }: { point: MacroPoint; series: MacroPoint[] 
                 El observatorio no escribió una definición propia para esta serie. La publica{' '}
                 <b>{point.publisher ?? 'la fuente citada'}</b> bajo el nombre{' '}
                 <b>{point.name ?? point.indicatorCode}</b>, y se mide en{' '}
-                {UNIT_MEANING[point.unit] ?? UNIT_LABEL[point.unit] ?? point.unit}. Preferimos
-                admitir el hueco antes que redactar una explicación que nadie verificó.
+                {UNIT_MEANING[point.unit] ?? unitName(point.unit)}. Preferimos admitir el hueco
+                antes que redactar una explicación que nadie verificó.
               </p>
             )}
             {/*
@@ -777,7 +830,7 @@ function MacroCard({ point, series }: { point: MacroPoint; series: MacroPoint[] 
             </p>
             <p className="card-note-source">
               <code>{point.indicatorCode}</code> ·{' '}
-              {UNIT_MEANING[point.unit] ?? UNIT_LABEL[point.unit] ?? point.unit}
+              {UNIT_MEANING[point.unit] ?? unitName(point.unit)}
             </p>
           </InfoPopover>
           <button
@@ -799,10 +852,9 @@ function MacroCard({ point, series }: { point: MacroPoint; series: MacroPoint[] 
             <Icon name={expanded ? 'plegar' : 'desplegar'} size={16} />
           </button>
         </span>
-        <h3>{point.name ?? point.indicatorCode}</h3>
         <div className="card-figure">
           <span className="card-value">{headline(point)}</span>
-          <span className="card-unit">{UNIT_LABEL[point.unit] ?? point.unit}</span>
+          <span className="card-unit">{unitText}</span>
         </div>
         <div className="card-meta">
           <span>{candles ? `${ohlc.length} variaciones anuales` : point.period}</span>
@@ -813,19 +865,39 @@ function MacroCard({ point, series }: { point: MacroPoint; series: MacroPoint[] 
             </span>
           )}
         </div>
-      </header>
+      </div>
       {candles ? (
-        <YearCandles data={ohlc} unit={UNIT_LABEL[point.unit] ?? point.unit} />
+        <div className="chart-stack">
+          <YearCandles data={ohlc} unit={unitText} />
+          <ChartLegend items={CANDLE_KEY} />
+        </div>
       ) : (
         <MacroChart
           data={series.map((row) => ({ period: row.period, value: row.value }))}
-          unit={point.unit}
+          unit={unitText}
           tone={tone}
+          label={point.unit === 'NATIVE' ? 'Valor' : name}
         />
       )}
       {expanded ? <ObservationTable point={point} series={series} /> : null}
-    </article>
+    </Panel>
   );
+}
+
+/** Qué dice el color de una vela: el cierre contra la apertura, que es el año anterior. */
+const CANDLE_KEY = [
+  { color: 'var(--up)', label: 'subió frente al año anterior' },
+  { color: 'var(--down)', label: 'bajó frente al año anterior' },
+] as const;
+
+/** Quién publica las series de una página, sin inventar: lo que cada fila declara. */
+function sourcesOf(rows: readonly MacroPoint[]): string {
+  const names = [
+    ...new Set(rows.map((row) => row.publisher).filter((name): name is string => Boolean(name))),
+  ];
+  if (names.length === 0) return 'Observatorio Económico de Bolivia (ver «Método»)';
+  if (names.length <= 3) return names.join(', ');
+  return `${names.slice(0, 3).join(', ')} y otras ${names.length - 3} fuentes`;
 }
 
 /**
@@ -858,40 +930,115 @@ function MacroCard({ point, series }: { point: MacroPoint; series: MacroPoint[] 
  * cifra imposible de comprobar.
  */
 function MacroTable({
+  id,
   rows,
-  series,
+  stats,
+  observations,
   total,
   onOpen,
+  before,
+  after,
 }: {
+  id: string;
   rows: MacroPoint[];
-  series: MacroPoint[];
+  /** Las descriptivas de las filas en pantalla, calculadas por quien pagina. */
+  stats: ReadonlyMap<string, MacroStats>;
+  /** Cuántas observaciones anuales deja el filtro en total. */
+  observations: number;
   /** The whole selection, of which `rows` is the page on screen. */
   total: number;
   /** Abrir el análisis completo de un indicador. */
   onOpen: (code: string) => void;
+  /** Los pagers, que son parte de lo que el panel muestra. */
+  before: ReactNode;
+  after: ReactNode;
 }) {
-  /**
-   * Las descriptivas de las veinte filas en pantalla, y de ninguna más.
-   *
-   * Calcularlas para las mil quinientas series del catálogo costaría casi un
-   * segundo cada vez que el lector mueve un filtro, y todas menos veinte no se
-   * verían. Se calculan por página; el resto se calcula cuando el lector llegue
-   * a esa página, que es cuando importan.
-   */
-  const stats = useMemo(() => {
-    const byCode = new Map<string, MacroPoint[]>();
-    for (const point of series) {
-      const held = byCode.get(point.indicatorCode);
-      if (held) held.push(point);
-      else byCode.set(point.indicatorCode, [point]);
-    }
-    const out = new Map<string, MacroStats>();
-    for (const row of rows) {
-      out.set(row.indicatorCode, macroStats(byCode.get(row.indicatorCode) ?? []));
-    }
-    return out;
-  }, [rows, series]);
+  /** Lo que muestra la tabla, con el valor sin redondear, para el archivo que se baja. */
+  const dataset = () => ({
+    unidad: 'cada indicador en su propia unidad',
+    columnas: [
+      'Indicador',
+      'Código',
+      'Rubro',
+      'Unidad',
+      'Año del último dato',
+      'Último valor',
+      'Variación anual (%)',
+      'Observaciones',
+      'Media',
+      'Mediana',
+      'Desviación estándar',
+      'Coeficiente de variación (%)',
+      'Rango intercuartílico',
+      'Asimetría',
+      'Curtosis en exceso',
+      'Máximo',
+      'Año del máximo',
+      'Mínimo',
+      'Año del mínimo',
+      'Años atípicos',
+    ],
+    filas: rows.flatMap((point) => {
+      const stat = stats.get(point.indicatorCode);
+      if (!stat) return [];
+      return [
+        [
+          point.name ?? point.indicatorCode,
+          point.indicatorCode,
+          SECTOR_LABEL[point.sector] ?? point.sector,
+          unitName(point.unit),
+          point.period,
+          celda(point.value),
+          celda(point.changePercent),
+          celda(stat.n),
+          celda(stat.mean),
+          celda(stat.median),
+          celda(stat.sd),
+          celda(stat.cv === null ? null : stat.cv * 100),
+          celda(stat.iqr),
+          celda(stat.skewness),
+          celda(stat.kurtosis),
+          celda(stat.max.value),
+          stat.max.period,
+          celda(stat.min.value),
+          stat.min.period,
+          celda(stat.outliers.length),
+        ],
+      ];
+    }),
+    nota: 'Estadísticos de la serie recortada por los filtros, de los indicadores de esta página. Cada valor va en la unidad del indicador.',
+  });
 
+  return (
+    <Panel
+      id={id}
+      title="Estadísticos de cada serie (en la unidad de cada indicador)"
+      lede={
+        <>
+          Centro, dispersión, forma y extremos de la selección. <b>Tocá una fila</b> para ver su
+          distribución, sus atípicos y su correlación.
+        </>
+      }
+      meta={`${rows.length === total ? total : `${rows.length} de ${total}`} indicador${total === 1 ? '' : 'es'} · ${observations.toLocaleString('es-BO')} observaciones anuales`}
+      source={`${sourcesOf(rows)}; estadísticos calculados por el Observatorio`}
+      data={dataset}
+    >
+      {before}
+      <MacroTableBody rows={rows} stats={stats} onOpen={onOpen} />
+      {after}
+    </Panel>
+  );
+}
+
+function MacroTableBody({
+  rows,
+  stats,
+  onOpen,
+}: {
+  rows: MacroPoint[];
+  stats: ReadonlyMap<string, MacroStats>;
+  onOpen: (code: string) => void;
+}) {
   return (
     <div className="table-wrap">
       <table className="grid-table grid-table-macro">
@@ -943,7 +1090,7 @@ function MacroTable({
         <tbody>
           {rows.map((point) => {
             const stat = stats.get(point.indicatorCode);
-            const unit = UNIT_LABEL[point.unit] ?? point.unit;
+            const unit = unitName(point.unit);
             const tone = sectorTone();
             if (!stat) return null;
             /*
@@ -1066,20 +1213,6 @@ function MacroTable({
             );
           })}
         </tbody>
-        <tfoot>
-          <tr>
-            <td colSpan={6}>
-              {rows.length === total
-                ? `${total} indicador${total === 1 ? '' : 'es'}`
-                : `${rows.length} de ${total} indicadores en esta página`}
-              {' · '}
-              <b>Tocá una fila</b> para ver su distribución, sus atípicos y su correlación.
-            </td>
-            <td colSpan={10} className="num">
-              {series.length.toLocaleString('es-BO')} observaciones anuales en la selección
-            </td>
-          </tr>
-        </tfoot>
       </table>
     </div>
   );
@@ -1131,7 +1264,7 @@ function kurtosisHint(value: number): string {
  */
 function ObservationTable({ point, series }: { point: MacroPoint; series: MacroPoint[] }) {
   const rows = [...series].sort((left, right) => right.period.localeCompare(left.period));
-  const unit = UNIT_LABEL[point.unit] ?? point.unit;
+  const unit = unitName(point.unit);
 
   return (
     <div className="card-table">

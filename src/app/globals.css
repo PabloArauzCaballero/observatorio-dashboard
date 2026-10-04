@@ -9252,3 +9252,186 @@ button.download-btn {
   flex-wrap: wrap;
   min-width: 0;
 }
+
+/* === Macroeconomía · Series de Bolivia, Social Info y Cuentas públicas === */
+
+/*
+ * Lo que va dentro de un panel respira: filtros, figura, leyenda y nota separados por el
+ * mismo paso. Antes cada pieza traía su propio margen (o ninguno).
+ */
+.workspace-main .panel-x > .panel-body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s2);
+}
+
+/* Cabecera de una página dentro del capítulo: título, entradilla y, a veces, tres puntos. */
+.page-intro {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s2);
+}
+
+.page-intro-title {
+  margin: 0;
+  font-family: var(--serif);
+  font-size: var(--text-lg);
+  font-weight: 600;
+  letter-spacing: -0.012em;
+  line-height: 1.2;
+  text-wrap: balance;
+}
+
+.page-intro-lede {
+  max-width: 72ch;
+  margin: 0;
+  color: var(--ink-soft);
+  font-size: var(--text-base);
+  line-height: 1.5;
+  text-wrap: pretty;
+}
+
+.page-intro-lede b {
+  color: var(--ink);
+  font-weight: 600;
+}
+
+/* Los filtros que valen para todos los paneles de abajo: una fila, entre dos filetes. */
+.page-filters {
+  padding: var(--s2) 0;
+  border-top: 1px solid var(--rule);
+  border-bottom: 1px solid var(--rule);
+}
+
+/* La barra de la lista de indicadores: qué se ve, cómo se ve y cómo se baja todo. */
+.list-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s2) var(--s3);
+  padding-top: var(--s3);
+  border-top: 1px solid var(--rule);
+}
+
+.list-bar-text {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--s1) var(--s2);
+  min-width: 0;
+}
+
+.list-bar-text h3 {
+  margin: 0;
+  font-family: var(--serif);
+  font-size: var(--text-lg);
+  font-weight: 600;
+  letter-spacing: -0.012em;
+  line-height: 1.2;
+}
+
+/* Las tarjetas de indicador son paneles planos: filete arriba, sin caja ni sombra. */
+.card-grid.card-grid-flat {
+  gap: var(--s4);
+}
+
+.card.panel-x,
+.card.panel-x:hover {
+  padding: var(--s3) 0 0;
+  border: 0;
+  border-top: 1px solid var(--rule);
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  transform: none;
+}
+
+.card.panel-x .panel-top h3 {
+  font-size: var(--text-base);
+}
+
+.card.panel-x .panel-top-text {
+  flex: 1 1 8rem;
+}
+
+/* En una tarjeta el menú es solo el botón: el rótulo está en su etiqueta accesible. */
+.card.panel-x .menu-btn {
+  padding: 0 0.5rem;
+}
+
+.card.panel-x .menu-btn > span {
+  display: none;
+}
+
+/* La tarjeta con el menú abierto pasa por delante de las que están debajo. */
+.card:has(.menu-btn[aria-expanded='true']) {
+  position: relative;
+  z-index: var(--z-sticky-corner);
+}
+
+.card.panel-x .card-head {
+  position: relative;
+}
+
+/* La vista de un indicador abierto: paneles apilados sobre el fondo, sin caja que los contenga. */
+.analysis-view {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s4);
+}
+
+.analysis-title {
+  margin: 0.2rem 0 0.3rem;
+  font-family: var(--serif);
+  font-size: clamp(1.3rem, 2.6vw, 1.85rem);
+  font-weight: 600;
+  line-height: 1.2;
+}
+
+/* Caja posicionada: la lectura apartada se mide contra ella y no contra la página. */
+.analysis-panes {
+  position: relative;
+}
+
+.stat-panel .stat-block {
+  box-shadow: none;
+}
+
+.stat-panel .panel-body {
+  gap: var(--s3);
+}
+
+/* Una línea de apoyo bajo el nombre de un impuesto o una nota, en la tabla de normas. */
+.accounts-table .cell-sub {
+  margin-top: 0.15rem;
+  color: var(--ink-soft);
+  font-size: var(--text-xs);
+  font-weight: 400;
+}
+
+/* El deslizador de años del riel llena su columna, y los atajos de año respiran. */
+.rail-field input[type='range'] {
+  width: 100%;
+}
+
+.rail-sec .rail-field + .rail-pills {
+  margin-top: 0.4rem;
+}
+
+/* El botón elegido conserva su tinta al pasar el puntero (antes quedaba negro sobre negro). */
+.download-btn.download-btn-on:hover {
+  border-color: var(--ink);
+  color: var(--panel);
+}
+
+/* Una lectura plegada es solo su cabecera: sin cuerpo vacío entre el título y el pie. */
+.derived-reading .panel-body:empty {
+  display: none;
+}
+
+/* En una rejilla el panel es angosto: el botón Descargar se queda junto al título y no debajo. */
+.grid-two .panel-top-text,
+.grid-three .panel-top-text {
+  flex-basis: 9rem;
+}
