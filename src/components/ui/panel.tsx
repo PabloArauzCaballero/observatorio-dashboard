@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, type ReactNode } from 'react';
 import { DownloadMenu } from '@/components/ui/download-menu';
+import { registrarPanel } from '@/lib/export/registro';
 import {
   ProveedorDePanel,
   useAlmacenDePanel,
@@ -83,6 +84,13 @@ export function Panel({
     const propias = typeof data === 'function' ? data() : data;
     return [...(propias ? [propias] : []), ...almacen.todos()];
   };
+
+  // El informe de la pestaña pregunta por las cifras de cada panel montado desde su elemento.
+  const cifrasRef = useRef(cifras);
+  cifrasRef.current = cifras;
+  useEffect(() => {
+    if (raiz.current) registrarPanel(raiz.current, () => cifrasRef.current());
+  }, []);
 
   return (
     <section

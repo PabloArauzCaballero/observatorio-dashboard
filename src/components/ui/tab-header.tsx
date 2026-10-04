@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react';
+import { TabReportButton } from '@/components/ui/tab-report-button';
 
 /**
  * La cabecera de una pestaña: el único gesto grande de cada capítulo.
@@ -26,7 +27,10 @@ export function TabHeader({
         <h2 className="tab-title">{title}</h2>
         {lede ? <p className="tab-lede">{lede}</p> : null}
       </div>
-      {actions ? <div className="tab-head-side">{actions}</div> : null}
+      <div className="tab-head-side">
+        {actions}
+        <TabReportButton />
+      </div>
     </header>
   );
 }

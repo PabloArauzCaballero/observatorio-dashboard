@@ -32,6 +32,17 @@ export interface EntradaAfiche {
   fuente: string;
   /** «3 de octubre de 2026». */
   fecha: string;
+  /**
+   * Sin la marca del Observatorio al pie: dentro de un informe la lleva la
+   * cabecera del documento, y repetirla en cada figura es ruido.
+   */
+  sinMarca?: boolean;
+  /**
+   * Sin las fuentes incrustadas: un informe con veinte figuras las declara una
+   * sola vez (ver `hojaDeFuentes`) en vez de veinte copias de ciento diez mil
+   * caracteres.
+   */
+  sinFuentes?: boolean;
 }
 
 export interface Afiche {
@@ -246,7 +257,7 @@ async function fuenteBase64(ruta: string): Promise<string> {
   return base64;
 }
 
-async function hojaDeFuentes(): Promise<string> {
+export async function hojaDeFuentes(): Promise<string> {
   const [sans, serif] = await Promise.all([
     fuenteBase64('/fonts/PublicSans-Variable.woff2'),
     fuenteBase64('/fonts/Newsreader-Variable.woff2'),
@@ -414,17 +425,21 @@ export async function componerAfiche(entrada: EntradaAfiche): Promise<Afiche> {
         `<text x="${MARGEN}" y="${y}" font-family="${SANS}" font-size="13" fill="${suave}">${escapar(renglon)}</text>`,
       );
     }
-    y += 26;
-    partes.push(
-      `<text x="${MARGEN}" y="${y}" font-family="${SANS}" font-size="13" font-weight="600" fill="${tinta}">Observatorio Económico de Bolivia</text>`,
-      `<text x="${ANCHO - MARGEN}" y="${y}" font-family="${SANS}" font-size="13" text-anchor="end" fill="${suave}">datosbolivia.com · ${escapar(entrada.fecha)}</text>`,
-    );
-    const alto = y + MARGEN - 18;
+    if (entrada.sinMarca) {
+      y += 18;
+    } else {
+      y += 26;
+      partes.push(
+        `<text x="${MARGEN}" y="${y}" font-family="${SANS}" font-size="13" font-weight="600" fill="${tinta}">Observatorio Económico de Bolivia</text>`,
+        `<text x="${ANCHO - MARGEN}" y="${y}" font-family="${SANS}" font-size="13" text-anchor="end" fill="${suave}">datosbolivia.com · ${escapar(entrada.fecha)}</text>`,
+      );
+    }
+    const alto = entrada.sinMarca ? y + 24 : y + MARGEN - 18;
 
-    const fuentes = await hojaDeFuentes();
+    const fuentes = entrada.sinFuentes ? '' : await hojaDeFuentes();
     const svg =
       `<svg xmlns="http://www.w3.org/2000/svg" width="${ANCHO}" height="${alto}" viewBox="0 0 ${ANCHO} ${alto}">` +
-      `<style>${fuentes}</style>` +
+      (fuentes ? `<style>${fuentes}</style>` : '') +
       `<rect width="${ANCHO}" height="${alto}" fill="#ffffff"/>` +
       partes.join('') +
       '</svg>';

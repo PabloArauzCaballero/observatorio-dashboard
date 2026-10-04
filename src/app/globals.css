@@ -8872,3 +8872,67 @@ button.download-btn {
 .panel-extremes span {
   white-space: nowrap;
 }
+
+/* Informe de la pestaña (components/ui/tab-report-button.tsx) ------------- */
+
+.tab-report {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.25rem;
+}
+
+.tab-report-estado {
+  min-height: 1rem;
+  color: var(--ink-soft);
+  font-size: var(--text-xs);
+}
+
+.menu-btn:disabled {
+  opacity: 0.6;
+  cursor: progress;
+}
+
+/* Impresión (Ctrl+P): el contenido sin los controles ----------------------- */
+
+@media print {
+  .topbar,
+  .tabs,
+  nav.subtabs,
+  .rail,
+  .skip-link,
+  .asistente-lanzador,
+  .asistente-panel,
+  .donate-btn,
+  .theme-btn,
+  .tab-head-side,
+  .panel-top-side,
+  .menu,
+  .pager,
+  .zoom-exit,
+  .download,
+  .download-btn {
+    display: none !important;
+  }
+
+  html,
+  body {
+    background: #fff;
+  }
+
+  .shell {
+    padding: 0;
+  }
+
+  .workspace {
+    display: block;
+  }
+
+  .panel {
+    break-inside: avoid;
+  }
+
+  .tab-head {
+    break-after: avoid;
+  }
+}
