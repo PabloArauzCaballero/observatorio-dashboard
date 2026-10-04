@@ -5,6 +5,7 @@ import { RailExplorer } from './rail-explorer';
 import { RoadsSection } from './roads-section';
 import { SubTabs } from './tabs';
 import { WaterwaysExplorer } from './waterways-explorer';
+import { TabHeader } from '@/components/ui/tab-header';
 import { RoadTransportSection } from './road-transport-section';
 import { FreightSection } from './freight-section';
 import { FaresSection } from './fares-section';
@@ -19,18 +20,25 @@ import type { RailBoard, WaterBoard } from '@/lib/transport-board';
  */
 export function TransportSection() {
   return (
-    <SubTabs
-      labels={['Automotor', 'Pasajes', 'Carreteras', 'Ferrocarriles', 'Ríos y puertos', 'Fletes']}
-      icons={['camion', 'etiqueta', 'mapa', 'linea', 'gota', 'cajas']}
-      enlace
-    >
-      <RoadTransportSection />
-      <FaresSection />
-      <RoadsSection />
-      <RailSection />
-      <WaterwaysSection />
-      <FreightSection />
-    </SubTabs>
+    <>
+      <TabHeader
+        id="transporte"
+        title="Transporte"
+        lede="Vehículos, pasajes, carreteras, trenes, ríos y fletes de Bolivia. Las cifras de vehículos y tarifas son oficiales; los mapas muestran lo que OpenStreetMap ha trazado, que no es un inventario oficial."
+      />
+      <SubTabs
+        labels={['Automotor', 'Pasajes', 'Carreteras', 'Ferrocarriles', 'Ríos y puertos', 'Fletes']}
+        icons={['camion', 'etiqueta', 'mapa', 'linea', 'gota', 'cajas']}
+        enlace
+      >
+        <RoadTransportSection />
+        <FaresSection />
+        <RoadsSection />
+        <RailSection />
+        <WaterwaysSection />
+        <FreightSection />
+      </SubTabs>
+    </>
   );
 }
 

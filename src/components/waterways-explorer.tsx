@@ -8,6 +8,7 @@ import { Icon } from './icons';
 import { NetworkMap } from './network-map';
 import type { MapLine, MapPoint } from './network-map';
 import { Pager } from './pager';
+import { Panel } from '@/components/ui/panel';
 import { FilterGroup, km, squash } from './transport-filters';
 import { departmentName } from '@/lib/roads-board';
 import { WATERWAY_CATEGORIES } from '@/lib/transport-board';
@@ -173,48 +174,69 @@ export function WaterwaysExplorer({ board }: { board: WaterBoard }) {
   const where = describe(department, departmentName, 'todo el país');
   const pickRiver = (next: string): void => setRiver((current) => (current === next ? null : next));
 
+  /** Las tres cifras de cabecera: lo que se ve y, con el mismo orden, lo que se baja. */
+  const figures: ReadonlyArray<{
+    label: string;
+    shown: string;
+    value: number;
+    unit: string;
+    hint: string;
+  }> = [
+    {
+      label: `Hidrovías (${where})`,
+      shown: `${km(hidroviaKm)} km`,
+      value: hidroviaKm,
+      unit: 'km',
+      hint: 'Ichilo, Mamoré, Iténez y Paraguay-Tamengo, dentro del país',
+    },
+    {
+      label: 'Ríos navegables, las tres fuentes',
+      shown: `${km(navigableKm)} km`,
+      value: navigableKm,
+      unit: 'km',
+      hint: 'Hidrovías, afluentes en estudio y boat=yes de OpenStreetMap',
+    },
+    {
+      label: 'Puertos y terminales fluviales',
+      shown: km(ports.length),
+      value: ports.length,
+      unit: 'puertos y terminales',
+      hint: `${km(ports.filter((one) => one.kind === 'PUERTO').length)} puertos · ${km(
+        ports.filter((one) => one.kind === 'TERMINAL').length,
+      )} terminales de balsa o lancha`,
+    },
+  ];
+
   return (
     <>
-      <div className="panel">
-        <div className="panel-head">
-          <h2>
-            Red fluvial de Bolivia: ríos navegables, hidrovías y puertos (km trazados por
-            OpenStreetMap)
-          </h2>
-          <p className="panel-sub">
-            Los ríos que OpenStreetMap traza dentro del país, cortados por departamento. Qué se
-            navega no lo dice el mapa —de once mil tramos de río, 241 llevan la etiqueta de
-            navegable—, así que cada río dice quién lo afirma: las hidrovías y los afluentes que el
-            Ministerio de Obras Públicas estudia como navegables, o la etiqueta de OpenStreetMap. El
-            lago Titicaca se navega y no es un río: sus cruces aparecen como transbordador.
-          </p>
+      <Panel
+        id="red-fluvial"
+        className="transp"
+        title="Red fluvial de Bolivia: ríos navegables, hidrovías y puertos (km y cantidad)"
+        lede="Los ríos que OpenStreetMap traza dentro del país, cortados por departamento. Qué se navega no lo dice el mapa, así que cada río dice quién lo afirma."
+        source="OpenStreetMap contributors (trazado) y Ministerio de Obras Públicas, Servicios y Vivienda, 2024 (navegabilidad)"
+        data={() => ({
+          etiqueta: 'Cifras de la selección',
+          columnas: ['Cifra', 'Valor', 'Unidad', 'Detalle'],
+          filas: figures.map((figure) => [figure.label, figure.value, figure.unit, figure.hint]),
+        })}
+      >
+        <div className="stat-strip">
+          {figures.map((figure) => (
+            <div className="stat" key={figure.label}>
+              <span className="stat-label">{figure.label}</span>
+              <span className="stat-value">{figure.shown}</span>
+              <span className="stat-hint">{figure.hint}</span>
+            </div>
+          ))}
         </div>
-      </div>
-
-      <div className="grid-three">
-        <div className="panel stat">
-          <span className="stat-label">Hidrovías ({where})</span>
-          <span className="stat-value">{km(hidroviaKm)} km</span>
-          <span className="stat-hint">
-            Ichilo, Mamoré, Iténez y Paraguay-Tamengo, dentro del país
-          </span>
-        </div>
-        <div className="panel stat">
-          <span className="stat-label">Ríos navegables, las tres fuentes</span>
-          <span className="stat-value">{km(navigableKm)} km</span>
-          <span className="stat-hint">
-            Hidrovías, afluentes en estudio y boat=yes de OpenStreetMap
-          </span>
-        </div>
-        <div className="panel stat">
-          <span className="stat-label">Puertos y terminales fluviales</span>
-          <span className="stat-value">{km(ports.length)}</span>
-          <span className="stat-hint">
-            {km(ports.filter((one) => one.kind === 'PUERTO').length)} puertos ·{' '}
-            {km(ports.filter((one) => one.kind === 'TERMINAL').length)} terminales de balsa o lancha
-          </span>
-        </div>
-      </div>
+        <p className="panel-note">
+          De once mil tramos de río, 241 llevan la etiqueta de navegable. Cada río dice quién lo
+          afirma: las hidrovías y los afluentes que el Ministerio de Obras Públicas estudia como
+          navegables, o la etiqueta de OpenStreetMap. El lago Titicaca se navega y no es un río: sus
+          cruces aparecen como transbordador.
+        </p>
+      </Panel>
 
       <div className="workspace">
         <aside className="rail">
@@ -264,7 +286,7 @@ export function WaterwaysExplorer({ board }: { board: WaterBoard }) {
                 placeholder="Mamoré, Beni, Pilcomayo…"
                 value={search}
                 onChange={(event) => setSearch(event.target.value)}
-                style={{ width: '100%' }}
+                className="rail-input"
               />
             </div>
           </div>
@@ -285,17 +307,13 @@ export function WaterwaysExplorer({ board }: { board: WaterBoard }) {
         </aside>
 
         <div className="workspace-main stack">
-          <div className="panel">
-            <div className="panel-head">
-              <h2>
-                Mapa de la red fluvial por navegabilidad ({where}
-                {liveRiver ? `, ${liveRiver}` : ''})
-              </h2>
-              <p className="panel-sub">
-                Más grueso, más respaldo oficial de que el río se navega. Los rombos son puertos y
-                terminales. Para ver todos los ríos, elige «Otros ríos» en Navegabilidad.
-              </p>
-            </div>
+          <Panel
+            id="mapa-fluvial"
+            className="transp"
+            title={`Red fluvial por navegabilidad, ${where}${liveRiver ? `, ${liveRiver}` : ''} (km trazados)`}
+            lede="Más grueso, más respaldo oficial de que el río se navega. Los rombos son puertos y terminales. Para ver todos los ríos, elige «Otros ríos» en Navegabilidad."
+            source="OpenStreetMap contributors (trazado) y Ministerio de Obras Públicas, Servicios y Vivienda, 2024 (navegabilidad)"
+          >
             {liveRiver ? (
               <div className="chips roads-map-tools">
                 <button type="button" className="chip chip-on" onClick={() => setRiver(null)}>
@@ -331,23 +349,36 @@ export function WaterwaysExplorer({ board }: { board: WaterBoard }) {
               )}
               pointLabel="Puerto o terminal"
               ariaLabel="Red fluvial de Bolivia"
-              foot="Pasa el cursor por un río o un puerto para ver qué es; haz clic en un río para aislarlo. Geometría © OpenStreetMap; navegabilidad: Ministerio de Obras Públicas, Servicios y Vivienda (2024) y OpenStreetMap."
+              foot="Pasa el cursor por un río o un puerto para ver qué es; haz clic en un río para aislarlo."
             />
-          </div>
+          </Panel>
 
-          <section className="panel places-table">
-            <div className="tile-head">
-              <Icon name="cajas" size={14} />
-              <h3 className="tile-title">Km por río y navegabilidad ({where})</h3>
-              <span className="places-table-count">
-                {km(rows.length)} filas · {km(rows.reduce((sum, row) => sum + row.km, 0))} km
-              </span>
-            </div>
-            <p className="panel-sub">
-              Cada cifra es la parte del río que cae en el recorte. Un río fronterizo (Iténez,
-              Paraguay, Abuná) cuenta sólo lo que el límite deja del lado boliviano. Toca un río
-              para aislarlo en el mapa.
-            </p>
+          <Panel
+            id="km-por-rio"
+            className="transp"
+            title={`Km por río y navegabilidad, ${where} (km)`}
+            lede="Cada cifra es la parte del río que cae en el recorte. Un río fronterizo (Iténez, Paraguay, Abuná) cuenta solo lo que el límite deja del lado boliviano. Toca un río para aislarlo en el mapa."
+            meta={`${km(rows.length)} filas · ${km(rows.reduce((sum, row) => sum + row.km, 0))} km`}
+            source="OpenStreetMap contributors (trazado) y Ministerio de Obras Públicas, Servicios y Vivienda, 2024 (navegabilidad)"
+            data={() => ({
+              unidad: 'km',
+              columnas: [
+                'Río o cruce',
+                'Navegabilidad',
+                'Departamentos',
+                'boat=yes (km)',
+                'Total (km)',
+              ],
+              filas: rows.map((row) => [
+                row.name ?? 'Ríos sin nombre en el mapa',
+                CATEGORY[row.category].label,
+                [...row.departments].map(departmentName).join(', '),
+                row.boat,
+                row.km,
+              ]),
+              nota: 'Son todas las filas del recorte, no solo la página que se ve.',
+            })}
+          >
             <Pager
               page={page}
               pages={pages}
@@ -408,7 +439,7 @@ export function WaterwaysExplorer({ board }: { board: WaterBoard }) {
                 </table>
               </div>
             )}
-          </section>
+          </Panel>
         </div>
       </div>
     </>

@@ -9,6 +9,7 @@ import { FilterHint } from './filters';
 import { Icon } from './icons';
 import { NetworkMap } from './network-map';
 import { Pager } from './pager';
+import { Panel } from '@/components/ui/panel';
 import type { MapLine, MapPoint } from './network-map';
 import { FilterGroup, km, squash } from './transport-filters';
 import { departmentName } from '@/lib/roads-board';
@@ -33,12 +34,6 @@ const STATUS = Object.fromEntries(RAIL_STATUSES.map((one) => [one.status, one]))
   RailLine['status'],
   (typeof RAIL_STATUSES)[number]
 >;
-
-const SERVICE_LABEL: Record<FlowSeries['service'], string> = {
-  CARGA: 'Carga',
-  PASAJEROS: 'Pasajeros',
-  EQUIPAJE_ENCOMIENDA: 'Equipaje y encomienda',
-};
 
 type Skip = 'department' | 'network' | 'status';
 
@@ -216,60 +211,75 @@ export function RailExplorer({ board }: { board: RailBoard }) {
   };
   const years = [1999, 2005, 2010, 2015, 2020];
 
+  /** Las tres cifras de cabecera: lo que se ve y, con el mismo orden, lo que se baja. */
+  const cargoYear = board.flows.find((one) => one.service === 'CARGA')?.lastYear?.period ?? '—';
+  const cargoTonnes = board.flows
+    .filter((one) => one.service === 'CARGA' && flowNetworks.includes(one.network as 'ANDINA'))
+    .reduce((sum, one) => sum + (one.lastYear?.value ?? 0), 0);
+  const figures: ReadonlyArray<{
+    label: string;
+    shown: string;
+    value: number;
+    unit: string;
+    hint: string;
+  }> = [
+    {
+      label: `Vía en servicio${filtered || liveLine ? ' (selección)' : ''}`,
+      shown: `${km(totals.get('EN_SERVICIO') ?? 0)} km`,
+      value: totals.get('EN_SERVICIO') ?? 0,
+      unit: 'km',
+      hint: `${km(totals.get('EN_DESUSO') ?? 0)} km en desuso y ${km(totals.get('ABANDONADA') ?? 0)} km abandonados`,
+    },
+    {
+      label: 'Estaciones y apeaderos con nombre',
+      shown: km(stations.length),
+      value: stations.length,
+      unit: 'estaciones',
+      hint: `${where} · OpenStreetMap`,
+    },
+    {
+      label: `Carga transportada (${cargoYear}, INE)`,
+      shown: `${km(cargoTonnes)} t`,
+      value: cargoTonnes,
+      unit: 'toneladas',
+      hint: `${
+        flowNetworks.map((one) => NETWORK[one].label).join(' + ') || 'Sin red con dato del INE'
+      }${board.flows.some((one) => one.lastYear?.preliminary) ? ' · preliminar' : ''}`,
+    },
+  ];
+
+  const trafficNote = `${
+    board.lastMonth ? `${board.lastMonth.slice(0, 4)} llega solo hasta ${board.lastMonth}. ` : ''
+  }Un año a medias aparece en la vista mensual y no en la anual.`;
+
   return (
     <>
-      <div className="panel">
-        <div className="panel-head">
-          <h2>Red ferroviaria de Bolivia (km de vía troncal trazados por OpenStreetMap)</h2>
-          <p className="panel-sub">
-            Las vías troncales que OpenStreetMap traza dentro del país —sin patios, desvíos ni
-            ramales de servicio—, cortadas por departamento y agrupadas por línea, red y estado. La
-            Red Andina y la Oriental no se tocan; el tren metropolitano de Cochabamba es de trocha
-            estándar. El tráfico, abajo, es el que publica el INE con datos de las dos empresas
-            ferroviarias.
-          </p>
+      <Panel
+        id="red-ferroviaria"
+        className="transp"
+        title="Red ferroviaria de Bolivia: vía, estaciones y carga (km, estaciones y toneladas)"
+        lede="Las vías troncales que OpenStreetMap traza dentro del país, sin patios, desvíos ni ramales de servicio, cortadas por departamento y agrupadas por línea, red y estado. El tráfico es el que publica el INE."
+        source="OpenStreetMap contributors (vías y estaciones) e Instituto Nacional de Estadística, con datos de la Empresa Ferroviaria Andina y la Oriental (carga)"
+        data={() => ({
+          etiqueta: 'Cifras de la selección',
+          columnas: ['Cifra', 'Valor', 'Unidad', 'Detalle'],
+          filas: figures.map((figure) => [figure.label, figure.value, figure.unit, figure.hint]),
+        })}
+      >
+        <div className="stat-strip">
+          {figures.map((figure) => (
+            <div className="stat" key={figure.label}>
+              <span className="stat-label">{figure.label}</span>
+              <span className="stat-value">{figure.shown}</span>
+              <span className="stat-hint">{figure.hint}</span>
+            </div>
+          ))}
         </div>
-      </div>
-
-      <div className="grid-three">
-        <div className="panel stat">
-          <span className="stat-label">
-            Vía en servicio {filtered || liveLine ? '(selección)' : ''}
-          </span>
-          <span className="stat-value">{km(totals.get('EN_SERVICIO') ?? 0)} km</span>
-          <span className="stat-hint">
-            {km(totals.get('EN_DESUSO') ?? 0)} km en desuso y {km(totals.get('ABANDONADA') ?? 0)} km
-            abandonados
-          </span>
-        </div>
-        <div className="panel stat">
-          <span className="stat-label">Estaciones y apeaderos con nombre</span>
-          <span className="stat-value">{km(stations.length)}</span>
-          <span className="stat-hint">{where} · OpenStreetMap</span>
-        </div>
-        <div className="panel stat">
-          <span className="stat-label">
-            Carga transportada (
-            {board.flows.find((one) => one.service === 'CARGA')?.lastYear?.period ?? '—'}, INE)
-          </span>
-          <span className="stat-value">
-            {km(
-              board.flows
-                .filter(
-                  (one) =>
-                    one.service === 'CARGA' && flowNetworks.includes(one.network as 'ANDINA'),
-                )
-                .reduce((sum, one) => sum + (one.lastYear?.value ?? 0), 0),
-            )}{' '}
-            t
-          </span>
-          <span className="stat-hint">
-            {flowNetworks.map((one) => NETWORK[one].label).join(' + ') ||
-              'Sin red con dato del INE'}
-            {board.flows.some((one) => one.lastYear?.preliminary) ? ' · preliminar' : ''}
-          </span>
-        </div>
-      </div>
+        <p className="panel-note">
+          La Red Andina y la Oriental no se tocan; el tren metropolitano de Cochabamba es de trocha
+          estándar.
+        </p>
+      </Panel>
 
       <div className="workspace">
         <aside className="rail">
@@ -325,7 +335,7 @@ export function RailExplorer({ board }: { board: RailBoard }) {
                 placeholder="Arica, Quijarro, Uyuni…"
                 value={search}
                 onChange={(event) => setSearch(event.target.value)}
-                style={{ width: '100%' }}
+                className="rail-input"
               />
             </div>
           </div>
@@ -349,17 +359,13 @@ export function RailExplorer({ board }: { board: RailBoard }) {
         </aside>
 
         <div className="workspace-main stack">
-          <div className="panel">
-            <div className="panel-head">
-              <h2>
-                Mapa de la red ferroviaria por red y estado ({where}
-                {liveLine ? `, ${liveLine}` : ''})
-              </h2>
-              <p className="panel-sub">
-                Trazo lleno, en servicio; discontinuo, en construcción o en desuso; gris punteado,
-                abandonada. Los rombos son estaciones y apeaderos.
-              </p>
-            </div>
+          <Panel
+            id="mapa-ferroviario"
+            className="transp"
+            title={`Red ferroviaria por red y estado, ${where}${liveLine ? `, ${liveLine}` : ''} (km trazados)`}
+            lede="Trazo lleno, en servicio; discontinuo, en construcción o en desuso; gris punteado, abandonada. Los rombos son estaciones y apeaderos."
+            source="OpenStreetMap contributors (ODbL)"
+          >
             {liveLine ? (
               <div className="chips roads-map-tools">
                 <button type="button" className="chip chip-on" onClick={() => setLine(null)}>
@@ -400,22 +406,38 @@ export function RailExplorer({ board }: { board: RailBoard }) {
               ]}
               pointLabel="Estación o apeadero"
               ariaLabel="Red ferroviaria de Bolivia"
-              foot="Pasa el cursor por una vía o una estación para ver qué es; haz clic en una vía para aislar su línea. Geometría © OpenStreetMap."
+              foot="Pasa el cursor por una vía o una estación para ver qué es; haz clic en una vía para aislar su línea."
             />
-          </div>
+          </Panel>
 
-          <section className="panel places-table">
-            <div className="tile-head">
-              <Icon name="cajas" size={14} />
-              <h3 className="tile-title">Km por línea ferroviaria ({where})</h3>
-              <span className="places-table-count">
-                {km(rows.length)} líneas · {km(rows.reduce((sum, row) => sum + row.km, 0))} km
-              </span>
-            </div>
-            <p className="panel-sub">
-              El nombre de la línea es el que le da OpenStreetMap a su relación de ruta o a la vía.
-              Toca una línea para aislarla en el mapa.
-            </p>
+          <Panel
+            id="lineas-ferroviarias"
+            className="transp"
+            title={`Km por línea ferroviaria, ${where} (km)`}
+            lede="El nombre de la línea es el que le da OpenStreetMap a su relación de ruta o a la vía. Toca una línea para aislarla en el mapa."
+            meta={`${km(rows.length)} líneas · ${km(rows.reduce((sum, row) => sum + row.km, 0))} km`}
+            source="OpenStreetMap contributors (ODbL)"
+            data={() => ({
+              unidad: 'km',
+              columnas: [
+                'Línea',
+                'Red',
+                'Estado',
+                'Departamentos',
+                'En servicio (km)',
+                'Total (km)',
+              ],
+              filas: rows.map((row) => [
+                row.line ?? 'Vías sin nombre en el mapa',
+                NETWORK[row.network].label,
+                [...row.statuses].map((one) => STATUS[one as RailLine['status']].label).join(', '),
+                [...row.departments].map(departmentName).join(', '),
+                row.service,
+                row.km,
+              ]),
+              nota: 'Son todas las líneas del recorte, no solo la página que se ve.',
+            })}
+          >
             {pager('arriba')}
             {rows.length === 0 ? (
               <div className="callout">Ninguna línea coincide con el recorte y la búsqueda.</div>
@@ -473,61 +495,62 @@ export function RailExplorer({ board }: { board: RailBoard }) {
               </div>
             )}
             {pager('abajo')}
-          </section>
+          </Panel>
         </div>
       </div>
 
       {board.flows.length ? (
-        <div className="panel">
-          <div className="panel-head">
-            <h2>Tráfico ferroviario por red, {grain === 'anual' ? 'anual' : 'mensual'} (INE)</h2>
-            <p className="panel-sub">
-              Carga en toneladas métricas y pasajeros en personas, como los publica el INE con datos
-              de la Empresa Ferroviaria Andina y la Oriental. Sigue el filtro de red; el INE no lo
-              da por departamento. Los últimos años son preliminares
-              {board.lastMonth
-                ? `, y ${board.lastMonth.slice(0, 4)} llega sólo hasta ${board.lastMonth}`
-                : ''}
-              : un año a medias aparece en la vista mensual y no en la anual.
-            </p>
-          </div>
-          <div className="chips roads-map-tools">
-            <span className="roads-map-tools-label">Ver</span>
-            {(['anual', 'mensual'] as const).map((one) => (
-              <button
-                key={one}
-                type="button"
-                className={grain === one ? 'chip chip-on' : 'chip'}
-                aria-pressed={grain === one}
-                onClick={() => setGrain(one)}
-              >
-                {one === 'anual' ? 'Por año' : 'Por mes'}
-              </button>
-            ))}
-            <span className="roads-map-tools-label">Desde</span>
-            {years.map((year) => (
-              <button
-                key={year}
-                type="button"
-                className={since === year ? 'chip chip-on' : 'chip'}
-                aria-pressed={since === year}
-                onClick={() => setSince(year)}
-              >
-                {year}
-              </button>
-            ))}
+        <>
+          <div className="transp-controls">
+            <div
+              className="chips roads-map-tools"
+              role="group"
+              aria-label="Vista del tráfico ferroviario"
+            >
+              <span className="roads-map-tools-label">Tráfico ferroviario: ver</span>
+              {(['anual', 'mensual'] as const).map((one) => (
+                <button
+                  key={one}
+                  type="button"
+                  className={grain === one ? 'chip chip-on' : 'chip'}
+                  aria-pressed={grain === one}
+                  onClick={() => setGrain(one)}
+                >
+                  {one === 'anual' ? 'Por año' : 'Por mes'}
+                </button>
+              ))}
+              <span className="roads-map-tools-label">Desde</span>
+              {years.map((year) => (
+                <button
+                  key={year}
+                  type="button"
+                  className={since === year ? 'chip chip-on' : 'chip'}
+                  aria-pressed={since === year}
+                  onClick={() => setSince(year)}
+                >
+                  {year}
+                </button>
+              ))}
+            </div>
+            <p className="panel-note">Los últimos años son preliminares. {trafficNote}</p>
           </div>
           <div className="grid-pair">
             {(['CARGA', 'PASAJEROS'] as const).map((service) => {
               const chart = chartOf(service);
+              const porAno = grain === 'anual' ? 'por año' : 'por mes';
               return (
-                <div key={service} className="panel">
-                  <p className="panel-sub">
-                    <b>
-                      {SERVICE_LABEL[service]} ({service === 'CARGA' ? 'toneladas' : 'personas'}
-                      {grain === 'anual' ? ' por año' : ' por mes'})
-                    </b>
-                  </p>
+                <Panel
+                  key={service}
+                  id={service === 'CARGA' ? 'trafico-carga' : 'trafico-pasajeros'}
+                  className="transp"
+                  title={
+                    service === 'CARGA'
+                      ? `Carga por ferrocarril, ${porAno} (toneladas)`
+                      : `Pasajeros por ferrocarril, ${porAno} (personas)`
+                  }
+                  lede="Sigue el filtro de red; el INE no lo da por departamento."
+                  source="Instituto Nacional de Estadística, con datos de la Empresa Ferroviaria Andina y la Oriental"
+                >
                   {chart.data.length > 1 ? (
                     <WorldLines
                       data={chart.data}
@@ -545,11 +568,11 @@ export function RailExplorer({ board }: { board: RailBoard }) {
                   ) : (
                     <div className="callout">Sin datos del INE para la red elegida.</div>
                   )}
-                </div>
+                </Panel>
               );
             })}
           </div>
-        </div>
+        </>
       ) : null}
     </>
   );

@@ -1,4 +1,5 @@
 import { Icon } from './icons';
+import { Panel } from '@/components/ui/panel';
 
 /**
  * Lo que se cobra por mover carga entre ciudades de Bolivia, citado.
@@ -101,16 +102,36 @@ const REFERENCES: readonly Reference[] = [
 
 export function FreightReferences() {
   return (
-    <div className="panel">
-      <div className="panel-head">
-        <h2>Flete entre ciudades de Bolivia: las tarifas que se han citado</h2>
-        <p className="panel-sub">
-          No hay serie oficial del flete interior: el INE publica las toneladas transportadas, no
-          lo que se cobra. Estas cifras son las que el transporte pesado y la prensa han dado, con
-          su fuente y su fecha; no son una serie y no se comparan entre sí. La columna «Por
-          tonelada» sólo se calcula donde la fuente da el viaje y la capacidad del camión.
-        </p>
-      </div>
+    <Panel
+      id="fletes-citados"
+      className="transp"
+      title="Flete entre ciudades de Bolivia: tarifas citadas (Bs o US$ por viaje, tonelada o quintal)"
+      lede="No hay serie oficial del flete interior: el INE publica las toneladas transportadas, no lo que se cobra. Estas cifras son las que el transporte pesado y la prensa han dado, con su fuente y su fecha; no son una serie y no se comparan entre sí."
+      meta={`${REFERENCES.length} citas`}
+      source="la fuente citada en cada fila: Bolivia Empresas, Red Uno, Transporte en Bolivia y MundoMarítimo"
+      data={{
+        unidad: 'según la fuente',
+        columnas: [
+          'Ruta',
+          'Qué se cobra',
+          'Lo que se dijo',
+          'Por tonelada',
+          'Fecha',
+          'Fuente',
+          'Enlace',
+        ],
+        filas: REFERENCES.map((one) => [
+          one.route,
+          one.what,
+          one.said,
+          one.perTonne,
+          one.when,
+          one.source,
+          one.url,
+        ]),
+        nota: 'La columna «Por tonelada» solo se calcula donde la fuente da el viaje y la capacidad del camión.',
+      }}
+    >
       <div className="table-wrap">
         <table className="grid-table">
           <thead>
@@ -141,11 +162,12 @@ export function FreightReferences() {
           </tbody>
         </table>
       </div>
-      <p className="panel-sub">
-        <Icon name="info" size={12} /> Para tener una serie propia haría falta una fuente que
-        publique la tarifa cada mes (la Cámara de Transporte Pesado o la ABC); si aparece, entra
+      <p className="panel-note">
+        La columna «Por tonelada» solo se calcula donde la fuente da el viaje y la capacidad del
+        camión. <Icon name="info" size={12} /> Para tener una serie propia haría falta una fuente
+        que publique la tarifa cada mes (la Cámara de Transporte Pesado o la ABC); si aparece, entra
         aquí en el mismo lugar.
       </p>
-    </div>
+    </Panel>
   );
 }
