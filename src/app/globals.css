@@ -9599,3 +9599,15 @@ button.download-btn {
   letter-spacing: 0.01em;
   color: var(--ink-soft);
 }
+
+/* === Macroeconomía · Bolivia ante el mundo, Variables exógenas y Series del BCB === */
+
+/* Los dos deslizadores de años del riel quedan separados por el mismo paso que el resto. */
+.rail-sec .rail-field + .rail-field {
+  margin-top: var(--s1);
+}
+
+/* Los paneles de «Bolivia y sus vecinos» respiran como los de una pestaña. */
+.panel-group > .panel-x {
+  margin-top: var(--s3);
+}
