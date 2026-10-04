@@ -2,10 +2,11 @@
 
 import { useEffect, useState } from 'react';
 import { ShareBars } from './charts';
+import { BarsKey } from './chart-kind';
 import { Icon } from './icons';
+import { Panel } from '@/components/ui/panel';
 import type { Choice } from '@/lib/choice';
 import type { TradeItem, TradeView } from '@/lib/trade-records';
-import { reportDownloadIntent } from '@/lib/analytics';
 
 /**
  * Las piezas que dibujan una vista de la base aduanera.
@@ -13,6 +14,10 @@ import { reportDownloadIntent } from '@/lib/analytics';
  * Separadas del explorador porque no saben nada de filtros ni de la API:
  * reciben filas ya sumadas y dicen qué hacer cuando el lector toca una.
  */
+
+/** Quién publica la base aduanera: el pie de cada panel de esta página. */
+export const SOURCE_ADUANA =
+  'Instituto Nacional de Estadística (INE), base aduanera de comercio exterior';
 
 const formatter = (decimals: number) =>
   new Intl.NumberFormat('es-BO', {
@@ -85,37 +90,82 @@ export const weightName = (flow: 'X' | 'M'): string => (flow === 'X' ? 'peso net
  * Un ránking: barras que filtran al tocarlas, o la tabla con variación y
  * valor unitario. La tabla es la misma información con más columnas, para
  * quien necesita la cifra y no la forma.
+ *
+ * Es un `Panel`: su menú «Descargar» baja las filas completas de la vista —valor,
+ * participación, último año, año previo, peso y valor unitario—, con el filtro
+ * escrito en la nota del archivo. Era el botón «Descargar CSV» de la cabecera de
+ * la página, que bajaba todas las vistas juntas; ahora cada panel baja la suya.
  */
 export function RankingPanel({
+  id,
   title,
-  sub,
+  lede,
+  note,
   view,
   chosen,
   onPick,
   flow,
   lastYear,
   controls,
+  context,
 }: {
+  id: string;
   title: string;
-  sub: string;
+  lede: string;
+  /** La lectura detallada, plegada bajo la figura. */
+  note?: string;
   view: TradeView | undefined;
   chosen: Choice;
   onPick?: (key: string, additive: boolean) => void;
   flow: 'X' | 'M';
   lastYear: number;
   controls?: React.ReactNode;
+  /** Qué periodo y qué filtros recortan la vista, para la nota del archivo que se baja. */
+  context: string;
 }) {
   const [kind, setKind] = useState<'barras' | 'tabla'>('barras');
   const room = useLabelRoom();
   const items = view?.items ?? [];
   const total = items.reduce((sum, item) => sum + item.usd, 0);
+  const fine = flow === 'X' && items.some((item) => (item.fineKg ?? 0) > 0);
+  const toMillions = (usd: number | null): number | null => (usd === null ? null : usd / 1_000_000);
+
   return (
-    <div className="panel">
-      <div className="panel-head panel-head-kind">
-        <div>
-          <h2>{title}</h2>
-          <p className="panel-sub">{sub}</p>
-        </div>
+    <Panel
+      id={id}
+      title={title}
+      lede={lede}
+      source={SOURCE_ADUANA}
+      data={() => ({
+        etiqueta: 'Detalle',
+        unidad: 'millones de USD',
+        columnas: [
+          'Nombre',
+          'Código',
+          'Valor (millones de USD)',
+          'Participación (%)',
+          `Valor ${lastYear} (millones de USD)`,
+          `Valor ${lastYear - 1} (millones de USD)`,
+          `Peso (toneladas, ${weightName(flow)})`,
+          'USD por kg',
+          ...(fine ? ['Toneladas finas'] : []),
+        ],
+        filas: items.map((item) => [
+          item.label,
+          item.key ?? '',
+          toMillions(item.usd),
+          total ? (item.usd / total) * 100 : null,
+          toMillions(item.lastUsd),
+          toMillions(item.priorUsd),
+          item.kg / 1000,
+          item.kg > 0 ? item.usd / item.kg : null,
+          ...(fine ? [(item.fineKg ?? 0) / 1000] : []),
+        ]),
+        nota: context,
+      })}
+    >
+      <div className="fx-filters">
+        {controls}
         <div className="chart-kind" role="group" aria-label="Cómo se muestra">
           {(['barras', 'tabla'] as const).map((option) => (
             <button
@@ -131,35 +181,43 @@ export function RankingPanel({
           ))}
         </div>
       </div>
-      {controls}
       {view?.unavailable ? (
         <div className="callout">{view.unavailable}</div>
       ) : !items.length ? (
         <div className="callout">Sin comercio declarado con estos filtros.</div>
       ) : kind === 'barras' ? (
-        <ShareBars
-          data={items.map((item) => ({
-            name: item.label.length > room ? `${item.label.slice(0, room - 1)}…` : item.label,
-            value: item.usd / 1_000_000,
-            ...(item.key && onPick ? { pick: item.key } : {}),
-            ...(item.key && chosen.has(item.key) ? { emphasis: true } : {}),
-            parts: [
-              {
-                name: 'Participación en lo dibujado',
-                value: total ? (item.usd / total) * 100 : 0,
-                unit: '%',
-              },
-              { name: `Toneladas (${weightName(flow)})`, value: item.kg / 1000 },
-            ],
-          }))}
-          unit=" M USD"
-          height={Math.max(240, items.length * 24)}
-          {...(onPick ? { onPick } : {})}
-        />
+        <>
+          <ShareBars
+            data={items.map((item) => ({
+              name: item.label.length > room ? `${item.label.slice(0, room - 1)}…` : item.label,
+              value: item.usd / 1_000_000,
+              ...(item.key && onPick ? { pick: item.key } : {}),
+              ...(item.key && chosen.has(item.key) ? { emphasis: true } : {}),
+              parts: [
+                {
+                  name: 'Participación en lo dibujado',
+                  value: total ? (item.usd / total) * 100 : 0,
+                  unit: '%',
+                },
+                { name: `Toneladas (${weightName(flow)})`, value: item.kg / 1000 },
+              ],
+            }))}
+            unit=" M USD"
+            height={Math.max(240, items.length * 24)}
+            {...(onPick ? { onPick } : {})}
+          />
+          <BarsKey label={`Valor ${flow === 'X' ? 'FOB' : 'CIF en frontera'}, millones de USD`} />
+        </>
       ) : (
         <RankingTable items={items} total={total} flow={flow} lastYear={lastYear} />
       )}
-    </div>
+      {note ? (
+        <details className="panel-note">
+          <summary>Cómo leerlo</summary>
+          <p>{note}</p>
+        </details>
+      ) : null}
+    </Panel>
   );
 }
 
@@ -208,54 +266,5 @@ export function RankingTable({
         </tbody>
       </table>
     </div>
-  );
-}
-
-/** Descarga lo que se ve —todas las vistas— como CSV, con el filtro escrito arriba. */
-export function DownloadViews({
-  views,
-  names,
-  context,
-}: {
-  views: Record<string, TradeView> | null;
-  names: Record<string, string>;
-  context: string;
-}) {
-  if (!views) return null;
-  const download = () => {
-    const quote = (text: string) => `"${text.replace(/"/gu, '""')}"`;
-    const lines = [
-      `# ${context}`,
-      'vista,clave,nombre,usd,kg,kg_fino,usd_ultimo_anio,usd_anio_previo',
-    ];
-    for (const [name, view] of Object.entries(views)) {
-      for (const item of view.items) {
-        lines.push(
-          [
-            quote(names[name] ?? name),
-            quote(item.key ?? ''),
-            quote(item.label),
-            item.usd,
-            item.kg,
-            item.fineKg ?? '',
-            item.lastUsd ?? '',
-            item.priorUsd ?? '',
-          ].join(','),
-        );
-      }
-    }
-    reportDownloadIntent('comercio-ine-csv');
-    const blob = new Blob([`﻿${lines.join('\n')}\n`], { type: 'text/csv;charset=utf-8' });
-    const link = document.createElement('a');
-    link.href = URL.createObjectURL(blob);
-    link.download = 'comercio-exterior-ine.csv';
-    link.click();
-    URL.revokeObjectURL(link.href);
-  };
-  return (
-    <button type="button" className="chip" onClick={download}>
-      <Icon name="descarga" size={13} />
-      Descargar CSV
-    </button>
   );
 }

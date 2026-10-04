@@ -247,10 +247,9 @@ export function TradeRail({
             max={to}
             value={from}
             onChange={(event) => onYears(Math.min(Number(event.target.value), to), to)}
-            style={{ width: '100%' }}
           />
         </div>
-        <div className="rail-field" style={{ marginTop: '0.4rem' }}>
+        <div className="rail-field rail-field-next">
           <input
             type="range"
             aria-label={`Hasta qué año: ${to}`}
@@ -258,14 +257,10 @@ export function TradeRail({
             max={bounds.last}
             value={to}
             onChange={(event) => onYears(from, Math.max(Number(event.target.value), from))}
-            style={{ width: '100%' }}
           />
         </div>
         {bounds.lastMonth < 12 ? (
-          <label
-            className="rail-hint"
-            style={{ display: 'flex', gap: '0.4rem', alignItems: 'center', marginTop: '0.4rem' }}
-          >
+          <label className="rail-hint rail-check">
             <input
               type="checkbox"
               checked={sameMonths}

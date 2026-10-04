@@ -11,8 +11,8 @@ import {
   without,
 } from '@/lib/choice';
 import type { Choice } from '@/lib/choice';
-import { MacroChart, ShareBars, WorldLines, seriesTone } from './charts';
-import { ChartKindSwitch, ShareSquares } from './chart-kind';
+import { ChartLegend, MacroChart, ShareBars, WorldLines, seriesTone } from './charts';
+import { BarsKey, ChartKindSwitch, ShareSquares } from './chart-kind';
 import type { ChartKind } from './chart-kind';
 import { WorldTradeMap } from './world-trade-map';
 import { DerivedReading } from './derived-reading';
@@ -21,6 +21,7 @@ import { Icon } from './icons';
 import type { IconName } from './icons';
 import { onOneAxis } from './department-lines';
 import type { NamedLine } from './department-lines';
+import { Panel } from '@/components/ui/panel';
 import { nationalProductMix, nationalTopProducts } from '@/lib/departments-board';
 import type { DepartmentBoard, ProductLine } from '@/lib/departments-board';
 import {
@@ -58,6 +59,12 @@ const number = (value: number, decimals = 1): string =>
 /** La cuota, con una decimal y el signo separado como se escribe en Bolivia. */
 const percent = (value: number): string => `${number(value, 1)} %`;
 
+/** Quién publica cada parte del capítulo: el pie de cada panel lo dice, sin inventar otra. */
+const SOURCE_INE = 'Instituto Nacional de Estadística (INE), comercio exterior por departamento';
+const SOURCE_COMTRADE = 'Naciones Unidas (Comtrade), comercio de bienes declarado por Bolivia';
+const SOURCE_EXPORTERS =
+  'Agregador comercial de registros aduaneros (orden y cuota, no dólares); ver «Método»';
+
 /** Cuántos productos entran en la barra sin que deje de leerse. */
 const SHOWN_PRODUCTS = 15;
 
@@ -72,7 +79,9 @@ const DEFAULT_DETAIL_SHOWN = 8;
 
 /** «El país elegido» o «los 3 países elegidos», sin el «1 países» de un plural mecánico. */
 const pickedLabel = (count: number, singular: string, plural: string): string =>
-  count === 1 ? `El ${singular} elegido en el filtro` : `Los ${count} ${plural} elegidos en el filtro`;
+  count === 1
+    ? `El ${singular} elegido en el filtro`
+    : `Los ${count} ${plural} elegidos en el filtro`;
 
 const CONCLUSION_ICON: Record<string, IconName> = {
   producto: 'camion',
@@ -109,8 +118,10 @@ function yearBounds(
   if (tradeBoard) {
     for (const point of tradeBoard.exportsUsd) years.push(point.year);
     for (const point of tradeBoard.importsUsd) years.push(point.year);
-    for (const entry of tradeBoard.partners) for (const point of entry.points) years.push(point.year);
-    for (const entry of tradeBoard.products) for (const point of entry.points) years.push(point.year);
+    for (const entry of tradeBoard.partners)
+      for (const point of entry.points) years.push(point.year);
+    for (const entry of tradeBoard.products)
+      for (const point of entry.points) years.push(point.year);
   }
   if (!years.length) return { min: 1992, max: new Date().getFullYear() };
   return { min: Math.min(...years), max: Math.max(...years) };
@@ -121,28 +132,18 @@ const toMillions = (points: readonly { year: number; value: number }[]) =>
   points.map((point) => ({ year: point.year, value: point.value / 1_000_000 }));
 
 /** La parte que ya existe: el producto nacional, sumando los nueve departamentos. */
-function ProductChapter({
-  board,
-  from,
-  to,
-}: {
-  board: DepartmentBoard;
-  from: number;
-  to: number;
-}) {
+function ProductChapter({ board, from, to }: { board: DepartmentBoard; from: number; to: number }) {
   const year = board.tradeYear ? Math.min(board.tradeYear, to) : null;
   const mixUsd = useMemo(() => nationalProductMix(board, year, 'usd'), [board, year]);
   const mixTonnes = useMemo(() => nationalProductMix(board, year, 'tonnes'), [board, year]);
   const leading = useMemo(() => nationalTopProducts(board, year, TOP), [board, year]);
   const leadingCropped = useMemo(
     () =>
-      leading.map(
-        (line): ProductLine => ({
-          ...line,
-          usd: line.usd.filter((point) => point.year >= from && point.year <= to),
-          tonnes: line.tonnes.filter((point) => point.year >= from && point.year <= to),
-        }),
-      ),
+      leading.map((line): ProductLine => ({
+        ...line,
+        usd: line.usd.filter((point) => point.year >= from && point.year <= to),
+        tonnes: line.tonnes.filter((point) => point.year >= from && point.year <= to),
+      })),
     [leading, from, to],
   );
   const leadingUsd = useMemo(() => productLines(leadingCropped, 'usd'), [leadingCropped]);
@@ -169,57 +170,57 @@ function ProductChapter({
   }
 
   return (
-    <div className="grid-three">
-      <div className="panel">
-        <div className="panel-head panel-head-kind">
-          <div>
-            <h2>Qué exporta Bolivia, por producto ({year}, millones de USD)</h2>
-            <p className="panel-sub">
-              Los {Math.min(SHOWN_PRODUCTS, mixUsd.length)} productos principales de{' '}
-              {mixUsd.length} que el INE publica, sumando los nueve departamentos. Es el total
-              nacional que no viene como una fila abierta en el cuadro original.
-            </p>
-          </div>
+    <div className="grid-pair">
+      <Panel
+        id="comercio-productos-usd"
+        title={`Qué exporta Bolivia, por producto (millones de USD, ${year})`}
+        lede={`Los ${Math.min(SHOWN_PRODUCTS, mixUsd.length)} productos principales de ${mixUsd.length} que el INE publica, sumando los nueve departamentos: el total nacional no viene como una fila abierta en el cuadro original.`}
+        source={SOURCE_INE}
+      >
+        <div className="fx-filters">
           <ChartKindSwitch value={usdKind} onChange={setUsdKind} kinds={['barras', 'cuadrados']} />
         </div>
         {usdKind === 'cuadrados' ? (
           <ShareSquares data={mixUsd.slice(0, SHOWN_PRODUCTS)} unit="MM USD" height={420} />
         ) : (
-          <ShareBars data={mixUsd.slice(0, SHOWN_PRODUCTS)} unit=" MM USD" height={420} />
+          <>
+            <ShareBars data={mixUsd.slice(0, SHOWN_PRODUCTS)} unit=" MM USD" height={420} />
+            <BarsKey label={`Valor exportado, millones de USD (${year})`} />
+          </>
         )}
-      </div>
-      <div className="panel">
-        <div className="panel-head panel-head-kind">
-          <div>
-            <h2>Cuánto pesa lo que exporta (toneladas, {year})</h2>
-            <p className="panel-sub">
-              El mismo año en peso neto. El orden cambia frente al de dólares: el gas no pesa nada
-              en un puerto y el mineral pesa mucho sin valer lo mismo.
-            </p>
-          </div>
-          <ChartKindSwitch value={tonnesKind} onChange={setTonnesKind} kinds={['barras', 'cuadrados']} />
+      </Panel>
+      <Panel
+        id="comercio-productos-toneladas"
+        title={`Cuánto pesa lo que exporta (toneladas, ${year})`}
+        lede="El mismo año en peso neto: el orden cambia frente al de dólares, porque el gas no pesa nada en un puerto y el mineral pesa mucho sin valer lo mismo."
+        source={SOURCE_INE}
+      >
+        <div className="fx-filters">
+          <ChartKindSwitch
+            value={tonnesKind}
+            onChange={setTonnesKind}
+            kinds={['barras', 'cuadrados']}
+          />
         </div>
         {mixTonnes.length ? (
           tonnesKind === 'cuadrados' ? (
             <ShareSquares data={mixTonnes.slice(0, SHOWN_PRODUCTS)} unit="t" height={420} />
           ) : (
-            <ShareBars data={mixTonnes.slice(0, SHOWN_PRODUCTS)} unit=" t" height={420} />
+            <>
+              <ShareBars data={mixTonnes.slice(0, SHOWN_PRODUCTS)} unit=" t" height={420} />
+              <BarsKey label={`Peso exportado, toneladas (${year})`} />
+            </>
           )
         ) : (
           <div className="callout">Sin peso publicado para {year}.</div>
         )}
-      </div>
-      <div className="panel">
-        <div className="panel-head">
-          <h2>
-            Los {leading.length} productos principales en el tiempo (millones de USD, {from}-{to})
-          </h2>
-          <p className="panel-sub">
-            Los que más valieron en {year}, seguidos hacia atrás dentro del rango de años elegido.
-            «Otros productos» queda fuera: es el residuo con el que cierra cada departamento, no un
-            producto que se pueda seguir.
-          </p>
-        </div>
+      </Panel>
+      <Panel
+        id="comercio-principales-usd"
+        title={`Los ${leading.length} productos principales en el tiempo (millones de USD, ${from}-${to})`}
+        lede={`Los que más valieron en ${year}, seguidos hacia atrás dentro del rango de años elegido.`}
+        source={SOURCE_INE}
+      >
         {leadingUsd.data.length > 1 ? (
           <WorldLines
             data={leadingUsd.data}
@@ -230,15 +231,20 @@ function ProductChapter({
         ) : (
           <div className="callout">Sin serie suficiente para dibujar en este rango de años.</div>
         )}
-      </div>
-      <div className="panel">
-        <div className="panel-head">
-          <h2>Los mismos productos, en peso (toneladas, {from}-{to})</h2>
-          <p className="panel-sub">
-            Separa precio de volumen: una línea de dólares que sube mientras la de toneladas no
-            dice que el mismo producto se vendió más caro, no que salió más.
+        <details className="panel-note">
+          <summary>Cómo leerlo</summary>
+          <p>
+            «Otros productos» queda fuera: es el residuo con el que cierra cada departamento, no un
+            producto que se pueda seguir.
           </p>
-        </div>
+        </details>
+      </Panel>
+      <Panel
+        id="comercio-principales-toneladas"
+        title={`Los mismos productos, en peso (toneladas, ${from}-${to})`}
+        lede="Separa precio de volumen: una línea de dólares que sube mientras la de toneladas no dice que el mismo producto se vendió más caro, no que salió más."
+        source={SOURCE_INE}
+      >
         {leadingTonnes.data.length > 1 ? (
           <WorldLines
             data={leadingTonnes.data}
@@ -249,7 +255,7 @@ function ProductChapter({
         ) : (
           <div className="callout">Sin serie suficiente para dibujar en este rango de años.</div>
         )}
-      </div>
+      </Panel>
     </div>
   );
 }
@@ -264,8 +270,12 @@ function ComtradeChapter({
   from: number;
   to: number;
 }) {
-  const exportsUsd = (board?.exportsUsd ?? []).filter((point) => point.year >= from && point.year <= to);
-  const importsUsd = (board?.importsUsd ?? []).filter((point) => point.year >= from && point.year <= to);
+  const exportsUsd = (board?.exportsUsd ?? []).filter(
+    (point) => point.year >= from && point.year <= to,
+  );
+  const importsUsd = (board?.importsUsd ?? []).filter(
+    (point) => point.year >= from && point.year <= to,
+  );
 
   if (!board || (!board.exportsUsd.length && !board.importsUsd.length)) {
     return (
@@ -278,14 +288,12 @@ function ComtradeChapter({
 
   return (
     <div className="grid-two">
-      <div className="panel">
-        <div className="panel-head">
-          <h2>Exportaciones de bienes ante Naciones Unidas (millones de USD)</h2>
-          <p className="panel-sub">
-            Lo que Bolivia declaró a Comtrade desde 1992, agregado: sin producto ni socio. Coincide
-            con el «total declarado» del INE por departamento en los años en que ambos publican.
-          </p>
-        </div>
+      <Panel
+        id="comercio-exportaciones-total"
+        title="Exportaciones de bienes ante Naciones Unidas (millones de USD)"
+        lede="Lo que Bolivia declaró a Comtrade desde 1992, agregado y sin producto ni socio."
+        source={SOURCE_COMTRADE}
+      >
         {exportsUsd.length > 1 ? (
           <MacroChart
             data={asMacroSeries(exportsUsd).map((point) => ({
@@ -299,15 +307,20 @@ function ComtradeChapter({
         ) : (
           <div className="callout">Sin serie de exportaciones agregadas en este rango de años.</div>
         )}
-      </div>
-      <div className="panel">
-        <div className="panel-head">
-          <h2>Importaciones de bienes ante Naciones Unidas (millones de USD)</h2>
-          <p className="panel-sub">
-            Lo que compró Bolivia afuera, mismo agregado y misma fuente: la mitad del comercio que
-            el ránking de exportadoras, más abajo, nunca puede mostrar.
+        <details className="panel-note">
+          <summary>Cómo leerlo</summary>
+          <p>
+            Coincide con el «total declarado» del INE por departamento en los años en que ambos
+            publican.
           </p>
-        </div>
+        </details>
+      </Panel>
+      <Panel
+        id="comercio-importaciones-total"
+        title="Importaciones de bienes ante Naciones Unidas (millones de USD)"
+        lede="Lo que compró Bolivia afuera, con el mismo agregado y la misma fuente."
+        source={SOURCE_COMTRADE}
+      >
         {importsUsd.length > 1 ? (
           <MacroChart
             data={asMacroSeries(importsUsd).map((point) => ({
@@ -321,15 +334,21 @@ function ComtradeChapter({
         ) : (
           <div className="callout">Sin serie de importaciones agregadas en este rango de años.</div>
         )}
-      </div>
+        <details className="panel-note">
+          <summary>Cómo leerlo</summary>
+          <p>
+            Es la mitad del comercio que el ránking de exportadoras, más abajo, nunca puede mostrar.
+          </p>
+        </details>
+      </Panel>
     </div>
   );
 }
 
 /** Las líneas de un grupo de socios o de capítulos, en millones de USD. */
-function detailLines<T extends { code: string; label: string; points: { year: number; value: number }[] }>(
-  entries: readonly T[],
-): NamedLine[] {
+function detailLines<
+  T extends { code: string; label: string; points: { year: number; value: number }[] },
+>(entries: readonly T[]): NamedLine[] {
   return entries.map((entry, index) => ({
     key: entry.code,
     label: entry.label,
@@ -379,6 +398,7 @@ interface DetailEntry {
  * contra qué se compara. Tocar una barra o un cuadrado lo pone en el filtro.
  */
 function DetailPanel({
+  id,
   subject,
   noun,
   entries,
@@ -388,6 +408,7 @@ function DetailPanel({
   to,
   hint,
 }: {
+  id: string;
   subject: string;
   noun: { singular: string; plural: string };
   entries: readonly DetailEntry[];
@@ -419,24 +440,26 @@ function DetailPanel({
       ? `${subject} (millones de USD, ${from}-${to})`
       : `${subject} (millones de USD, ${year ?? to})`;
 
-  const sub =
+  const lede =
     kind === 'lineas'
       ? chosen.size
         ? `${pickedLabel(lineEntries.length, noun.singular, noun.plural)}.`
         : `Los ${lineEntries.length} ${noun.plural} con mayor valor reciente, de ${entries.length} publicados; ${hint}`
       : `Los ${slices.length} ${noun.plural} publicados en ${year ?? to}${
           chosen.size ? ', con los elegidos en el filtro marcados' : ''
-        }. Tocá uno para ponerlo en el filtro; Ctrl/⌘ suma.${
+        }.`;
+
+  /* Cómo tocar y cómo leer el área: la lectura detallada, plegada bajo la figura. */
+  const note =
+    kind === 'lineas'
+      ? null
+      : `Tocá uno para ponerlo en el filtro; Ctrl/⌘ suma.${
           kind === 'cuadrados' ? ' El área es el valor y el porcentaje es sobre lo dibujado.' : ''
         }`;
 
   return (
-    <div className="panel">
-      <div className="panel-head panel-head-kind">
-        <div>
-          <h2>{title}</h2>
-          <p className="panel-sub">{sub}</p>
-        </div>
+    <Panel id={id} title={title} lede={lede} source={SOURCE_COMTRADE}>
+      <div className="fx-filters">
         <ChartKindSwitch value={kind} onChange={setKind} />
       </div>
       {kind === 'lineas' ? (
@@ -457,21 +480,42 @@ function DetailPanel({
       ) : !slices.length ? (
         <div className="callout">Sin comercio declarado en {year ?? to}.</div>
       ) : kind === 'barras' ? (
-        <ShareBars data={slices} unit=" MM USD" height={Math.max(260, slices.length * 24)} onPick={onPick} />
+        <>
+          <ShareBars
+            data={slices}
+            unit=" MM USD"
+            height={Math.max(260, slices.length * 24)}
+            onPick={onPick}
+          />
+          <BarsKey label={`Valor declarado, millones de USD (${year ?? to})`} />
+        </>
       ) : (
         <ShareSquares data={slices} unit="MM USD" height={380} onPick={onPick} />
       )}
-    </div>
+      {note ? (
+        <details className="panel-note">
+          <summary>Cómo leerlo</summary>
+          <p>{note}</p>
+        </details>
+      ) : null}
+    </Panel>
   );
 }
 
 /** Separa un grupo de filas por flujo, recortadas al rango de años. */
-function byFlow(rows: readonly DetailEntry[], from: number, to: number): Record<'X' | 'M', DetailEntry[]> {
+function byFlow(
+  rows: readonly DetailEntry[],
+  from: number,
+  to: number,
+): Record<'X' | 'M', DetailEntry[]> {
   const cropped = rows.map((row) => ({
     ...row,
     points: row.points.filter((point) => point.year >= from && point.year <= to),
   }));
-  return { X: cropped.filter((row) => row.flow === 'X'), M: cropped.filter((row) => row.flow === 'M') };
+  return {
+    X: cropped.filter((row) => row.flow === 'X'),
+    M: cropped.filter((row) => row.flow === 'M'),
+  };
 }
 
 /** El detalle por socio comercial: qué países compran y qué países venden. */
@@ -517,6 +561,7 @@ function PartnerChapter({
   return (
     <div className="grid-two">
       <DetailPanel
+        id="comercio-socios-vende"
         subject="A quién le vende Bolivia"
         noun={noun}
         entries={flows.X}
@@ -527,6 +572,7 @@ function PartnerChapter({
         hint="elegí uno o varios en el filtro de país, o en el mapa, para ver exactamente esos."
       />
       <DetailPanel
+        id="comercio-socios-compra"
         subject="A quién le compra Bolivia"
         noun={noun}
         entries={flows.M}
@@ -583,6 +629,7 @@ function ProductDetailChapter({
   return (
     <div className="grid-two">
       <DetailPanel
+        id="comercio-capitulos-exporta"
         subject="Qué capítulos exporta más Bolivia"
         noun={noun}
         entries={flows.X}
@@ -593,6 +640,7 @@ function ProductDetailChapter({
         hint="elegí uno o varios en el filtro de producto para ver exactamente esos."
       />
       <DetailPanel
+        id="comercio-capitulos-importa"
         subject="Qué capítulos importa más Bolivia"
         noun={noun}
         entries={flows.M}
@@ -635,12 +683,10 @@ function WorldChapter({
 
   const inRange = useMemo(
     () =>
-      (board?.partners ?? []).map(
-        (entry): Partner => ({
-          ...entry,
-          points: entry.points.filter((point) => point.year >= from && point.year <= to),
-        }),
-      ),
+      (board?.partners ?? []).map((entry): Partner => ({
+        ...entry,
+        points: entry.points.filter((point) => point.year >= from && point.year <= to),
+      })),
     [board, from, to],
   );
 
@@ -663,53 +709,56 @@ function WorldChapter({
   const verb = flow === 'X' ? 'le vende' : 'le compra';
 
   return (
-    <div className="panel">
-      <div className="panel-head panel-head-kind">
-        <div>
-          <h2>
-            A qué países {verb} Bolivia: mapa de calor (millones de USD, {year ?? to})
-          </h2>
-          <p className="panel-sub">
-            El tono dice cuánto, y la clave de debajo dice qué extremo es el mayor. Tocá un país para ponerlo en el filtro de la izquierda
-            y abrir su ficha aquí debajo; Ctrl/⌘ suma varios. El año es el último del rango con
-            dato.
+    <>
+      <Panel
+        id="comercio-mapa"
+        title={`A qué países ${verb} Bolivia: mapa de calor (millones de USD, ${year ?? to})`}
+        lede="El tono dice cuánto; toca un país para ponerlo en el filtro de la izquierda y abrir su ficha aquí debajo."
+        source={SOURCE_COMTRADE}
+      >
+        <div className="fx-filters">
+          <div className="chart-kind" role="group" aria-label="Flujo que pinta el mapa">
+            {(
+              [
+                ['X', 'Exportaciones'],
+                ['M', 'Importaciones'],
+              ] as const
+            ).map(([key, label]) => (
+              <button
+                key={key}
+                type="button"
+                className={flow === key ? 'chip chip-on' : 'chip'}
+                aria-pressed={flow === key}
+                onClick={() => setFlow(key)}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+        </div>
+        <WorldTradeMap
+          rows={rows}
+          unit="MM USD"
+          label={`${flow === 'X' ? 'exportaciones' : 'importaciones'} de Bolivia por país en ${year ?? to}`}
+          picked={country}
+          onPick={onPick}
+        />
+        {focus ? null : (
+          <p className="chart-note">
+            Todavía no elegiste ningún país: la ficha con su comercio en el tiempo aparece al tocar
+            uno en el mapa o en el filtro.
           </p>
-        </div>
-        <div className="chart-kind" role="group" aria-label="Flujo que pinta el mapa">
-          {(
-            [
-              ['X', 'Exportaciones'],
-              ['M', 'Importaciones'],
-            ] as const
-          ).map(([key, label]) => (
-            <button
-              key={key}
-              type="button"
-              className={flow === key ? 'chip chip-on' : 'chip'}
-              aria-pressed={flow === key}
-              onClick={() => setFlow(key)}
-            >
-              {label}
-            </button>
-          ))}
-        </div>
-      </div>
-      <WorldTradeMap
-        rows={rows}
-        unit="MM USD"
-        label={`${flow === 'X' ? 'exportaciones' : 'importaciones'} de Bolivia por país en ${year ?? to}`}
-        picked={country}
-        onPick={onPick}
-      />
-      {focus ? (
-        <CountryCard board={board} entries={inRange} token={focus} />
-      ) : (
-        <p className="chart-note">
-          Todavía no elegiste ningún país: la ficha con su comercio en el tiempo aparece al tocar uno
-          en el mapa o en el filtro.
-        </p>
-      )}
-    </div>
+        )}
+        <details className="panel-note">
+          <summary>Cómo leerlo</summary>
+          <p>
+            La clave de debajo del mapa dice qué extremo es el mayor. Ctrl/⌘ suma varios países. El
+            año es el último del rango con dato.
+          </p>
+        </details>
+      </Panel>
+      {focus ? <CountryCard board={board} entries={inRange} token={focus} /> : null}
+    </>
   );
 }
 
@@ -738,7 +787,8 @@ function CountryCard({
   const rankOf = (flow: 'X' | 'M', value: number): number =>
     entries.filter(
       (entry) =>
-        entry.flow === flow && (entry.points.find((point) => point.year === year)?.value ?? 0) > value,
+        entry.flow === flow &&
+        (entry.points.find((point) => point.year === year)?.value ?? 0) > value,
     ).length + 1;
 
   const named: NamedLine[] = [];
@@ -764,11 +814,32 @@ function CountryCard({
   const balance = exportValue !== null && importValue !== null ? exportValue - importValue : null;
 
   return (
-    <div className="country-card">
-      <h3>
-        Bolivia y {name}
-        {year ? `, ${year}` : ''} (millones de USD)
-      </h3>
+    <Panel
+      id="comercio-ficha-pais"
+      title={`Bolivia y ${name}${year ? `, ${year}` : ''} (millones de USD)`}
+      lede="Lo que Bolivia le vende y le compra, qué parte del total es y cómo cambió en el tiempo."
+      source={SOURCE_COMTRADE}
+      data={() => ({
+        etiqueta: `Cifras ${year ?? ''}`.trim(),
+        unidad: 'millones de USD',
+        columnas: ['Medida', 'Valor (millones de USD)', 'Parte del total (%)', 'Puesto'],
+        filas: [
+          [
+            'Bolivia le vende',
+            exportValue === null ? null : exportValue / 1_000_000,
+            exportValue !== null && exportTotal ? (exportValue / exportTotal) * 100 : null,
+            exportValue === null ? null : rankOf('X', exportValue),
+          ],
+          [
+            'Bolivia le compra',
+            importValue === null ? null : importValue / 1_000_000,
+            importValue !== null && importTotal ? (importValue / importTotal) * 100 : null,
+            importValue === null ? null : rankOf('M', importValue),
+          ],
+          ['Saldo (vende menos compra)', balance === null ? null : balance / 1_000_000, null, null],
+        ],
+      })}
+    >
       <dl className="country-figures">
         <div>
           <dt>Le vende</dt>
@@ -822,7 +893,7 @@ function CountryCard({
         INE sí los cruza: en «Detalle aduanero (INE)» el mismo mapa, con todos los países, abre una
         ficha con los productos y los departamentos de cada uno.
       </p>
-    </div>
+    </Panel>
   );
 }
 
@@ -849,32 +920,40 @@ function ExportersRanking({ board }: { board: ExportersBoard }) {
   const topTen = concentration(board, 10);
 
   return (
-    <div className="panel">
-      <div className="panel-head">
-        <h2>Quién exporta más</h2>
-        <p className="panel-sub">
-          Orden y cuota de las cien primeras exportadoras en la gestión {board.exportYear ?? '—'}.
-          Las diez primeras concentran el {percent(topTen)} de lo exportado.
-        </p>
-      </div>
+    <Panel
+      id="comercio-exportadoras"
+      title={`Quién exporta más (% de las exportaciones, gestión ${board.exportYear ?? '—'})`}
+      lede={`Orden y cuota de las cien primeras exportadoras; las diez primeras concentran el ${percent(topTen)} de lo exportado.`}
+      source={SOURCE_EXPORTERS}
+    >
       <div className="callout">
         <strong>Bolivia no publica sus exportaciones por empresa.</strong> El INE llega a producto,
         departamento y país de destino —el panorama de arriba—; la Aduana Nacional publica
-        agregados; el Anuario de Minería separa por actor productivo —estatal, privado,
-        cooperativo— pero nunca por razón social, porque la declaración aduanera individual está
-        amparada por reserva. Esta lista viene de un agregador comercial de registros aduaneros, y
-        de ella se publica <strong>el orden y la cuota, no los dólares</strong>: el total que esa
-        misma fuente declara para {board.exportYear ?? 'la gestión'} no cuadra con el del INE y no
-        dice sobre qué base está calculado.
+        agregados; el Anuario de Minería separa por actor productivo —estatal, privado, cooperativo—
+        pero nunca por razón social, porque la declaración aduanera individual está amparada por
+        reserva. Esta lista viene de un agregador comercial de registros aduaneros, y de ella se
+        publica <strong>el orden y la cuota, no los dólares</strong>: el total que esa misma fuente
+        declara para {board.exportYear ?? 'la gestión'} no cuadra con el del INE y no dice sobre qué
+        base está calculado.
       </div>
       <ShareBars data={bars} unit="%" height={520} />
-      <p className="panel-sub">
+      <ChartLegend
+        items={
+          marked
+            ? [
+                { color: 'var(--official)', label: 'Cuota (%) de las que también midió Merco' },
+                { color: 'var(--series-rest)', label: 'Cuota (%) del resto' },
+              ]
+            : [{ color: 'var(--official)', label: 'Cuota de las exportaciones (%)' }]
+        }
+      />
+      <p className="chart-note">
         Se dibujan las {Math.min(SHOWN_EXPORTERS, board.exporters.length)} primeras de{' '}
         {board.exporters.length}. Las barras marcadas son las que además midió el monitor de
-        reputación Merco en alguna de sus ediciones: {marked} aquí, {board.crossings.length} en la lista entera. El cruce
-        completo está en la pestaña «Reputación empresarial».
+        reputación Merco en alguna de sus ediciones: {marked} aquí, {board.crossings.length} en la
+        lista entera. El cruce completo está en la pestaña «Reputación empresarial».
       </p>
-    </div>
+    </Panel>
   );
 }
 
@@ -896,7 +975,10 @@ export function ForeignTradeExplorer({
     [departmentBoard, tradeBoard],
   );
 
-  const bounds = useMemo(() => yearBounds(departmentBoard, tradeBoard), [departmentBoard, tradeBoard]);
+  const bounds = useMemo(
+    () => yearBounds(departmentBoard, tradeBoard),
+    [departmentBoard, tradeBoard],
+  );
   const countryChoices = useMemo(
     () => (tradeBoard ? partnerOptions(tradeBoard) : []),
     [tradeBoard],
@@ -915,7 +997,8 @@ export function ForeignTradeExplorer({
   const from = yearFrom ?? bounds.min;
   const to = yearTo ?? bounds.max;
 
-  const active = counts(country) + counts(chapter) + (from !== bounds.min ? 1 : 0) + (to !== bounds.max ? 1 : 0);
+  const active =
+    counts(country) + counts(chapter) + (from !== bounds.min ? 1 : 0) + (to !== bounds.max ? 1 : 0);
 
   /*
    * País y producto conviven a propósito: elegir uno no apaga el otro. Pero el
@@ -939,31 +1022,30 @@ export function ForeignTradeExplorer({
 
   return (
     <>
-      <div className="panel">
-        <div className="panel-head">
-          <h2>Comercio exterior: qué vende Bolivia, a quién, y quién lo vende</h2>
-          <p className="panel-sub">
+      <header className="page-intro">
+        <h3 className="page-intro-title">Qué vende Bolivia, a quién, y quién lo vende</h3>
+        <p className="page-intro-lede">
+          Producto, país y empresa en una sola página: el panorama del comercio exterior y, al
+          final, el ránking de quién exporta más.
+        </p>
+        <details className="panel-note">
+          <summary>Qué cubre esta página y qué no</summary>
+          <p>
             Producto, país y empresa en un mismo capítulo: el total nacional por producto desde
             2010, el agregado de exportaciones e importaciones ante Naciones Unidas desde 1992, el
             desglose por socio y por capítulo desde 2020, y el ránking de quién exporta más. Van
-            juntos porque contestan la misma pregunta —qué comercia Bolivia con el resto del
-            mundo, y quién lo hace— con las piezas que cada fuente sí puede sostener.
+            juntos porque contestan la misma pregunta —qué comercia Bolivia con el resto del mundo,
+            y quién lo hace— con las piezas que cada fuente sí puede sostener.
           </p>
-        </div>
-        <div className="callout">
-          <strong>Bolivia declara su comercio exterior en dólares estadounidenses (USD).</strong>{' '}
-          Lo que hay: producto, país y año, con fuentes oficiales; el detalle por partida NANDINA,
-          país, departamento y mes —cruzados entre sí, con el mismo mapa del mundo para todos los
-          países— está en la pestaña «Detalle aduanero (INE)». Lo que no hay y no va a haber: el valor en dólares que exporta cada empresa —es
-          secreto por ley, así que el ránking de más abajo sólo publica orden y cuota—.
-        </div>
-        <DerivedReading
-          title="Qué dicen estos datos"
-          note="Cada frase sale de las series de este capítulo, sin filtrar, y se recalcula con cada carga. Dice qué se vendió y contra qué se compara; no dice por qué ni qué va a pasar."
-          conclusions={conclusions}
-          icons={CONCLUSION_ICON}
-          defaultOpen={false}
-        />
+          <p>
+            <strong>Bolivia declara su comercio exterior en dólares estadounidenses (USD).</strong>{' '}
+            Lo que hay: producto, país y año, con fuentes oficiales; el detalle por partida NANDINA,
+            país, departamento y mes —cruzados entre sí, con el mismo mapa del mundo para todos los
+            países— está en la pestaña «Detalle aduanero (INE)». Lo que no hay y no va a haber: el
+            valor en dólares que exporta cada empresa —es secreto por ley, así que el ránking de más
+            abajo sólo publica orden y cuota—.
+          </p>
+        </details>
         {/*
          * Sólo se ve en vertical. La regla del tablero es «el informe primero,
          * los filtros después» —a un scroll de distancia en el resto de las
@@ -976,7 +1058,16 @@ export function ForeignTradeExplorer({
           <Icon name="filtro" size={14} />
           Ir a los filtros
         </a>
-      </div>
+      </header>
+      <DerivedReading
+        id="comercio-lectura"
+        title="Qué dicen estos datos"
+        note="Cada frase sale de las series de este capítulo, sin filtrar, y se recalcula con cada carga. Dice qué se vendió y contra qué se compara; no dice por qué ni qué va a pasar."
+        conclusions={conclusions}
+        icons={CONCLUSION_ICON}
+        defaultOpen={false}
+        source="INE (comercio exterior por departamento) y Naciones Unidas (Comtrade); la lectura la calcula el Observatorio"
+      />
 
       <div className="workspace">
         <aside className="rail" id="comercio-filtros">
@@ -988,7 +1079,9 @@ export function ForeignTradeExplorer({
             </span>
           </div>
 
-          <FilterHint>Recortan el panorama de arriba; el ránking de exportadoras no cambia.</FilterHint>
+          <FilterHint>
+            Recortan el panorama de arriba; el ránking de exportadoras no cambia.
+          </FilterHint>
 
           {active ? (
             <div className="rail-sec">
@@ -1070,7 +1163,9 @@ export function ForeignTradeExplorer({
             {countryChoices.length ? (
               <>
                 <FilterHint />
-                <div className={countryChoices.length > 9 ? 'rail-list rail-list-cut' : 'rail-list'}>
+                <div
+                  className={countryChoices.length > 9 ? 'rail-list rail-list-cut' : 'rail-list'}
+                >
                   {countryChoices.map((option) => {
                     const on = picked(country, option.value);
                     return (
@@ -1102,7 +1197,9 @@ export function ForeignTradeExplorer({
             {chapterChoices.length ? (
               <>
                 <FilterHint />
-                <div className={chapterChoices.length > 9 ? 'rail-list rail-list-cut' : 'rail-list'}>
+                <div
+                  className={chapterChoices.length > 9 ? 'rail-list rail-list-cut' : 'rail-list'}
+                >
                   {chapterChoices.map((option) => {
                     const on = picked(chapter, option.value);
                     return (
@@ -1138,10 +1235,9 @@ export function ForeignTradeExplorer({
                 max={to}
                 value={from}
                 onChange={(event) => setYearFrom(Math.min(Number(event.target.value), to))}
-                style={{ width: '100%' }}
               />
             </div>
-            <div className="rail-field" style={{ marginTop: '0.4rem' }}>
+            <div className="rail-field rail-field-next">
               <input
                 type="range"
                 aria-label={`Hasta qué año se dibujan los gráficos: ${to}`}
@@ -1149,20 +1245,20 @@ export function ForeignTradeExplorer({
                 max={bounds.max}
                 value={to}
                 onChange={(event) => setYearTo(Math.max(Number(event.target.value), from))}
-                style={{ width: '100%' }}
               />
             </div>
           </div>
         </aside>
 
-        <div className="workspace-main">
+        <div className="workspace-main guest-board">
           {crossFilterGap ? (
             <div className="callout">
               <strong>Aquí país y producto no se cruzan.</strong> Comtrade publica el comercio
               boliviano por socio y por capítulo del arancel como dos recortes separados del mismo
-              total. El cruce —cuánto de ese comercio fue del capítulo elegido— sí existe en la
-              base del INE: está en la pestaña «Detalle aduanero (INE)». Abajo se ve cada filtro aplicado por su cuenta: el país en «A quién le
-              vende/compra Bolivia» y el producto en «Qué capítulos exporta/importa más».
+              total. El cruce —cuánto de ese comercio fue del capítulo elegido— sí existe en la base
+              del INE: está en la pestaña «Detalle aduanero (INE)». Abajo se ve cada filtro aplicado
+              por su cuenta: el país en «A quién le vende/compra Bolivia» y el producto en «Qué
+              capítulos exporta/importa más».
             </div>
           ) : null}
 

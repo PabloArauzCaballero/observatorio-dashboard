@@ -1,10 +1,12 @@
 'use client';
 
 import { ShareBars, WorldLines } from './charts';
+import { BarsKey } from './chart-kind';
 import { onOneAxis } from './department-lines';
 import type { NamedLine } from './department-lines';
 import { useTradeViews } from './trade-records-fetch';
-import { say, useLabelRoom } from './trade-records-panels';
+import { SOURCE_ADUANA, say, useLabelRoom } from './trade-records-panels';
+import { Panel } from '@/components/ui/panel';
 import type { TradeView } from '@/lib/trade-records';
 
 /**
@@ -19,6 +21,12 @@ import type { TradeView } from '@/lib/trade-records';
  * La ficha cuenta los años elegidos y ningún filtro más que el país: es la
  * respuesta a «¿y este país?», no un tercer ránking con los filtros del
  * carril. Importaciones con país no traen departamento, y lo dice.
+ *
+ * Son cuatro paneles y no uno: las cifras con la serie en el tiempo, lo que se
+ * vende, lo que se compra y los departamentos de origen. Cada uno se baja por
+ * su cuenta y lleva su unidad en el título; un panel dentro de otro panel no
+ * existe, así que la ficha es un grupo de hermanos y no una tarjeta dentro del
+ * panel del mapa.
  */
 
 const API = '/api/comercio-exterior/aduana';
@@ -72,11 +80,18 @@ const asYears = (view: TradeView | undefined) =>
   }));
 
 function Bars({
+  id,
   title,
+  lede,
+  legend,
   view,
   tone,
 }: {
+  id: string;
   title: string;
+  lede: string;
+  /** Qué mide la barra, para la clave bajo el dibujo. */
+  legend: string;
   view: TradeView | undefined;
   tone: string;
 }) {
@@ -84,24 +99,26 @@ function Bars({
   // Media columna en escritorio: más de 34 letras ya le quita el sitio a la barra.
   const room = Math.min(useLabelRoom(), 34);
   return (
-    <div>
-      <h4 style={{ margin: '0 0 0.3rem', fontSize: '0.88rem' }}>{title}</h4>
+    <Panel id={id} title={title} lede={lede} source={SOURCE_ADUANA}>
       {view?.unavailable ? (
         <p className="chart-note">{view.unavailable}</p>
       ) : items.length ? (
-        <ShareBars
-          data={items.map((item) => ({
-            name: item.label.length > room ? `${item.label.slice(0, room - 1)}…` : item.label,
-            value: item.usd / 1_000_000,
-          }))}
-          tone={tone}
-          unit=" MM USD"
-          height={Math.max(150, items.length * 28)}
-        />
+        <>
+          <ShareBars
+            data={items.map((item) => ({
+              name: item.label.length > room ? `${item.label.slice(0, room - 1)}…` : item.label,
+              value: item.usd / 1_000_000,
+            }))}
+            tone={tone}
+            unit=" MM USD"
+            height={Math.max(150, items.length * 28)}
+          />
+          <BarsKey label={legend} tone={tone} />
+        </>
       ) : (
         <p className="chart-note">Sin comercio declarado en estos años.</p>
       )}
-    </div>
+    </Panel>
   );
 }
 
@@ -117,26 +134,24 @@ export function TradeCountryCard({
   from: number;
   to: number;
 }) {
-  const sold = useTradeViews(urlOf('X', from, to, countries, 'serie:year,productos:chapter:6,deptos:department:9'));
+  const sold = useTradeViews(
+    urlOf('X', from, to, countries, 'serie:year,productos:chapter:6,deptos:department:9'),
+  );
   const bought = useTradeViews(urlOf('M', from, to, countries, 'serie:year,productos:chapter:6'));
   const exportRank = useTradeViews(urlOf('X', from, to, null, 'pais:country:300'));
   const importRank = useTradeViews(urlOf('M', from, to, null, 'pais:country:300'));
 
   const loading = sold.loading || bought.loading || exportRank.loading || importRank.loading;
   if (sold.failed && bought.failed) {
-    return (
-      <div className="country-card">
-        <h3>Bolivia y {name}</h3>
-        <p className="chart-note">No se pudo leer la ficha de este país. El mapa sigue al día.</p>
-      </div>
-    );
+    return <div className="callout">No se pudo leer la ficha de {name}. El mapa sigue al día.</div>;
   }
 
   const exported = standingOf(exportRank.views?.pais, countries);
   const imported = standingOf(importRank.views?.pais, countries);
-  const balance = exported && imported && (exported.value || imported.value)
-    ? exported.value - imported.value
-    : null;
+  const balance =
+    exported && imported && (exported.value || imported.value)
+      ? exported.value - imported.value
+      : null;
   const millions = (usd: number): string => `${say(usd / 1_000_000, 1)} MM USD`;
 
   const lines: NamedLine[] = [
@@ -156,77 +171,119 @@ export function TradeCountryCard({
   const axis = onOneAxis(lines);
 
   return (
-    <div className="country-card" style={{ opacity: loading ? 0.6 : 1, transition: 'opacity 120ms' }}>
-      <h3>
-        Bolivia y {name}, {to} (millones de USD)
-      </h3>
-      <dl className="country-figures">
-        <div>
-          <dt>Le vende</dt>
-          <dd>{exported?.value ? millions(exported.value) : 'sin exportaciones declaradas'}</dd>
-          {exported?.value && exported.total ? (
-            <dd className="country-aside">
-              {say((exported.value / exported.total) * 100, 1)} % de lo exportado · puesto{' '}
-              {exported.rank}
+    <div className={loading ? 'panel-group aduana-cargando' : 'panel-group'}>
+      <Panel
+        id="aduana-ficha-pais"
+        title={`Bolivia y ${name}: cifras de ${to} y comercio en el tiempo (millones de USD)`}
+        lede="Cuánto fue ese comercio, qué parte del total es y si Bolivia le vende más de lo que le compra."
+        source={SOURCE_ADUANA}
+        data={() => ({
+          etiqueta: `Cifras ${to}`,
+          unidad: 'millones de USD',
+          columnas: ['Medida', 'Valor (millones de USD)', 'Parte del total (%)', 'Puesto'],
+          filas: [
+            [
+              'Bolivia le vende (FOB)',
+              exported?.value ? exported.value / 1_000_000 : null,
+              exported?.value && exported.total ? (exported.value / exported.total) * 100 : null,
+              exported?.rank ?? null,
+            ],
+            [
+              'Bolivia le compra (CIF en frontera)',
+              imported?.value ? imported.value / 1_000_000 : null,
+              imported?.value && imported.total ? (imported.value / imported.total) * 100 : null,
+              imported?.rank ?? null,
+            ],
+            [
+              'Saldo (exportación menos importación)',
+              balance === null ? null : balance / 1_000_000,
+              null,
+              null,
+            ],
+          ],
+        })}
+      >
+        <dl className="country-figures">
+          <div>
+            <dt>Le vende</dt>
+            <dd>{exported?.value ? millions(exported.value) : 'sin exportaciones declaradas'}</dd>
+            {exported?.value && exported.total ? (
+              <dd className="country-aside">
+                {say((exported.value / exported.total) * 100, 1)} % de lo exportado · puesto{' '}
+                {exported.rank}
+              </dd>
+            ) : null}
+          </div>
+          <div>
+            <dt>Le compra</dt>
+            <dd>{imported?.value ? millions(imported.value) : 'sin importaciones declaradas'}</dd>
+            {imported?.value && imported.total ? (
+              <dd className="country-aside">
+                {say((imported.value / imported.total) * 100, 1)} % de lo importado · puesto{' '}
+                {imported.rank}
+              </dd>
+            ) : null}
+          </div>
+          <div>
+            <dt>Saldo</dt>
+            <dd>
+              {balance === null
+                ? '—'
+                : `${balance >= 0 ? '+' : '−'}${say(Math.abs(balance) / 1_000_000, 1)} MM USD`}
             </dd>
-          ) : null}
-        </div>
-        <div>
-          <dt>Le compra</dt>
-          <dd>{imported?.value ? millions(imported.value) : 'sin importaciones declaradas'}</dd>
-          {imported?.value && imported.total ? (
             <dd className="country-aside">
-              {say((imported.value / imported.total) * 100, 1)} % de lo importado · puesto{' '}
-              {imported.rank}
+              {balance === null
+                ? 'Hace falta el dato de los dos flujos'
+                : 'Exportación FOB menos importación CIF en frontera'}
             </dd>
-          ) : null}
-        </div>
-        <div>
-          <dt>Saldo</dt>
-          <dd>
-            {balance === null
-              ? '—'
-              : `${balance >= 0 ? '+' : '−'}${say(Math.abs(balance) / 1_000_000, 1)} MM USD`}
-          </dd>
-          <dd className="country-aside">
-            {balance === null
-              ? 'Hace falta el dato de los dos flujos'
-              : 'Exportación FOB menos importación CIF en frontera'}
-          </dd>
-        </div>
-      </dl>
+          </div>
+        </dl>
 
-      {axis.data.length > 1 ? (
-        <WorldLines
-          data={axis.data}
-          series={axis.series}
-          format={(value) => `${say(value, 1)} MM USD`}
-          tick={(value) => say(value, 0)}
-        />
-      ) : null}
+        {axis.data.length > 1 ? (
+          <WorldLines
+            data={axis.data}
+            series={axis.series}
+            format={(value) => `${say(value, 1)} MM USD`}
+            tick={(value) => say(value, 0)}
+          />
+        ) : null}
+
+        <details className="panel-note">
+          <summary>Cómo leerlo</summary>
+          <p>
+            La ficha cuenta el país en los años elegidos y sin los demás filtros. Las exportaciones
+            traen el departamento de origen; las importaciones por país no, porque el INE las
+            publica por partida y país o por partida y departamento, no por las tres cosas a la vez.
+          </p>
+        </details>
+      </Panel>
 
       <div className="grid-pair">
         <Bars
+          id="aduana-ficha-vende"
           title={`Qué le vende Bolivia a ${name} (millones de USD por capítulo, ${from}-${to})`}
+          lede={`Los ${SHOWN} capítulos del arancel que más valen en esos años.`}
+          legend="Valor FOB, millones de USD"
           view={sold.views?.productos}
           tone="var(--official)"
         />
         <Bars
+          id="aduana-ficha-compra"
           title={`Qué le compra Bolivia a ${name} (millones de USD por capítulo, ${from}-${to})`}
+          lede={`Los ${SHOWN} capítulos del arancel que más valen en esos años.`}
+          legend="Valor CIF en frontera, millones de USD"
           view={bought.views?.productos}
           tone="var(--parallel)"
         />
       </div>
       <Bars
+        id="aduana-ficha-deptos"
         title={`De qué departamentos sale lo que Bolivia le vende (millones de USD, ${from}-${to})`}
+        lede={`Los ${SHOWN} departamentos de origen que más valen en esos años.`}
+        legend="Valor FOB, millones de USD"
         view={sold.views?.deptos}
         tone="var(--official)"
       />
-      <p className="chart-note">
-        La ficha cuenta el país en los años elegidos y sin los demás filtros. Las exportaciones traen
-        el departamento de origen; las importaciones por país no, porque el INE las publica por
-        partida y país o por partida y departamento, no por las tres cosas a la vez.
-      </p>
     </div>
   );
 }

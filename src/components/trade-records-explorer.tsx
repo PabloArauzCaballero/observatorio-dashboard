@@ -12,14 +12,15 @@ import { TradeRail } from './trade-records-rail';
 import { useTradeViews } from './trade-records-fetch';
 import { TradeWorld } from './trade-records-world';
 import {
-  DownloadViews,
   Headlines,
   RankingPanel,
+  SOURCE_ADUANA,
   change,
   millions,
   say,
   weightName,
 } from './trade-records-panels';
+import { Panel } from '@/components/ui/panel';
 
 /**
  * «Detalle aduanero»: la base de comercio exterior del INE, filtrable.
@@ -101,7 +102,7 @@ function Switch<T extends string>({
   onChange: (value: T) => void;
 }) {
   return (
-    <div className="chart-kind" role="group" style={{ flexWrap: 'wrap', marginBottom: '0.6rem' }}>
+    <div className="chart-kind" role="group">
       {options.map((option) => (
         <button
           key={option.by}
@@ -289,15 +290,58 @@ export function TradeRecordsExplorer({ catalogue }: { catalogue: TradeCodes }) {
       .join('; ') || 'ninguno'
   }`;
 
+  const headlineItems = [
+    {
+      label: `${verb} ${from}-${to}${period ? ` (${period})` : ''}`,
+      value: `${headline(total)} M USD`,
+      hint: `Valor ${value}, suma del periodo`,
+    },
+    {
+      label: `${verb} ${to}`,
+      value: current ? `${headline(current.usd)} M USD` : '—',
+      hint:
+        growth === null
+          ? 'Sin año anterior para comparar'
+          : `${growth >= 0 ? '+' : ''}${say(growth, 1)} % frente a ${to - 1}`,
+    },
+    {
+      label: `Toneladas ${to}`,
+      value: current ? say(current.kg / 1000, 0) : '—',
+      hint: weightName(flow),
+    },
+    {
+      label: `USD por kg ${to}`,
+      value: current && current.kg > 0 ? say(current.usd / current.kg, 2) : '—',
+      hint: 'Valor unitario medio de lo filtrado',
+    },
+    {
+      label: `Principal ${geo === 'zone' ? 'zona' : 'país'} de ${who}`,
+      value: topGeo?.label ?? '—',
+      hint: topGeo && geoTotal ? `${say((topGeo.usd / geoTotal) * 100, 1)} % de lo dibujado` : '',
+    },
+    {
+      label: 'Principal producto',
+      value: topProduct ? shortName(topProduct.label) : '—',
+      hint:
+        topProduct && productTotal
+          ? `${say((topProduct.usd / productTotal) * 100, 1)} % de lo dibujado`
+          : '',
+    },
+  ];
+
   return (
     <>
-      <div className="panel">
-        <div className="panel-head">
-          <h2>
-            Comercio exterior registro por registro: partida, país, departamento y mes (millones de
-            USD)
-          </h2>
-          <p className="panel-sub">
+      <header className="page-intro">
+        <h3 className="page-intro-title">
+          Comercio exterior registro por registro: partida, país, departamento y mes
+        </h3>
+        <p className="page-intro-lede">
+          La base que el INE arma con cada declaración de aduana, que se cruza por producto, país,
+          departamento y mes.
+        </p>
+        <details className="panel-note">
+          <summary>Qué trae la base</summary>
+          <p>
             La base de datos que el INE arma con cada declaración de aduana: exportaciones desde{' '}
             {coverage('X_DETAIL')?.first ?? 1992} por partida NANDINA de diez dígitos, país de
             destino, departamento de origen y mes (valor FOB); importaciones desde{' '}
@@ -305,32 +349,14 @@ export function TradeRecordsExplorer({ catalogue }: { catalogue: TradeCodes }) {
             económico, capítulo y departamento cada mes (valor CIF en frontera). Los totales cuadran
             al centavo con los cuadros oficiales del INE; los años más recientes son preliminares y
             el INE los revisa. El mapa del mundo pinta a qué países va, o de cuáles viene, lo que
-            los filtros dejan, y tocar un país abre su ficha con los productos y los
-            departamentos.
+            los filtros dejan, y tocar un país abre su ficha con los productos y los departamentos.
           </p>
-        </div>
-        <div
-          className="panel-head-kind"
-          style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}
-        >
-          <a className="jump-to-filters" href="#aduana-filtros">
-            <Icon name="filtro" size={14} />
-            Ir a los filtros
-          </a>
-          <DownloadViews
-            views={views}
-            names={{
-              serie: 'Serie',
-              productos: 'Productos',
-              geo: 'Países',
-              mapa: 'Países (todos)',
-              deptos: 'Departamentos',
-              clase: 'Clasificación',
-            }}
-            context={context}
-          />
-        </div>
-      </div>
+        </details>
+        <a className="jump-to-filters" href="#aduana-filtros">
+          <Icon name="filtro" size={14} />
+          Ir a los filtros
+        </a>
+      </header>
 
       <div className="workspace">
         <TradeRail
@@ -360,8 +386,9 @@ export function TradeRecordsExplorer({ catalogue }: { catalogue: TradeCodes }) {
         />
 
         <div
-          className="workspace-main"
-          style={{ opacity: loading ? 0.6 : 1, transition: 'opacity 120ms' }}
+          className={
+            loading ? 'workspace-main guest-board aduana-cargando' : 'workspace-main guest-board'
+          }
         >
           {failed ? (
             <div className="callout">
@@ -376,49 +403,19 @@ export function TradeRecordsExplorer({ catalogue }: { catalogue: TradeCodes }) {
             </div>
           ) : null}
 
-          <Headlines
-            items={[
-              {
-                label: `${verb} ${from}-${to}${period ? ` (${period})` : ''}`,
-                value: `${headline(total)} M USD`,
-                hint: `Valor ${value}, suma del periodo`,
-              },
-              {
-                label: `${verb} ${to}`,
-                value: current ? `${headline(current.usd)} M USD` : '—',
-                hint:
-                  growth === null
-                    ? 'Sin año anterior para comparar'
-                    : `${growth >= 0 ? '+' : ''}${say(growth, 1)} % frente a ${to - 1}`,
-              },
-              {
-                label: `Toneladas ${to}`,
-                value: current ? say(current.kg / 1000, 0) : '—',
-                hint: weightName(flow),
-              },
-              {
-                label: `USD por kg ${to}`,
-                value: current && current.kg > 0 ? say(current.usd / current.kg, 2) : '—',
-                hint: 'Valor unitario medio de lo filtrado',
-              },
-              {
-                label: `Principal ${geo === 'zone' ? 'zona' : 'país'} de ${who}`,
-                value: topGeo?.label ?? '—',
-                hint:
-                  topGeo && geoTotal
-                    ? `${say((topGeo.usd / geoTotal) * 100, 1)} % de lo dibujado`
-                    : '',
-              },
-              {
-                label: 'Principal producto',
-                value: topProduct ? shortName(topProduct.label) : '—',
-                hint:
-                  topProduct && productTotal
-                    ? `${say((topProduct.usd / productTotal) * 100, 1)} % de lo dibujado`
-                    : '',
-              },
-            ]}
-          />
+          <Panel
+            id="aduana-cifras"
+            title={`Cifras clave de ${verb.toLowerCase()} (millones de USD, toneladas y USD por kg)`}
+            lede="Seis lecturas de lo que dejan los filtros: el periodo, el último año, el peso, el valor unitario, el principal socio y el principal producto."
+            source={SOURCE_ADUANA}
+            data={() => ({
+              columnas: ['Cifra', 'Valor', 'Nota'],
+              filas: headlineItems.map((item) => [item.label, item.value, item.hint]),
+              nota: context,
+            })}
+          >
+            <Headlines items={headlineItems} />
+          </Panel>
 
           <TradeWorld
             flow={flow}
@@ -433,35 +430,31 @@ export function TradeRecordsExplorer({ catalogue }: { catalogue: TradeCodes }) {
             onPick={(members, add, label) => pickCountry(members, add, label)}
           />
 
-          <div className="panel">
-            <div className="panel-head panel-head-kind">
-              <div>
-                <h2>
-                  {verb} de Bolivia por {seriesBy === 'year' ? 'año' : 'mes'} ({measureUnit})
-                </h2>
-                <p className="panel-sub">
-                  Con todos los filtros aplicados. El peso es {weightName(flow)}; el valor unitario
-                  divide el valor entre el peso, así que sube por precio o por mezcla de productos.
-                </p>
-              </div>
+          <Panel
+            id="aduana-serie"
+            title={`${verb} de Bolivia por ${seriesBy === 'year' ? 'año' : 'mes'} (${measureUnit})`}
+            lede={`Con todos los filtros aplicados; el valor unitario divide el valor entre el peso (${weightName(flow)}) y sube por precio o por mezcla de productos.`}
+            source={SOURCE_ADUANA}
+          >
+            <div className="fx-filters">
+              <Switch
+                options={[
+                  { by: 'year' as Dimension, label: 'Por año' },
+                  { by: 'month' as Dimension, label: 'Por mes' },
+                ]}
+                value={seriesBy}
+                onChange={setSeriesBy}
+              />
+              <Switch
+                options={[
+                  { by: 'usd' as const, label: 'Valor' },
+                  { by: 'kg' as const, label: 'Peso' },
+                  { by: 'unit' as const, label: 'USD por kg' },
+                ]}
+                value={measure}
+                onChange={setMeasure}
+              />
             </div>
-            <Switch
-              options={[
-                { by: 'year' as Dimension, label: 'Por año' },
-                { by: 'month' as Dimension, label: 'Por mes' },
-              ]}
-              value={seriesBy}
-              onChange={setSeriesBy}
-            />
-            <Switch
-              options={[
-                { by: 'usd' as const, label: 'Valor' },
-                { by: 'kg' as const, label: 'Peso' },
-                { by: 'unit' as const, label: 'USD por kg' },
-              ]}
-              value={measure}
-              onChange={setMeasure}
-            />
             {series?.unavailable ? (
               <div className="callout">{series.unavailable}</div>
             ) : seriesData.length > 1 ? (
@@ -474,28 +467,33 @@ export function TradeRecordsExplorer({ catalogue }: { catalogue: TradeCodes }) {
             ) : (
               <div className="callout">Sin comercio declarado con estos filtros.</div>
             )}
-          </div>
+          </Panel>
 
           <RankingPanel
+            id="aduana-productos"
             title={`Qué ${flow === 'X' ? 'exporta' : 'importa'} Bolivia, por ${LEVELS.find((entry) => entry.by === level)?.label.toLowerCase()} (millones de USD, ${from}-${to})`}
-            sub="Toca una barra para filtrar por ella y bajar un nivel (capítulo → partida → subpartida → NANDINA); Ctrl/⌘ suma sin bajar. Los niveles de arriba que elegiste siguen aplicados."
+            lede="Toca una barra para filtrar por ella y bajar un nivel; Ctrl/⌘ suma sin bajar."
+            note="Los niveles van de capítulo a partida, subpartida y NANDINA, y los niveles de arriba que elegiste siguen aplicados."
             view={views?.productos}
             chosen={level === 'section' ? filters.section : filters.product}
             onPick={pickProduct}
             flow={flow}
             lastYear={to}
+            context={context}
             controls={<Switch options={LEVELS} value={level} onChange={setLevel} />}
           />
 
           <div className="grid-pair">
             <RankingPanel
+              id="aduana-paises"
               title={`${flow === 'X' ? 'A quién le vende' : 'A quién le compra'} Bolivia (millones de USD, ${from}-${to})`}
-              sub={`Por ${geo === 'zone' ? 'zona económica' : `país de ${who}`}, con todos los filtros menos el de país. Toca uno para filtrar.`}
+              lede={`Por ${geo === 'zone' ? 'zona económica' : `país de ${who}`}, con todos los filtros menos el de país; toca uno para filtrar.`}
               view={geoView}
               chosen={filters.country}
               onPick={pickGeo}
               flow={flow}
               lastYear={to}
+              context={context}
               controls={
                 <Switch
                   options={[
@@ -508,23 +506,26 @@ export function TradeRecordsExplorer({ catalogue }: { catalogue: TradeCodes }) {
               }
             />
             <RankingPanel
+              id="aduana-departamentos"
               title={`${flow === 'X' ? 'De qué departamento sale' : 'A qué departamento entra'} (millones de USD, ${from}-${to})`}
-              sub={
+              lede={
                 flow === 'X'
                   ? 'Departamento de origen de la mercancía, con todos los filtros menos el de departamento.'
-                  : 'Departamento de destino declarado. Las importaciones por departamento no llevan país: con un país elegido esta vista no tiene respuesta.'
+                  : 'Departamento de destino declarado: las importaciones por departamento no llevan país, así que con un país elegido esta vista no tiene respuesta.'
               }
               view={views?.deptos}
               chosen={filters.department}
               onPick={(code, add) => pickInto('department', [code], add)}
               flow={flow}
               lastYear={to}
+              context={context}
             />
           </div>
 
           <RankingPanel
+            id="aduana-clasificacion"
             title={`${verb} por ${CLASSES[flow].find((entry) => entry.by === shownClass)?.label.toLowerCase()} (millones de USD, ${from}-${to})`}
-            sub={
+            lede={
               flow === 'X'
                 ? 'Las clasificaciones que el INE da a cada partida: tradicionales (minerales e hidrocarburos) frente a no tradicionales, y la actividad económica que la produce.'
                 : 'La CUODE del INE: bienes de consumo, materias primas y bienes intermedios, bienes de capital y combustibles.'
@@ -540,6 +541,7 @@ export function TradeRecordsExplorer({ catalogue }: { catalogue: TradeCodes }) {
             onPick={pickClass}
             flow={flow}
             lastYear={to}
+            context={context}
             controls={<Switch options={CLASSES[flow]} value={shownClass} onChange={setClassBy} />}
           />
         </div>
