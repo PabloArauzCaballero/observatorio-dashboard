@@ -2,9 +2,11 @@
 
 import { useMemo, useState } from 'react';
 import { ChipPicker, SOURCE, SelectField, YearSlider, useFloor } from './accounts-controls';
-import { DatedLines, WorldLines, seriesTone } from './charts';
+import { DatedLines, DivergingBars, WorldLines, seriesTone } from './charts';
 import type { DatedLinePoint } from './charts';
+import { MAX_BARRAS, MacroViewChart } from './macro-view-chart';
 import { Panel } from '@/components/ui/panel';
+import { ViewToggle } from '@/components/ui/view-toggle';
 import {
   PERIMETERS,
   SPNF_CONCEPTS,
@@ -100,6 +102,25 @@ export function AccountsBudget({ accounts }: { accounts: AccountsPayload }) {
       share: last ? ofGdp(index, last.year, last.value) : null,
     };
   });
+
+  /*
+   * Las cuentas del último año como barras: las doce que más pesan, con el signo (el resultado
+   * es déficit si es negativo). Cada barra lleva en el emergente la variación y la proporción
+   * del PIB que la tabla trae en sus columnas.
+   */
+  const accountRows = table.flatMap((row) =>
+    row.value === undefined ? [] : [{ ...row, value: row.value }],
+  );
+  const accountBars = [...accountRows]
+    .sort((left, right) => Math.abs(right.value) - Math.abs(left.value))
+    .slice(0, MAX_BARRAS)
+    .map((row) => ({
+      name: row.concept.label,
+      value: row.value,
+      meta: `${change(row.concept.side, row.value, row.before)}${
+        row.share === null ? '' : ` · ${percent(row.share)} del PIB`
+      }`,
+    }));
 
   const perimeterName = PERIMETERS.find((one) => one.key === place)?.label ?? '';
   const unitName =
@@ -230,30 +251,43 @@ export function AccountsBudget({ accounts }: { accounts: AccountsPayload }) {
           ),
         }}
       >
-        <div className="table-wrap">
-          <table className="grid-table accounts-table">
-            <thead>
-              <tr>
-                <th scope="col">Concepto</th>
-                <th scope="col">Millones de Bs</th>
-                <th scope="col">Frente al año anterior</th>
-                <th scope="col">% del PIB</th>
-              </tr>
-            </thead>
-            <tbody>
-              {table.map((row) =>
-                row.value === undefined ? null : (
-                  <tr key={row.concept.key}>
-                    <th scope="row">{row.concept.label}</th>
-                    <td>{number(row.value, 0)}</td>
-                    <td>{change(row.concept.side, row.value, row.before)}</td>
-                    <td>{row.share === null ? '—' : percent(row.share)}</td>
+        <ViewToggle
+          chart={
+            <MacroViewChart shown={accountBars.length} total={accountRows.length}>
+              <DivergingBars
+                data={accountBars}
+                unit="millones de Bs"
+                height={Math.max(140, accountBars.length * 28 + 56)}
+              />
+            </MacroViewChart>
+          }
+          table={
+            <div className="table-wrap">
+              <table className="grid-table accounts-table">
+                <thead>
+                  <tr>
+                    <th scope="col">Concepto</th>
+                    <th scope="col">Millones de Bs</th>
+                    <th scope="col">Frente al año anterior</th>
+                    <th scope="col">% del PIB</th>
                   </tr>
-                ),
-              )}
-            </tbody>
-          </table>
-        </div>
+                </thead>
+                <tbody>
+                  {table.map((row) =>
+                    row.value === undefined ? null : (
+                      <tr key={row.concept.key}>
+                        <th scope="row">{row.concept.label}</th>
+                        <td>{number(row.value, 0)}</td>
+                        <td>{change(row.concept.side, row.value, row.before)}</td>
+                        <td>{row.share === null ? '—' : percent(row.share)}</td>
+                      </tr>
+                    ),
+                  )}
+                </tbody>
+              </table>
+            </div>
+          }
+        />
       </Panel>
     </>
   );
