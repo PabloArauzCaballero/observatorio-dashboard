@@ -1690,7 +1690,7 @@ export function ShareBars({
     <div className="chart-frame" style={{ height: framed(height) }}>
       <ResponsiveContainer width="100%" height="100%">
         {/* El margen derecho es el sitio donde vive la cifra de la barra más larga. */}
-        <BarChart data={rows} layout="vertical" margin={{ top: 4, right: 56, bottom: 0, left: 4 }}>
+        <BarChart data={rows} layout="vertical" margin={{ top: 4, right: 88, bottom: 0, left: 4 }}>
           <XAxis type="number" domain={[0, peak > 0 ? peak : 1]} hide />
           {/*
            * `auto`, and not the 172 pixels this column used to be fixed at: a
