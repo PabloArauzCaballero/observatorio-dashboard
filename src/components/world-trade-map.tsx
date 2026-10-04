@@ -1,6 +1,9 @@
 'use client';
 
 import { useState } from 'react';
+import { ChartLegend } from './charts';
+import type { LegendItem } from './charts';
+import { celda, useDatosDeFigura } from '@/components/ui/panel-data';
 import { additive } from '@/lib/choice';
 import { WORLD_BOX, WORLD_POINTS, WORLD_SHAPES } from '@/lib/world-map';
 
@@ -26,6 +29,11 @@ import { WORLD_BOX, WORLD_POINTS, WORLD_SHAPES } from '@/lib/world-map';
  * tocarlo lo pone en el filtro de país del carril —el mismo estado, no una
  * copia— y abre su ficha debajo. Ctrl/⌘ suma, como en el resto del informe.
  * Hong Kong y Singapur no tienen contorno a esta escala y van como punto.
+ *
+ * **La clave de la escala es la leyenda de siempre** (`ChartLegend`), dentro del
+ * panel y bajo el mapa: cinco tramos con sus cifras, el gris y Bolivia. Por ser
+ * la misma lista que las demás figuras, también viaja en la imagen que se baja,
+ * y las cifras de cada país se declaran al panel que contiene el mapa.
  */
 
 export interface MapTrade {
@@ -52,7 +60,10 @@ const STEPS = [
 const NONE = 'var(--rule-soft)';
 
 const say = (value: number, decimals = 0): string =>
-  value.toLocaleString('es-BO', { minimumFractionDigits: decimals, maximumFractionDigits: decimals });
+  value.toLocaleString('es-BO', {
+    minimumFractionDigits: decimals,
+    maximumFractionDigits: decimals,
+  });
 
 export function WorldTradeMap({
   rows,
@@ -80,7 +91,9 @@ export function WorldTradeMap({
   /** Cómo se escribe la cifra de un país en el emergente. */
   exact?: (value: number) => string;
 }) {
-  const [hover, setHover] = useState<{ name: string; said: string; x: number; y: number } | null>(null);
+  const [hover, setHover] = useState<{ name: string; said: string; x: number; y: number } | null>(
+    null,
+  );
   const byIso = new Map(rows.filter((row) => row.value > 0).map((row) => [row.iso3, row]));
   const values = [...byIso.values()].map((row) => row.value);
   const low = values.length ? Math.min(...values) : 0;
@@ -88,11 +101,45 @@ export function WorldTradeMap({
   const logLow = Math.log(Math.max(low, 1e-9));
   const logHigh = Math.log(Math.max(high, 1e-9));
 
+  /* Las cifras que el panel baja: cada país con dato, de mayor a menor. */
+  useDatosDeFigura(
+    () => ({
+      etiqueta: 'Mapa',
+      unidad: unit,
+      columnas: ['País', `Valor (${unit})`],
+      filas: [...byIso.values()]
+        .sort((left, right) => right.value - left.value)
+        .map((row) => [row.label, celda(row.value)]),
+    }),
+    [rows, unit],
+  );
+
   const fillOf = (value: number): string => {
     if (logHigh <= logLow) return STEPS[4].fill;
     const index = Math.floor(((Math.log(value) - logLow) / (logHigh - logLow)) * STEPS.length);
     return (STEPS[Math.min(STEPS.length - 1, Math.max(0, index))] ?? STEPS[0]).fill;
   };
+
+  /*
+   * Los cinco tramos de la rampa con sus extremos. La escala es logarítmica, así
+   * que cada paso multiplica por el mismo factor, igual que `fillOf`.
+   */
+  const stepEdge = (index: number): number =>
+    Math.exp(logLow + ((logHigh - logLow) * index) / STEPS.length);
+  const key: LegendItem[] = [
+    ...(logHigh <= logLow
+      ? values.length
+        ? [{ color: STEPS[4].fill, label: `${format(high)} ${unit}` }]
+        : []
+      : STEPS.map((step, index) => ({
+          color: step.fill,
+          label: `${format(stepEdge(index))} a ${format(stepEdge(index + 1))} ${unit}${
+            index === STEPS.length - 1 ? ' (escala logarítmica)' : ''
+          }`,
+        }))),
+    { color: NONE, label: absentKey },
+    { color: 'var(--panel-tint)', label: 'Bolivia (el origen)' },
+  ];
 
   const handlers = (row: MapTrade | undefined, name: string) => {
     const said = row ? `${exact(row.value)} ${unit}` : absent;
@@ -100,7 +147,12 @@ export function WorldTradeMap({
       const frame = event.currentTarget.closest('.world-map-frame');
       if (!frame) return;
       const box = frame.getBoundingClientRect();
-      setHover({ name: row?.label ?? name, said, x: event.clientX - box.left, y: event.clientY - box.top });
+      setHover({
+        name: row?.label ?? name,
+        said,
+        x: event.clientX - box.left,
+        y: event.clientY - box.top,
+      });
     };
     return {
       onMouseMove: move,
@@ -138,7 +190,10 @@ export function WorldTradeMap({
 
   return (
     <div className="world-map">
-      <div className="world-map-frame" style={{ aspectRatio: `${WORLD_BOX.width} / ${WORLD_BOX.height}` }}>
+      <div
+        className="world-map-frame"
+        style={{ aspectRatio: `${WORLD_BOX.width} / ${WORLD_BOX.height}` }}
+      >
         <svg
           viewBox={`0 0 ${WORLD_BOX.width} ${WORLD_BOX.height}`}
           className="map-svg"
@@ -148,7 +203,11 @@ export function WorldTradeMap({
           {WORLD_SHAPES.map((shape) => {
             const row = byIso.get(shape.iso3);
             return (
-              <g key={shape.iso3} className={classOf(row, shape.iso3)} {...handlers(row, shape.name)}>
+              <g
+                key={shape.iso3}
+                className={classOf(row, shape.iso3)}
+                {...handlers(row, shape.name)}
+              >
                 <path d={shape.path} style={{ fill: row ? fillOf(row.value) : NONE }} />
               </g>
             );
@@ -156,8 +215,17 @@ export function WorldTradeMap({
           {WORLD_POINTS.filter((point) => byIso.has(point.iso3)).map((point) => {
             const row = byIso.get(point.iso3);
             return (
-              <g key={point.iso3} className={classOf(row, point.iso3)} {...handlers(row, point.name)}>
-                <circle cx={point.x} cy={point.y} r={5} style={{ fill: row ? fillOf(row.value) : NONE }} />
+              <g
+                key={point.iso3}
+                className={classOf(row, point.iso3)}
+                {...handlers(row, point.name)}
+              >
+                <circle
+                  cx={point.x}
+                  cy={point.y}
+                  r={5}
+                  style={{ fill: row ? fillOf(row.value) : NONE }}
+                />
               </g>
             );
           })}
@@ -175,27 +243,7 @@ export function WorldTradeMap({
           </div>
         ) : null}
       </div>
-      <div className="heat-scale">
-        <span>
-          {format(low)} {unit}
-        </span>
-        <span className="heat-scale-steps">
-          {STEPS.map((step) => (
-            <span key={step.fill} style={{ background: step.fill }} />
-          ))}
-        </span>
-        <span>
-          {format(high)} {unit} (escala logarítmica)
-        </span>
-        <span className="heat-scale-steps" style={{ marginLeft: '0.6rem' }}>
-          <span style={{ background: NONE }} />
-        </span>
-        <span>{absentKey}</span>
-        <span className="heat-scale-steps" style={{ marginLeft: '0.6rem' }}>
-          <span className="world-home-key" />
-        </span>
-        <span>Bolivia</span>
-      </div>
+      <ChartLegend items={key} />
     </div>
   );
 }

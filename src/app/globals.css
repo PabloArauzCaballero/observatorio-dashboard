@@ -9510,3 +9510,46 @@ button.download-btn {
   font: inherit;
   font-size: var(--text-sm);
 }
+
+/* === Macroeconomía · Comercio exterior y Detalle aduanero (INE) === */
+
+/* Mientras llega una lectura nueva, el cuerpo de la página baja de tono en vez de parpadear. */
+.aduana-cargando {
+  opacity: 0.6;
+  transition: opacity var(--fast) var(--ease);
+}
+
+/* El segundo deslizador de años queda a un paso del primero. */
+.rail-field.rail-field-next {
+  margin-top: var(--s1);
+}
+
+/* «Mismo periodo de cada año»: la casilla y su texto en una línea. */
+.rail-check {
+  display: flex;
+  align-items: center;
+  gap: var(--s1);
+  margin-top: var(--s1);
+}
+
+/* La clave de Bolivia en el mapa: el relleno pálido y el contorno de tinta que lleva en el dibujo. */
+.world-map .chart-legend-mark[style*='--panel-tint'] {
+  outline: 1.5px solid var(--ink);
+  outline-offset: -1.5px;
+}
+
+/* El mapa y su clave: la clave respira bajo el dibujo. */
+.world-map .chart-legend {
+  margin-top: var(--s1);
+}
+
+/* La ficha de un país: sus paneles son hermanos y comparten una pregunta, con el aire de un grupo. */
+.panel-group > .grid-pair {
+  align-items: stretch;
+}
+
+/* Un grupo de fichas más ancho que el panel envuelve en vez de salirse. */
+.fx-filters > .chart-kind {
+  flex: 0 1 auto;
+  min-width: 0;
+}
