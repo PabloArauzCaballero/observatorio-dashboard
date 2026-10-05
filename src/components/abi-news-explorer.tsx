@@ -67,7 +67,7 @@ export function AbiNewsExplorer({ initialIssuer = '' }: { initialIssuer?: string
         <p className={styles.meta}>{article.topics.map(t => topicLabels[t] ?? t).join(' · ')}</p>
         <details><summary>Ver relación con los emisores y procedencia</summary>
           {article.mentions.filter(m => !issuer || m.filerCode === issuer).map(m => <div key={m.filerCode} className={styles.evidence}><strong>{m.filer}</strong><p>«{m.evidence}»</p></div>)}
-          <p className={styles.meta}>Firma: {article.author.name ?? 'No indicada'} · {article.categories.map(c => c.name).join(', ')}</p>
+          <p className={styles.meta}>Autor o cuenta en ABI: {article.author.name ?? 'No indicado'} · {article.categories.map(c => c.name).join(', ')}</p>
           {article.modifiedAt && <p className={styles.meta}>Última edición declarada: {article.modifiedAt.slice(0, 10)}</p>}
           <p className={styles.meta}>Consultado: {article.retrievedAt.slice(0, 10)}</p>
           <p className={styles.hash}>Huella de evidencia: {article.evidenceSha256}</p>
