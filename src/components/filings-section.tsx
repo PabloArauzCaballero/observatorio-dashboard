@@ -3,6 +3,7 @@
 import { BusinessFabricSection } from './business-fabric-section';
 import { BusinessOwnersSection } from './business-owners-section';
 import { CompanySocialSection } from './company-social-explorer';
+import { LiveCommerceSection } from './live-commerce-section';
 import { ReputationSection } from './exporters-section';
 import { FilingExplorer } from './filing-explorer';
 import { ForeignTradeSection } from './foreign-trade-section';
@@ -76,8 +77,9 @@ export function FilingsSection() {
           'Detalle aduanero (INE)',
           'Reputación empresarial',
           'Redes sociales',
+          'Ventas en vivo',
         ]}
-        icons={['capas', 'barras', 'maletin', 'velas', 'globo', 'cajas', 'escudo', 'personas']}
+        icons={['capas', 'barras', 'maletin', 'velas', 'globo', 'cajas', 'escudo', 'personas', 'tienda']}
       >
         <BusinessFabricSection />
         <LargestCompaniesSection />
@@ -87,6 +89,7 @@ export function FilingsSection() {
         <TradeRecordsSection />
         <ReputationSection />
         <CompanySocialSection />
+        <LiveCommerceSection />
       </SubSections>
     </>
   );

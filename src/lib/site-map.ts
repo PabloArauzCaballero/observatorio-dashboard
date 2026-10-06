@@ -63,6 +63,7 @@ export const SITE: readonly SiteSection[] = [
       'Detalle aduanero (INE)',
       'Reputación empresarial',
       'Redes sociales',
+      'Ventas en vivo',
     ),
   },
   { label: 'Personalidades', icon: 'personas', pages: [] },
