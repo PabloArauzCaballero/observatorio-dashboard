@@ -27,8 +27,6 @@ const REGISTROS = {
   'business-directory-panel.tsx': 'directorio nominal de empresas',
   'city-places-explorer.tsx': 'registro de lugares, paginado, con enlace al mapa',
   'company-social-table.tsx': 'cuentas por empresa: ordenable, con enlaces y estados de lectura',
-  'exogenous-factors-explorer.tsx': 'gráfico primero; el registro de observaciones, publicación y fuentes queda plegado a un clic en details',
-  'exogenous-factor-comparison.tsx': 'comparación dibujada primero; sus valores quedan plegados a un clic en details bajo el gráfico',
   'departments-explorer.tsx':
     '«Las seis cuentas regionales»: cada fila en su propia unidad, y la tabla es la comparación con el país',
   'freight-references.tsx': 'citas de tarifas con texto y fuente enlazada por fila',

@@ -12,7 +12,6 @@ import {
   measureUnit,
   measured,
   sayPeriod,
-  summarize,
   yearOf,
 } from '@/lib/exogenous-board';
 import type {
@@ -29,7 +28,7 @@ import { FilterHint, PickedCount } from './filters';
 import { Icon } from './icons';
 import type { IconName } from './icons';
 import { Panel } from '@/components/ui/panel';
-import { celda } from '@/components/ui/panel-data';
+import { hrefDe } from '@/lib/enlace-tablero';
 
 /**
  * Los precios que Bolivia no fija, con filtros que se cruzan.
@@ -45,7 +44,14 @@ import { celda } from '@/components/ui/panel-data';
  * suelo; para compararlos está la medida «índice», que los pone a todos en
  * base 100 en el primer mes visible, o la variación interanual. La página fija
  * de fletes abre en el producto y el ámbito bolivianos documentados.
+ *
+ * Se dibujan todas las lecturas elegidas: más de seis líneas en un eje no se
+ * distinguen, así que el grupo se parte en gráficos de seis (uno debajo del
+ * otro) en vez de esconder la séptima. Los fletes no van aquí: tienen su página
+ * en Transporte y repetirlos era mostrar dos veces las mismas series.
  */
+
+const SCOPE_LABEL = new Map<string, string>(SCOPES.map((one) => [one.key, one.label]));
 
 const GROUP_ICON: Record<ExogenousGroup, IconName> = {
   ENERGY: 'rayo',
@@ -65,6 +71,20 @@ const MEASURES: ReadonlyArray<{ key: Measure; label: string; hint: string }> = [
 
 /** Seis colores distinguibles; más líneas en un gráfico ya no se leen. */
 const MOST_DRAWN = 6;
+
+/**
+ * Las lecturas de un grupo en tandas de seis: cada tanda es un gráfico. Un
+ * grupo de ocho son dos gráficos de cuatro y no uno de seis y otro de dos, para
+ * que las tandas se parezcan y ninguna quede casi vacía.
+ */
+function batches<T>(items: readonly T[]): T[][] {
+  const count = Math.ceil(items.length / MOST_DRAWN);
+  if (count <= 1) return [[...items]];
+  const size = Math.ceil(items.length / count);
+  return Array.from({ length: count }, (_, index) =>
+    items.slice(index * size, (index + 1) * size),
+  ).filter((batch) => batch.length > 0);
+}
 
 const number = (value: number, decimals = 2): string =>
   new Intl.NumberFormat('es-BO', {
@@ -93,6 +113,12 @@ export function ExogenousExplorer({
   board: ExogenousBoard;
   fixedGroup?: ExogenousGroup;
 }) {
+  /* Los fletes tienen su página (Transporte › Fletes); aquí sólo los precios. */
+  const all = useMemo(
+    () => (fixedGroup ? board.series : board.series.filter((one) => one.group !== 'FREIGHT')),
+    [board, fixedGroup],
+  );
+  const groups = GROUPS.filter((one) => fixedGroup || one.key !== 'FREIGHT');
   const [group, setGroup] = useState<ExogenousGroup>(fixedGroup ?? 'ENERGY');
   const [product, setProduct] = useState<Choice>(ANY);
   const [scope, setScope] = useState<Choice>(ANY);
@@ -100,13 +126,13 @@ export function ExogenousExplorer({
   const [hidden, setHidden] = useState<Choice>(ANY);
   const [measure, setMeasure] = useState<Measure>('LEVEL');
   const bounds = useMemo(() => {
-    const years = board.series.flatMap((one) => one.points.map(([period]) => yearOf(period)));
+    const years = all.flatMap((one) => one.points.map(([period]) => yearOf(period)));
     return { min: Math.min(...years, 2000), max: Math.max(...years, 2000) };
-  }, [board]);
+  }, [all]);
   const [yearFrom, setYearFrom] = useState<number | null>(null);
   const [yearTo, setYearTo] = useState<number | null>(null);
 
-  const inGroup = useMemo(() => board.series.filter((one) => one.group === group), [board, group]);
+  const inGroup = useMemo(() => all.filter((one) => one.group === group), [all, group]);
   const products = useMemo(() => {
     const seen = new Map<string, { label: string; count: number }>();
     for (const one of inGroup) {
@@ -194,7 +220,7 @@ export function ExogenousExplorer({
             : 'Variables exógenas: los precios que Bolivia no fija'}
         </h3>
         <p className="page-intro-lede">
-          {board.series.length} series; el último mes cerrado es{' '}
+          {all.length} series; el último mes cerrado es{' '}
           {board.latestMonth ? sayPeriod(board.latestMonth) : '—'}. Elegí una familia, un producto y
           un ámbito en el riel de la izquierda; los filtros se recortan entre sí.
         </p>
@@ -206,11 +232,21 @@ export function ExogenousExplorer({
               : 'Cotizaciones del mercado mundial y de los vecinos, índices de productor de EE. UU., el '}
             precio en bolivianos en los mercados del país y el precio por kilo que Bolivia pagó y
             cobró en su aduana.
+            {fixedGroup ? null : (
+              <>
+                {' '}
+                Lo que cuesta mover la carga está en{' '}
+                <a href={hrefDe({ pestana: 'Transporte', pagina: 'Fletes' })}>
+                  Transporte › Fletes
+                </a>
+                .
+              </>
+            )}
           </p>
         </details>
         {fixedGroup ? null : (
           <div className="chips" role="tablist" aria-label="Familia de productos">
-            {GROUPS.map((option) => {
+            {groups.map((option) => {
               const on = option.key === group;
               return (
                 <button
@@ -224,7 +260,7 @@ export function ExogenousExplorer({
                   <Icon name={GROUP_ICON[option.key]} size={13} />
                   {option.label}
                   <span className="chip-count">
-                    {board.series.filter((one) => one.group === option.key).length}
+                    {all.filter((one) => one.group === option.key).length}
                   </span>
                 </button>
               );
@@ -352,7 +388,7 @@ export function ExogenousExplorer({
               Lecturas ({shown.length} de {listed.length})
             </div>
             <FilterHint>
-              Quitá las que no quieras ver; se dibujan hasta seis por gráfico.
+              Quitá las que no quieras ver; se dibujan todas, de a seis por gráfico.
             </FilterHint>
             <div className={listed.length > 9 ? 'rail-list rail-list-cut' : 'rail-list'}>
               {listed.map((one) => {
@@ -456,7 +492,6 @@ export function ExogenousExplorer({
             </div>
           ) : null}
           {group === 'FREIGHT' ? <FreightReferences /> : null}
-          <SummaryCards series={shown.slice(0, MOST_DRAWN)} />
           <MonthlyCharts series={monthly} measure={measure} from={from} to={to} />
           <AnnualChart series={annual} measure={measure} from={from} to={to} />
           <ExogenousTable series={listed} />
@@ -496,57 +531,6 @@ export function ExogenousExplorer({
   );
 }
 
-function SummaryCards({ series }: { series: readonly ExogenousSeries[] }) {
-  const rows = series.filter((one) => summarize(one).last);
-  if (!rows.length) return null;
-  /** Lo que muestran las cifras, sin redondear, para el archivo que se baja. */
-  const dataset = () => ({
-    unidad: 'cada lectura en su unidad; la variación en %',
-    columnas: ['Lectura', 'Unidad', 'Periodo', 'Último', 'Variación en un año (%)'],
-    filas: rows.map((one) => {
-      const summary = summarize(one);
-      const change = one.frequency === 'MONTHLY' ? summary.yearChange : summary.change;
-      return [
-        one.name,
-        one.unit,
-        summary.last ? sayPeriod(summary.last[0]) : null,
-        celda(summary.last?.[1]),
-        celda(change),
-      ];
-    }),
-  });
-  return (
-    <Panel
-      id="exogenas-ultimo"
-      title="Último precio de las lecturas elegidas (cada una en su unidad)"
-      lede="La cifra más reciente de cada lectura y cuánto cambió en un año."
-      source={sourcesOf(rows)}
-      data={dataset}
-    >
-      <div className="stat-strip">
-        {rows.map((one) => {
-          const summary = summarize(one);
-          if (!summary.last) return null;
-          const [period, value] = summary.last;
-          const change = one.frequency === 'MONTHLY' ? summary.yearChange : summary.change;
-          return (
-            <div className="stat" key={one.code} title={one.note}>
-              <span className="stat-label">{one.name}</span>
-              <span className="stat-value">{number(value, decimalsFor([value]))}</span>
-              <span className="stat-hint">
-                {one.unit} · {sayPeriod(period)}
-                {change === null
-                  ? ''
-                  : ` · ${change >= 0 ? '+' : ''}${number(change, 1)} % en un año`}
-              </span>
-            </div>
-          );
-        })}
-      </div>
-    </Panel>
-  );
-}
-
 function MonthlyCharts({
   series,
   measure,
@@ -561,85 +545,114 @@ function MonthlyCharts({
   /*
    * En nivel, un gráfico por unidad: dólares por barril y dólares por galón no
    * comparten eje. En índice o variación todas hablan la misma unidad y van
-   * juntas, que es para lo que existen esas dos medidas.
+   * juntas, que es para lo que existen esas dos medidas. Cada grupo de más de
+   * seis lecturas se parte en varios gráficos (`batches`): se dibujan todas.
    */
-  const panels = new Map<string, ExogenousSeries[]>();
+  const panels = new Map<string, { unit: string; scope: string; members: ExogenousSeries[] }>();
   for (const one of series) {
-    const key = measure === 'LEVEL' ? one.unit : measureUnit(measure, one.unit);
-    panels.set(key, [...(panels.get(key) ?? []), one]);
+    const unit = measure === 'LEVEL' ? one.unit : measureUnit(measure, one.unit);
+    /* En índice o variación todas comparten unidad; se separan por ámbito, para
+       que el precio mundial no se mezcle con el de los mercados del país. */
+    const key = measure === 'LEVEL' ? unit : `${unit}|${one.scope}`;
+    const entry = panels.get(key) ?? { unit, scope: one.scope, members: [] };
+    entry.members.push(one);
+    panels.set(key, entry);
   }
   return (
     <>
-      {[...panels].map(([unit, members]) => {
-        const drawn = members.slice(0, MOST_DRAWN);
-        const rows = new Map<string, DatedLinePoint>();
-        for (const one of drawn) {
-          for (const [period, value] of measured(one.points, measure, from, to)) {
-            const date = `${period}-01`;
-            const row = rows.get(date) ?? { date };
-            row[one.code] = value;
-            rows.set(date, row);
-          }
-        }
-        const data = [...rows.values()].sort((left, right) =>
-          String(left.date).localeCompare(String(right.date)),
-        );
-        const values = data.flatMap((row) =>
-          drawn
-            .map((one) => row[one.code])
-            .filter((value): value is number => typeof value === 'number'),
-        );
-        const title =
-          measure === 'LEVEL'
-            ? `${drawn[0]?.productLabel ?? 'Precio'} y afines (${unit}), mensual`
-            : measure === 'INDEX'
-              ? `Precios mensuales en índice (base 100 = primer dato de cada serie desde ${from})`
-              : 'Variación interanual de los precios mensuales (%)';
-        const notes = drawn
-          .map((one) => one.note)
-          .filter((note, index, all) => note && all.indexOf(note) === index);
-        return (
-          <Panel
-            key={unit}
-            id={`exogenas-mensual-${slug(unit)}`}
-            title={title}
-            lede={notes[0]}
-            meta={
-              members.length > MOST_DRAWN
-                ? `${MOST_DRAWN} de ${members.length} lecturas`
-                : undefined
-            }
-            source={sourcesOf(drawn)}
-          >
-            {data.length > 1 ? (
-              <DatedLines
-                data={data}
-                series={drawn.map((one, index) => ({
-                  key: one.code,
-                  // «Papa, mayorista, La Paz (La Paz)» no: el mercado sólo si el nombre no lo dice.
-                  label: one.name.includes(one.market) ? one.name : `${one.name} (${one.market})`,
-                  tone: seriesTone(index),
-                }))}
-                unit={measureUnit(measure, unit)}
-                decimals={decimalsFor(values)}
-                monthly
-                {...(measure === 'INDEX' ? { referenceLine: 100 } : {})}
-                {...(measure === 'YOY' ? { referenceLine: 0 } : {})}
-              />
-            ) : (
-              <p className="rail-hint">No hay suficientes meses en el rango elegido.</p>
-            )}
-            {notes.length > 1 ? <p className="panel-note">{notes.slice(1, 2).join(' ')}</p> : null}
-            {members.length > MOST_DRAWN ? (
-              <p className="panel-note">
-                Se dibujan las {MOST_DRAWN} primeras de {members.length}; quitá lecturas en el riel
-                para ver las otras.
-              </p>
-            ) : null}
-          </Panel>
-        );
+      {[...panels].flatMap(([key, { unit, scope, members }]) => {
+        const parts = batches(members);
+        return parts.map((drawn, part) => (
+          <MonthlyPanel
+            key={`${key}|${part}`}
+            id={`exogenas-mensual-${slug(key)}${part ? `-${part + 1}` : ''}`}
+            unit={unit}
+            scope={measure === 'LEVEL' ? null : scope}
+            drawn={drawn}
+            part={parts.length > 1 ? [part + 1, parts.length] : null}
+            measure={measure}
+            from={from}
+            to={to}
+          />
+        ));
       })}
     </>
+  );
+}
+
+function MonthlyPanel({
+  id,
+  unit,
+  scope,
+  drawn,
+  part,
+  measure,
+  from,
+  to,
+}: {
+  id: string;
+  unit: string;
+  scope: string | null;
+  drawn: readonly ExogenousSeries[];
+  part: [number, number] | null;
+  measure: Measure;
+  from: number;
+  to: number;
+}) {
+  const rows = new Map<string, DatedLinePoint>();
+  for (const one of drawn) {
+    for (const [period, value] of measured(one.points, measure, from, to)) {
+      const date = `${period}-01`;
+      const row = rows.get(date) ?? { date };
+      row[one.code] = value;
+      rows.set(date, row);
+    }
+  }
+  const data = [...rows.values()].sort((left, right) =>
+    String(left.date).localeCompare(String(right.date)),
+  );
+  const values = data.flatMap((row) =>
+    drawn.map((one) => row[one.code]).filter((value): value is number => typeof value === 'number'),
+  );
+  const where = scope ? `, ${SCOPE_LABEL.get(scope) ?? scope}` : '';
+  const title =
+    (measure === 'LEVEL'
+      ? `${drawn[0]?.productLabel ?? 'Precio'} y afines (${unit}), mensual`
+      : measure === 'INDEX'
+        ? `Precios mensuales en índice${where} (base 100 = primer dato de cada serie desde ${from})`
+        : `Variación interanual de los precios mensuales${where} (%)`) +
+    (part ? ` · gráfico ${part[0]} de ${part[1]}` : '');
+  const notes = drawn
+    .map((one) => one.note)
+    .filter((note, index, all) => note && all.indexOf(note) === index);
+  return (
+    <Panel
+      id={id}
+      title={title}
+      lede={notes[0]}
+      meta={part ? `${drawn.length} lecturas` : undefined}
+      source={sourcesOf(drawn)}
+    >
+      {data.length > 1 ? (
+        <DatedLines
+          data={data}
+          series={drawn.map((one, index) => ({
+            key: one.code,
+            // «Papa, mayorista, La Paz (La Paz)» no: el mercado sólo si el nombre no lo dice.
+            label: one.name.includes(one.market) ? one.name : `${one.name} (${one.market})`,
+            tone: seriesTone(index),
+          }))}
+          unit={measureUnit(measure, unit)}
+          decimals={decimalsFor(values)}
+          monthly
+          {...(measure === 'INDEX' ? { referenceLine: 100 } : {})}
+          {...(measure === 'YOY' ? { referenceLine: 0 } : {})}
+        />
+      ) : (
+        <p className="rail-hint">No hay suficientes meses en el rango elegido.</p>
+      )}
+      {notes.length > 1 ? <p className="panel-note">{notes.slice(1, 2).join(' ')}</p> : null}
+    </Panel>
   );
 }
 
@@ -655,7 +668,36 @@ function AnnualChart({
   to: number;
 }) {
   if (!series.length) return null;
-  const drawn = series.slice(0, MOST_DRAWN);
+  const parts = batches(series);
+  return (
+    <>
+      {parts.map((drawn, part) => (
+        <AnnualPanel
+          key={part}
+          drawn={drawn}
+          part={parts.length > 1 ? [part + 1, parts.length] : null}
+          measure={measure}
+          from={from}
+          to={to}
+        />
+      ))}
+    </>
+  );
+}
+
+function AnnualPanel({
+  drawn,
+  part,
+  measure,
+  from,
+  to,
+}: {
+  drawn: readonly ExogenousSeries[];
+  part: [number, number] | null;
+  measure: Measure;
+  from: number;
+  to: number;
+}) {
   const rows = new Map<string, WorldLinePoint>();
   for (const one of drawn) {
     for (const [period, value] of measured(one.points, measure, from, to)) {
@@ -678,12 +720,12 @@ function AnnualChart({
   const decimals = decimalsFor(values);
   return (
     <Panel
-      id="exogenas-aduana-anual"
+      id={`exogenas-aduana-anual${part && part[0] > 1 ? `-${part[0]}` : ''}`}
       title={`Precio por kilo en la aduana de Bolivia (${unit}${
         measure === 'INDEX' ? `, base 100 = primer dato de cada serie desde ${from}` : ''
-      }), anual`}
+      }), anual${part ? ` · gráfico ${part[0]} de ${part[1]}` : ''}`}
       lede="Valor declarado entre peso neto de lo que Bolivia exportó o importó, año por año."
-      meta={series.length > MOST_DRAWN ? `${MOST_DRAWN} de ${series.length} lecturas` : undefined}
+      meta={part ? `${drawn.length} lecturas` : undefined}
       source={sourcesOf(drawn)}
     >
       {data.length > 1 ? (
@@ -702,9 +744,6 @@ function AnnualChart({
       )}
       <p className="panel-note">
         No es una cotización: incluye flete y la mezcla de calidades que el país compró o vendió.
-        {series.length > MOST_DRAWN
-          ? ` Se dibujan las ${MOST_DRAWN} primeras de ${series.length}.`
-          : ''}
       </p>
     </Panel>
   );

@@ -201,7 +201,7 @@ test('fletes abre el histórico boliviano completo y deja las referencias nacion
   assert.match(source, /freightFrom/u);
   assert.ok(
     source.indexOf("group === 'FREIGHT' ? <FreightReferences />") <
-      source.indexOf('<SummaryCards'),
+      source.indexOf('<MonthlyCharts'),
     'las tarifas nacionales deben aparecer antes de las series internacionales',
   );
 });
