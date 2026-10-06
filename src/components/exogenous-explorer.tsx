@@ -63,6 +63,23 @@ const MEASURES: ReadonlyArray<{ key: Measure; label: string; hint: string }> = [
 /** Seis colores distinguibles; más líneas en un gráfico ya no se leen. */
 const MOST_DRAWN = 6;
 
+/**
+ * Las lecturas de un grupo en tandas de seis: cada tanda es un gráfico, así se
+ * dibujan todas en vez de esconder la séptima. Un grupo de ocho son dos
+ * gráficos de cuatro y no uno de seis y otro de dos.
+ */
+function batches<T>(items: readonly T[]): T[][] {
+  const count = Math.ceil(items.length / MOST_DRAWN);
+  if (count <= 1) return [[...items]];
+  const size = Math.ceil(items.length / count);
+  return Array.from({ length: count }, (_, index) =>
+    items.slice(index * size, (index + 1) * size),
+  ).filter((batch) => batch.length > 0);
+}
+
+const partOf = (part: number, parts: number): string =>
+  parts > 1 ? ` · gráfico ${part + 1} de ${parts}` : '';
+
 const number = (value: number, decimals = 2): string =>
   new Intl.NumberFormat('es-BO', {
     minimumFractionDigits: 0,
@@ -303,7 +320,7 @@ export function ExogenousExplorer({ board }: { board: ExogenousBoard }) {
               Lecturas ({shown.length} de {listed.length})
             </div>
             <FilterHint>
-              Quitá las que no quieras ver; se dibujan hasta seis por gráfico.
+              Quitá las que no quieras ver; se dibujan todas, de a seis por gráfico.
             </FilterHint>
             <div className={listed.length > 9 ? 'rail-list rail-list-cut' : 'rail-list'}>
               {listed.map((one) => {
@@ -408,7 +425,6 @@ export function ExogenousExplorer({ board }: { board: ExogenousBoard }) {
               Ninguna lectura coincide con el recorte. Quitá un filtro de la izquierda.
             </div>
           ) : null}
-          <SummaryCards series={shown.slice(0, MOST_DRAWN)} />
           <MonthlyCharts series={monthly} measure={measure} from={from} to={to} />
           <AnnualChart series={annual} measure={measure} from={from} to={to} />
           <ExogenousTable series={listed} />
@@ -438,38 +454,12 @@ export function ExogenousExplorer({ board }: { board: ExogenousBoard }) {
             FRED del Banco de la Reserva Federal de San Luis (EIA y Oficina de Estadísticas
             Laborales de EE. UU.), FAO/GIEWS (con datos del INE y del Ministerio de Desarrollo
             Productivo de Bolivia), Naciones Unidas (Comtrade), Freightos (contenedor y flete aéreo)
-            y la base aduanera del INE (flete implícito). Cada cifra guarda la celda o la
-            fila de la que salió.
+            y la base aduanera del INE (flete implícito). Cada cifra guarda la celda o la fila de la
+            que salió.
           </p>
         </div>
       </div>
     </>
-  );
-}
-
-function SummaryCards({ series }: { series: readonly ExogenousSeries[] }) {
-  if (!series.length) return null;
-  return (
-    <div className="stat-strip">
-      {series.map((one) => {
-        const summary = summarize(one);
-        if (!summary.last) return null;
-        const [period, value] = summary.last;
-        const change = one.frequency === 'MONTHLY' ? summary.yearChange : summary.change;
-        return (
-          <div className="stat" key={one.code} title={one.note}>
-            <span className="stat-label">{one.name}</span>
-            <span className="stat-value">{number(value, decimalsFor([value]))}</span>
-            <span className="stat-hint">
-              {one.unit} · {sayPeriod(period)}
-              {change === null
-                ? ''
-                : ` · ${change >= 0 ? '+' : ''}${number(change, 1)} % en un año`}
-            </span>
-          </div>
-        );
-      })}
-    </div>
   );
 }
 
@@ -496,67 +486,65 @@ function MonthlyCharts({
   }
   return (
     <>
-      {[...panels].map(([unit, members]) => {
-        const drawn = members.slice(0, MOST_DRAWN);
-        const rows = new Map<string, DatedLinePoint>();
-        for (const one of drawn) {
-          for (const [period, value] of measured(one.points, measure, from, to)) {
-            const date = `${period}-01`;
-            const row = rows.get(date) ?? { date };
-            row[one.code] = value;
-            rows.set(date, row);
+      {[...panels].flatMap(([unit, members]) =>
+        batches(members).map((drawn, part, parts) => {
+          const rows = new Map<string, DatedLinePoint>();
+          for (const one of drawn) {
+            for (const [period, value] of measured(one.points, measure, from, to)) {
+              const date = `${period}-01`;
+              const row = rows.get(date) ?? { date };
+              row[one.code] = value;
+              rows.set(date, row);
+            }
           }
-        }
-        const data = [...rows.values()].sort((left, right) =>
-          String(left.date).localeCompare(String(right.date)),
-        );
-        const values = data.flatMap((row) =>
-          drawn
-            .map((one) => row[one.code])
-            .filter((value): value is number => typeof value === 'number'),
-        );
-        const title =
-          measure === 'LEVEL'
-            ? `${drawn[0]?.productLabel ?? 'Precio'} y afines (${unit}), mensual`
-            : measure === 'INDEX'
-              ? `Precios mensuales en índice (base 100 = primer dato de cada serie desde ${from})`
-              : 'Variación interanual de los precios mensuales (%)';
-        return (
-          <div className="panel" key={unit}>
-            <div className="panel-head">
-              <h2>{title}</h2>
-              <p className="panel-sub">
-                {drawn
-                  .map((one) => one.note)
-                  .filter((note, index, all) => all.indexOf(note) === index)
-                  .slice(0, 2)
-                  .join(' ')}
-                {members.length > MOST_DRAWN
-                  ? ` Se dibujan las ${MOST_DRAWN} primeras de ${members.length}; quitá lecturas en el riel para ver las otras.`
-                  : ''}
-              </p>
+          const data = [...rows.values()].sort((left, right) =>
+            String(left.date).localeCompare(String(right.date)),
+          );
+          const values = data.flatMap((row) =>
+            drawn
+              .map((one) => row[one.code])
+              .filter((value): value is number => typeof value === 'number'),
+          );
+          const title =
+            measure === 'LEVEL'
+              ? `${drawn[0]?.productLabel ?? 'Precio'} y afines (${unit}), mensual`
+              : measure === 'INDEX'
+                ? `Precios mensuales en índice (base 100 = primer dato de cada serie desde ${from})`
+                : 'Variación interanual de los precios mensuales (%)';
+          return (
+            <div className="panel" key={`${unit}|${part}`}>
+              <div className="panel-head">
+                <h2>{title + partOf(part, parts.length)}</h2>
+                <p className="panel-sub">
+                  {drawn
+                    .map((one) => one.note)
+                    .filter((note, index, all) => all.indexOf(note) === index)
+                    .slice(0, 2)
+                    .join(' ')}
+                </p>
+              </div>
+              {data.length > 1 ? (
+                <DatedLines
+                  data={data}
+                  series={drawn.map((one, index) => ({
+                    key: one.code,
+                    // «Papa, mayorista, La Paz (La Paz)» no: el mercado sólo si el nombre no lo dice.
+                    label: one.name.includes(one.market) ? one.name : `${one.name} (${one.market})`,
+                    tone: seriesTone(index),
+                  }))}
+                  unit={measureUnit(measure, unit)}
+                  decimals={decimalsFor(values)}
+                  monthly
+                  {...(measure === 'INDEX' ? { referenceLine: 100 } : {})}
+                  {...(measure === 'YOY' ? { referenceLine: 0 } : {})}
+                />
+              ) : (
+                <p className="rail-hint">No hay suficientes meses en el rango elegido.</p>
+              )}
             </div>
-            {data.length > 1 ? (
-              <DatedLines
-                data={data}
-                series={drawn.map((one, index) => ({
-                  key: one.code,
-                  // «Papa, mayorista, La Paz (La Paz)» no: el mercado sólo si el nombre no lo dice.
-                  label: one.name.includes(one.market) ? one.name : `${one.name} (${one.market})`,
-                  tone: seriesTone(index),
-                }))}
-                unit={measureUnit(measure, unit)}
-                decimals={decimalsFor(values)}
-                monthly
-                {...(measure === 'INDEX' ? { referenceLine: 100 } : {})}
-                {...(measure === 'YOY' ? { referenceLine: 0 } : {})}
-              />
-            ) : (
-              <p className="rail-hint">No hay suficientes meses en el rango elegido.</p>
-            )}
-          </div>
-        );
-      })}
+          );
+        }),
+      )}
     </>
   );
 }
@@ -573,7 +561,36 @@ function AnnualChart({
   to: number;
 }) {
   if (!series.length) return null;
-  const drawn = series.slice(0, MOST_DRAWN);
+  const parts = batches(series);
+  return (
+    <>
+      {parts.map((drawn, part) => (
+        <AnnualPanel
+          key={part}
+          drawn={drawn}
+          part={partOf(part, parts.length)}
+          measure={measure}
+          from={from}
+          to={to}
+        />
+      ))}
+    </>
+  );
+}
+
+function AnnualPanel({
+  drawn,
+  part,
+  measure,
+  from,
+  to,
+}: {
+  drawn: readonly ExogenousSeries[];
+  part: string;
+  measure: Measure;
+  from: number;
+  to: number;
+}) {
   const rows = new Map<string, WorldLinePoint>();
   for (const one of drawn) {
     for (const [period, value] of measured(one.points, measure, from, to)) {
@@ -600,14 +617,11 @@ function AnnualChart({
         <h2>
           Precio por kilo en la aduana de Bolivia ({unit}
           {measure === 'INDEX' ? `, base 100 = primer dato de cada serie desde ${from}` : ''}),
-          anual
+          anual{part}
         </h2>
         <p className="panel-sub">
           Valor declarado entre peso neto de lo que Bolivia exportó o importó, año por año. No es
           una cotización: incluye flete y la mezcla de calidades que el país compró o vendió.
-          {series.length > MOST_DRAWN
-            ? ` Se dibujan las ${MOST_DRAWN} primeras de ${series.length}.`
-            : ''}
         </p>
       </div>
       {data.length > 1 ? (

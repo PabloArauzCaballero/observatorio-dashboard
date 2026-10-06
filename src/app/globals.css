@@ -895,14 +895,22 @@ h2 {
 
 /* Macro cards ------------------------------------------------------------ */
 
+/*
+ * Tarjetas de a tres como mucho. Con `flex: 1 1 300px` una pantalla ancha metía
+ * cuatro o cinco minigráficos de 300 px por fila, con el eje de años encimado.
+ * Cada tarjeta pide 24rem y nunca menos de un tercio de la fila (la misma regla
+ * que `.grid-three`); `--card-gap` sigue al hueco de la rejilla para que la
+ * cuenta del tercio salga exacta también en la variante plana.
+ */
 .card-grid {
+  --card-gap: var(--s2);
   display: flex;
   flex-wrap: wrap;
-  gap: var(--s2);
+  gap: var(--card-gap);
 }
 
 .card {
-  flex: 1 1 300px;
+  flex: 1 1 max(24rem, calc((100% - 2 * var(--card-gap, var(--s2))) / 3));
   min-width: 0;
   background: var(--panel);
   border: 1px solid var(--rule);
@@ -1418,10 +1426,26 @@ code {
   line-height: 1.35;
 }
 
+/*
+ * Paneles de a dos como mucho, y de a uno cuando no caben.
+ *
+ * Con `auto-fit` y un mínimo de 360 px la rejilla metía tres gráficos por fila
+ * a 1440 px (el contenido mide unos 1150) y cuatro en una pantalla grande: tres
+ * gráficos de línea de 360 px son tres manchas que no se leen. Ahora cada panel
+ * pide 24rem (384 px), el ancho en que un eje de veinte años todavía se lee, y
+ * nunca menos de la mitad de la fila, así que nunca son más de dos. Es una fila
+ * flexible y no una rejilla: el panel que queda solo en la última fila se
+ * ensancha hasta el borde en vez de dejar un hueco al lado.
+ */
 .grid-two {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(min(360px, 100%), 1fr));
+  display: flex;
+  flex-wrap: wrap;
   gap: var(--s2);
+}
+
+.grid-two > * {
+  flex: 1 1 max(24rem, calc((100% - var(--s2)) / 2));
+  min-width: 0;
 }
 
 /* Docked filter rail ----------------------------------------------------- */
@@ -5136,74 +5160,37 @@ button.download-btn {
 /* Rejilla de tres gráficos ----------------------------------------------- */
 
 /*
- * Tres gráficos por fila, y las filas siempre llenas.
+ * Hasta tres gráficos por fila, sólo cuando caben de verdad.
  *
- * Energía, Recursos naturales y Medio ambiente iban de dos en dos, y a 1440 px
- * cada gráfico anual de veinte años ocupaba media pantalla para decir lo que
- * dice en un tercio: la lectura de un capítulo era un desplazamiento largo con
- * mucho aire. A tres por fila el capítulo entero cabe en dos o tres pantallas
- * y las filas siguen leyéndose como filas, que es lo que el lector pidió.
+ * Eran tres fijas a cualquier ancho desde 1100 px, y estos paneles viven a la
+ * derecha de la barra de filtros: a 1440 px cada gráfico medía unos 280 px, el
+ * eje de años se pisaba y las barras eran rayas. «Tres por fila» era una
+ * recomendación para pantallas que lo permiten, no una regla. Ahora cada panel
+ * pide 24rem (384 px) y nunca menos de un tercio de la fila: a 1440 px con la
+ * barra de filtros salen dos, en una pantalla ancha tres, y en el móvil uno.
  *
- * Tres fijas y no `auto-fit`: la cuenta de columnas tiene que depender del
- * ancho de la pantalla y no del de la columna que la sostiene, porque estos
- * paneles viven a la derecha de la barra de filtros y con `auto-fit` a 1100 px
- * salían dos. Por debajo de 1100 son dos, y en el móvil una. `minmax(0, 1fr)`
- * por la misma razón que en `.grid-pair`: un rótulo largo del eje no ensancha
- * su columna.
- *
- * La última fila no queda con un hueco. Nueve gráficos son tres filas justas,
- * pero ocho o diez no, y un panel solo en su fila con dos tercios vacíos al
- * lado es el agujero que se lee como «la página está rota». El que sobra se
- * ensancha hasta el borde: uno solo ocupa la fila entera, y el segundo de dos
- * se lleva las dos columnas que quedan. A dos columnas la regla es la misma con
- * el impar; a una no hay nada que ensanchar, y se apaga —un `span` sobre una
- * sola columna crearía columnas implícitas fuera de la página—.
+ * Fila flexible y no rejilla, por la misma razón que `.grid-two`: la última
+ * fila no queda con un hueco, el panel que sobra se estira hasta el borde. Los
+ * paneles de una misma fila miden lo mismo de alto (`align-items: stretch`).
  */
 .grid-three {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  display: flex;
+  flex-wrap: wrap;
   gap: var(--s2);
 }
 
+.grid-three > * {
+  flex: 1 1 max(24rem, calc((100% - 2 * var(--s2)) / 3));
+  min-width: 0;
+}
+
 /*
- * Las cifras de cabecera, de dos en dos dentro del panel.
- *
- * A un tercio de pantalla el panel mide unos 320 px, y con el mínimo de 158
- * que la franja usa a ancho completo las cinco cifras de la electricidad se
- * apilaban de a una: medio panel de números y el gráfico de al lado estirado
- * hasta igualar ese alto. Con 120 caben dos por renglón y el alto se reparte.
+ * Las cifras de cabecera, de dos en dos dentro del panel: un panel de la
+ * rejilla mide entre 384 y 560 px, y con el mínimo de 158 que la franja usa a
+ * ancho completo cinco cifras se apilaban de a una.
  */
 .grid-three .stat-strip {
   grid-template-columns: repeat(auto-fit, minmax(min(120px, 100%), 1fr));
-}
-
-.grid-three > .panel:last-child:nth-child(3n + 1) {
-  grid-column: 1 / -1;
-}
-
-.grid-three > .panel:last-child:nth-child(3n + 2) {
-  grid-column: 2 / -1;
-}
-
-@media (max-width: 1099px) {
-  .grid-three {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-  .grid-three > .panel:last-child:nth-child(n) {
-    grid-column: auto;
-  }
-  .grid-three > .panel:last-child:nth-child(odd) {
-    grid-column: 1 / -1;
-  }
-}
-
-@media (max-width: 720px) {
-  .grid-three {
-    grid-template-columns: minmax(0, 1fr);
-  }
-  .grid-three > .panel:last-child:nth-child(n) {
-    grid-column: auto;
-  }
 }
 
 /*
@@ -9267,7 +9254,7 @@ button.download-btn {
 
 /* Las tarjetas de indicador son paneles planos: filete arriba, sin caja ni sombra. */
 .card-grid.card-grid-flat {
-  gap: var(--s4);
+  --card-gap: var(--s4);
 }
 
 .card.panel-x,

@@ -110,6 +110,8 @@ export function BusinessOwnersExplorer({ board }: { board: OwnersBoard }) {
     [board],
   );
   const [chosenYear, setYear] = useState<number | null>(null);
+  /** El año del top; `null` es el último dato de cada persona, con lo que abre. */
+  const [topYear, setTopYear] = useState<number | null>(null);
   const year =
     chosenYear ??
     years.find((one) => board.estimates.some((row) => row.year === one)) ??
@@ -212,6 +214,65 @@ export function BusinessOwnersExplorer({ board }: { board: OwnersBoard }) {
     board.podiums.filter((one) => one.year <= year).at(-1) ??
     board.podiums.at(-1);
 
+  /*
+   * El top abre con los diez mayores según la última estimación de cada uno.
+   *
+   * Un año solo no llega a diez: desde 2022 hay seis personas con participación
+   * y patrimonio públicos, y la lista abría con «Los 6 mayores». Con el último
+   * dato de cada persona hay diez; el año de ese dato va junto al nombre cuando
+   * no es el más reciente, porque una estimación de 2015 no dice cuánto tiene esa
+   * persona hoy. El selector sigue dando el orden de un año solo.
+   */
+  const latestYear = board.podiums.at(-1)?.year ?? 0;
+  const latestTop = [...board.histories]
+    .flatMap((history) => {
+      const last = history.years.at(-1);
+      return last ? [{ history, last }] : [];
+    })
+    .sort(
+      (left, right) =>
+        right.last.book - left.last.book ||
+        left.history.name.localeCompare(right.history.name, 'es'),
+    )
+    .slice(0, TOP_PLACES);
+  const topRows =
+    topYear === null
+      ? latestTop.map(({ history, last }, index) => ({
+          person: history.person,
+          name: history.name,
+          rank: index + 1,
+          book: last.book,
+          year: last.year,
+          detail:
+            last.year === latestYear
+              ? last.leadingHolding
+              : `${last.leadingHolding} · último dato: ${last.year}`,
+          move: null as string | null,
+          moveTitle:
+            last.year === latestYear
+              ? `Dato de ${last.year}`
+              : `Sin estimación después de ${last.year}`,
+        }))
+      : (podium?.places ?? []).map((place) => {
+          const before = rankOf.get(place.person)?.get(podium!.year - 1)?.rank;
+          const moved = before === undefined ? null : before - place.rank;
+          return {
+            person: place.person,
+            name: place.name,
+            rank: place.rank,
+            book: place.book,
+            year: podium!.year,
+            detail: rankOf.get(place.person)?.get(podium!.year)?.leadingHolding ?? '',
+            move:
+              moved === null ? 'nuevo' : moved > 0 ? `▲ ${moved}` : moved < 0 ? `▼ ${-moved}` : '=',
+            moveTitle:
+              before === undefined
+                ? `Sin estimación en ${podium!.year - 1}`
+                : `${before}.º en ${podium!.year - 1}`,
+          };
+        });
+  const stale = latestTop.filter(({ last }) => last.year < latestYear).length;
+
   const rankingItem = (row: Row) => (
     <li key={row.key} className={styles.rankingRow}>
       <span
@@ -262,16 +323,26 @@ export function BusinessOwnersExplorer({ board }: { board: OwnersBoard }) {
 
   return (
     <>
-      {podium ? (
+      {podium && topRows.length ? (
         <Panel
           id="empresarios-top"
-          title={`Los ${podium.places.length} mayores empresarios por fortuna estimada en libros, ${podium.year} (millones de dólares)`}
-          lede={
-            podium.places.length < TOP_PLACES
-              ? `En ${podium.year} sólo ${podium.population} personas tienen participación y patrimonio públicos, así que hay ${podium.places.length} puestos y no diez${fullYears.length ? `; los diez completos están en ${fullYears.join(', ')}` : ''}. Toca un nombre para abrir su ficha.`
-              : `Puesto entre las ${podium.population} personas con participación y patrimonio públicos ese año, y cuánto se movió cada una frente al año anterior. Toca un nombre para abrir su ficha.`
+          title={
+            topYear === null
+              ? `Los ${topRows.length} mayores empresarios por fortuna estimada en libros, último dato de cada uno (millones de dólares)`
+              : `Los ${topRows.length} mayores empresarios por fortuna estimada en libros, ${podium.year} (millones de dólares)`
           }
-          ledeText={`Puesto entre las ${podium.population} personas con participación y patrimonio públicos en ${podium.year}.`}
+          lede={
+            topYear === null
+              ? `Cada persona con su estimación más reciente.${stale ? ` ${topRows.length - stale} llegan a ${latestYear}; para las otras ${stale} el último documento público es anterior y el año va junto al nombre.` : ''} Elegí un año para ver el orden de ese año solo. Toca un nombre para abrir su ficha.`
+              : podium.places.length < TOP_PLACES
+                ? `En ${podium.year} sólo ${podium.population} personas tienen participación y patrimonio públicos, así que hay ${podium.places.length} puestos y no diez${fullYears.length ? `; los diez completos están en ${fullYears.join(', ')}` : ''}. Toca un nombre para abrir su ficha.`
+                : `Puesto entre las ${podium.population} personas con participación y patrimonio públicos ese año, y cuánto se movió cada una frente al año anterior. Toca un nombre para abrir su ficha.`
+          }
+          ledeText={
+            topYear === null
+              ? 'Cada persona con su estimación más reciente; el año va junto al nombre cuando es anterior.'
+              : `Puesto entre las ${podium.population} personas con participación y patrimonio públicos en ${podium.year}.`
+          }
           source={ESTIMATE_SOURCE}
           data={() => ({
             unidad: 'millones de dólares',
@@ -300,7 +371,19 @@ export function BusinessOwnersExplorer({ board }: { board: OwnersBoard }) {
           <div className={styles.topBar}>
             <label className={styles.topYear}>
               <span>Año</span>
-              <select value={podium.year} onChange={(event) => setYear(Number(event.target.value))}>
+              <select
+                value={topYear === null ? '' : String(podium.year)}
+                onChange={(event) => {
+                  if (!event.target.value) {
+                    setTopYear(null);
+                    return;
+                  }
+                  const chosen = Number(event.target.value);
+                  setTopYear(chosen);
+                  setYear(chosen);
+                }}
+              >
+                <option value="">Último dato de cada uno</option>
                 {[...board.podiums].reverse().map((one) => (
                   <option key={one.year} value={one.year}>
                     {one.year}
@@ -310,47 +393,30 @@ export function BusinessOwnersExplorer({ board }: { board: OwnersBoard }) {
             </label>
           </div>
           <ol className={styles.topList}>
-            {podium.places.map((place) => {
-              const before = rankOf.get(place.person)?.get(podium.year - 1)?.rank;
-              const moved = before === undefined ? null : before - place.rank;
-              const peakBook = podium.places[0]?.book ?? 1;
+            {topRows.map((row) => {
+              const peakBook = topRows[0]?.book ?? 1;
               return (
-                <li key={place.person} className={styles.topRow}>
-                  <span className={styles.topRank}>{place.rank}.º</span>
+                <li key={row.person} className={styles.topRow}>
+                  <span className={styles.topRank}>{row.rank}.º</span>
                   <button
                     type="button"
                     className={styles.personButton}
                     aria-controls="empresario-ficha"
-                    aria-expanded={open === place.person}
+                    aria-expanded={open === row.person}
                     onClick={() => {
-                      setOpen(place.person);
-                      setYear(podium.year);
+                      setOpen(row.person);
+                      setYear(row.year);
                     }}
                   >
-                    <strong>{place.name}</strong>
-                    <small>
-                      {rankOf.get(place.person)?.get(podium.year)?.leadingHolding ?? ''}
-                    </small>
+                    <strong>{row.name}</strong>
+                    <small>{row.detail}</small>
                   </button>
                   <span className={styles.topBarTrack} aria-hidden="true">
-                    <span style={{ width: `${Math.max(2, (place.book / peakBook) * 100)}%` }} />
+                    <span style={{ width: `${Math.max(2, (row.book / peakBook) * 100)}%` }} />
                   </span>
-                  <span className={styles.topValue}>{usd(place.book)}</span>
-                  <span
-                    className={styles.topMove}
-                    title={
-                      before === undefined
-                        ? `Sin estimación en ${podium.year - 1}`
-                        : `${before}.º en ${podium.year - 1}`
-                    }
-                  >
-                    {moved === null
-                      ? 'nuevo'
-                      : moved > 0
-                        ? `▲ ${moved}`
-                        : moved < 0
-                          ? `▼ ${-moved}`
-                          : '='}
+                  <span className={styles.topValue}>{usd(row.book)}</span>
+                  <span className={styles.topMove} title={row.moveTitle}>
+                    {row.move ?? ''}
                   </span>
                 </li>
               );
@@ -362,10 +428,12 @@ export function BusinessOwnersExplorer({ board }: { board: OwnersBoard }) {
           <details className="panel-note">
             <summary>Cómo leerlo</summary>
             <p>
-              Ordena sólo a las personas con participación y patrimonio públicos ese año: no es un
-              ránking de fortunas reales. ▲ y ▼ dicen cuántos puestos subió o bajó frente al año
-              anterior; «nuevo», que ese año no tenía estimación. Un año con menos de diez personas
-              calculables muestra menos puestos.
+              Ordena sólo a las personas con participación y patrimonio públicos: no es un ránking
+              de fortunas reales. Con «Último dato de cada uno» cada persona entra con su estimación
+              más reciente, y a la derecha va el año cuando no es el último publicado. Con un año
+              elegido, ▲ y ▼ dicen cuántos puestos subió o bajó frente al año anterior; «nuevo», que
+              ese año no tenía estimación. Un año con menos de diez personas calculables muestra
+              menos puestos.
             </p>
           </details>
         </Panel>
