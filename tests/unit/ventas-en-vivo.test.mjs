@@ -11,6 +11,8 @@ import { test } from 'node:test';
 import {
   NO_FILTERS,
   byRubro,
+  priceIndex,
+  viewerCurve,
   filterRooms,
   optionsFor,
   priceTable,
@@ -44,6 +46,10 @@ const room = (overrides) => ({
   follows: 0,
   speechSegments: 40,
   screenReads: 10,
+  shares: 0,
+  likes: 0,
+  curve: [],
+  dollarTalk: 0,
   ...overrides,
 });
 
@@ -62,7 +68,7 @@ test('la semana empieza el lunes', () => {
 
 test('por defecto solo cuentan los lives con venta', () => {
   assert.equal(filterRooms(rooms, NO_FILTERS).length, 3);
-  assert.equal(filterRooms(rooms, { ...NO_FILTERS, commerceOnly: false }).length, 4);
+  assert.equal(filterRooms(rooms, { ...NO_FILTERS, status: new Set() }).length, 4);
 });
 
 test('los filtros se cruzan: una opción cuenta con los OTROS filtros puestos', () => {
@@ -103,4 +109,30 @@ test('un producto con menos precios que el mínimo no se muestra', () => {
   const visible = new Set(filterRooms(rooms, NO_FILTERS).map((one) => one.key));
   const table = priceTable(prices, visible, 3);
   assert.deepEqual(table, [{ product: 'zapatilla', rubro: 'CALZADO', n: 3, median: 120, p25: 110, p75: 130 }]);
+});
+
+test('la curva de espectadores toma una mediana por live y por tramo, y exige 3 lives', () => {
+  const curved = [
+    room({ key: 'x', curve: [[0, 10], [5, 30], [12, 50]] }),
+    room({ key: 'y', curve: [[1, 20], [11, 40]] }),
+    room({ key: 'z', curve: [[2, 40], [15, 60]] }),
+  ];
+  assert.deepEqual(viewerCurve(curved), [
+    { label: '0–10 min', median: 20, lives: 3 },
+    { label: '10–20 min', median: 50, lives: 3 },
+  ]);
+});
+
+test('el índice de precios se encadena sobre los productos comunes y la UFV va en la misma base', () => {
+  const visible = new Set(['a']);
+  const price = (date, product, priceBs) => ({ room: 'a', date, rubro: 'X', product, priceBs, currency: 'BOB', source: 'SPEECH', unit: null });
+  const prices = [
+    price('2026-10-05', 'top', 40), price('2026-10-05', 'jean', 100),
+    price('2026-10-12', 'top', 44), price('2026-10-12', 'jean', 110), price('2026-10-12', 'gorra', 30),
+  ];
+  const ufv = [{ date: '2026-10-05', value: 3.0 }, { date: '2026-10-12', value: 3.03 }];
+  assert.deepEqual(priceIndex(prices, visible, ufv), [
+    { week: '2026-10-05', lives: 100, ufv: 100, products: 2 },
+    { week: '2026-10-12', lives: 110, ufv: 101, products: 3 },
+  ]);
 });

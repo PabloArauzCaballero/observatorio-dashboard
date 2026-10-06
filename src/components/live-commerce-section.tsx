@@ -1,13 +1,14 @@
 'use client';
 
 import { useMemo, useState } from 'react';
-import { ChartLegend, DatedLines, HeatGrid, ShareBars, TermCloud } from './charts';
+import { ChartLegend, DatedLines, HeatGrid, ShareBars, TermCloud, YearStackBars } from './charts';
 import { FilterHint, PickedCount } from './filters';
 import { Icon } from './icons';
 import { OnOpenNotice, useOnOpen } from './on-open';
 import { Panel } from '@/components/ui/panel';
 import { ViewToggle } from '@/components/ui/view-toggle';
 import { additive, picked, toggle, type Choice } from '@/lib/choice';
+import { productName, readable } from '@/lib/live-words';
 import {
   EMOTION_LABEL,
   NO_FILTERS,
@@ -16,10 +17,14 @@ import {
   SIGNAL_LABEL,
   SIZE_LABEL,
   SLOT_LABEL,
+  STATUS_LABEL,
   WEEKDAY_LABEL,
   byRubro,
   filterRooms,
   heat,
+  interactionPerHour,
+  priceIndex,
+  viewerCurve,
   optionsFor,
   perThousand,
   priceTable,
@@ -49,30 +54,6 @@ const MIN_PRICES = 3;
 
 const count = (value: number): string => value.toLocaleString('es-BO');
 
-/**
- * Frases y productos llegan plegados (sin tildes, números como «#») porque así se cuentan
- * repetidos. Para leerlos se devuelven las tildes de las palabras frecuentes.
- */
-const ACCENTS: Record<string, string> = {
-  mio: 'mío', mia: 'mía', mios: 'míos', mias: 'mías', cuanto: 'cuánto', cuanta: 'cuánta', envio: 'envío',
-  envios: 'envíos', donde: 'dónde', tamano: 'tamaño', tamanos: 'tamaños', ubicacion: 'ubicación',
-  pantalon: 'pantalón', cafe: 'café', separame: 'sepárame', apartame: 'apártame', anotame: 'anótame',
-  muestrame: 'muéstrame', poleron: 'polerón', camion: 'camión', jabon: 'jabón', sueter: 'suéter',
-  rinonera: 'riñonera', munecas: 'muñecas', muneca: 'muñeca', panal: 'pañal', panales: 'pañales',
-  bebe: 'bebé', telefono: 'teléfono', lampara: 'lámpara', audifono: 'audífono', audifonos: 'audífonos',
-  mascara: 'máscara', rimel: 'rímel', serum: 'sérum', locion: 'loción', botin: 'botín', tacon: 'tacón',
-  mocasin: 'mocasín', sarten: 'sartén', edredon: 'edredón', colchon: 'colchón', cojin: 'cojín',
-  canasta: 'canasta', cunape: 'cuñapé', dinamica: 'dinámica', garantia: 'garantía', replica: 'réplica',
-};
-const readable = (folded: string): string =>
-  folded
-    .split(' ')
-    .map((word) => (word === '#' ? '[número]' : (ACCENTS[word] ?? word)))
-    .join(' ');
-const productName = (folded: string): string => {
-  const text = readable(folded);
-  return text.charAt(0).toUpperCase() + text.slice(1);
-};
 const decimal = (value: number | null, digits = 1): string =>
   value === null ? '—' : value.toLocaleString('es-BO', { maximumFractionDigits: digits });
 const barsKey = (label: string) => <ChartLegend items={[{ color: 'var(--official)', label }]} />;
@@ -85,7 +66,8 @@ const slices = (counts: Record<string, number>, labels: Record<string, string>, 
     .map(([key, value]) => ({ name: labels[key] ?? key, value: share(value, whole) ?? 0, parts: [{ name: 'Mensajes', value }] }));
 };
 
-const DIMENSION_LABEL: Record<Dimension, { title: string; icon: 'capas' | 'mapa' | 'personas' | 'reloj' | 'calendario' }> = {
+const DIMENSION_LABEL: Record<Dimension, { title: string; icon: 'capas' | 'mapa' | 'personas' | 'reloj' | 'calendario' | 'tienda' }> = {
+  status: { title: 'Clase de live', icon: 'tienda' },
   rubro: { title: 'Rubro', icon: 'capas' },
   city: { title: 'Departamento del vendedor', icon: 'mapa' },
   size: { title: 'Audiencia del live', icon: 'personas' },
@@ -95,11 +77,14 @@ const DIMENSION_LABEL: Record<Dimension, { title: string; icon: 'capas' | 'mapa'
 
 export function LiveCommerceExplorer({ board }: { board: LiveCommerceBoard }) {
   const [filters, setFilters] = useState<LiveFilters>(NO_FILTERS);
-  const [index, setIndex] = useState<'enthusiasm' | 'friction' | 'distrust'>('enthusiasm');
+  const [measure, setMeasure] = useState<'enthusiasm' | 'friction' | 'distrust'>('enthusiasm');
   const [scope, setScope] = useState<'AUDIENCE' | 'SELLER'>('AUDIENCE');
+  const [reaction, setReaction] = useState<'gifts' | 'follows' | 'shares'>('gifts');
 
   const labelOf = (dimension: Dimension, value: string): string => {
     switch (dimension) {
+      case 'status':
+        return STATUS_LABEL[value] ?? value;
       case 'rubro':
         return board.rubros[value] ?? (value === 'SIN_IDENTIFICAR' ? 'Sin rubro identificado' : value === 'MIXTO' ? 'Varios rubros' : value);
       case 'city':
@@ -140,6 +125,11 @@ export function LiveCommerceExplorer({ board }: { board: LiveCommerceBoard }) {
   const seen = coverage.reduce((sum, night) => sum + night.messages, 0);
   const signaled = coverage.reduce((sum, night) => sum + night.messagesWithSignal, 0);
   const days = [...new Set(board.rooms.map((room) => room.date))].sort();
+  const curve = viewerCurve(rooms);
+  const interaction = interactionPerHour(rooms);
+  const dollarTalk = rooms.reduce((sum, room) => sum + room.dollarTalk, 0);
+  const index = priceIndex(board.prices, roomKeys, board.ufv);
+  const indexed = index.filter((row) => row.lives !== null);
 
   const set = (dimension: Dimension, value: string, add: boolean): void =>
     setFilters((current) => ({ ...current, [dimension]: toggle(current[dimension] as Choice, value, add) }));
@@ -148,7 +138,7 @@ export function LiveCommerceExplorer({ board }: { board: LiveCommerceBoard }) {
     (['rubro', 'city', 'size', 'slot', 'weekday'] as const).filter((dimension) => filters[dimension].size).length +
     (filters.from ? 1 : 0) +
     (filters.to ? 1 : 0) +
-    (filters.commerceOnly ? 0 : 1);
+    (filters.status.size === 1 && filters.status.has('VENTA') ? 0 : 1);
 
   if (!board.rooms.length) {
     return (
@@ -223,18 +213,6 @@ export function LiveCommerceExplorer({ board }: { board: LiveCommerceBoard }) {
             <span className="rail-count">{active ? `${active} activo${active === 1 ? '' : 's'}` : 'sin filtro'}</span>
           </div>
           <div className="rail-sec">
-            <label className="rep-toggle">
-              <input
-                type="checkbox"
-                checked={filters.commerceOnly}
-                onChange={(event) => setFilters((current) => ({ ...current, commerceOnly: event.target.checked }))}
-              />
-              <span>
-                <Icon name="tienda" size={13} /> Solo lives con venta
-              </span>
-            </label>
-          </div>
-          <div className="rail-sec">
             <div className="rail-head">
               <Icon name="calendario" size={13} /> Fechas
             </div>
@@ -265,7 +243,7 @@ export function LiveCommerceExplorer({ board }: { board: LiveCommerceBoard }) {
               </select>
             </div>
           </div>
-          {(['rubro', 'city', 'size', 'slot', 'weekday'] as const).map((dimension) => (
+          {(['status', 'rubro', 'city', 'size', 'slot', 'weekday'] as const).map((dimension) => (
             <div className="rail-sec" key={dimension}>
               <div className="rail-head">
                 <Icon name={DIMENSION_LABEL[dimension].icon} size={13} /> {DIMENSION_LABEL[dimension].title}{' '}
@@ -469,6 +447,98 @@ export function LiveCommerceExplorer({ board }: { board: LiveCommerceBoard }) {
             )}
           </Panel>
 
+
+          <div className="grid-pair">
+            <Panel
+              id="ventas-en-vivo-espectadores"
+              title="Espectadores durante el live (mediana por tramo de 10 minutos desde el inicio)"
+              lede="Cuánta gente sostiene un live a medida que avanza. Cada tramo junta al menos 3 lives; el minuto cero es el inicio del live, no el de la captura."
+              source={SOURCE}
+            >
+              {curve.length ? (
+                <YearStackBars
+                  data={curve.map((row) => ({ year: row.label, mediana: row.median }))}
+                  parts={[{ key: 'mediana', label: 'Mediana de espectadores en ese tramo' }]}
+                  unit="espectadores"
+                  height={240}
+                />
+              ) : (
+                <div className="callout">Todavía no hay tramos con 3 lives o más en el recorte.</div>
+              )}
+            </Panel>
+            <Panel
+              id="ventas-en-vivo-interaccion"
+              title="Regalos, seguidores nuevos y compartidos por rubro (por hora de live)"
+              lede="Lo que el público hace además de escribir. Los regalos se cuentan, no se convierten en dinero: TikTok no publica cuánto vale cada uno para el vendedor."
+              source={SOURCE}
+            >
+              <div className="rail-pills">
+                {(
+                  [
+                    ['gifts', 'Regalos'],
+                    ['follows', 'Seguidores nuevos'],
+                    ['shares', 'Compartidos'],
+                  ] as const
+                ).map(([value, label]) => (
+                  <button
+                    key={value}
+                    type="button"
+                    className={reaction === value ? 'chip chip-on' : 'chip'}
+                    aria-pressed={reaction === value}
+                    onClick={() => setReaction(value)}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+              {interaction.some((row) => row[reaction] > 0) ? (
+                <>
+                  <ShareBars
+                    data={interaction.filter((row) => row[reaction] > 0).map((row) => ({
+                      name: labelOf('rubro', row.rubro),
+                      value: row[reaction],
+                      pick: row.rubro,
+                      parts: [{ name: 'Horas observadas', value: row.hours }],
+                    }))}
+                    unit="por hora"
+                    height={Math.max(200, interaction.length * 30)}
+                    onPick={(value, add) => set('rubro', value, add)}
+                  />
+                  {barsKey('Cantidad por hora de live observada, por rubro')}
+                </>
+              ) : (
+                <div className="callout">Nadie lo hizo en los lives del recorte (o ningún rubro junta media hora observada).</div>
+              )}
+            </Panel>
+          </div>
+
+          <Panel
+            id="ventas-en-vivo-precio-ufv"
+            title="Precio en los lives frente a la UFV (índice, base 100 = primera semana)"
+            lede={
+              indexed.length > 1
+                ? 'Encadenado semana a semana sobre los productos que tienen precio en las dos semanas, para que un cambio de mezcla no parezca inflación. La UFV es el índice diario de precios del Banco Central.'
+                : 'Hace falta una segunda semana con productos en común para dibujar la comparación; hoy hay una. La línea se arma sola a medida que se suman noches.'
+            }
+            source={`${SOURCE}; UFV: Banco Central de Bolivia`}
+          >
+            {indexed.length > 1 ? (
+              <DatedLines
+                data={index.map((row) => ({ date: row.week, lives: row.lives, ufv: row.ufv }))}
+                series={[
+                  { key: 'lives', label: 'Precio en los lives (índice)', tone: 'var(--series-1)', emphasis: true },
+                  { key: 'ufv', label: 'UFV (índice)', tone: 'var(--series-2)', dashed: true },
+                ]}
+                unit="índice"
+                referenceLine={100}
+              />
+            ) : (
+              <div className="callout">
+                Semana con precios: {index.map((row) => `${row.week} (${row.products} productos)`).join(' · ') || 'ninguna'}.
+              </div>
+            )}
+          </Panel>
+
           <div className="grid-three">
             <Panel
               id="ventas-en-vivo-preguntas"
@@ -482,7 +552,7 @@ export function LiveCommerceExplorer({ board }: { board: LiveCommerceBoard }) {
             <Panel
               id="ventas-en-vivo-pagos"
               title="Cómo se habla de pagar (% de las menciones de pago)"
-              lede="Menciones de medios de pago en el chat. El dólar y el USDT conectan con la página del tipo de cambio."
+              lede={`Menciones de medios de pago en el chat. Además, ${count(dollarTalk)} mensajes del recorte hablan del dólar, del paralelo o del tipo de cambio.`}
               source={SOURCE}
             >
               {Object.keys(payments).length ? (
@@ -571,9 +641,9 @@ export function LiveCommerceExplorer({ board }: { board: LiveCommerceBoard }) {
                   <button
                     key={value}
                     type="button"
-                    className={index === value ? 'chip chip-on' : 'chip'}
-                    aria-pressed={index === value}
-                    onClick={() => setIndex(value)}
+                    className={measure === value ? 'chip chip-on' : 'chip'}
+                    aria-pressed={measure === value}
+                    onClick={() => setMeasure(value)}
                   >
                     {label}
                   </button>
@@ -581,10 +651,10 @@ export function LiveCommerceExplorer({ board }: { board: LiveCommerceBoard }) {
               </div>
               <ShareBars
                 data={rubros
-                  .filter((row) => row.messages >= MIN_MESSAGES && row[index] !== null)
+                  .filter((row) => row.messages >= MIN_MESSAGES && row[measure] !== null)
                   .map((row) => ({
                     name: labelOf('rubro', row.rubro),
-                    value: row[index] ?? 0,
+                    value: row[measure] ?? 0,
                     pick: row.rubro,
                     parts: [{ name: 'Mensajes', value: row.messages }],
                   }))}

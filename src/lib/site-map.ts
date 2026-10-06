@@ -64,6 +64,7 @@ export const SITE: readonly SiteSection[] = [
       'Reputación empresarial',
       'Redes sociales',
       'Ventas en vivo',
+      'Videos de vendedores',
     ),
   },
   { label: 'Personalidades', icon: 'personas', pages: [] },

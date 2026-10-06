@@ -18,7 +18,7 @@ export interface LiveRoom {
   week: string;
   hour: number;
   weekday: number;
-  status: 'VENTA' | 'SIN_VENTA' | 'EXTRANJERO';
+  status: 'VENTA' | 'ENTRETENIMIENTO' | 'SIN_VENTA' | 'EXTRANJERO';
   rubro: string;
   product: string | null;
   city: string | null;
@@ -36,6 +36,12 @@ export interface LiveRoom {
   polarity: Counts;
   gifts: number;
   follows: number;
+  shares: number;
+  likes: number;
+  /** Espectadores por minuto desde que empezó el live: [minuto, espectadores]. */
+  curve: ReadonlyArray<readonly [number, number]>;
+  /** Mensajes que hablan del dólar, el paralelo o el tipo de cambio. */
+  dollarTalk: number;
   speechSegments: number;
   screenReads: number;
 }
@@ -85,6 +91,11 @@ export interface LiveCoverage {
   minutes: number;
 }
 
+export interface UfvPoint {
+  date: string;
+  value: number;
+}
+
 export interface LiveCommerceBoard {
   analyzedAt: string | null;
   lexiconVersion: string | null;
@@ -96,6 +107,8 @@ export interface LiveCommerceBoard {
   phrases: LivePhrase[];
   terms: LiveTerm[];
   coverage: LiveCoverage[];
+  /** La UFV del Banco Central: el índice diario de precios contra el que se lee el precio de los lives. */
+  ufv: UfvPoint[];
 }
 
 export const EMPTY_LIVE_BOARD: LiveCommerceBoard = {
@@ -109,6 +122,7 @@ export const EMPTY_LIVE_BOARD: LiveCommerceBoard = {
   phrases: [],
   terms: [],
   coverage: [],
+  ufv: [],
 };
 
 // ------------------------------------------------------------ etiquetas
@@ -172,6 +186,13 @@ export const EMOTION_LABEL: Record<string, string> = {
   others: 'Sin emoción marcada',
 };
 
+export const STATUS_LABEL: Record<string, string> = {
+  VENTA: 'Venta',
+  ENTRETENIMIENTO: 'Entretenimiento',
+  SIN_VENTA: 'Sin venta',
+  EXTRANJERO: 'De otro país',
+};
+
 export const SIZE_LABEL: Record<string, string> = {
   MICRO: 'Micro (menos de 20 espectadores)',
   CHICO: 'Chico (20 a 99)',
@@ -202,9 +223,11 @@ export function weekOf(date: string): string {
 
 // --------------------------------------------------------------- filtros
 
-export type Dimension = 'rubro' | 'city' | 'size' | 'slot' | 'weekday';
+export type Dimension = 'status' | 'rubro' | 'city' | 'size' | 'slot' | 'weekday';
 
 export interface LiveFilters {
+  /** Venta, entretenimiento, sin venta o de otro país. Por defecto, solo venta. */
+  status: ReadonlySet<string>;
   rubro: ReadonlySet<string>;
   city: ReadonlySet<string>;
   size: ReadonlySet<string>;
@@ -212,11 +235,10 @@ export interface LiveFilters {
   weekday: ReadonlySet<string>;
   from: string;
   to: string;
-  /** Solo los lives donde se vendió algo (precio dicho o pedidos en el chat). */
-  commerceOnly: boolean;
 }
 
 export const NO_FILTERS: LiveFilters = {
+  status: new Set(['VENTA']),
   rubro: new Set(),
   city: new Set(),
   size: new Set(),
@@ -224,11 +246,12 @@ export const NO_FILTERS: LiveFilters = {
   weekday: new Set(),
   from: '',
   to: '',
-  commerceOnly: true,
 };
 
 const valueOf = (room: LiveRoom, dimension: Dimension): string => {
   switch (dimension) {
+    case 'status':
+      return room.status;
     case 'rubro':
       return room.rubro;
     case 'city':
@@ -242,12 +265,11 @@ const valueOf = (room: LiveRoom, dimension: Dimension): string => {
   }
 };
 
-const DIMENSIONS: readonly Dimension[] = ['rubro', 'city', 'size', 'slot', 'weekday'];
+const DIMENSIONS: readonly Dimension[] = ['status', 'rubro', 'city', 'size', 'slot', 'weekday'];
 
 /** Los lives del recorte. `except` deja libre una dimensión: así se cuentan sus opciones (filtro cruzado). */
 export function filterRooms(rooms: readonly LiveRoom[], filters: LiveFilters, except?: Dimension): LiveRoom[] {
   return rooms.filter((room) => {
-    if (filters.commerceOnly && room.status !== 'VENTA') return false;
     if (filters.from && room.date < filters.from) return false;
     if (filters.to && room.date > filters.to) return false;
     return DIMENSIONS.every((dimension) => {
@@ -428,4 +450,108 @@ export function heat(rooms: readonly LiveRoom[]): { row: string; column: string;
     const [weekday, hour] = key.split('|');
     return { row: WEEKDAY_LABEL[Number(weekday)] ?? '', column: `${String(hour).padStart(2, '0')} h`, value };
   });
+}
+
+const median = (values: readonly number[]): number => {
+  const sorted = [...values].sort((a, b) => a - b);
+  const middle = Math.floor(sorted.length / 2);
+  return sorted.length % 2 ? (sorted[middle] ?? 0) : ((sorted[middle - 1] ?? 0) + (sorted[middle] ?? 0)) / 2;
+};
+
+/** Mediana de espectadores por tramo de minutos desde el inicio del live (solo tramos con 3 lives o más). */
+export function viewerCurve(
+  rooms: readonly LiveRoom[],
+  bucket = 10,
+  limit = 180,
+): { label: string; median: number; lives: number }[] {
+  const byBucket = new Map<number, number[]>();
+  for (const room of rooms) {
+    const seen = new Map<number, number[]>();
+    for (const [minute, viewers] of room.curve) {
+      if (minute >= limit) continue;
+      const slot = Math.floor(minute / bucket);
+      seen.set(slot, [...(seen.get(slot) ?? []), viewers]);
+    }
+    // un live aporta un solo valor por tramo: su mediana en ese tramo
+    for (const [slot, values] of seen) {
+      byBucket.set(slot, [...(byBucket.get(slot) ?? []), median(values)]);
+    }
+  }
+  return [...byBucket.entries()]
+    .filter(([, values]) => values.length >= 3)
+    .sort(([a], [b]) => a - b)
+    .map(([slot, values]) => ({
+      label: `${slot * bucket}–${(slot + 1) * bucket} min`,
+      median: Math.round(median(values)),
+      lives: values.length,
+    }));
+}
+
+/** Regalos, seguidores nuevos y compartidos por hora observada, por rubro. */
+export function interactionPerHour(
+  rooms: readonly LiveRoom[],
+): { rubro: string; gifts: number; follows: number; shares: number; hours: number }[] {
+  const groups = new Map<string, LiveRoom[]>();
+  for (const room of rooms) groups.set(room.rubro, [...(groups.get(room.rubro) ?? []), room]);
+  return [...groups.entries()]
+    .map(([rubro, own]) => {
+      const hours = total(own, 'minutes') / 60;
+      const per = (value: number): number => (hours > 0 ? Math.round((value / hours) * 10) / 10 : 0);
+      return {
+        rubro,
+        hours: Math.round(hours * 10) / 10,
+        gifts: per(total(own, 'gifts')),
+        follows: per(own.reduce((sum, room) => sum + room.follows, 0)),
+        shares: per(own.reduce((sum, room) => sum + room.shares, 0)),
+      };
+    })
+    .filter((row) => row.hours >= 0.5)
+    .sort((a, b) => b.gifts - a.gifts);
+}
+
+
+/**
+ * Índice semanal del precio en los lives (base 100 = primera semana) frente a la UFV en la misma base.
+ *
+ * Encadenado: cada semana se compara con la anterior solo en los productos que tienen precio en las dos,
+ * con la mediana de sus cocientes. Así un cambio de mezcla (más celulares que medias) no se lee como
+ * inflación. Una semana sin productos en común con la anterior corta la cadena y no se dibuja.
+ */
+export function priceIndex(
+  prices: readonly LivePrice[],
+  rooms: ReadonlySet<string>,
+  ufv: readonly UfvPoint[],
+): { week: string; lives: number | null; ufv: number | null; products: number }[] {
+  const byWeek = new Map<string, Map<string, number[]>>();
+  for (const price of prices) {
+    if (!rooms.has(price.room) || price.priceBs === null || !price.product) continue;
+    const week = weekOf(price.date);
+    const products = byWeek.get(week) ?? new Map<string, number[]>();
+    products.set(price.product, [...(products.get(price.product) ?? []), price.priceBs]);
+    byWeek.set(week, products);
+  }
+  const weeks = [...byWeek.keys()].sort();
+  const ufvByWeek = new Map<string, number[]>();
+  for (const point of ufv) ufvByWeek.set(weekOf(point.date), [...(ufvByWeek.get(weekOf(point.date)) ?? []), point.value]);
+  const ufvBase = weeks[0] ? median(ufvByWeek.get(weeks[0]) ?? []) : 0;
+  const rows: { week: string; lives: number | null; ufv: number | null; products: number }[] = [];
+  let level: number | null = 100;
+  weeks.forEach((week, index) => {
+    const current = byWeek.get(week) ?? new Map<string, number[]>();
+    if (index > 0 && level !== null) {
+      const previous = byWeek.get(weeks[index - 1] ?? '') ?? new Map<string, number[]>();
+      const ratios = [...current.keys()]
+        .filter((product) => previous.has(product))
+        .map((product) => median(current.get(product) ?? []) / median(previous.get(product) ?? [1]));
+      level = ratios.length ? Math.round(level * median(ratios) * 10) / 10 : null;
+    }
+    const ufvWeek = ufvByWeek.get(week);
+    rows.push({
+      week,
+      lives: level,
+      ufv: ufvBase && ufvWeek?.length ? Math.round((median(ufvWeek) / ufvBase) * 1000) / 10 : null,
+      products: current.size,
+    });
+  });
+  return rows;
 }
