@@ -191,3 +191,10 @@ test('una respuesta con forma de credencial se retiene', () => {
   assert.ok(pareceSecreto('-----BEGIN OPENSSH PRIVATE KEY-----'));
   assert.ok(!pareceSecreto('El paralelo cerró en **Bs 9,85** el 26 de septiembre de 2026.'));
 });
+
+test('las preguntas sobre lives de TikTok van a «Ventas en vivo»', () => {
+  for (const q of ['¿Qué se vende en los lives de TikTok?', 'precios en las ventas en vivo', '¿cuánto piden en tiktok por una mochila?']) {
+    assert.ok(preclasificar(q).paquetes?.includes('VENTAS_VIVO'), q);
+  }
+  assert.equal(RUTA_DE_PAQUETE.VENTAS_VIVO, '«Empresas» › «Ventas en vivo»');
+});

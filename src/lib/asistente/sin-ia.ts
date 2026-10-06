@@ -32,6 +32,7 @@ const TITULO: Record<string, string> = {
   AMBIENTE: 'Medio ambiente',
   COMERCIO: 'Comercio exterior',
   EMPRESAS: 'Empresas',
+  VENTAS_VIVO: 'Ventas en vivo',
   EXOGENAS: 'Precios internacionales',
   MERCADOS: 'Mercados',
   MUNDO: 'Bolivia ante el mundo',
