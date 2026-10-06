@@ -2,7 +2,7 @@ import research from '@/data/people-research-300.json';
 import pilot from '@/data/people-pilot-3.json';
 import { jsonResponse } from '@/lib/respond';
 
-export const dynamic = 'force-static';
+export const dynamic = 'force-dynamic';
 
 /** Research coverage and aggregate comments. Unverified account URLs stay internal. */
 export function GET(request: Request): Response {
