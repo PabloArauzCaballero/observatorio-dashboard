@@ -1,5 +1,6 @@
 import research from '@/data/people-research-300.json';
 import pilot from '@/data/people-pilot-3.json';
+import ranking from '@/data/people-impact-ranking-2025.json';
 import { jsonResponse } from '@/lib/respond';
 
 export const dynamic = 'force-dynamic';
@@ -24,6 +25,7 @@ export function GET(request: Request): Response {
       sectors: research.sectors,
       people,
     },
+    ranking,
     pilot,
   }, { headers: { 'Cache-Control': 'no-store' } });
 }
