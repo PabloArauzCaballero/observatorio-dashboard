@@ -1,7 +1,6 @@
 import 'server-only';
 import { pool } from './db';
 import { held } from './hold';
-import { readObservatory } from './series';
 import {
   EMPTY_LIVE_BOARD,
   weekOf,
@@ -87,12 +86,20 @@ const firstLiveDate = (rows: readonly RoomRow[]): string =>
  * no está, el panel lo dice y el resto de la página no cambia.
  */
 async function readUfvSince(first: string): Promise<{ date: string; value: number }[]> {
+  const since = new Date(new Date(`${first}T12:00:00Z`).getTime() - 60 * 86_400_000).toISOString().slice(0, 10);
   try {
-    const observatory = await readObservatory();
-    const since = new Date(new Date(`${first}T12:00:00Z`).getTime() - 60 * 86_400_000).toISOString().slice(0, 10);
-    return (observatory.series.get('UFV_BOB') ?? [])
-      .filter((point) => point.date >= since)
-      .map((point) => ({ date: point.date, value: point.value }));
+    // Solo la UFV y solo desde esa fecha: la lectura diaria completa excede el tiempo de la base
+    // cuando el servidor está cargado (57014), y aquí no hace falta nada más.
+    const { rows } = await pool().query<{ event_date: string; value_median: string }>(
+      `SELECT event_date::text AS event_date, value_median::text AS value_median
+       FROM read_models.economic_indicator_daily
+       WHERE indicator_code = 'UFV_BOB' AND event_date >= $1::date
+       ORDER BY event_date`,
+      [since],
+    );
+    return rows
+      .map((row) => ({ date: row.event_date, value: Number(row.value_median) }))
+      .filter((point) => Number.isFinite(point.value));
   } catch (error) {
     console.warn('[observatorio] UFV ilegible para ventas en vivo', error);
     return [];
