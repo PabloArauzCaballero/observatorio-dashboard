@@ -29,6 +29,8 @@ import { buildRailBoard, buildWaterBoard } from '@/lib/transport-board';
 import { officialSeries, readCompanyFilings, readGap, readMacroAnnual, readMarkets, readObservatory, readPressPage, readSources, readWorldBoard } from '@/lib/series';
 import type { DailyPoint, MacroPoint, PressArticle } from '@/lib/series';
 import { buildTodayBoard } from '@/lib/today-board';
+import { readLiveCommerce } from '@/lib/live-commerce';
+import { QUESTIONS, SIGNAL_LABEL, byRubro, filterRooms, NO_FILTERS, priceTable, sumCounts, total, weekly } from '@/lib/live-commerce-board';
 import { PLACE_LABEL, WORLD_CODES, WORLD_INDICATORS, WORLD_PLACE_CODES, sayWorldFigure } from '@/lib/world-board';
 import { nombreDepartamento, type PaqueteId } from './alcance';
 import { guiaCompleta } from './guia';
@@ -627,6 +629,50 @@ async function empresas(): Promise<Salida> {
   };
 }
 
+/**
+ * Las ventas en vivo de TikTok (ADR 0030 del núcleo): lo mismo que dibuja «Empresas › Ventas en vivo»,
+ * dicho en líneas. Intención declarada, nunca ventas; la muestra son los lives observados.
+ */
+async function ventasEnVivo(): Promise<Salida> {
+  const board = await readLiveCommerce();
+  const rooms = filterRooms(board.rooms, NO_FILTERS);
+  if (!rooms.length) return { texto: 'VENTAS EN VIVO: todavía no hay noches de captura publicadas.' };
+  const nombre = (codigo: string): string => board.rubros[codigo] ?? codigo;
+  const mensajes = total(rooms, 'messages');
+  const senales = sumCounts(rooms, 'signals');
+  const rubros = byRubro(rooms);
+  const precios = priceTable(board.prices, new Set(rooms.map((room) => room.key)), 3).slice(0, 12);
+  const semanas = weekly(rooms);
+  const preguntas = QUESTIONS.map((codigo) => [SIGNAL_LABEL[codigo] ?? codigo, senales[codigo] ?? 0] as const)
+    .filter(([, valor]) => valor > 0)
+    .sort((a, b) => b[1] - a[1]);
+  const texto = [
+    `VENTAS EN VIVO DE TIKTOK EN BOLIVIA (${rooms.length} lives con venta observados, ${entero(mensajes)} mensajes del chat; describe esos lives, no todo el comercio en vivo del país; un «mío» es intención declarada, no una venta):`,
+    'RUBROS (% del tiempo observado · % de los pedidos del chat · pedidos por cada 1.000 mensajes):',
+    ...rubros.map((fila) => `- ${nombre(fila.rubro)}: ${num(fila.offerShare ?? 0, 1)} % del tiempo · ${num(fila.demandShare ?? 0, 1)} % de los pedidos · ${num(fila.buyPerThousand ?? 0, 1)} por mil`),
+    precios.length ? 'PRECIO MEDIANO POR PRODUCTO (Bs, con al menos 3 precios dichos o mostrados):' : '',
+    ...precios.map((fila) => `- ${fila.product}: ${num(fila.median, 2)} Bs (cuartiles ${num(fila.p25, 2)}–${num(fila.p75, 2)}; ${fila.n} precios)`),
+    preguntas.length ? 'LO QUE PREGUNTA O PIDE EL CHAT (mensajes):' : '',
+    ...preguntas.map(([etiqueta, valor]) => `- ${etiqueta}: ${entero(valor)}`),
+    board.phrases.length ? 'FRASES MÁS REPETIDAS (personas distintas, al menos 5 en 3 lives):' : '',
+    ...board.phrases.slice(0, 8).map((frase) => `- «${frase.phrase.replace(/#/g, '[número]')}»: ${frase.people} personas en ${frase.lives} lives`),
+    semanas.length > 1 ? 'TENDENCIA SEMANAL (pedidos por cada 1.000 mensajes):' : '',
+    ...(semanas.length > 1 ? semanas.map((fila) => `- semana del ${fila.week}: ${num(fila.buyPerThousand ?? 0, 1)} (${fila.lives} lives)`) : []),
+  ]
+    .filter(Boolean)
+    .join('\n');
+  return {
+    texto,
+    tabla: tabla(
+      'ventas-en-vivo',
+      'Ventas en vivo de TikTok por rubro',
+      ['Rubro', 'Lives', 'Minutos', '% del tiempo', '% de los pedidos', 'Pedidos por mil', 'Fuente'],
+      rubros.map((fila) => [nombre(fila.rubro), fila.lives, fila.minutes, r(fila.offerShare ?? 0, 1), r(fila.demandShare ?? 0, 1), r(fila.buyPerThousand ?? 0, 1), null]),
+      'Lives públicos de TikTok observados por el Observatorio',
+    ),
+  };
+}
+
 async function exogenas(): Promise<Salida> {
   const [board, factors] = await Promise.all([readExogenousBoard(), readFactorIndex()]);
   const filas: Celda[][] = [];
@@ -848,6 +894,8 @@ function armar(id: PaqueteId, ctx: Contexto): Promise<Salida> {
       return ambiente();
     case 'COMERCIO':
       return comercio();
+    case 'VENTAS_VIVO':
+      return ventasEnVivo();
     case 'EMPRESAS':
       return empresas();
     case 'EXOGENAS':

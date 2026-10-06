@@ -10,7 +10,7 @@
  * reglas se prueben con `node --test` sin levantar nada.
  */
 
-export const PAQUETES = ['HOY', 'DOLAR', 'MACRO', 'DEPTO', 'DEPTOS', 'POLITICA', 'PRENSA', 'ENERGIA', 'RECURSOS', 'AMBIENTE', 'COMERCIO', 'EMPRESAS', 'EXOGENAS', 'MERCADOS', 'MUNDO', 'CARRETERAS', 'CIUDADES', 'METODO', 'GUIA'] as const;
+export const PAQUETES = ['HOY', 'DOLAR', 'MACRO', 'DEPTO', 'DEPTOS', 'POLITICA', 'PRENSA', 'ENERGIA', 'RECURSOS', 'AMBIENTE', 'COMERCIO', 'EMPRESAS', 'VENTAS_VIVO', 'EXOGENAS', 'MERCADOS', 'MUNDO', 'CARRETERAS', 'CIUDADES', 'METODO', 'GUIA'] as const;
 
 export type PaqueteId = (typeof PAQUETES)[number];
 
@@ -45,6 +45,8 @@ export const DESCRIPCION_PAQUETE: Record<PaqueteId, string> = {
   AMBIENTE: 'medio ambiente: bosques, deforestación, emisiones, aire, agua',
   COMERCIO: 'comercio exterior: socios, productos exportados, principales empresas exportadoras',
   EMPRESAS: 'empresas: hechos relevantes de la Bolsa Boliviana de Valores y reputación corporativa (Merco)',
+  VENTAS_VIVO:
+    'ventas en vivo de TikTok en Bolivia: qué se vende, precios dichos en los lives, qué pide y pregunta el chat, emociones y frases repetidas',
   EXOGENAS: 'precios internacionales que afectan a Bolivia: petróleo, gas, metales, granos, fertilizantes, fletes de contenedor y aéreo',
   MERCADOS: 'bitcoin, USDT y oro en dólares',
   MUNDO: 'Bolivia comparada con sus vecinos y con el mundo',
@@ -177,6 +179,10 @@ const REGLAS: ReadonlyArray<{ patron: RegExp; paquetes: readonly PaqueteId[] }> 
   {
     patron: palabra(['exporta', 'importa', 'comercio exterior', 'socios? comercial', 'aduana', 'soya', 'soja']),
     paquetes: ['COMERCIO'],
+  },
+  {
+    patron: palabra(['tiktok', 'lives?$', 'en vivo', 'live shopping', 'comercio social', 'ventas? por redes', 'vend\\w* por redes']),
+    paquetes: ['VENTAS_VIVO'],
   },
   {
     patron: palabra(['empresa', 'bolsa boliviana', 'bolsa de valores', 'bbv$', 'hechos? relevantes?', 'merco$', 'reputaci', 'emisor', 'bonos?$']),
