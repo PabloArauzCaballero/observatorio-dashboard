@@ -85,11 +85,39 @@ const firstLiveDate = (rows: readonly RoomRow[]): string =>
  * menos que los precios del país. Sale de la misma lectura diaria que ya sostiene «Tipo de cambio»; si
  * no está, el panel lo dice y el resto de la página no cambia.
  */
+const BCB_UFV = 'https://www.bcb.gob.bo/librerias/charts/ufv.php';
+
+/** `dd/mm/aaaa` como lo escribe el BCB, a `aaaa-mm-dd`. */
+const isoOf = (stated: string): string | null => {
+  const match = /^(\d{2})\/(\d{2})\/(\d{4})$/u.exec(stated);
+  return match ? `${match[3]}-${match[2]}-${match[1]}` : null;
+};
+
+/**
+ * La UFV desde dos meses antes del primer live, pedida a su emisor: el endpoint del Banco Central que
+ * alimenta su gráfico de la UFV (el mismo que usa `scripts/bcb/collect-ufv-history.ts` del núcleo). La
+ * lectura diaria de la base se cancela por tiempo cuando Contabo está cargado (57014); si el Banco no
+ * responde en 10 s, se intenta la base con un filtro, y si tampoco, el panel lo dice.
+ */
 async function readUfvSince(first: string): Promise<{ date: string; value: number }[]> {
   const since = new Date(new Date(`${first}T12:00:00Z`).getTime() - 60 * 86_400_000).toISOString().slice(0, 10);
+  const until = new Date(Date.now() + 40 * 86_400_000).toISOString().slice(0, 10);
   try {
-    // Solo la UFV y solo desde esa fecha: la lectura diaria completa excede el tiempo de la base
-    // cuando el servidor está cargado (57014), y aquí no hace falta nada más.
+    const response = await fetch(`${BCB_UFV}?cFecIni=${since}&cFecFin=${until}`, {
+      headers: { 'User-Agent': 'Mozilla/5.0 (compatible; ObservatorioEconomicoBO/1.0)' },
+      signal: AbortSignal.timeout(10_000),
+    });
+    if (response.ok) {
+      const records = (await response.json()) as { fecha?: string; val_ufv?: string }[];
+      const points = records
+        .map((record) => ({ date: isoOf(record.fecha ?? ''), value: Number(record.val_ufv) }))
+        .filter((point): point is { date: string; value: number } => point.date !== null && Number.isFinite(point.value));
+      if (points.length) return points.sort((a, b) => a.date.localeCompare(b.date));
+    }
+  } catch (error) {
+    console.warn('[observatorio] UFV del BCB no disponible para ventas en vivo', error);
+  }
+  try {
     const { rows } = await pool().query<{ event_date: string; value_median: string }>(
       `SELECT event_date::text AS event_date, value_median::text AS value_median
        FROM read_models.economic_indicator_daily
