@@ -82,14 +82,14 @@ const firstLiveDate = (rows: readonly RoomRow[]): string =>
   rows.reduce((first, row) => (row.live_date < first ? row.live_date : first), '9999-12-31');
 
 /**
- * La UFV desde una semana antes del primer live: con ella se lee si el precio en los lives sube más o
+ * La UFV desde dos meses antes del primer live (la última publicada puede ser anterior): con ella se lee si el precio en los lives sube más o
  * menos que los precios del país. Sale de la misma lectura diaria que ya sostiene «Tipo de cambio»; si
  * no está, el panel lo dice y el resto de la página no cambia.
  */
 async function readUfvSince(first: string): Promise<{ date: string; value: number }[]> {
   try {
     const observatory = await readObservatory();
-    const since = new Date(new Date(`${first}T12:00:00Z`).getTime() - 7 * 86_400_000).toISOString().slice(0, 10);
+    const since = new Date(new Date(`${first}T12:00:00Z`).getTime() - 60 * 86_400_000).toISOString().slice(0, 10);
     return (observatory.series.get('UFV_BOB') ?? [])
       .filter((point) => point.date >= since)
       .map((point) => ({ date: point.date, value: point.value }));

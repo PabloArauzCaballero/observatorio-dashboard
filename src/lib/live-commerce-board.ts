@@ -531,9 +531,17 @@ export function priceIndex(
     byWeek.set(week, products);
   }
   const weeks = [...byWeek.keys()].sort();
-  const ufvByWeek = new Map<string, number[]>();
-  for (const point of ufv) ufvByWeek.set(weekOf(point.date), [...(ufvByWeek.get(weekOf(point.date)) ?? []), point.value]);
-  const ufvBase = weeks[0] ? median(ufvByWeek.get(weeks[0]) ?? []) : 0;
+  // La UFV de una semana es la última publicada hasta el domingo de esa semana: si la serie se atrasa
+  // unos días, se usa el último valor conocido en vez de dejar la semana sin referencia.
+  const sortedUfv = [...ufv].sort((a, b) => a.date.localeCompare(b.date));
+  const ufvAt = (week: string): number | null => {
+    const end = new Date(`${week}T12:00:00Z`);
+    end.setUTCDate(end.getUTCDate() + 6);
+    const limit = end.toISOString().slice(0, 10);
+    const point = [...sortedUfv].reverse().find((item) => item.date <= limit);
+    return point ? point.value : null;
+  };
+  const ufvBase = weeks[0] ? (ufvAt(weeks[0]) ?? 0) : 0;
   const rows: { week: string; lives: number | null; ufv: number | null; products: number }[] = [];
   let level: number | null = 100;
   weeks.forEach((week, index) => {
@@ -545,11 +553,11 @@ export function priceIndex(
         .map((product) => median(current.get(product) ?? []) / median(previous.get(product) ?? [1]));
       level = ratios.length ? Math.round(level * median(ratios) * 10) / 10 : null;
     }
-    const ufvWeek = ufvByWeek.get(week);
+    const ufvWeek = ufvAt(week);
     rows.push({
       week,
       lives: level,
-      ufv: ufvBase && ufvWeek?.length ? Math.round((median(ufvWeek) / ufvBase) * 1000) / 10 : null,
+      ufv: ufvBase && ufvWeek ? Math.round((ufvWeek / ufvBase) * 1000) / 10 : null,
       products: current.size,
     });
   });

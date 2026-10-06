@@ -136,3 +136,9 @@ test('el índice de precios se encadena sobre los productos comunes y la UFV va 
     { week: '2026-10-12', lives: 110, ufv: 101, products: 3 },
   ]);
 });
+
+test('con la UFV atrasada se usa el último valor publicado, no se deja la semana vacía', () => {
+  const price = (date, product, priceBs) => ({ room: 'a', date, rubro: 'X', product, priceBs, currency: 'BOB', source: 'SPEECH', unit: null });
+  const rows = priceIndex([price('2026-10-05', 'top', 40), price('2026-10-12', 'top', 40)], new Set(['a']), [{ date: '2026-09-28', value: 3.0 }]);
+  assert.deepEqual(rows.map((row) => [row.week, row.ufv]), [['2026-10-05', 100], ['2026-10-12', 100]]);
+});
