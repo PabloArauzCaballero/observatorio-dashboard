@@ -1,6 +1,7 @@
 import 'server-only';
 import { pool } from './db';
 import { held } from './hold';
+import { readObservatory } from './series';
 import {
   EMPTY_LIVE_BOARD,
   weekOf,
@@ -19,6 +20,26 @@ import {
 
 export function readLiveCommerce(): Promise<LiveCommerceBoard> {
   return held('live-commerce', buildBoard);
+}
+
+const ROOM_COLUMNS = `room_key, to_char(live_date, 'YYYY-MM-DD') AS live_date, live_hour, weekday, live_status,
+  rubro, product, city, audience_size, minutes, viewers_peak, viewers_median, messages, authors, buyers, signals,
+  payments, destinations, emotions, polarity, gifts, follows, shares, likes, speech_segments, screen_reads`;
+
+/**
+ * Las filas de cada live. La curva de espectadores y las menciones del dólar llegaron con la migración
+ * `read-the-live-videos`: si la base todavía no la tiene (42703), se leen sin ellas y la página dice que
+ * esos dos paneles aún no tienen datos, en vez de quedarse vacía entera.
+ */
+async function readRooms(): Promise<{ rows: RoomRow[] }> {
+  try {
+    return await pool().query<RoomRow>(
+      `SELECT ${ROOM_COLUMNS}, viewer_curve, dollar_talk FROM read_models.live_commerce_room`,
+    );
+  } catch (error) {
+    if ((error as { code?: string }).code !== '42703') throw error;
+    return pool().query<RoomRow>(`SELECT ${ROOM_COLUMNS} FROM read_models.live_commerce_room`);
+  }
 }
 
 interface RoomRow {
@@ -44,6 +65,10 @@ interface RoomRow {
   polarity: Counts | null;
   gifts: number;
   follows: number;
+  shares: number;
+  likes: number;
+  viewer_curve?: [number, number][] | null;
+  dollar_talk?: number | null;
   speech_segments: number;
   screen_reads: number;
 }
@@ -53,15 +78,31 @@ const numberOr = (value: unknown, fallback = 0): number => {
   return typeof parsed === 'number' && Number.isFinite(parsed) ? parsed : fallback;
 };
 
+const firstLiveDate = (rows: readonly RoomRow[]): string =>
+  rows.reduce((first, row) => (row.live_date < first ? row.live_date : first), '9999-12-31');
+
+/**
+ * La UFV desde una semana antes del primer live: con ella se lee si el precio en los lives sube más o
+ * menos que los precios del país. Sale de la misma lectura diaria que ya sostiene «Tipo de cambio»; si
+ * no está, el panel lo dice y el resto de la página no cambia.
+ */
+async function readUfvSince(first: string): Promise<{ date: string; value: number }[]> {
+  try {
+    const observatory = await readObservatory();
+    const since = new Date(new Date(`${first}T12:00:00Z`).getTime() - 7 * 86_400_000).toISOString().slice(0, 10);
+    return (observatory.series.get('UFV_BOB') ?? [])
+      .filter((point) => point.date >= since)
+      .map((point) => ({ date: point.date, value: point.value }));
+  } catch (error) {
+    console.warn('[observatorio] UFV ilegible para ventas en vivo', error);
+    return [];
+  }
+}
+
 async function buildBoard(): Promise<LiveCommerceBoard> {
   try {
     const [rooms, prices, phrases, terms, coverage, snapshot] = await Promise.all([
-      pool().query<RoomRow>(
-        `SELECT room_key, to_char(live_date, 'YYYY-MM-DD') AS live_date, live_hour, weekday, live_status, rubro,
-                product, city, audience_size, minutes, viewers_peak, viewers_median, messages, authors, buyers,
-                signals, payments, destinations, emotions, polarity, gifts, follows, speech_segments, screen_reads
-         FROM read_models.live_commerce_room`,
-      ),
+      readRooms(),
       pool().query<{
         room_key: string;
         price_date: string;
@@ -131,6 +172,10 @@ async function buildBoard(): Promise<LiveCommerceBoard> {
         polarity: row.polarity ?? {},
         gifts: numberOr(row.gifts),
         follows: numberOr(row.follows),
+        shares: numberOr(row.shares),
+        likes: numberOr(row.likes),
+        curve: (row.viewer_curve ?? []).map(([minute, viewers]) => [numberOr(minute), numberOr(viewers)] as const),
+        dollarTalk: numberOr(row.dollar_talk),
         speechSegments: numberOr(row.speech_segments),
         screenReads: numberOr(row.screen_reads),
       })),
@@ -163,6 +208,7 @@ async function buildBoard(): Promise<LiveCommerceBoard> {
         prices: numberOr(row.prices),
         minutes: numberOr(row.minutes),
       })),
+      ufv: await readUfvSince(firstLiveDate(rooms.rows)),
     };
   } catch (error) {
     const code = (error as { code?: string }).code;

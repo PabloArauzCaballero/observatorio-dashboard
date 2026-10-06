@@ -4,6 +4,7 @@ import { BusinessFabricSection } from './business-fabric-section';
 import { BusinessOwnersSection } from './business-owners-section';
 import { CompanySocialSection } from './company-social-explorer';
 import { LiveCommerceSection } from './live-commerce-section';
+import { TiktokVideosSection } from './tiktok-videos-section';
 import { ReputationSection } from './exporters-section';
 import { FilingExplorer } from './filing-explorer';
 import { ForeignTradeSection } from './foreign-trade-section';
@@ -78,8 +79,9 @@ export function FilingsSection() {
           'Reputación empresarial',
           'Redes sociales',
           'Ventas en vivo',
+          'Videos de vendedores',
         ]}
-        icons={['capas', 'barras', 'maletin', 'velas', 'globo', 'cajas', 'escudo', 'personas', 'tienda']}
+        icons={['capas', 'barras', 'maletin', 'velas', 'globo', 'cajas', 'escudo', 'personas', 'tienda', 'pulso']}
       >
         <BusinessFabricSection />
         <LargestCompaniesSection />
@@ -90,6 +92,7 @@ export function FilingsSection() {
         <ReputationSection />
         <CompanySocialSection />
         <LiveCommerceSection />
+        <TiktokVideosSection />
       </SubSections>
     </>
   );
