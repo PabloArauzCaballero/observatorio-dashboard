@@ -3,6 +3,7 @@
 import { BusinessFabricSection } from './business-fabric-section';
 import { BusinessOwnersSection } from './business-owners-section';
 import { CompanySocialSection } from './company-social-explorer';
+import { LiveCommerceSection } from './live-commerce-section';
 import { ReputationSection } from './exporters-section';
 import { BbvCompanyPage } from './bbv-company-page';
 import { LargestCompaniesSection } from './largest-companies-section';
@@ -55,8 +56,9 @@ export function FilingsSection() {
           'Bolsa de valores (BBV)',
           'Reputación empresarial',
           'Redes sociales',
+          'Ventas en vivo',
         ]}
-        icons={['capas', 'barras', 'maletin', 'velas', 'escudo', 'personas']}
+        icons={['capas', 'barras', 'maletin', 'velas', 'escudo', 'personas', 'tienda']}
       >
         <BusinessFabricSection />
         <LargestCompaniesSection />
@@ -64,6 +66,7 @@ export function FilingsSection() {
         <BbvCompanyPage />
         <ReputationSection />
         <CompanySocialSection />
+        <LiveCommerceSection />
       </SubSections>
     </>
   );

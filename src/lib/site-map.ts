@@ -63,6 +63,7 @@ export const SITE: readonly SiteSection[] = [
       'Bolsa de valores (BBV)',
       'Reputación empresarial',
       'Redes sociales',
+      'Ventas en vivo',
     ),
   },
   { label: 'Personalidades', icon: 'personas', pages: [] },
