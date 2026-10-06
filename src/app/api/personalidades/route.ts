@@ -25,5 +25,5 @@ export function GET(request: Request): Response {
       people,
     },
     pilot,
-  }, { headers: { 'Cache-Control': 'public, max-age=3600' } });
+  }, { headers: { 'Cache-Control': 'no-store' } });
 }
