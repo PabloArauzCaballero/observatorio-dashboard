@@ -1,6 +1,7 @@
 import research from '@/data/people-research-300.json';
 import pilot from '@/data/people-pilot-3.json';
 import ranking from '@/data/people-impact-ranking-2025.json';
+import top300 from '@/data/people-top300.json';
 import { jsonResponse } from '@/lib/respond';
 
 export const dynamic = 'force-dynamic';
@@ -26,6 +27,22 @@ export function GET(request: Request): Response {
       people,
     },
     ranking,
+    top300: {
+      status: top300.status,
+      generatedAt: top300.generatedAt,
+      method: top300.method,
+      people: top300.people.map((person) => ({
+        slug: person.slug,
+        rank: person.rank,
+        sectorRank: person.sectorRank,
+        score: person.score,
+        measured: person.measured,
+        components: person.components,
+        adultReview: person.adultReview,
+        verifiedAccounts: person.verifiedAccounts,
+        unverifiedAccounts: person.unverifiedAccounts,
+      })),
+    },
     pilot,
   }, { headers: { 'Cache-Control': 'no-store' } });
 }

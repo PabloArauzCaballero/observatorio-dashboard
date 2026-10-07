@@ -30,8 +30,19 @@ interface ImpactRanking {
   interpretation: { scope: string; coverageLimit: string; currentness: string };
   people: RankedPerson[];
 }
+interface MeasuredAccount { platform: string; url: string; followers: number | null; verification: string }
+interface Measure {
+  slug: string; rank: number; sectorRank: number; score: number; measured: boolean; adultReview: string;
+  components: {
+    wikipediaViews12m: number | null; wikipediaViewsEs: number | null; wikipediaViewsEn: number | null;
+    verifiedFollowers: number | null; mercoRank: number | null; pressArticles: number | null;
+  };
+  verifiedAccounts: MeasuredAccount[]; unverifiedAccounts: MeasuredAccount[];
+}
+interface Top300 { status: string; method: { summary: string; limits: string[]; measuredPeople: number }; people: Measure[] }
 interface PeoplePayload {
   ranking: ImpactRanking;
+  top300: Top300;
   research: { status: string; generatedAt: string; sectors: Record<string, number>; people: Person[] };
   pilot: {
     status: string; windowStart: string; windowEnd: string;
@@ -56,6 +67,7 @@ const SOURCES: Record<string, string> = {
 };
 const number = (value: number | null | undefined): string =>
   value === null || value === undefined ? 'sin dato' : value.toLocaleString('es-BO');
+const index = (value: number): string => value.toLocaleString('es-BO', { maximumFractionDigits: 1 });
 const pct = (value: number): string => `${value.toLocaleString('es-BO', { maximumFractionDigits: 1 })} %`;
 const folded = (value: string): string => value.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
 const EMPTY_PEOPLE: Person[] = [];
@@ -116,6 +128,35 @@ function SentimentView({ person }: { person: PilotPerson }) {
   );
 }
 
+const PLATFORMS: Record<string, string> = { tiktok: 'TikTok', youtube: 'YouTube' };
+const VERIFICATION: Record<string, string> = {
+  WIKIDATA_DECLARED: 'cuenta oficial según Wikidata',
+  PLATFORM_VERIFIED: 'verificada por la plataforma',
+  HANDLE_MATCHES_WIKIDATA: 'mismo usuario que su cuenta oficial en Wikidata',
+  NAME_MATCH: 'coincide solo por nombre',
+};
+
+function MeasureView({ measure }: { measure: Measure }) {
+  const c = measure.components;
+  return (
+    <div className={styles.measure}>
+      <h4>Cómo se midió · puesto {number(measure.rank)} de 300{measure.measured ? ` · índice ${index(measure.score)}` : ''}</h4>
+      {measure.measured ? (
+        <dl>
+          <div><dt>Visitas a Wikipedia, 12 meses</dt><dd>{c.wikipediaViews12m === null ? 'sin artículo' : [number(c.wikipediaViews12m), c.wikipediaViewsEs ? `es ${number(c.wikipediaViewsEs)}` : null, c.wikipediaViewsEn ? `en ${number(c.wikipediaViewsEn)}` : null].filter(Boolean).join(' · ')}</dd></div>
+          <div><dt>Audiencia verificada</dt><dd>{c.verifiedFollowers === null ? 'sin cuenta verificada' : measure.verifiedAccounts.map((a) => `${PLATFORMS[a.platform] ?? a.platform}: ${number(a.followers)}`).join(' · ')}</dd></div>
+          <div><dt>Merco Líderes 2025/26</dt><dd>{c.mercoRank === null ? 'no figura' : `puesto ${c.mercoRank}`}</dd></div>
+          <div><dt>Puesto en su sector</dt><dd>{number(measure.sectorRank)}</dd></div>
+        </dl>
+      ) : <p className={styles.muted}>Sin datos medibles en las fuentes abiertas: no tiene artículo en Wikipedia, cuenta verificada ni puesto en Merco.</p>}
+      {measure.verifiedAccounts.length > 0 ? <ul className={styles.sources}>{measure.verifiedAccounts.map((a) =>
+        <li key={a.url}><a href={a.url} target="_blank" rel="noreferrer">{PLATFORMS[a.platform] ?? a.platform} ↗</a> <small>{VERIFICATION[a.verification] ?? a.verification}</small></li>)}</ul> : null}
+      {measure.unverifiedAccounts.length > 0 ? <p className={styles.muted}>Cuentas sin verificar, que no suman: {measure.unverifiedAccounts.map((a) =>
+        `${PLATFORMS[a.platform] ?? a.platform} (${number(a.followers)}, ${VERIFICATION[a.verification] ?? a.verification})`).join(' · ')}.</p> : null}
+    </div>
+  );
+}
+
 function ImpactRankingView({ ranking, onPick }: { ranking: ImpactRanking; onPick: (slug: string) => void }) {
   const top = Math.max(...ranking.people.map((row) => row.impactSharePercent), 1);
   const { source } = ranking;
@@ -150,31 +191,33 @@ export function PeopleSection() {
   const { payload, failed } = useOnOpen<PeoplePayload>('/api/personalidades');
   const [query, setQuery] = useState('');
   const [sector, setSector] = useState('ALL');
-  const [selectedSlug, setSelectedSlug] = useState('P_ALBERTINA_SACACA');
+  const [selectedSlug, setSelectedSlug] = useState('');
   const [limit, setLimit] = useState(30);
   const people = payload?.research.people ?? EMPTY_PEOPLE;
+  const measures = useMemo(() => new Map((payload?.top300.people ?? []).map((row) => [row.slug, row])), [payload]);
   const filtered = useMemo(() => people.filter((person) =>
     (sector === 'ALL' || person.sector === sector) && folded(person.name).includes(folded(query)))
-    .sort((left, right) => left.name.localeCompare(right.name, 'es')),
-  [people, query, sector]);
+    .sort((left, right) => (measures.get(left.slug)?.rank ?? 999) - (measures.get(right.slug)?.rank ?? 999)),
+  [people, query, sector, measures]);
   const selected = filtered.find((person) => person.slug === selectedSlug) ?? filtered[0];
+  const measure = selected ? measures.get(selected.slug) : undefined;
   const pilot = payload?.pilot.people.find((person) => person.slug === selected?.slug);
 
   return (
     <div className="stack">
       <TabHeader id="personalidades" title="Personalidades de Bolivia"
-        lede="Las cinco figuras de mayor impacto percibido en 2025 según Ipsos CIESMORI y, debajo, la investigación de 300 personas de política, empresas, deporte, cultura, ciencia y redes con sus fuentes y la cobertura social disponible." />
+        lede="Las cinco figuras de mayor impacto percibido en 2025 según Ipsos CIESMORI y, debajo, el Top 300 de personas de política, empresas, deporte, cultura, ciencia y redes, ordenado por atención medible en fuentes abiertas." />
       {!payload ? <OnOpenNotice what="la investigación de personalidades" failed={failed} /> : (
         <>
           <ImpactRankingView ranking={payload.ranking} onPick={(slug) => { setQuery(''); setSector('ALL'); setSelectedSlug(slug); }} />
           <div className={styles.stats}>
             <div><strong>{number(people.length)}</strong><span>personas en revisión</span></div>
-            <div><strong>{number(people.filter((person) => person.accountLeadCount > 0).length)}</strong><span>con pistas de cuentas por verificar</span></div>
+            <div><strong>{number(payload.top300.method.measuredPeople)}</strong><span>con atención medible</span></div>
             <div><strong>{number(payload.pilot.coverage.peopleWithPilotSentiment)}</strong><span>con muestra de sentimiento</span></div>
             <div><strong>{number(payload.pilot.coverage.commentsAnalyzedSpanish)}</strong><span>comentarios en español analizados</span></div>
           </div>
           <p className={styles.notice}>
-            El padrón de 300 es un marco de investigación, no un ranking: el único orden medido es el Top 5 de arriba. Las cuentas de directorios,
+            Orden de las 300: {payload.top300.method.summary} No mide importancia ni mérito. Solo suman las cuentas con identidad respaldada; las demás se muestran aparte. Las cuentas de directorios,
             buscadores y Wikidata se revisan antes de publicar métricas personales. Los datos de comentarios
             corresponden solo a tres canales corroborados y al período {payload.pilot.windowStart}–{payload.pilot.windowEnd}.
           </p>
@@ -187,14 +230,14 @@ export function PeopleSection() {
                   {Object.entries(SECTORS).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
                 </select></label>
               </div>
-              <p className={styles.count}>{number(filtered.length)} personas encontradas · orden alfabético</p>
+              <p className={styles.count}>{number(filtered.length)} personas · ordenadas por índice de atención medible</p>
               <ul className={styles.peopleList}>
                 {filtered.slice(0, limit).map((person) => (
                   <li key={person.slug}>
                     <button type="button" aria-pressed={selected?.slug === person.slug}
                       className={selected?.slug === person.slug ? styles.selected : ''}
                       onClick={() => setSelectedSlug(person.slug)}>
-                      <b>{person.name}</b><span>{SECTORS[person.sector] ?? person.sector}</span>
+                      <b>{measures.get(person.slug)?.rank ?? '–'}. {person.name}</b><span>{SECTORS[person.sector] ?? person.sector}{measures.get(person.slug)?.measured ? ` · índice ${index(measures.get(person.slug)?.score ?? 0)}` : ' · sin medición'}</span>
                       {payload.pilot.people.some((entry) => entry.slug === person.slug) ? <em>Comentarios analizados</em> : null}
                     </button>
                   </li>
@@ -208,6 +251,7 @@ export function PeopleSection() {
               <h4>Fuentes de la ficha</h4>
               <ul className={styles.sources}>{selected.evidence.map((source) =>
                 <li key={`${source.source}-${source.url}`}><a href={source.url} target="_blank" rel="noreferrer">{SOURCES[source.source] ?? source.source}{source.rank ? ` · puesto ${source.rank}` : ''} ↗</a></li>)}</ul>
+              {measure ? <MeasureView measure={measure} /> : null}
               {pilot ? <SentimentView person={pilot} /> : <p className={styles.empty}>Sin análisis de comentarios publicable. Falta corroborar una cuenta personal con suficientes comentarios visibles en español.</p>}
             </article> : null}
           </div>

@@ -56,3 +56,11 @@
 .note { margin-top: 18px; }
 @media (max-width: 900px) { .layout { grid-template-columns: 1fr; } .peopleList { max-height: 300px; } }
 @media (max-width: 650px) { .rankingList li { grid-template-columns: 24px minmax(0, 1fr) 52px; grid-template-areas: 'place name share' '. bar bar'; row-gap: 3px; } .rankingPlace { grid-area: place; } .rankingList button { grid-area: name; } .rankingList strong { grid-area: share; white-space: nowrap; } .rankingBar { grid-area: bar; } .stats, .sentiment { grid-template-columns: repeat(2, minmax(0, 1fr)); } .pilotHead { display: block; } }
+
+.measure { border-top: 1px solid var(--rule); margin-top: 19px; }
+.measure dl { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; margin: 12px 0; }
+.measure dl > div { border: 1px solid var(--rule); border-radius: 7px; padding: 9px 11px; display: grid; gap: 3px; }
+.measure dt { color: var(--ink-soft); font-size: .76rem; }
+.measure dd { margin: 0; color: var(--ink); font-weight: 650; font-size: .92rem; font-variant-numeric: tabular-nums; }
+.measure small { color: var(--ink-soft); }
+@media (max-width: 650px) { .measure dl { grid-template-columns: 1fr; } }
