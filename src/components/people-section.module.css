@@ -64,3 +64,4 @@
 .measure dd { margin: 0; color: var(--ink); font-weight: 650; font-size: .92rem; font-variant-numeric: tabular-nums; }
 .measure small { color: var(--ink-soft); }
 @media (max-width: 650px) { .measure dl { grid-template-columns: 1fr; } }
+.pilot .posts { margin-top: 18px; }

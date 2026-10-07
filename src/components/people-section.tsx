@@ -10,7 +10,7 @@ interface Person { slug: string; name: string; sector: string; evidence: Evidenc
 interface Term { kind: string; term: string; count: number; rank: number }
 interface Sentiment {
   analyzed: number; positivePct: number; neutralPct: number; negativePct: number;
-  ironyPct: number | null; topEmotion: string | null;
+  ironyPct: number | null; topEmotion: string | null; netScore?: number;
 }
 interface PilotPost {
   url: string; title: string; publishedAt: string | null; likes: number | null;
@@ -40,7 +40,18 @@ interface Measure {
   verifiedAccounts: MeasuredAccount[]; unverifiedAccounts: MeasuredAccount[];
 }
 interface Top300 { status: string; method: { summary: string; limits: string[]; measuredPeople: number }; people: Measure[] }
+interface ConversationVideo { videoId: string; title: string; published: string | null; url: string; commentsRead: number; commentsSpanish: number }
+interface Conversation {
+  videosRead: number; commentsRead: number; commentsAnalyzed: number; videos: ConversationVideo[];
+  sentiment: Sentiment | null; words: Term[] | null;
+}
+interface ConversationSet {
+  status: string; method: { source: string; limits: string[] };
+  coverage: { peopleRead: number; peoplePublishable: number; commentsAnalyzed: number };
+  people: Record<string, Conversation>;
+}
 interface PeoplePayload {
+  conversation: ConversationSet;
   ranking: ImpactRanking;
   top300: Top300;
   research: { status: string; generatedAt: string; sectors: Record<string, number>; people: Person[] };
@@ -157,6 +168,61 @@ function MeasureView({ measure }: { measure: Measure }) {
   );
 }
 
+function SentimentBlock({ sentiment, label }: { sentiment: Sentiment; label: string }) {
+  return (
+    <>
+      <div className={styles.sentiment} aria-label={label}>
+        <span><b>{pct(sentiment.positivePct)}</b> positivos</span>
+        <span><b>{pct(sentiment.neutralPct)}</b> neutros</span>
+        <span><b>{pct(sentiment.negativePct)}</b> negativos</span>
+        {sentiment.ironyPct !== null ? <span><b>{pct(sentiment.ironyPct)}</b> posible ironía</span> : null}
+      </div>
+      <div className={styles.bar} aria-hidden="true">
+        <span className={styles.positive} style={{ width: `${sentiment.positivePct}%` }} />
+        <span className={styles.neutral} style={{ width: `${sentiment.neutralPct}%` }} />
+        <span className={styles.negative} style={{ width: `${sentiment.negativePct}%` }} />
+      </div>
+    </>
+  );
+}
+
+function ConversationView({ entry, limits }: { entry: Conversation; limits: string[] }) {
+  const words = (entry.words ?? []).slice(0, 25);
+  const peak = Math.max(...words.map((word) => word.count), 1);
+  return (
+    <div className={styles.pilot}>
+      <h4>Lo que se comenta sobre la persona en YouTube</h4>
+      <p className={styles.muted}>
+        {number(entry.videosRead)} videos recientes que la nombran · {number(entry.commentsRead)} comentarios leídos ·
+        {' '}{number(entry.commentsAnalyzed)} clasificados en español.
+      </p>
+      {entry.sentiment ? (
+        <>
+          <SentimentBlock sentiment={entry.sentiment} label={`Sentimiento de ${number(entry.commentsAnalyzed)} comentarios`} />
+          <p className={styles.muted}>Saldo (positivos menos negativos): {(entry.sentiment.netScore ?? 0) > 0 ? "+" : ""}{pct(entry.sentiment.netScore ?? 0)}</p>
+          <ul className={styles.cloud} aria-label="Palabras más repetidas en los comentarios">
+            {words.map((word) => (
+              <li key={word.term}>
+                <span style={{ fontSize: `${(0.86 + 0.98 * Math.sqrt(word.count / peak)).toFixed(2)}rem` }}
+                  title={`${number(word.count)} apariciones`}>{word.term}</span>
+              </li>
+            ))}
+          </ul>
+        </>
+      ) : <p className={styles.empty}>Muestra insuficiente: hacen falta al menos 30 comentarios en español clasificables para publicar el porcentaje.</p>}
+      <ol className={styles.posts}>
+        {entry.videos.map((video) => (
+          <li key={video.videoId}>
+            <a href={video.url} target="_blank" rel="noreferrer">{video.title} ↗</a>
+            <small>{video.published ?? 'fecha no publicada'} · {number(video.commentsRead)} comentarios leídos</small>
+          </li>
+        ))}
+      </ol>
+      <p className={styles.note}>{limits.join(' ')}</p>
+    </div>
+  );
+}
+
 function ImpactRankingView({ ranking, onPick }: { ranking: ImpactRanking; onPick: (slug: string) => void }) {
   const top = Math.max(...ranking.people.map((row) => row.impactSharePercent), 1);
   const { source } = ranking;
@@ -201,6 +267,7 @@ export function PeopleSection() {
   [people, query, sector, measures]);
   const selected = filtered.find((person) => person.slug === selectedSlug) ?? filtered[0];
   const measure = selected ? measures.get(selected.slug) : undefined;
+  const talk = selected ? payload?.conversation.people[selected.slug] : undefined;
   const pilot = payload?.pilot.people.find((person) => person.slug === selected?.slug);
 
   return (
@@ -213,13 +280,12 @@ export function PeopleSection() {
           <div className={styles.stats}>
             <div><strong>{number(people.length)}</strong><span>personas en revisión</span></div>
             <div><strong>{number(payload.top300.method.measuredPeople)}</strong><span>con atención medible</span></div>
-            <div><strong>{number(payload.pilot.coverage.peopleWithPilotSentiment)}</strong><span>con muestra de sentimiento</span></div>
-            <div><strong>{number(payload.pilot.coverage.commentsAnalyzedSpanish)}</strong><span>comentarios en español analizados</span></div>
+            <div><strong>{number(payload.conversation.coverage.peoplePublishable)}</strong><span>con sentimiento publicado</span></div>
+            <div><strong>{number(payload.conversation.coverage.commentsAnalyzed + payload.pilot.coverage.commentsAnalyzedSpanish)}</strong><span>comentarios en español analizados</span></div>
           </div>
           <p className={styles.notice}>
             Orden de las 300: {payload.top300.method.summary} No mide importancia ni mérito. Solo suman las cuentas con identidad respaldada; las demás se muestran aparte. Las cuentas de directorios,
-            buscadores y Wikidata se revisan antes de publicar métricas personales. Los datos de comentarios
-            corresponden solo a tres canales corroborados y al período {payload.pilot.windowStart}–{payload.pilot.windowEnd}.
+            buscadores y Wikidata se revisan antes de publicar métricas personales. El sentimiento sale de comentarios públicos de YouTube en videos recientes que nombran a cada persona; los canales propios de tres personas se analizan aparte.
           </p>
           <div className={styles.layout}>
             <div className={styles.listPanel}>
@@ -252,7 +318,8 @@ export function PeopleSection() {
               <ul className={styles.sources}>{selected.evidence.map((source) =>
                 <li key={`${source.source}-${source.url}`}><a href={source.url} target="_blank" rel="noreferrer">{SOURCES[source.source] ?? source.source}{source.rank ? ` · puesto ${source.rank}` : ''} ↗</a></li>)}</ul>
               {measure ? <MeasureView measure={measure} /> : null}
-              {pilot ? <SentimentView person={pilot} /> : <p className={styles.empty}>Sin análisis de comentarios publicable. Falta corroborar una cuenta personal con suficientes comentarios visibles en español.</p>}
+              {talk ? <ConversationView entry={talk} limits={payload?.conversation.method.limits ?? []} /> : <p className={styles.empty}>Sin lectura de comentarios: no se encontraron videos recientes que la nombren o no hay base para confirmar que es adulta.</p>}
+              {pilot ? <SentimentView person={pilot} /> : null}
             </article> : null}
           </div>
         </>

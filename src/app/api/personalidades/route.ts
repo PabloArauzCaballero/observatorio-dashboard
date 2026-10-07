@@ -2,6 +2,7 @@ import research from '@/data/people-research-300.json';
 import pilot from '@/data/people-pilot-3.json';
 import ranking from '@/data/people-impact-ranking-2025.json';
 import top300 from '@/data/people-top300.json';
+import conversation from '@/data/people-conversation.json';
 import { jsonResponse } from '@/lib/respond';
 
 export const dynamic = 'force-dynamic';
@@ -43,6 +44,7 @@ export function GET(request: Request): Response {
         unverifiedAccounts: person.unverifiedAccounts,
       })),
     },
+    conversation,
     pilot,
   }, { headers: { 'Cache-Control': 'no-store' } });
 }
