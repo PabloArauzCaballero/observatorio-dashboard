@@ -25,13 +25,15 @@ interface PilotPerson {
 }
 interface RankedPerson { rank: number; slug: string; name: string; impactSharePercent: number; sector: string }
 interface ImpactRanking {
+  accessNote?: string;
   status: string; title: string; measurementPeriod: string; question: string;
   source: { publisher: string; publication: string; publishedAt: string; url: string; sampleSize: number; fieldworkStart: string; fieldworkEnd: string; geographicCoverage: string[]; referenceMarginOfErrorPercentagePoints: number };
   interpretation: { scope: string; coverageLimit: string; currentness: string };
   people: RankedPerson[];
 }
-interface MeasuredAccount { platform: string; url: string; followers: number | null; verification: string }
+interface MeasuredAccount { platform: string; url: string; followers: number | null; verification: string; evidence?: string[] }
 interface Measure {
+  name: string; evidence: Evidence[]; sector: string; identity: string; identityNote: string | null;
   slug: string; rank: number; sectorRank: number; score: number; measured: boolean; adultReview: string;
   components: {
     wikipediaViews12m: number | null; wikipediaViewsEs: number | null; wikipediaViewsEn: number | null;
@@ -39,7 +41,13 @@ interface Measure {
   };
   verifiedAccounts: MeasuredAccount[]; unverifiedAccounts: MeasuredAccount[];
 }
-interface Top300 { status: string; method: { summary: string; limits: string[]; measuredPeople: number }; people: Measure[] }
+interface Quality {
+  padron: { fichasOriginales: number; fichasEnElRanking: number; porFuente: Record<string, number> };
+  identidad: { coincidenciasWikidata: number; revisadasYAceptadas: number; descartadas: number; duplicadasFusionadas: number; fueraDeAlcance: number };
+  cuentas: { suman: Record<string, number>; noSuman: Record<string, number> };
+  conVisitasWikipedia: number; conAudienciaVerificada: number; conPuestoMerco: number;
+}
+interface Top300 { status: string; method: { summary: string; limits: string[]; measuredPeople: number; quality: Quality }; people: Measure[] }
 interface ConversationVideo { videoId: string; title: string; published: string | null; url: string; commentsRead: number; commentsSpanish: number }
 interface Conversation {
   videosRead: number; commentsRead: number; commentsAnalyzed: number; videos: ConversationVideo[];
@@ -71,17 +79,19 @@ const SOURCES: Record<string, string> = {
   MERCO_LEADERS_2025_26: 'Merco Líderes 2025/26',
   OEP_ELECTION_2025: 'Órgano Electoral 2025',
   IPDRS_CREATOR_STUDY_2024: 'Estudio IPDRS 2024',
+  IPSOS_IMPACT_2025: 'Ipsos CIESMORI, impacto 2025',
   WIKIDATA_DISCOVERY: 'Wikidata',
   UCB_MARIE_CURIE: 'UCB, Premio Marie Curie',
   UMSA_SCIENCE_2025: 'UMSA, ciencia 2025',
   UCB_SCIENCE_2025: 'UCB, ciencia 2025',
+  HAFI_TIKTOK_BOLIVIA: 'Hafi, TikTok Bolivia (directorio)',
+  HYPEAUDITOR_INSTAGRAM_BOLIVIA: 'HypeAuditor, Instagram Bolivia (directorio)',
 };
 const number = (value: number | null | undefined): string =>
   value === null || value === undefined ? 'sin dato' : value.toLocaleString('es-BO');
 const index = (value: number): string => value.toLocaleString('es-BO', { maximumFractionDigits: 1 });
 const pct = (value: number): string => `${value.toLocaleString('es-BO', { maximumFractionDigits: 1 })} %`;
 const folded = (value: string): string => value.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
-const EMPTY_PEOPLE: Person[] = [];
 
 function SentimentView({ person }: { person: PilotPerson }) {
   const sentiment = person.sentiment;
@@ -139,11 +149,15 @@ function SentimentView({ person }: { person: PilotPerson }) {
   );
 }
 
-const PLATFORMS: Record<string, string> = { tiktok: 'TikTok', youtube: 'YouTube' };
+const PLATFORMS: Record<string, string> = { tiktok: 'TikTok', youtube: 'YouTube', instagram: 'Instagram', facebook: 'Facebook' };
 const VERIFICATION: Record<string, string> = {
   WIKIDATA_DECLARED: 'cuenta oficial según Wikidata',
   PLATFORM_VERIFIED: 'verificada por la plataforma',
   HANDLE_MATCHES_WIKIDATA: 'mismo usuario que su cuenta oficial en Wikidata',
+  SOURCE_LINKED: 'enlazada por una fuente oficial o de prensa',
+  HANDLE_UNCONFIRMED_SMALL: 'mismo usuario que su cuenta oficial, pero muy pequeña y sin verificar',
+  IMPLAUSIBLY_SMALL: 'demasiado pequeña para esta figura: probable cuenta abandonada o ajena',
+  NAME_MISMATCH: 'el nombre mostrado no coincide',
   NAME_MATCH: 'coincide solo por nombre',
 };
 
@@ -160,8 +174,9 @@ function MeasureView({ measure }: { measure: Measure }) {
           <div><dt>Puesto en su sector</dt><dd>{number(measure.sectorRank)}</dd></div>
         </dl>
       ) : <p className={styles.muted}>Sin datos medibles en las fuentes abiertas: no tiene artículo en Wikipedia, cuenta verificada ni puesto en Merco.</p>}
+      {measure.identityNote ? <p className={styles.muted}>Revisión de identidad: {measure.identityNote}</p> : null}
       {measure.verifiedAccounts.length > 0 ? <ul className={styles.sources}>{measure.verifiedAccounts.map((a) =>
-        <li key={a.url}><a href={a.url} target="_blank" rel="noreferrer">{PLATFORMS[a.platform] ?? a.platform} ↗</a> <small>{VERIFICATION[a.verification] ?? a.verification}</small></li>)}</ul> : null}
+        <li key={a.url}><a href={a.url} target="_blank" rel="noreferrer">{PLATFORMS[a.platform] ?? a.platform} ↗</a> <small>{VERIFICATION[a.verification] ?? a.verification} · {number(a.followers)} seguidores</small></li>)}</ul> : null}
       {measure.unverifiedAccounts.length > 0 ? <p className={styles.muted}>Cuentas sin verificar, que no suman: {measure.unverifiedAccounts.map((a) =>
         `${PLATFORMS[a.platform] ?? a.platform} (${number(a.followers)}, ${VERIFICATION[a.verification] ?? a.verification})`).join(' · ')}.</p> : null}
     </div>
@@ -223,6 +238,47 @@ function ConversationView({ entry, limits }: { entry: Conversation; limits: stri
   );
 }
 
+function QualityView({ top, conversation }: { top: Top300; conversation: ConversationSet }) {
+  const q = top.method.quality;
+  const sources = Object.entries(q.padron.porFuente).sort((left, right) => right[1] - left[1]);
+  const counted = Object.entries(q.cuentas.suman);
+  const notCounted = Object.entries(q.cuentas.noSuman);
+  return (
+    <details className={styles.quality}>
+      <summary>Calidad de las fuentes y límites de esta lista</summary>
+      <h4>De dónde sale el padrón de {number(q.padron.fichasOriginales)}</h4>
+      <p className={styles.muted}>
+        No es una selección editorial de «los más importantes»: es un padrón de descubrimiento armado con listas públicas.
+        {' '}{sources.map(([key, count]) => `${SOURCES[key] ?? key}: ${number(count)}`).join(' · ')}.
+        {' '}Una persona puede estar en varias fuentes. Wikidata aporta sobre todo deportistas, políticos y obispos con ficha en Wikipedia.
+      </p>
+      <h4>Identidad</h4>
+      <p className={styles.muted}>
+        {number(q.identidad.coincidenciasWikidata)} fichas se enlazaron con su entidad de Wikidata. Se revisaron a mano las sospechosas:
+        {' '}{number(q.identidad.revisadasYAceptadas)} confirmadas, {number(q.identidad.descartadas)} descartadas por ser otra persona,
+        {' '}{number(q.identidad.duplicadasFusionadas)} duplicadas fusionadas y {number(q.identidad.fueraDeAlcance)} fuera de alcance.
+        {' '}Quedan {number(q.padron.fichasEnElRanking)} personas.
+      </p>
+      <h4>Qué mide el índice</h4>
+      <p className={styles.muted}>
+        {number(q.conVisitasWikipedia)} personas tienen visitas a Wikipedia, {number(q.conAudienciaVerificada)} tienen audiencia verificada y {number(q.conPuestoMerco)} figuran en Merco.
+        {' '}La audiencia suma las plataformas y hay solapamiento entre ellas; Instagram redondea (1 M = 1.000.000 o más).
+      </p>
+      <h4>Cuentas sociales</h4>
+      <p className={styles.muted}>
+        Suman: {counted.map(([key, count]) => `${VERIFICATION[key] ?? key} (${number(count)})`).join(' · ') || 'ninguna'}.
+        {' '}No suman: {notCounted.map(([key, count]) => `${VERIFICATION[key] ?? key} (${number(count)})`).join(' · ') || 'ninguna'}.
+      </p>
+      <h4>Sentimiento</h4>
+      <p className={styles.muted}>
+        {conversation.method.source}. {number(conversation.coverage.peoplePublishable)} personas de {number(conversation.coverage.peopleRead)} leídas tienen muestra
+        {' '}suficiente (30 comentarios en español y al menos dos videos con 5 o más). Los comentarios reaccionan al video, no solo a la persona. {conversation.method.limits.join(' ')}
+      </p>
+      <ul className={styles.limits}>{top.method.limits.map((limit) => <li key={limit}>{limit}</li>)}</ul>
+    </details>
+  );
+}
+
 function ImpactRankingView({ ranking, onPick }: { ranking: ImpactRanking; onPick: (slug: string) => void }) {
   const top = Math.max(...ranking.people.map((row) => row.impactSharePercent), 1);
   const { source } = ranking;
@@ -248,6 +304,7 @@ function ImpactRankingView({ ranking, onPick }: { ranking: ImpactRanking; onPick
         {' '}Encuesta de {number(source.sampleSize)} personas con acceso a internet en {source.geographicCoverage.join(', ')},
         {' '}del {source.fieldworkStart} al {source.fieldworkEnd} (margen ±{source.referenceMarginOfErrorPercentagePoints.toLocaleString('es-BO')} puntos).
         {' '}{ranking.interpretation.scope} {ranking.interpretation.currentness}
+        {ranking.accessNote ? ` ${ranking.accessNote}` : ''}
       </p>
     </section>
   );
@@ -259,10 +316,13 @@ export function PeopleSection() {
   const [sector, setSector] = useState('ALL');
   const [selectedSlug, setSelectedSlug] = useState('');
   const [limit, setLimit] = useState(30);
-  const people = payload?.research.people ?? EMPTY_PEOPLE;
+  const people = useMemo<Person[]>(() => (payload?.top300.people ?? []).map((row) => ({
+    slug: row.slug, name: row.name, sector: row.sector, evidence: row.evidence, accountLeadCount: 0,
+  })), [payload]);
+  const ipsos = useMemo(() => new Map((payload?.ranking.people ?? []).map((row) => [row.slug, row.rank])), [payload]);
   const measures = useMemo(() => new Map((payload?.top300.people ?? []).map((row) => [row.slug, row])), [payload]);
-  const filtered = useMemo(() => people.filter((person) =>
-    (sector === 'ALL' || person.sector === sector) && folded(person.name).includes(folded(query)))
+  const filtered = useMemo(() => people.filter((person) => measures.has(person.slug) &&
+    (sector === 'ALL' || (measures.get(person.slug)?.sector ?? person.sector) === sector) && folded(person.name).includes(folded(query)))
     .sort((left, right) => (measures.get(left.slug)?.rank ?? 999) - (measures.get(right.slug)?.rank ?? 999)),
   [people, query, sector, measures]);
   const selected = filtered.find((person) => person.slug === selectedSlug) ?? filtered[0];
@@ -278,7 +338,7 @@ export function PeopleSection() {
         <>
           <ImpactRankingView ranking={payload.ranking} onPick={(slug) => { setQuery(''); setSector('ALL'); setSelectedSlug(slug); }} />
           <div className={styles.stats}>
-            <div><strong>{number(people.length)}</strong><span>personas en revisión</span></div>
+            <div><strong>{number(payload.top300.method.quality.padron.fichasEnElRanking)}</strong><span>personas en el ranking</span></div>
             <div><strong>{number(payload.top300.method.measuredPeople)}</strong><span>con atención medible</span></div>
             <div><strong>{number(payload.conversation.coverage.peoplePublishable)}</strong><span>con sentimiento publicado</span></div>
             <div><strong>{number(payload.conversation.coverage.commentsAnalyzed + payload.pilot.coverage.commentsAnalyzedSpanish)}</strong><span>comentarios en español analizados</span></div>
@@ -287,6 +347,7 @@ export function PeopleSection() {
             Orden de las 300: {payload.top300.method.summary} No mide importancia ni mérito. Solo suman las cuentas con identidad respaldada; las demás se muestran aparte. Las cuentas de directorios,
             buscadores y Wikidata se revisan antes de publicar métricas personales. El sentimiento sale de comentarios públicos de YouTube en videos recientes que nombran a cada persona; los canales propios de tres personas se analizan aparte.
           </p>
+          <QualityView top={payload.top300} conversation={payload.conversation} />
           <div className={styles.layout}>
             <div className={styles.listPanel}>
               <div className={styles.filters}>
@@ -303,7 +364,7 @@ export function PeopleSection() {
                     <button type="button" aria-pressed={selected?.slug === person.slug}
                       className={selected?.slug === person.slug ? styles.selected : ''}
                       onClick={() => setSelectedSlug(person.slug)}>
-                      <b>{measures.get(person.slug)?.rank ?? '–'}. {person.name}</b><span>{SECTORS[person.sector] ?? person.sector}{measures.get(person.slug)?.measured ? ` · índice ${index(measures.get(person.slug)?.score ?? 0)}` : ' · sin medición'}</span>
+                      <b>{measures.get(person.slug)?.rank ?? '–'}. {person.name}{ipsos.has(person.slug) ? ` ★ Top 5 Ipsos (#${ipsos.get(person.slug)})` : ''}</b><span>{SECTORS[measures.get(person.slug)?.sector ?? person.sector] ?? person.sector}{measures.get(person.slug)?.measured ? ` · índice ${index(measures.get(person.slug)?.score ?? 0)}` : ' · sin medición'}</span>
                       {payload.pilot.people.some((entry) => entry.slug === person.slug) ? <em>Comentarios analizados</em> : null}
                     </button>
                   </li>
@@ -312,7 +373,7 @@ export function PeopleSection() {
               {filtered.length > limit ? <button type="button" className={styles.more} onClick={() => setLimit((value) => value + 30)}>Mostrar 30 más</button> : null}
             </div>
             {selected ? <article className={styles.detail}>
-              <div className={styles.detailHead}><span>{SECTORS[selected.sector] ?? selected.sector}</span><h3>{selected.name}</h3></div>
+              <div className={styles.detailHead}><span>{SECTORS[measure?.sector ?? selected.sector] ?? selected.sector}</span><h3>{selected.name}</h3>{ipsos.has(selected.slug) ? <em className={styles.badge}>Top 5 de impacto percibido 2025 · puesto {ipsos.get(selected.slug)}</em> : null}</div>
               <p className={styles.muted}>{selected.evidence.length} fuentes de identificación · {selected.accountLeadCount} pistas de cuenta social pendientes de verificar.</p>
               <h4>Fuentes de la ficha</h4>
               <ul className={styles.sources}>{selected.evidence.map((source) =>

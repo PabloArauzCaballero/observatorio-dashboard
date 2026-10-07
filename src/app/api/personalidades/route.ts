@@ -34,6 +34,11 @@ export function GET(request: Request): Response {
       method: top300.method,
       people: top300.people.map((person) => ({
         slug: person.slug,
+        name: person.name,
+        sector: person.sector,
+        identity: person.identity,
+        identityNote: person.identityNote,
+        evidence: person.evidence,
         rank: person.rank,
         sectorRank: person.sectorRank,
         score: person.score,
