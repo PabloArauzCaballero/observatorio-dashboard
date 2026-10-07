@@ -23,7 +23,15 @@ interface PilotPerson {
   commentsCaptured: number; commentsAnalyzedSpanish: number; commentsExcluded: number;
   sentiment: Sentiment; wordCloud: Term[]; posts: PilotPost[];
 }
+interface RankedPerson { rank: number; slug: string; name: string; impactSharePercent: number; sector: string }
+interface ImpactRanking {
+  status: string; title: string; measurementPeriod: string; question: string;
+  source: { publisher: string; publication: string; publishedAt: string; url: string; sampleSize: number; fieldworkStart: string; fieldworkEnd: string; geographicCoverage: string[]; referenceMarginOfErrorPercentagePoints: number };
+  interpretation: { scope: string; coverageLimit: string; currentness: string };
+  people: RankedPerson[];
+}
 interface PeoplePayload {
+  ranking: ImpactRanking;
   research: { status: string; generatedAt: string; sectors: Record<string, number>; people: Person[] };
   pilot: {
     status: string; windowStart: string; windowEnd: string;
@@ -108,6 +116,36 @@ function SentimentView({ person }: { person: PilotPerson }) {
   );
 }
 
+function ImpactRankingView({ ranking, onPick }: { ranking: ImpactRanking; onPick: (slug: string) => void }) {
+  const top = Math.max(...ranking.people.map((row) => row.impactSharePercent), 1);
+  const { source } = ranking;
+  return (
+    <section className={styles.ranking} aria-labelledby="ranking-impacto">
+      <div className={styles.rankingHead}>
+        <span>Ranking final medido · {ranking.measurementPeriod}</span>
+        <h3 id="ranking-impacto">{ranking.title}</h3>
+        <p className={styles.muted}>{ranking.question}</p>
+      </div>
+      <ol className={styles.rankingList}>
+        {ranking.people.map((row) => (
+          <li key={row.slug}>
+            <b className={styles.rankingPlace}>{row.rank}</b>
+            <button type="button" onClick={() => onPick(row.slug)} title="Ver la ficha de la persona">{row.name}</button>
+            <span className={styles.rankingBar} aria-hidden="true"><i style={{ width: `${(row.impactSharePercent / top) * 100}%` }} /></span>
+            <strong>{number(row.impactSharePercent)} %</strong>
+          </li>
+        ))}
+      </ol>
+      <p className={styles.note}>
+        Fuente: <a href={source.url} target="_blank" rel="noreferrer">{source.publisher}, {source.publication} ↗</a>.
+        {' '}Encuesta de {number(source.sampleSize)} personas con acceso a internet en {source.geographicCoverage.join(', ')},
+        {' '}del {source.fieldworkStart} al {source.fieldworkEnd} (margen ±{source.referenceMarginOfErrorPercentagePoints.toLocaleString('es-BO')} puntos).
+        {' '}{ranking.interpretation.scope} {ranking.interpretation.currentness}
+      </p>
+    </section>
+  );
+}
+
 export function PeopleSection() {
   const { payload, failed } = useOnOpen<PeoplePayload>('/api/personalidades');
   const [query, setQuery] = useState('');
@@ -125,9 +163,10 @@ export function PeopleSection() {
   return (
     <div className="stack">
       <TabHeader id="personalidades" title="Personalidades de Bolivia"
-        lede="Investigación de 300 personas de política, empresas, deporte, cultura, ciencia y redes. El orden no es un ranking definitivo: cada ficha muestra sus fuentes y la cobertura social disponible." />
+        lede="Las cinco figuras de mayor impacto percibido en 2025 según Ipsos CIESMORI y, debajo, la investigación de 300 personas de política, empresas, deporte, cultura, ciencia y redes con sus fuentes y la cobertura social disponible." />
       {!payload ? <OnOpenNotice what="la investigación de personalidades" failed={failed} /> : (
         <>
+          <ImpactRankingView ranking={payload.ranking} onPick={(slug) => { setQuery(''); setSector('ALL'); setSelectedSlug(slug); }} />
           <div className={styles.stats}>
             <div><strong>{number(people.length)}</strong><span>personas en revisión</span></div>
             <div><strong>{number(people.filter((person) => person.accountLeadCount > 0).length)}</strong><span>con pistas de cuentas por verificar</span></div>
@@ -135,7 +174,7 @@ export function PeopleSection() {
             <div><strong>{number(payload.pilot.coverage.commentsAnalyzedSpanish)}</strong><span>comentarios en español analizados</span></div>
           </div>
           <p className={styles.notice}>
-            Este es un padrón de investigación, todavía no el Top 300 definitivo. Las cuentas de directorios,
+            El padrón de 300 es un marco de investigación, no un ranking: el único orden medido es el Top 5 de arriba. Las cuentas de directorios,
             buscadores y Wikidata se revisan antes de publicar métricas personales. Los datos de comentarios
             corresponden solo a tres canales corroborados y al período {payload.pilot.windowStart}–{payload.pilot.windowEnd}.
           </p>
