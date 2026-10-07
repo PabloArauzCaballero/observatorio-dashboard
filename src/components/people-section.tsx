@@ -161,11 +161,11 @@ const VERIFICATION: Record<string, string> = {
   NAME_MATCH: 'coincide solo por nombre',
 };
 
-function MeasureView({ measure }: { measure: Measure }) {
+function MeasureView({ measure, total }: { measure: Measure; total: number }) {
   const c = measure.components;
   return (
     <div className={styles.measure}>
-      <h4>Cómo se midió · puesto {number(measure.rank)} de 300{measure.measured ? ` · índice ${index(measure.score)}` : ''}</h4>
+      <h4>Cómo se midió · puesto {number(measure.rank)} de {number(total)}{measure.measured ? ` · índice ${index(measure.score)}` : ''}</h4>
       {measure.measured ? (
         <dl>
           <div><dt>Visitas a Wikipedia, 12 meses</dt><dd>{c.wikipediaViews12m === null ? 'sin artículo' : [number(c.wikipediaViews12m), c.wikipediaViewsEs ? `es ${number(c.wikipediaViewsEs)}` : null, c.wikipediaViewsEn ? `en ${number(c.wikipediaViewsEn)}` : null].filter(Boolean).join(' · ')}</dd></div>
@@ -378,7 +378,7 @@ export function PeopleSection() {
               <h4>Fuentes de la ficha</h4>
               <ul className={styles.sources}>{selected.evidence.map((source) =>
                 <li key={`${source.source}-${source.url}`}><a href={source.url} target="_blank" rel="noreferrer">{SOURCES[source.source] ?? source.source}{source.rank ? ` · puesto ${source.rank}` : ''} ↗</a></li>)}</ul>
-              {measure ? <MeasureView measure={measure} /> : null}
+              {measure ? <MeasureView measure={measure} total={payload.top300.method.quality.padron.fichasEnElRanking} /> : null}
               {talk ? <ConversationView entry={talk} limits={payload?.conversation.method.limits ?? []} /> : <p className={styles.empty}>Sin lectura de comentarios: no se encontraron videos recientes que la nombren o no hay base para confirmar que es adulta.</p>}
               {pilot ? <SentimentView person={pilot} /> : null}
             </article> : null}
