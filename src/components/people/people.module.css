@@ -220,6 +220,7 @@
 /* ---------------------------------------------------------- dos lentes */
 
 .lens {
+  container-type: inline-size;
   display: grid;
   margin: 0;
   padding: 0;
@@ -1041,6 +1042,17 @@
 
 /* --------------------------------------------------------- adaptación */
 
+/* En la columna de media pantalla la pista quedaba corta: nombre y puesto arriba, pista abajo. */
+@container (max-width: 40rem) {
+  .lensRow {
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-areas:
+      'name place'
+      'rail rail'
+      'why why';
+  }
+}
+
 @media (max-width: 1023px) {
   .master {
     grid-template-columns: minmax(0, 1fr);
@@ -1139,4 +1151,12 @@
   .skelBar {
     animation: none;
   }
+}
+
+/* La última marca del eje (298.º) se ancla a su derecha: centrada se salía del panel. */
+.lensTick:last-child {
+  transform: translateX(-100%);
+  border-left: 0;
+  border-right: 1px solid var(--axis-rule);
+  padding-right: 0.2rem;
 }
