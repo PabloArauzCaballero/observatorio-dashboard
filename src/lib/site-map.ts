@@ -67,7 +67,17 @@ export const SITE: readonly SiteSection[] = [
       'Videos de vendedores',
     ),
   },
-  { label: 'Personalidades', icon: 'personas', pages: [] },
+  {
+    label: 'Personalidades',
+    icon: 'personas',
+    pages: paginas(
+      'Impacto percibido',
+      'Atención medible',
+      'Fichas',
+      'Conversación',
+      'Método y calidad',
+    ),
+  },
   { label: 'Ciudades', icon: 'mapa', pages: [] },
   {
     label: 'Transporte',
