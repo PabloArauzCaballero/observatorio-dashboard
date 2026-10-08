@@ -35,7 +35,7 @@ export const FilingsSection = dynamic(
   },
 );
 export const PeopleSection = dynamic(
-  () => import('@/components/people-section').then((module) => module.PeopleSection),
+  () => import('@/components/people/people-section').then((module) => module.PeopleSection),
   { loading: () => <OnOpenNotice what="la investigación de personalidades" failed={false} /> },
 );
 export const CitiesSection = dynamic(
