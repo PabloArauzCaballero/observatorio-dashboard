@@ -5,6 +5,7 @@ import { ChartLegend, DatedLines, HeatGrid, ShareBars, TermCloud, YearStackBars 
 import { FilterHint, PickedCount } from './filters';
 import { Icon } from './icons';
 import { OnOpenNotice, useOnOpen } from './on-open';
+import { TiktokRetrospective } from './tiktok-retrospective';
 import { Panel } from '@/components/ui/panel';
 import { ViewToggle } from '@/components/ui/view-toggle';
 import { additive, picked, toggle, type Choice } from '@/lib/choice';
@@ -49,7 +50,7 @@ const DIMENSION_LABEL: Record<VideoDimension, { title: string; icon: 'tienda' | 
   city: { title: 'Departamento', icon: 'mapa' },
 };
 
-export function TiktokVideosExplorer({ board }: { board: VideoBoard }) {
+function VideosOverview({ board }: { board: VideoBoard }) {
   const [filters, setFilters] = useState<VideoFilters>(NO_VIDEO_FILTERS);
   const [tacticView, setTacticView] = useState<'share' | 'likes'>('share');
 
@@ -432,6 +433,33 @@ export function TiktokVideosExplorer({ board }: { board: VideoBoard }) {
           </Panel>
         </div>
       </div>
+    </>
+  );
+}
+
+/**
+ * Las dos vistas de la página: el resumen de lo leído y la retrospectiva por rubro y mes. Se monta una sola a la
+ * vez, igual que `Tabs`, para no pagar el dibujo de la que no se mira.
+ */
+export function TiktokVideosExplorer({ board }: { board: VideoBoard }) {
+  const [view, setView] = useState<'resumen' | 'retro'>('resumen');
+  return (
+    <>
+      {board.videos.length ? (
+        <div className="rail-pills" role="group" aria-label="Vista de los videos de vendedores">
+          {(
+            [
+              ['resumen', 'Resumen'],
+              ['retro', 'Retrospectiva'],
+            ] as const
+          ).map(([value, label]) => (
+            <button key={value} type="button" className={view === value ? 'chip chip-on' : 'chip'} aria-pressed={view === value} onClick={() => setView(value)}>
+              {label}
+            </button>
+          ))}
+        </div>
+      ) : null}
+      {view === 'retro' && board.videos.length ? <TiktokRetrospective board={board} /> : <VideosOverview board={board} />}
     </>
   );
 }

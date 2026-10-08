@@ -6,6 +6,8 @@
  * sus videos más recientes: la serie larga está cargada hacia lo reciente y la página lo dice.
  */
 
+import type { VideoTrends, YearCoverage } from './tiktok-retrospective';
+
 export interface VideoAccount {
   seller: string;
   origin: 'LIVE' | 'SIMILAR';
@@ -44,6 +46,13 @@ export interface VideoCoverage {
   excludedNoActivity: number;
   videos: number;
   videosByYear: Record<string, number>;
+  /** Videos analizados antes de recortar la semilla, los que vienen de la lectura histórica y cuentas sin perfil. */
+  videosAnalyzed?: number;
+  videosTrimmed?: number;
+  videosFromHistory?: number;
+  historyAccounts?: number;
+  /** Por qué cada año 2021-2026 tiene lo que tiene (núcleo, `coverage.por_anio`). */
+  por_anio?: Record<string, YearCoverage>;
 }
 
 export interface VideoBoard {
@@ -54,6 +63,10 @@ export interface VideoBoard {
   videos: SellerVideo[];
   terms: { rubro: string; term: string; count: number }[];
   coverage: VideoCoverage | null;
+  /** La retrospectiva por rubro y mes; nula si el núcleo todavía no la publica. */
+  trends: VideoTrends | null;
+  /** Dólar paralelo promedio por mes (AAAA-MM → Bs por USD), para poner al lado de los precios. */
+  dollar: Record<string, number>;
 }
 
 export const EMPTY_VIDEO_BOARD: VideoBoard = {
@@ -64,6 +77,8 @@ export const EMPTY_VIDEO_BOARD: VideoBoard = {
   videos: [],
   terms: [],
   coverage: null,
+  trends: null,
+  dollar: {},
 };
 
 export const KIND_LABEL: Record<string, string> = {

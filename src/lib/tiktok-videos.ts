@@ -1,6 +1,8 @@
 import 'server-only';
 import { pool } from './db';
 import { held } from './hold';
+import { readGap } from './series';
+import { monthlyAverage, type VideoTrends } from './tiktok-retrospective';
 import { EMPTY_VIDEO_BOARD, type SellerVideo, type VideoAccount, type VideoBoard } from './tiktok-videos-board';
 
 /**
@@ -20,7 +22,7 @@ const numberOr = (value: unknown): number | null => {
 
 async function buildBoard(): Promise<VideoBoard> {
   try {
-    const [accounts, videos, snapshot] = await Promise.all([
+    const [accounts, videos, snapshotRows] = await Promise.all([
       pool().query<Record<string, unknown>>(
         `SELECT seller_id, origin, kind, rubro, city, followers::text, videos_read,
                 to_char(first_video, 'YYYY-MM-DD') AS first_video, to_char(last_video, 'YYYY-MM-DD') AS last_video
@@ -32,21 +34,18 @@ async function buildBoard(): Promise<VideoBoard> {
                 duration_seconds, photo_post, tactics
          FROM read_models.tiktok_video`,
       ),
-      pool().query<{
-        rubros: { code: string; label: string }[] | null;
-        departments: { code: string; label: string }[] | null;
-        terms: { rubro: string; term: string; count: number }[] | null;
-        coverage: VideoBoard['coverage'];
-        analyzed_at: Date | null;
-      }>('SELECT rubros, departments, terms, coverage, analyzed_at FROM read_models.tiktok_video_snapshot'),
+      snapshot(),
     ]);
-    const meta = snapshot.rows[0];
+    const meta = snapshotRows.rows[0];
+    const dollar = await parallelDollarByMonth();
     return {
       analyzedAt: meta?.analyzed_at ? meta.analyzed_at.toISOString() : null,
       rubros: Object.fromEntries((meta?.rubros ?? []).map((row) => [row.code, row.label])),
       departments: Object.fromEntries((meta?.departments ?? []).map((row) => [row.code, row.label])),
       terms: meta?.terms ?? [],
       coverage: meta?.coverage ?? null,
+      trends: meta?.trends ?? null,
+      dollar,
       accounts: accounts.rows.map(
         (row): VideoAccount => ({
           seller: String(row.seller_id),
@@ -89,5 +88,41 @@ async function buildBoard(): Promise<VideoBoard> {
       return EMPTY_VIDEO_BOARD;
     }
     throw error;
+  }
+}
+
+interface SnapshotRow {
+  rubros: { code: string; label: string }[] | null;
+  departments: { code: string; label: string }[] | null;
+  terms: { rubro: string; term: string; count: number }[] | null;
+  coverage: VideoBoard['coverage'];
+  trends: VideoTrends | null;
+  analyzed_at: Date | null;
+}
+
+/**
+ * La última lectura. La columna `trends` la agrega la migración 0106 del núcleo: si el tablero se despliega
+ * antes (`42703`, columna inexistente), se lee sin ella y la pestaña «Retrospectiva» dice que aún no hay.
+ */
+async function snapshot() {
+  try {
+    return await pool().query<SnapshotRow>(
+      'SELECT rubros, departments, terms, coverage, trends, analyzed_at FROM read_models.tiktok_video_snapshot',
+    );
+  } catch (error) {
+    if ((error as { code?: string }).code !== '42703') throw error;
+    const rows = await pool().query<Omit<SnapshotRow, 'trends'>>(
+      'SELECT rubros, departments, terms, coverage, analyzed_at FROM read_models.tiktok_video_snapshot',
+    );
+    return { ...rows, rows: rows.rows.map((row) => ({ ...row, trends: null })) };
+  }
+}
+
+/** El dólar paralelo promedio de cada mes. Sin serie (la lectura falla), la pestaña sigue sin esa columna. */
+async function parallelDollarByMonth(): Promise<Record<string, number>> {
+  try {
+    return monthlyAverage((await readGap()).map((point) => ({ date: point.date, value: point.parallelMid })));
+  } catch {
+    return {};
   }
 }
