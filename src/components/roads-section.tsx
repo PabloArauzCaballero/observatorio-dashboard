@@ -20,8 +20,7 @@ export function RoadsSection() {
   if (!payload.board.sections.length) {
     return (
       <div className="callout">
-        Todavía no hay tramos de la red vial cargados. El capítulo se llena solo cuando el núcleo
-        haya sembrado la siembra de la red vial.
+        No hay tramos de la red vial disponibles en este momento.
       </div>
     );
   }

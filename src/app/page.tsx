@@ -173,7 +173,7 @@ function midpoint(row: RateRow): number | null {
 function Unreadable() {
   return (
     <div className="error">
-      <strong>No fue posible leer la base de datos.</strong>
+      <strong>No se pudieron consultar las series en este momento.</strong>
       <p>
         Este resumen no muestra cifras que no pudo verificar, así que no muestra ninguna. El detalle
         del fallo queda en el registro del servidor; las demás pestañas leen aparte y pueden estar

@@ -527,9 +527,8 @@ export function WorldExplorer() {
 
         {hasWorld ? null : (
           <div className="callout">
-            Las cifras del mundo y de las regiones todavía no están cargadas en la base: las carga
-            el núcleo del observatorio en su próximo despliegue. Mientras tanto cada tarjeta muestra
-            sólo a Bolivia.
+            No hay cifras comparables del mundo y las regiones para estas variables. Las tarjetas
+            muestran sólo a Bolivia.
           </div>
         )}
 

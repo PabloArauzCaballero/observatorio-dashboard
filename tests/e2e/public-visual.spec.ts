@@ -31,9 +31,28 @@ const TABS = [
 
 // The two chapters that split again into their own tablist once open.
 const SUBTABS: Partial<Record<(typeof TABS)[number]['label'], string[]>> = {
-  Macroeconomía: ['Series de Bolivia', 'Bolivia ante el mundo'],
+  Macroeconomía: [
+    'Series de Bolivia',
+    'Bolivia ante el mundo',
+    'Comercio exterior',
+    'Detalle aduanero (INE)',
+  ],
   Prensa: ['Cobertura', 'Temas'],
 };
+
+test('UI-00 · comercio exterior y detalle aduanero pertenecen a Macroeconomía', async ({
+  page,
+}) => {
+  await page.goto('/');
+
+  await page.getByRole('tab', { name: 'Macroeconomía', exact: true }).click();
+  await expect(page.getByRole('tab', { name: 'Comercio exterior', exact: true })).toBeVisible();
+  await expect(page.getByRole('tab', { name: 'Detalle aduanero (INE)', exact: true })).toBeVisible();
+
+  await page.getByRole('tab', { name: 'Empresas', exact: true }).click();
+  await expect(page.getByRole('tab', { name: 'Comercio exterior', exact: true })).toHaveCount(0);
+  await expect(page.getByRole('tab', { name: 'Detalle aduanero (INE)', exact: true })).toHaveCount(0);
+});
 
 /**
  * Una pestaña abierta no esta lista hasta que su aviso desaparece.

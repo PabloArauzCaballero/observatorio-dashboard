@@ -26,8 +26,7 @@ export function DepartmentsSection() {
   if (!Object.keys(payload.board.series).length) {
     return (
       <div className="callout">
-        Todavía no hay cuentas departamentales cargadas. El capítulo se llena solo cuando el núcleo
-        haya sembrado los cuadros del INE.
+        No hay cuentas departamentales disponibles para esta selección.
       </div>
     );
   }

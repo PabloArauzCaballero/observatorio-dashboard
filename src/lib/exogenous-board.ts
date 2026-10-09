@@ -7,7 +7,13 @@
  */
 
 export type ExogenousGroup =
-  'ENERGY' | 'MINERALS' | 'AGRICULTURE' | 'LIVESTOCK' | 'INDUSTRY' | 'CONSTRUCTION';
+  | 'ENERGY'
+  | 'MINERALS'
+  | 'AGRICULTURE'
+  | 'LIVESTOCK'
+  | 'INDUSTRY'
+  | 'CONSTRUCTION'
+  | 'FREIGHT';
 
 export type ExogenousScope =
   'WORLD' | 'REGIONAL' | 'US_PRODUCER_INDEX' | 'BOLIVIA_MARKET' | 'BOLIVIA_CUSTOMS';
@@ -45,32 +51,37 @@ export const GROUPS: ReadonlyArray<{
   {
     key: 'ENERGY',
     label: 'Energético',
-    lead: 'Crudo, gasolina, diésel, gas y GLP: lo que Bolivia vende por gasoducto y lo que compra para mover el país a un precio que fija el Estado.',
+    lead: 'El crudo y los derivados influyen en el costo de importar combustible; el gas incide en los ingresos de exportación. La cotización externa no es el precio en surtidor de Bolivia.',
   },
   {
     key: 'MINERALS',
     label: 'Minerales',
-    lead: 'Oro, plata, zinc, plomo, estaño, acero, litio y bismuto: más de la mitad de lo que Bolivia exporta sale de una mina.',
+    lead: 'La cotización de los metales influye en el valor de las exportaciones mineras. El valor unitario declarado en aduana también cambia con la calidad y la composición de lo vendido.',
   },
   {
     key: 'AGRICULTURE',
     label: 'Agro',
-    lead: 'Soya, arroz, maíz, azúcar, trigo, papa, quinua, café, cacao, girasol, banano y castaña: el precio mundial y el de los mercados del país.',
+    lead: 'Las referencias internacionales de granos y alimentos ayudan a leer los incentivos para exportar o importar. El precio local también depende de la cosecha, el transporte y la oferta interna.',
   },
   {
     key: 'LIVESTOCK',
     label: 'Ganadería',
-    lead: 'Carne de res, pollo, huevos, leche, queso y el alimento de la piscicultura, contra los vecinos que exportan lo mismo.',
+    lead: 'Las cotizaciones regionales de carne y lácteos sirven para situar la competencia externa. No sustituyen el precio al consumidor ni el costo de producción en Bolivia.',
   },
   {
     key: 'INDUSTRY',
     label: 'Industria',
-    lead: 'Resinas PET, PP y PE, fertilizantes, herbicidas y precursores químicos: los insumos que Bolivia importa para producir.',
+    lead: 'Resinas, fertilizantes y químicos son insumos para producir. Las referencias externas indican presión de costos; el valor de aduana refleja la mezcla que Bolivia efectivamente importó.',
   },
   {
     key: 'CONSTRUCTION',
     label: 'Construcción',
-    lead: 'Cemento, fierro de construcción, alambre y viguetas pretensadas, hormigón, ladrillo y madera.',
+    lead: 'Acero, cemento y otros materiales afectan el costo de construir. Los índices de productor de EE. UU. muestran la dirección de precios allí, no cotizaciones de obra en Bolivia.',
+  },
+  {
+    key: 'FREIGHT',
+    label: 'Fletes',
+    lead: 'Las tarifas marítimas y aéreas internacionales muestran presión sobre la logística. El costo implícito de aduana incorpora transporte y seguro hasta Bolivia; no es una tarifa contratada para una ruta.',
   },
 ];
 
@@ -86,7 +97,7 @@ export const SCOPES: ReadonlyArray<{ key: ExogenousScope; label: string; hint: s
   {
     key: 'BOLIVIA_CUSTOMS',
     label: 'Bolivia, aduana',
-    hint: 'Valor unitario anual de lo que Bolivia exportó o importó.',
+    hint: 'Valor unitario de lo que Bolivia exportó o importó, anual; o el flete implícito de sus importaciones, mensual.',
   },
 ];
 
@@ -100,7 +111,7 @@ export const SCOPES: ReadonlyArray<{ key: ExogenousScope; label: string; hint: s
 export const MISSING: Record<ExogenousGroup, readonly string[]> = {
   ENERGY: [
     'El precio del gas que Bolivia vende a Brasil y Argentina sale de contratos de YPFB que no se publican mes a mes; aquí va el valor unitario anual declarado en aduana.',
-    'La gasolina, el diésel y el GLP se venden en Bolivia a un precio fijado por decreto, no de mercado: lo que se muestra es el precio del mundo al que el país los compra.',
+    'Las cotizaciones externas de gasolina y diésel no muestran cuánto paga Bolivia al importar ni el precio en surtidor. Esas tres medidas deben leerse por separado.',
   ],
   MINERALS: [
     'El litio y el bismuto no tienen cotización abierta; se muestra el precio al que Bolivia los exportó, anual, según su aduana.',
@@ -112,11 +123,16 @@ export const MISSING: Record<ExogenousGroup, readonly string[]> = {
     'No hay precio abierto del pescado de cultivo boliviano (pacú, tambaquí); se muestra el de su alimento, la harina de pescado, y el del pescado que el país importa.',
   ],
   INDUSTRY: [
-    'Nadie publica gratis el precio mensual del PET o del polipropileno por grado. Se muestran el índice de productor de EE. UU. y el precio por kilo que Bolivia pagó en su aduana.',
+    'Para algunas resinas no hay cotización mensual abierta por grado. El índice de productor de EE. UU. y el valor unitario aduanero boliviano ofrecen referencias distintas; no se comparan como si fueran el mismo precio.',
     'Los precursores químicos controlados se leen por sus partidas de aduana: ácido sulfúrico, ácido clorhídrico y acetona.',
   ],
   CONSTRUCTION: [
     'No hay cotización abierta de la vigueta pretensada: se muestra el índice de hormigón pretensado de EE. UU. y el alambre de acero que Bolivia importa para fabricarla.',
+  ],
+  FREIGHT: [
+    'Las rutas de contenedor hacia Sudamérica parten de Europa y terminan en puertos regionales. No cubren el trayecto completo de una importación boliviana ni la salida de un exportador boliviano.',
+    'La serie abierta de Freightos empieza cuando se comenzó a conservar sus publicaciones semanales. Los índices de productor de EE. UU. cubren más años, pero son índices, no dólares por envío.',
+    'El costo implícito se calcula como (CIF − FOB) dividido entre toneladas importadas. Incluye seguro y transporte hasta la frontera; también varía cuando cambia la composición de las importaciones.',
   ],
 };
 
@@ -144,6 +160,7 @@ export const UNSOURCED: Record<ExogenousGroup, ReadonlyArray<{ label: string; wh
   LIVESTOCK: [],
   INDUSTRY: [],
   CONSTRUCTION: [],
+  FREIGHT: [],
 };
 
 /**
@@ -200,6 +217,11 @@ export const PRODUCT_ORDER: readonly string[] = [
   'CONCRETE',
   'BRICK',
   'LUMBER',
+  'CONTAINER',
+  'AIR_FREIGHT',
+  'SEA_FREIGHT',
+  'FREIGHT_BO',
+  'LOGISTICS',
 ];
 
 export type Measure = 'LEVEL' | 'INDEX' | 'YOY';
@@ -210,6 +232,13 @@ export const yearOf = (period: string): number => Number(period.slice(0, 4));
 function yearAgo(period: string): string {
   const year = yearOf(period) - 1;
   return period.length === 4 ? String(year) : `${year}${period.slice(4)}`;
+}
+
+/** Retrocede períodos de calendario, aunque falten observaciones entre ellos. */
+function periodsAgo(period: string, frequency: ExogenousSeries['frequency'], count: number): string {
+  if (frequency === 'ANNUAL') return String(yearOf(period) - count);
+  const month = yearOf(period) * 12 + Number(period.slice(5, 7)) - 1 - count;
+  return `${Math.floor(month / 12)}-${String(month % 12 + 1).padStart(2, '0')}`;
 }
 
 /**
@@ -228,42 +257,44 @@ export function measured(
   const inRange = points.filter(([period]) => yearOf(period) >= from && yearOf(period) <= to);
   if (measure === 'LEVEL') return inRange;
   if (measure === 'INDEX') {
-    const base = inRange.find(([, value]) => value !== 0)?.[1];
-    if (base === undefined) return [];
+    const base = inRange[0]?.[1];
+    if (base === undefined || !Number.isFinite(base) || base <= 0) return [];
     return inRange.map(([period, value]) => [period, (value / base) * 100]);
   }
   const all = new Map(points);
   return inRange.flatMap(([period, value]): ExogenousPoint[] => {
-    const before = all.get(yearAgo(period));
-    return before ? [[period, (value / before - 1) * 100]] : [];
+    const change = ratio(value, all.get(yearAgo(period)));
+    return change === null ? [] : [[period, change]];
   });
 }
 
 export interface Summary {
   last: ExogenousPoint | null;
-  /** Contra el punto anterior: el mes pasado, o el año pasado si es anual. */
+  /** Contra el período calendario anterior; nulo si falta esa observación. */
   change: number | null;
   /** Contra hace un año. */
   yearChange: number | null;
-  /** Dónde está el último contra el promedio de los cinco años anteriores. */
+  /** Contra 60 meses o 5 años previos completos; nulo si falta algún período. */
   versusFiveYears: number | null;
 }
 
 const ratio = (now: number, before: number | undefined): number | null =>
-  before === undefined || before === 0 ? null : (now / before - 1) * 100;
+  before === undefined || before <= 0 || !Number.isFinite(before) || !Number.isFinite(now)
+    ? null : (now / before - 1) * 100;
 
 export function summarize(series: ExogenousSeries): Summary {
   const last = series.points.at(-1) ?? null;
   if (!last) return { last, change: null, yearChange: null, versusFiveYears: null };
   const all = new Map(series.points);
-  const earlier = series.points.slice(0, -1);
-  const window = earlier.filter(([period]) => yearOf(period) >= yearOf(last[0]) - 5);
-  const average = window.length
-    ? window.reduce((sum, [, value]) => sum + value, 0) / window.length
+  const window = Array.from({ length: series.frequency === 'MONTHLY' ? 60 : 5 }, (_, index) =>
+    all.get(periodsAgo(last[0], series.frequency, index + 1)),
+  );
+  const average = window.every((value): value is number => value !== undefined && Number.isFinite(value))
+    ? window.reduce((sum, value) => sum + value, 0) / window.length
     : undefined;
   return {
     last,
-    change: ratio(last[1], earlier.at(-1)?.[1]),
+    change: ratio(last[1], all.get(periodsAgo(last[0], series.frequency, 1))),
     yearChange: ratio(last[1], all.get(yearAgo(last[0]))),
     versusFiveYears: ratio(last[1], average),
   };

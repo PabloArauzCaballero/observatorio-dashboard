@@ -173,8 +173,7 @@ function Block<T extends LatestByPlace>({
         <OnOpenNotice what={what} failed={opened.failed} />
       ) : empty ? (
         <div className="callout">
-          Todavía no hay series de este capítulo leídas del panel del Banco Mundial. El cuadro se
-          llena solo cuando el núcleo las tenga cargadas.
+          No hay series comparables disponibles para esta selección.
         </div>
       ) : (
         <LatestTable board={board} places={places} columns={columns} />
@@ -230,7 +229,7 @@ export function NeighboursSection({
       />
       <p className="panel-sub">
         <Icon name="info" size={12} /> Series del Banco Mundial (Indicadores del Desarrollo
-        Mundial), leídas del panel de treinta economías que recoge el núcleo del observatorio. Las
+        Mundial) para treinta economías. Las
         historias completas de cada serie están en «Series de Bolivia», bajo Energía, Recursos
         naturales y Medio ambiente.
       </p>

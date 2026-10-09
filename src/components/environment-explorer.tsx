@@ -367,11 +367,9 @@ export function EnvironmentExplorer({ board: entire }: { board: EnvironmentBoard
       </p>
 
       <p className="panel-sub">
-        <Icon name="info" size={12} /> Series del Banco Mundial (Indicadores del Desarrollo
-        Mundial), leídas del panel de treinta economías que recoge el núcleo del observatorio. El
-        bosque viene del inventario de la FAO, las emisiones del inventario EDGAR bajo las métricas
-        del quinto informe del IPCC, y las especies amenazadas de la lista roja de la UICN. Las
-        definiciones de cada serie están en «Social Info».
+        <Icon name="info" size={12} /> Bosque, emisiones y especies amenazadas tienen calendarios
+        y unidades distintos. Una variación en uno de esos indicadores no describe por sí sola
+        el estado ambiental del país.
       </p>
     </>
   );

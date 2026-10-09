@@ -188,8 +188,7 @@ export function InstitutionsExplorer({ board: entire }: { board: InstitutionsBoa
         />
         {missingLabels.length ? (
           <div className="callout">
-            Todavía no llegan al tablero: {missingLabels.join(', ')}. Las recoge el núcleo del
-            observatorio y aparecen aquí en cuanto su carga las publique.
+            Sin datos comparables para {missingLabels.join(', ')} en esta selección.
           </div>
         ) : null}
       </div>

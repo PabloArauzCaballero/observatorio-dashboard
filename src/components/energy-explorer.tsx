@@ -323,9 +323,8 @@ export function EnergyExplorer({ board: entire }: { board: EnergyBoard }) {
         el mundo», junto a los de recursos naturales y medio ambiente.
       </p>
       <p className="panel-sub">
-        <Icon name="info" size={12} /> Series del Banco Mundial (Indicadores del Desarrollo
-        Mundial), leídas del panel de treinta economías que recoge el núcleo del observatorio. Las
-        definiciones de cada serie están en «Social Info».
+        <Icon name="info" size={12} /> Para comparar países, elegí la misma variable y el mismo
+        año; el último dato disponible puede cambiar según la economía.
       </p>
     </>
   );

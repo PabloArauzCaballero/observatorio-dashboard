@@ -8410,3 +8410,215 @@ button.download-btn {
     animation: none;
   }
 }
+
+/* Redes sociales de las empresas (Empresas › Redes sociales). */
+.social-table th .roads-sort {
+  all: unset;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.social-table th .roads-sort:focus-visible,
+.social-company:focus-visible {
+  outline: 2px solid var(--series-1);
+  outline-offset: 2px;
+}
+
+.social-table th .roads-sort-on {
+  color: var(--ink);
+}
+
+.social-table td.num {
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.social-company {
+  all: unset;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.social-unread {
+  color: var(--ink-soft);
+  font-style: italic;
+  font-size: 0.82rem;
+}
+
+.social-none {
+  color: var(--ink-soft);
+}
+
+.social-coverage {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem 1.2rem;
+  margin: 0.8rem 0 0;
+  padding: 0;
+  list-style: none;
+  font-size: 0.82rem;
+  color: var(--ink-soft);
+}
+
+.social-term-switch {
+  margin-bottom: 0.8rem;
+}
+
+.social-posts {
+  display: grid;
+  gap: 0.8rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.social-post {
+  padding: 0.75rem 0.9rem;
+  border: 1px solid var(--rule);
+  border-radius: 8px;
+}
+
+.social-post-head {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 0.25rem 1rem;
+}
+
+.social-post-meta {
+  color: var(--ink-soft);
+  font-size: 0.8rem;
+}
+
+.social-post-text {
+  margin: 0.4rem 0;
+  overflow-wrap: anywhere;
+  white-space: pre-line;
+  display: -webkit-box;
+  -webkit-line-clamp: 4;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.social-post-figures {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem 0.9rem;
+  font-size: 0.8rem;
+  font-variant-numeric: tabular-nums;
+  color: var(--ink-soft);
+}
+
+.social-term-switch {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+
+.social-sample-count {
+  margin: 0 0 0.75rem;
+  color: var(--ink-soft);
+  font-size: 0.85rem;
+}
+
+.social-sentiment-breakdown {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.65rem;
+}
+
+.social-sentiment-breakdown > div {
+  display: grid;
+  gap: 0.2rem;
+  padding: 0.8rem;
+  border: 1px solid var(--rule);
+  border-radius: 8px;
+  font-variant-numeric: tabular-nums;
+}
+
+.social-sentiment-breakdown span {
+  color: var(--ink-soft);
+  font-size: 0.8rem;
+}
+
+.social-sentiment-breakdown strong {
+  font-size: 1.35rem;
+}
+
+.social-word-cloud {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.55rem 1.1rem;
+  margin: 0;
+  padding: 1rem;
+  border: 1px solid var(--rule);
+  border-radius: 8px;
+  list-style: none;
+}
+
+.social-word-cloud li {
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+}
+
+.social-word-cloud span {
+  color: var(--official);
+  font-weight: 650;
+}
+
+.social-comment-summary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem 0.85rem;
+  margin-top: 0.6rem;
+  padding-top: 0.55rem;
+  border-top: 1px solid var(--rule);
+  color: var(--ink-soft);
+  font-size: 0.8rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.social-comment-summary strong {
+  color: var(--ink);
+}
+
+@media (max-width: 720px) {
+  .social-sentiment-breakdown {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+.transport-price-range {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.5rem;
+  padding: 0 0.875rem;
+}
+
+.transport-price-range label {
+  display: grid;
+  gap: 0.25rem;
+  min-width: 0;
+  color: var(--ink-soft);
+  font-size: 0.75rem;
+}
+
+.transport-price-range input {
+  width: 100%;
+  min-width: 0;
+  padding: 0.4rem 0.5rem;
+  border: 1px solid var(--rule);
+  border-radius: 0.5rem;
+  background: var(--panel);
+  color: var(--ink);
+  font: inherit;
+  font-size: 0.85rem;
+}
+
+.transport-price-range input:focus-visible {
+  outline: 2px solid var(--official);
+  outline-offset: 2px;
+}

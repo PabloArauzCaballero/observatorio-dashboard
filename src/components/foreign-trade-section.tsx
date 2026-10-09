@@ -7,7 +7,7 @@ import type { ExportersBoard } from '@/lib/exporters-board';
 import type { ForeignTradeBoard } from '@/lib/foreign-trade-board';
 
 /**
- * «Comercio exterior», pedida al abrir su página dentro de «Empresas».
+ * «Comercio exterior», pedida al abrir su página dentro de «Macroeconomía».
  *
  * Lee tres direcciones y no una. El total nacional por producto sale de
  * `/api/departamentos` —el mismo capítulo que abre «Bolivia por

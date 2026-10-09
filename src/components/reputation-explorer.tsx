@@ -686,7 +686,7 @@ export function ReputationExplorer({ board }: { board: ExportersBoard }) {
               <div className="callout">
                 {board.exporters.length
                   ? 'Ninguna de las exportadoras del ránking aparece en el monitor de reputación con los datos cargados hoy.'
-                  : 'El cruce se llena cuando el núcleo haya sembrado también el registro de exportadoras.'}
+                  : 'No hay registro de exportadoras disponible para cruzar con este monitor.'}
               </div>
             )}
           </div>

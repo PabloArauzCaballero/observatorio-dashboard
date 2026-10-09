@@ -102,15 +102,6 @@ function Block({ block }: { block: BoardBlock }) {
         <span className="board-asof">
           {block.lag > 0 ? `Dato de ${block.asOf}` : `Al ${block.asOf}`}
         </span>
-        {block.publisher ? <span> · {block.publisher}</span> : null}
-        {block.sourceUrl ? (
-          <>
-            {' · '}
-            <a href={block.sourceUrl} target="_blank" rel="noreferrer noopener">
-              fuente
-            </a>
-          </>
-        ) : null}
         <span className="board-goes">Detalle en «{block.goesTo}»</span>
       </p>
     </article>
@@ -182,12 +173,12 @@ export function TodayBoardPanel({ board, lead }: { board: TodayBoard; lead?: Rea
             <Icon name="tendencia" size={15} />
             <h3>Tendencias</h3>
             <span className="tile-hint">
-              {adverse} de {judged} lecturas en rojo
+              {adverse} de {judged} señales adversas
             </span>
           </div>
           <p className="board-intro">
-            Cada lectura lleva la cifra publicada, su fecha y una regla fija que decide su color; la
-            regla se abre en cada tarjeta. El detalle está en las pestañas de arriba.
+            Las tarjetas reúnen señales de distintas áreas económicas. Cada una muestra su fecha y
+            el criterio usado para calificarla; los períodos pueden ser distintos.
           </p>
 
           <div className="board-grid">

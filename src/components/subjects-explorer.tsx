@@ -280,8 +280,7 @@ export function SubjectsExplorer({ months, totals }: { months: TermMonth[]; tota
   if (!months.length) {
     return (
       <div className="callout">
-        Todavía no hay lecturas por tema. El modelo existe en la base; se llena cuando se refresca
-        la copia del corpus de prensa.
+        No hay lecturas por tema disponibles para este período.
       </div>
     );
   }

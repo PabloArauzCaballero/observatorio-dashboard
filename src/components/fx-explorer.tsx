@@ -772,8 +772,7 @@ export function FxExplorer({ rows, official, readingCount }: FxExplorerProps) {
           )}
 
           <p className="panel-sub">
-            {readingCount.toLocaleString('es-BO')} puntos de serie leídos del núcleo del
-            observatorio.
+            {readingCount.toLocaleString('es-BO')} observaciones de tipo de cambio disponibles.
           </p>
         </div>
       </div>

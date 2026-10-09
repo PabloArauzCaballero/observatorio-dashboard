@@ -265,7 +265,7 @@ export function SummaryExplorer({
           ) : (
             <div className="callout">
               {gapUnread
-                ? 'La serie de la brecha no se pudo leer a tiempo en esta carga. No es que falte: es que la consulta que la arma agotó su plazo, y el informe prefiere no dibujarla antes que dibujarla a medias.'
+                ? 'La serie de la brecha no está disponible en esta consulta. Volvé a intentarlo en unos minutos.'
                 : 'La brecha solo puede calcularse en los días con ambas cotizaciones.'}
             </div>
           )}
@@ -307,7 +307,7 @@ export function SummaryExplorer({
             <h2>Análisis del día</h2>
             <span className="tile-hint">
               {analysisOpen
-                ? 'derivado, no redactado'
+                ? 'lecturas basadas en las series'
                 : `${analysis.length} lectura${analysis.length === 1 ? '' : 's'}`}
             </span>
             <button

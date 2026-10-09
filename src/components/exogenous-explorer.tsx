@@ -50,6 +50,7 @@ const GROUP_ICON: Record<ExogenousGroup, IconName> = {
   LIVESTOCK: 'tienda',
   INDUSTRY: 'fabrica',
   CONSTRUCTION: 'edificio',
+  FREIGHT: 'camion',
 };
 
 const MEASURES: ReadonlyArray<{ key: Measure; label: string; hint: string }> = [
@@ -150,13 +151,13 @@ export function ExogenousExplorer({ board }: { board: ExogenousBoard }) {
     <>
       <div className="panel">
         <div className="panel-head">
-          <h2>Variables exógenas: los precios que Bolivia no fija</h2>
+          <h2>Precios externos y su efecto en Bolivia</h2>
           <p className="panel-sub">
-            Cotizaciones del mercado mundial y de los vecinos, índices de productor de EE. UU., el
-            precio en bolivianos en los mercados del país y el precio por kilo que Bolivia pagó y
-            cobró en su aduana. {board.series.length} series; el último mes cerrado es{' '}
-            {board.latestMonth ? sayPeriod(board.latestMonth) : '—'}. Elegí una familia, un producto
-            y un ámbito en el riel de la izquierda; los filtros se recortan entre sí.
+            Las cotizaciones externas muestran presiones sobre ingresos de exportación y costos de
+            importación. Los precios de mercados bolivianos y los valores unitarios de aduana
+            permiten observar el resultado local, pero miden cosas distintas. Hay{' '}
+            {board.series.length} series; el dato mensual más reciente del conjunto es de{' '}
+            {board.latestMonth ? sayPeriod(board.latestMonth) : 'fecha no disponible'}.
           </p>
         </div>
         <div className="chips" role="tablist" aria-label="Familia de productos">
@@ -192,7 +193,7 @@ export function ExogenousExplorer({ board }: { board: ExogenousBoard }) {
               {active ? `${active} activo${active === 1 ? '' : 's'}` : 'sin filtro'}
             </span>
           </div>
-          <FilterHint>Cada filtro recorta los de abajo. Ctrl+clic suma a la selección.</FilterHint>
+          <FilterHint>Producto, ámbito y ciudad acotan las lecturas disponibles.</FilterHint>
 
           <div className="rail-sec">
             <div className="rail-head">
@@ -300,9 +301,7 @@ export function ExogenousExplorer({ board }: { board: ExogenousBoard }) {
               <Icon name="linea" size={13} />
               Lecturas ({shown.length} de {listed.length})
             </div>
-            <FilterHint>
-              Quitá las que no quieras ver; se dibujan hasta seis por gráfico.
-            </FilterHint>
+            <FilterHint>Elegí las lecturas que querés comparar. Cada gráfico muestra hasta seis.</FilterHint>
             <div className={listed.length > 9 ? 'rail-list rail-list-cut' : 'rail-list'}>
               {listed.map((one) => {
                 const on = !hidden.has(one.code);
@@ -423,20 +422,13 @@ export function ExogenousExplorer({ board }: { board: ExogenousBoard }) {
             </div>
           ) : null}
           <div className="callout">
-            <b>Lo que no tiene precio abierto en esta familia, y con qué se lo sustituye.</b>
+            <b>Qué permite comparar esta familia</b>
             <ul>
               {MISSING[group].map((line) => (
                 <li key={line}>{line}</li>
               ))}
             </ul>
           </div>
-          <p className="panel-sub">
-            <Icon name="info" size={12} /> Fuentes: Banco Mundial (hoja rosa de materias primas),
-            FRED del Banco de la Reserva Federal de San Luis (EIA y Oficina de Estadísticas
-            Laborales de EE. UU.), FAO/GIEWS (con datos del INE y del Ministerio de Desarrollo
-            Productivo de Bolivia) y Naciones Unidas (Comtrade). Cada cifra guarda la celda o la
-            fila de la que salió.
-          </p>
         </div>
       </div>
     </>
@@ -521,16 +513,12 @@ function MonthlyCharts({
           <div className="panel" key={unit}>
             <div className="panel-head">
               <h2>{title}</h2>
-              <p className="panel-sub">
-                {drawn
-                  .map((one) => one.note)
-                  .filter((note, index, all) => all.indexOf(note) === index)
-                  .slice(0, 2)
-                  .join(' ')}
-                {members.length > MOST_DRAWN
-                  ? ` Se dibujan las ${MOST_DRAWN} primeras de ${members.length}; quitá lecturas en el riel para ver las otras.`
-                  : ''}
-              </p>
+              {members.length > MOST_DRAWN ? (
+                <p className="panel-sub">
+                  Se muestran {MOST_DRAWN} de {members.length} lecturas. Quitá una del riel para
+                  ver las restantes.
+                </p>
+              ) : null}
             </div>
             {data.length > 1 ? (
               <DatedLines
@@ -594,13 +582,13 @@ function AnnualChart({
     <div className="panel">
       <div className="panel-head">
         <h2>
-          Precio por kilo en la aduana de Bolivia ({unit}
+          Valor unitario declarado en la aduana de Bolivia ({unit}
           {measure === 'INDEX' ? `, base 100 = primer dato de cada serie desde ${from}` : ''}),
           anual
         </h2>
         <p className="panel-sub">
-          Valor declarado entre peso neto de lo que Bolivia exportó o importó, año por año. No es
-          una cotización: incluye flete y la mezcla de calidades que el país compró o vendió.
+          Valor declarado dividido entre peso neto, por año. Cambia con el precio, la calidad y la
+          composición de los bienes comerciados; no es una cotización de mercado.
           {series.length > MOST_DRAWN
             ? ` Se dibujan las ${MOST_DRAWN} primeras de ${series.length}.`
             : ''}

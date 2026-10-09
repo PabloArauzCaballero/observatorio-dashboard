@@ -5,7 +5,7 @@ import { TradeRecordsExplorer } from './trade-records-explorer';
 import type { TradeCodes } from '@/lib/trade-records';
 
 /**
- * «Detalle aduanero (INE)», pedida al abrir su página dentro de «Empresas».
+ * «Detalle aduanero (INE)», pedida al abrir su página dentro de «Macroeconomía».
  *
  * Primero el catálogo —los nombres de países, departamentos y clasificaciones,
  * y qué años trae cada flujo— y después, ya dentro del explorador, una lectura
@@ -20,8 +20,7 @@ export function TradeRecordsSection() {
   if (!payload.coverage.length) {
     return (
       <div className="callout">
-        La base aduanera del INE todavía no está cargada en este servidor. Se llena sola cuando el
-        núcleo termina de sembrarla después de su despliegue.
+        No hay declaraciones aduaneras disponibles en este momento.
       </div>
     );
   }

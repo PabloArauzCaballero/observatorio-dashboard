@@ -439,9 +439,9 @@ export function SourcesExplorer({
           <div>
             <h2>De dónde sale cada cifra</h2>
             <p>
-              Toda lectura de este informe cita el documento del que se leyó y conserva su{' '}
-              <strong>huella sha256</strong>. Abajo está una fila por serie y publicador, con
-              cuántas lecturas tiene y de cuántos documentos se armó.
+              Las series del núcleo identifican publicador, documento y, cuando está disponible,
+              su huella sha256. Los catálogos de precios de Transporte se documentan más abajo con
+              su enlace original y fecha de consulta.
             </p>
             <div className="brief-points">
               <div className="brief-point">
@@ -449,8 +449,8 @@ export function SourcesExplorer({
                   <Icon name="escudo" size={17} />
                 </span>
                 <div>
-                  <b>Nada sin fuente</b>
-                  <span>una cifra sin documento no se publica</span>
+                  <b>Origen identificable</b>
+                  <span>cada conjunto indica quién publica las cifras</span>
                 </div>
               </div>
               <div className="brief-point">
@@ -598,9 +598,17 @@ export function SourcesExplorer({
           ))}
         </div>
 
+        <div className="strap"><Icon name="capas" size={17} /><h2>Fuentes y reglas de los nuevos tableros</h2></div>
+        <div className="note-grid">
+          <article className="note-card"><span className="note-mark"><Icon name="globo" size={17}/></span><div><h3>Variables exógenas</h3><p>Las referencias mundiales, los índices de productor de EE. UU., los precios de mercados bolivianos y los valores unitarios de aduana miden objetos distintos. El valor unitario se obtiene al dividir el valor declarado entre la cantidad; la diferencia CIF − FOB por tonelada incluye transporte y seguro y también cambia con la composición de las importaciones. La procedencia de cada serie se conserva en el catálogo del núcleo.</p></div></article>
+          <article className="note-card"><span className="note-mark"><Icon name="camion" size={17}/></span><div><h3>Vehículos 0 km</h3><p>Precios públicos por versión de <a href="https://www.nissan.com.bo/vehiculos/nuevos-vehiculos.html" target="_blank" rel="noreferrer">Nissan Bolivia</a>, <a href="https://www.renault.com.bo/busqueda" target="_blank" rel="noreferrer">Renault Bolivia</a> y <a href="https://www.jac.com.bo/cotizacion?id=4379&year=con+bono+marca" target="_blank" rel="noreferrer">JAC Bolivia</a>, consultados el 3 de octubre de 2026. Los tipos son carrocerías: urbano/hatchback, sedán, SUV/vagoneta y camioneta; una clase sin ofertas verificadas no aparece. Transmisión y tracción se consignan sólo cuando constan en la fuente; en los demás casos se indica «No especificada». Se excluyen montos sin versión o año modelo y listados contradictorios. La comparación entre años modelo empareja sólo la misma marca, modelo, versión, moneda, clase de precio y fecha de observación; la diferencia no mide inflación ni una variación temporal. Si entran dos monedas, el rango numérico requiere elegir una antes de filtrar. El <a href="https://www.autoridadempresas.gob.bo/wp-content/uploads/2024/competencia/Monitoreo%20precios/Veh%C3%ADculos%20Automotores%20en%20Bolivia%20-%20ene2023-jun2024.pdf" target="_blank" rel="noreferrer">monitoreo de AEMP</a> describe el mercado, pero no se usa como precio vigente. La selección publicada no representa todo el mercado ni garantiza disponibilidad.</p></div></article>
+          <article className="note-card"><span className="note-mark"><Icon name="gota" size={17}/></span><div><h3>Carburantes</h3><p>Transcripción de los cuadros de <a href="https://www.anh.gob.bo/w2019/contenido.php?s=13" target="_blank" rel="noreferrer">precios internos e internacionales de ANH</a>, consultados el 3 de octubre de 2026. Cubre 17 denominaciones internas y 5 internacionales, con cortes de 2010 a agosto de 2026. Los regímenes no se mezclan. De 2010 a 2024 el cuadro sólo publica cierres anuales. Las celdas vacías se omiten y no se infiere la vigencia entre cortes. Bs/l, Bs/kg y Bs/m³ no se agregan.</p></div></article>
+          <article className="note-card"><span className="note-mark"><Icon name="mapa" size={17}/></span><div><h3>Pasajes</h3><p>Las <a href="https://tarifas.att.gob.bo/index.php/tarifaspizarra/tarifasRutasDepartamentalesTerrestre" target="_blank" rel="noreferrer">bandas terrestres</a>, las <a href="https://tarifas.att.gob.bo/index.php/tarifaspizarra/tarifasRutasDepartamentalesAereo" target="_blank" rel="noreferrer">TMR aéreas</a>, el <a href="https://web.att.gob.bo/uploaded/multimedia/RAR%20Ratificaci%C3%B3n%20Tarifaria%20FCA%20Pasajeros.pdf" target="_blank" rel="noreferrer">anexo ferroviario</a>, el <a href="https://www.att.gob.bo/sites/default/files/archivos_portada/2021-08/Tarifario%20ATT%20T.%20Transporte.pdf" target="_blank" rel="noreferrer">folleto terrestre de 2016</a> y el <a href="https://portal.att.gob.bo/sites/default/files/archivos_listados_pdf/2025-03-06/Informe%20Rendici%C3%B3n%20P%C3%BAblica%20de%20Cuentas%20Final%202024.pdf" target="_blank" rel="noreferrer">cuadro aéreo de 2025</a> se consultaron el 3 de octubre de 2026. Son montos regulatorios, no transacciones; el DUA aéreo se conserva aparte. El folleto de 2016 sólo aporta dos rutas a esta transcripción. La resolución terrestre 32/2025 fijó vigencia hasta el 30 de junio de 2026; la aérea 2/2026, hasta el 24 de julio de 2026; y la ferroviaria 25/2025, un año desde septiembre de 2025. Aunque la ATT dijo en septiembre que no había autorizado un nuevo aumento terrestre, no se presupone una prórroga de los plazos formales.</p></div></article>
+        </div>
+
         <p className="panel-sub">
-          El núcleo del observatorio guarda {readingCount.toLocaleString('es-BO')} puntos de serie
-          en total, con o sin filtro.
+          El catálogo contiene {readingCount.toLocaleString('es-BO')} observaciones de series en
+          total, con o sin filtro.
         </p>
       </div>
     </div>

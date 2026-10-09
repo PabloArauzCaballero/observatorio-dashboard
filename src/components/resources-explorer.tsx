@@ -507,12 +507,9 @@ export function ResourcesExplorer({ board: entire }: { board: ResourceBoard }) {
       </p>
 
       <p className="panel-sub">
-        <Icon name="info" size={12} /> Las rentas, el agotamiento y la comparación regional salen
-        del Banco Mundial (Indicadores del Desarrollo Mundial), leídos del panel de treinta
-        economías que recoge el núcleo del observatorio; vienen de sus cuentas de riqueza y no de la
-        contabilidad nacional boliviana, y por eso cierran más tarde. El detalle por producto es la
-        declaración aduanera de Bolivia ante Naciones Unidas (UN Comtrade), por partida del Sistema
-        Armonizado, desde 1992. Las definiciones de cada serie del panel están en «Social Info».
+        <Icon name="info" size={12} /> La renta de recursos y el agotamiento proceden de cuentas
+        de riqueza y pueden cerrar más tarde que las cuentas nacionales. El detalle comercial por
+        producto mide declaraciones aduaneras, no reservas físicas.
       </p>
     </>
   );

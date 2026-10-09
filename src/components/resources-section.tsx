@@ -23,8 +23,7 @@ export function ResourcesSection() {
   if (!Object.keys(payload.board.series).length) {
     return (
       <div className="callout">
-        Todavía no hay series de recursos naturales leídas del panel del Banco Mundial. El capítulo
-        se llena solo cuando el núcleo las tenga cargadas.
+        No hay series de recursos naturales disponibles para esta selección.
       </div>
     );
   }

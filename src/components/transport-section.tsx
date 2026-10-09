@@ -4,6 +4,7 @@ import { OnOpenNotice, useOnOpen } from './on-open';
 import { RailExplorer } from './rail-explorer';
 import { RoadsSection } from './roads-section';
 import { SubTabs } from './tabs';
+import { FuelPricesExplorer, PassengerFaresExplorer, VehiclePricesExplorer } from './transport-prices-explorer';
 import { WaterwaysExplorer } from './waterways-explorer';
 import type { RailBoard, WaterBoard } from '@/lib/transport-board';
 
@@ -17,13 +18,16 @@ import type { RailBoard, WaterBoard } from '@/lib/transport-board';
 export function TransportSection() {
   return (
     <SubTabs
-      labels={['Carreteras', 'Ferrocarriles', 'Ríos y puertos']}
-      icons={['camion', 'linea', 'gota']}
+      labels={['Carreteras', 'Ferrocarriles', 'Ríos y puertos', 'Vehículos 0 km', 'Carburantes', 'Pasajes']}
+      icons={['camion', 'linea', 'gota', 'camion', 'gota', 'mapa']}
       enlace
     >
       <RoadsSection />
       <RailSection />
       <WaterwaysSection />
+      <VehiclePricesExplorer />
+      <FuelPricesExplorer />
+      <PassengerFaresExplorer />
     </SubTabs>
   );
 }
@@ -34,8 +38,7 @@ function RailSection() {
   if (!payload.board.lines.length) {
     return (
       <div className="callout">
-        Todavía no hay vías férreas cargadas. La página se llena cuando el núcleo haya sembrado la
-        red ferroviaria (catálogo «bolivia-transport-network»).
+        No hay tramos ferroviarios disponibles en este momento.
       </div>
     );
   }
@@ -48,8 +51,7 @@ function WaterwaysSection() {
   if (!payload.board.waterways.length) {
     return (
       <div className="callout">
-        Todavía no hay ríos cargados. La página se llena cuando el núcleo haya sembrado la red
-        fluvial (catálogo «bolivia-transport-network»).
+        No hay vías fluviales disponibles en este momento.
       </div>
     );
   }

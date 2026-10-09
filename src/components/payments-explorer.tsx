@@ -122,8 +122,7 @@ export function PaymentsExplorer({ readings }: { readings: TradeReading[] }) {
   if (!readings.length) {
     return (
       <div className="callout">
-        Todavía no hay lecturas de medios de pago cargadas. El modelo existe en la base; se llena
-        cuando alguien registra una publicación en el catálogo.
+        No hay lecturas de medios de pago disponibles para esta selección.
       </div>
     );
   }

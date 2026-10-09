@@ -153,8 +153,7 @@ function ProductChapter({
   if (!board.products.length) {
     return (
       <div className="callout">
-        Todavía no hay comercio exterior por departamento cargado; este panel se llena solo cuando
-        el núcleo lo siembre.
+        No hay comercio exterior por departamento disponible para el período elegido.
       </div>
     );
   }
@@ -270,8 +269,7 @@ function ComtradeChapter({
   if (!board || (!board.exportsUsd.length && !board.importsUsd.length)) {
     return (
       <div className="callout">
-        Todavía no hay comercio exterior agregado de Naciones Unidas cargado; este panel espera a
-        que el núcleo siembre las series de Comtrade.
+        No hay serie agregada de comercio exterior disponible para este período.
       </div>
     );
   }
@@ -507,8 +505,7 @@ function PartnerChapter({
   if (!board || !board.partners.length) {
     return (
       <div className="callout">
-        Todavía no hay comercio exterior por socio comercial cargado; este panel espera a que el
-        núcleo siembre el desglose de Comtrade por país.
+        No hay desglose por socio comercial disponible para esta selección.
       </div>
     );
   }
@@ -573,8 +570,7 @@ function ProductDetailChapter({
   if (!board || !board.products.length) {
     return (
       <div className="callout">
-        Todavía no hay comercio exterior por capítulo del arancel cargado; este panel espera a que
-        el núcleo siembre el desglose de Comtrade por producto.
+        No hay desglose por capítulo arancelario disponible para esta selección.
       </div>
     );
   }
@@ -1211,8 +1207,7 @@ export function ForeignTradeExplorer({
             <ExportersRanking board={exportersBoard} />
           ) : (
             <div className="callout">
-              Todavía no hay registro de exportadoras cargado. Esta sección se llena sola cuando el
-              núcleo haya sembrado el ránking.
+              No hay registro de exportadoras disponible para este período.
             </div>
           )}
         </div>

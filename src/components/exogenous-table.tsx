@@ -66,15 +66,7 @@ export function ExogenousTable({ series }: { series: readonly ExogenousSeries[] 
               if (!summary.last) return null;
               return (
                 <tr key={one.code} title={one.note}>
-                  <td>
-                    {one.sourceUrl ? (
-                      <a href={one.sourceUrl} target="_blank" rel="noreferrer">
-                        {one.name}
-                      </a>
-                    ) : (
-                      one.name
-                    )}
-                  </td>
+                  <td>{one.name}</td>
                   <td>{SCOPE_LABEL.get(one.scope) ?? one.scope}</td>
                   <td>{one.market}</td>
                   <td className="num">

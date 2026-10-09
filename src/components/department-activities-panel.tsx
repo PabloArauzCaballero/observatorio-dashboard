@@ -113,8 +113,7 @@ export function DepartmentActivities({ board, place }: { board: DepartmentBoard;
         <div className="panel-head">
           <h2>El producto de {name} por actividad económica</h2>
           <p className="panel-sub">
-            Todavía no hay cuadros por actividad cargados para {name}. El capítulo se llena solo
-            cuando el núcleo haya sembrado los cuadros del INE.
+            No hay cuadros por actividad disponibles para {name}.
           </p>
         </div>
       </div>

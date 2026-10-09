@@ -428,19 +428,16 @@ export function RoadsExplorer({ board }: { board: RoadBoard }) {
     <>
       <div className="panel">
         <div className="panel-head">
-          <h2>Red vial de Bolivia (km trazados por OpenStreetMap)</h2>
+          <h2>Red vial de Bolivia por departamento y superficie</h2>
           <p className="panel-sub">
-            Las vías troncales, primarias, secundarias y terciarias que OpenStreetMap traza dentro
-            del país, y toda vía menor que lleve un código de ruta F o D propio o de su relación de
-            ruta, cortadas por departamento y agrupadas en tramos que comparten ruta, rodadura y
-            estado. El Sistema de Información Vial y la Transitabilidad de la ABC no respondieron al
-            construir este corpus, así que la geometría viene de OpenStreetMap y el kilometraje
-            oficial, por separado, del INE.
+            La longitud y la superficie de los tramos permiten ver dónde se concentra la red y
+            cuánto pavimento aparece en cada departamento. La cobertura cartográfica y el
+            kilometraje oficial tienen alcances distintos y se muestran por separado.
           </p>
         </div>
         <DerivedReading
           title="Qué dice esta red"
-          note="Cada frase sale de los tramos y de la serie del INE de este capítulo. Dice cuánto hay y dónde se concentra; no dice el estado de transitabilidad del día."
+          note="La lectura resume longitud y distribución de los tramos. El estado de transitabilidad puede cambiar de un día a otro."
           conclusions={board.conclusions}
           icons={CONCLUSION_ICON}
           defaultOpen={false}

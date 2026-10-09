@@ -130,8 +130,7 @@ export function MarketsExplorer({
   if (!readings.length) {
     return (
       <div className="callout">
-        Todavía no hay lecturas de comercio cargadas. Los modelos existen en la base; se llenan
-        cuando alguien registra una publicación en el catálogo.
+        No hay lecturas de comercio disponibles para esta selección.
       </div>
     );
   }

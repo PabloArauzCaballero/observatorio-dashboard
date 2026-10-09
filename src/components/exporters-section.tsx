@@ -33,8 +33,7 @@ export function ReputationSection() {
   if (!payload.board.general.length && !payload.board.sectors.length) {
     return (
       <div className="callout">
-        Todavía no hay monitor de reputación cargado. La página se llena sola cuando el núcleo haya
-        sembrado las ediciones de Merco.
+        No hay ediciones del monitor de reputación disponibles en este momento.
       </div>
     );
   }

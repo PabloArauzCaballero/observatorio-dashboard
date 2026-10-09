@@ -230,8 +230,7 @@ export function BcbSection() {
   if (!page.families.length && !page.results.length && !family && !workbook && !text) {
     return (
       <div className="callout">
-        Todavía no hay estadísticas del Banco Central cargadas. La pestaña se llena sola cuando el
-        núcleo del observatorio tenga sembrado el catálogo «bcb-statistics» (migración 0091).
+        No hay estadísticas del Banco Central disponibles para esta selección.
       </div>
     );
   }

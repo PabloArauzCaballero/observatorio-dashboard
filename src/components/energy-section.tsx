@@ -26,8 +26,7 @@ export function EnergySection() {
   if (!Object.keys(payload.board.series).length) {
     return (
       <div className="callout">
-        Todavía no hay series de energía leídas del panel del Banco Mundial. El capítulo se llena
-        solo cuando el núcleo las tenga cargadas.
+        No hay series de energía disponibles para esta selección.
       </div>
     );
   }
