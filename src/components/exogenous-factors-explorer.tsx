@@ -99,7 +99,7 @@ function Warnings({ values }: { values: string[] }) {
 }
 
 interface Filters { q: string; sector: string; mechanism: string; availability: string; priority: string; role: string }
-const INITIAL_FILTERS: Filters = { q: '', sector: '', mechanism: '', availability: '', priority: '', role: '' };
+const INITIAL_FILTERS: Filters = { q: '', sector: '', mechanism: '', availability: 'available', priority: '', role: '' };
 
 export function ExogenousFactorsExplorer() {
   const uid = useId();
