@@ -133,6 +133,29 @@ test.describe('sitio público · revisión visual y de accesibilidad', () => {
     );
   });
 
+  test('«Factores externos» abre por enlace profundo, ofrece Gráfico y Tabla, y no desborda en móvil', async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.goto('/?pestana=macroeconomia&pagina=factores-externos');
+    const destino = page.locator('[data-site-id="macroeconomia--factores-externos"]');
+    await expect(destino).toBeVisible({ timeout: 60_000 });
+    await expect(page.locator('[data-site-kind="pagina"]')).toHaveCount(1);
+    // Abre en las familias con series: ninguna tarjeta «en investigación».
+    await expect(destino.getByText('Explorar series').first()).toBeVisible({ timeout: 60_000 });
+    await expect(destino.getByText('Consultar propuesta y brechas')).toHaveCount(0);
+    await destino.getByText('Explorar series').first().click();
+    await expect(destino.getByRole('button', { name: 'Gráfico' }).first()).toBeVisible({
+      timeout: 60_000,
+    });
+    await destino.getByRole('button', { name: 'Tabla', exact: true }).first().click();
+    await expect(destino.locator('table tbody tr').first()).toBeVisible();
+    const desborde = await page.evaluate(
+      () => document.documentElement.scrollWidth - document.documentElement.clientWidth,
+    );
+    expect(desborde).toBeLessThanOrEqual(0);
+  });
+
   test('elegir otra página del índice cambia la página y la dirección sin recargar', async ({
     page,
   }) => {

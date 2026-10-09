@@ -311,10 +311,21 @@ function useHistory(url: string) {
   return { data: current ? state.data : null, loading: !current || state.loading, error: current && state.error, moreError: current && state.moreError, moreLoading: current && state.moreLoading, loadMore, retry: () => setAttempt((n) => n + 1) };
 }
 
+/** Años que caben en una página de 500 observaciones, según la frecuencia de la serie. */
+const PAGE_SPAN_YEARS: Record<string, number> = { DAILY: 2, WEEKLY: 9, MONTHLY: 40 };
+
+/** La ventana inicial termina en el último dato cargado: así la primera página es la reciente, no la más vieja. */
+function initialFrom(series: FactorSeries, currentYear: number): string {
+  const latest = Number(series.latestPeriod?.slice(0, 4));
+  const span = PAGE_SPAN_YEARS[series.frequency];
+  if (!span || !Number.isFinite(latest)) return '2000';
+  return String(Math.min(currentYear, Math.max(2000, latest - span + 1)));
+}
+
 function HistoryViewer({ series }: { series: FactorSeries }) {
   const id = useId();
   const currentYear = new Date().getFullYear();
-  const [range, setRange] = useState({ from: '2000', to: String(currentYear), asOf: '' });
+  const [range, setRange] = useState({ from: initialFrom(series, currentYear), to: String(currentYear), asOf: '' });
   const [draft, setDraft] = useState(range);
   const [validation, setValidation] = useState('');
   const [exportState, setExportState] = useState<'idle' | 'loading' | 'error'>('idle');

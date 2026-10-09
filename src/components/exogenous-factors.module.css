@@ -85,7 +85,8 @@
 .export { display: flex; gap: 14px; align-items: center; }
 .export span { font-size: .7rem; color: var(--ink-soft); line-height: 1.6; }
 .observations { border-top: 1px solid var(--rule); padding-top: 14px; min-width: 0; }
-.tableScroll { max-width: 100%; overflow: auto; margin-top: 12px; max-height: 480px; }
+/* contain: inline-size: la tabla (nowrap) desplaza por dentro y no ensancha a sus contenedores en el móvil. */
+.tableScroll { max-width: 100%; overflow: auto; margin-top: 12px; max-height: 480px; contain: inline-size; }
 .tableScroll table { width: 100%; border-collapse: collapse; font-size: .72rem; white-space: nowrap; }
 .tableScroll caption { white-space: normal; text-align: left; color: var(--ink-soft); padding-bottom: 12px; line-height: 1.6; }
 .tableScroll th, .tableScroll td { padding: 11px 10px; border-bottom: 1px solid var(--rule-soft); text-align: left; }
