@@ -5,6 +5,7 @@ import { BcbSection } from './bcb-section';
 import { DepartmentsSection } from './departments-section';
 import { EnergySection } from './energy-section';
 import { EnvironmentSection } from './environment-section';
+import dynamic from 'next/dynamic';
 import { ExogenousSection } from './exogenous-section';
 import { ForeignTradeSection } from './foreign-trade-section';
 import { InstitutionsExplorer } from './institutions-explorer';
@@ -67,11 +68,12 @@ export function MacroSection() {
           'Social Info',
           'Bolivia ante el mundo',
           'Variables exógenas',
+          'Factores externos',
           'Series del BCB',
           'Comercio exterior',
           'Detalle aduanero (INE)',
         ]}
-        icons={['linea', 'capas', 'globo', 'monedas', 'banco', 'globo', 'cajas']}
+        icons={['linea', 'capas', 'globo', 'monedas', 'linea', 'banco', 'globo', 'cajas']}
       >
         <MeasuresPanel />
         <PanelSection
@@ -79,6 +81,7 @@ export function MacroSection() {
         />
         <WorldExplorer />
         <ExogenousSection />
+        <ExogenousFactorsExplorer />
         <BcbSection />
         <ForeignTradeSection />
         <TradeRecordsSection />
@@ -86,6 +89,12 @@ export function MacroSection() {
     </>
   );
 }
+
+/** Las series de factores externos y su comparación; pesan (gráficos), así que se piden al abrir la página. */
+const ExogenousFactorsExplorer = dynamic(
+  () => import('./exogenous-factors-explorer').then((module) => module.ExogenousFactorsExplorer),
+  { loading: () => <OnOpenNotice what="los factores externos" failed={false} /> },
+);
 
 /**
  * Lo que el observatorio mide de Bolivia, con tres rubros invitados.
