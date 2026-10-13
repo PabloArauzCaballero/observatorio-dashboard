@@ -12,21 +12,27 @@ import s from './people.module.css';
  * círculo de color por sector sería una escala categórica de ocho tonos que la paleta
  * validada no admite.
  */
+import { PersonAvatar } from '@/components/person-avatar';
+
+/**
+ * El avatar: muestra la foto/retrato de la persona si está disponible en el catálogo,
+ * o sus iniciales con gradiente sectorial y fallback decorativo.
+ */
 export function Avatar({
   name,
   size = 'md',
   on = false,
+  sector,
 }: {
   name: string;
   size?: 'md' | 'lg';
   on?: boolean;
+  sector?: string;
 }) {
-  const className = [s.avatar, size === 'lg' ? s.avatarLg : '', on ? s.avatarOn : '']
-    .filter(Boolean)
-    .join(' ');
+  const pixelSize = size === 'lg' ? 64 : 32;
   return (
-    <span className={className} aria-hidden="true">
-      {initials(name)}
+    <span style={{ display: 'inline-flex', verticalAlign: 'middle' }} aria-hidden="true">
+      <PersonAvatar name={name} sector={sector} size={pixelSize} />
     </span>
   );
 }

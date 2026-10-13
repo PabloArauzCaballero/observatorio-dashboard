@@ -9,6 +9,7 @@ import {
   type BusinessDirectoryFilters,
   type BusinessDirectoryPage,
 } from '@/lib/business-directory-contract';
+import { CompanyLogo } from './company-logo';
 import styles from './business.module.css';
 import { Panel } from '@/components/ui/panel';
 
@@ -193,7 +194,10 @@ export function BusinessDirectoryPanel() {
                   <tr key={company.placeId}>
                     <td>{company.registrationId}</td>
                     <td>
-                      <strong>{company.name}</strong>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <CompanyLogo slug={company.placeId} name={company.name} size={24} />
+                        <strong>{company.name}</strong>
+                      </div>
                     </td>
                     <td>{company.department ?? '—'}</td>
                     <td>{company.municipality ?? '—'}</td>

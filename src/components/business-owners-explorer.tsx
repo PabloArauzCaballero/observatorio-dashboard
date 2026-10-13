@@ -4,6 +4,7 @@ import { useMemo, useState } from 'react';
 import { ChartLegend, WorldLines, seriesTone } from './charts';
 import type { WorldLineSeries } from './charts';
 import { BusinessOwnerHistory, ESTIMATE_SOURCE } from './business-owner-history';
+import { PersonAvatar } from './person-avatar';
 import { OwnerRankRibbons } from './owner-rank-ribbons';
 import { FilterHint, PickedCount } from './filters';
 import { Icon } from './icons';
@@ -282,27 +283,32 @@ export function BusinessOwnersExplorer({ board }: { board: OwnersBoard }) {
         {row.rank ?? '—'}
       </span>
       <span className={styles.rankingPerson}>
-        {row.estimate ? (
-          <button
-            type="button"
-            className={styles.rankingName}
-            aria-controls="empresario-ficha"
-            aria-expanded={open === row.key}
-            onClick={() => setOpen(row.key)}
-          >
-            {row.name}
-          </button>
-        ) : (
-          <span className={styles.rankingName}>{row.name}</span>
-        )}
-        <span className={styles.rankingMeta}>
-          <span
-            className={row.kind === 'forbes' ? styles.badge : `${styles.badge} ${styles.estimate}`}
-          >
-            {row.kind === 'forbes' ? 'Forbes' : 'Estimación'}
-          </span>
-          <span>{row.note}</span>
-        </span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+          <PersonAvatar slug={row.key} name={row.name} sector="BUSINESS" size={36} />
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', minWidth: 0 }}>
+            {row.estimate ? (
+              <button
+                type="button"
+                className={styles.rankingName}
+                aria-controls="empresario-ficha"
+                aria-expanded={open === row.key}
+                onClick={() => setOpen(row.key)}
+              >
+                {row.name}
+              </button>
+            ) : (
+              <span className={styles.rankingName}>{row.name}</span>
+            )}
+            <span className={styles.rankingMeta}>
+              <span
+                className={row.kind === 'forbes' ? styles.badge : `${styles.badge} ${styles.estimate}`}
+              >
+                {row.kind === 'forbes' ? 'Forbes' : 'Estimación'}
+              </span>
+              <span>{row.note}</span>
+            </span>
+          </div>
+        </div>
       </span>
       <span className={styles.rankingValue}>
         <span className={styles.rankingBar}>
