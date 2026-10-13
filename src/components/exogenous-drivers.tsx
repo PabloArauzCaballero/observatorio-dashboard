@@ -86,10 +86,9 @@ export function ExternalDrivers() {
   return (
     <section className="stack" aria-label="Demanda externa y clima">
       <header className="page-intro">
-        <h3 className="page-intro-title">Lo que mueve a Bolivia desde fuera y no es un precio</h3>
+        <h3 className="page-intro-title">Demanda externa y ciclo climático</h3>
         <p className="page-intro-lede">
-          Cuánto crecen los países que le compran a Bolivia y si el Pacífico está en El Niño o en La
-          Niña.
+          Crecimiento del PIB de los principales socios comerciales de Bolivia y ciclo océano-atmosférico del Pacífico (El Niño y La Niña).
         </p>
       </header>
       <div className="grid-two">

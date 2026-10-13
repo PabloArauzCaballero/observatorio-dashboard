@@ -48,6 +48,7 @@ export const SITE: readonly SiteSection[] = [
       'Social Info',
       'Bolivia ante el mundo',
       'Variables exógenas',
+      'Demanda externa y clima',
       'Factores externos',
       'Series del BCB',
       'Comercio exterior',
