@@ -7,6 +7,7 @@ import { EnergySection } from './energy-section';
 import { EnvironmentSection } from './environment-section';
 import dynamic from 'next/dynamic';
 import { ExogenousSection } from './exogenous-section';
+import { ExternalDrivers } from './exogenous-drivers';
 import { ForeignTradeSection } from './foreign-trade-section';
 import { InstitutionsExplorer } from './institutions-explorer';
 import { MacroExplorer } from './macro-explorer';
@@ -68,12 +69,13 @@ export function MacroSection() {
           'Social Info',
           'Bolivia ante el mundo',
           'Variables exógenas',
+          'Demanda externa y clima',
           'Factores externos',
           'Series del BCB',
           'Comercio exterior',
           'Detalle aduanero (INE)',
         ]}
-        icons={['linea', 'capas', 'globo', 'monedas', 'linea', 'banco', 'globo', 'cajas']}
+        icons={['linea', 'capas', 'globo', 'monedas', 'clima', 'linea', 'banco', 'globo', 'cajas']}
       >
         <MeasuresPanel />
         <PanelSection
@@ -81,6 +83,7 @@ export function MacroSection() {
         />
         <WorldExplorer />
         <ExogenousSection />
+        <ExternalDrivers />
         <ExogenousFactorsExplorer />
         <BcbSection />
         <ForeignTradeSection />

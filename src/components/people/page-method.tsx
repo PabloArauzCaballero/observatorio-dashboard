@@ -44,10 +44,13 @@ export function MethodPage() {
     });
   });
 
-  const bySource: ShareSlice[] = Object.entries(q.padron.porFuente).map(([key, value]) => ({
-    name: SOURCES[key] ?? key,
-    value,
-  }));
+  const bySource: ShareSlice[] = Object.entries(q.padron.porFuente)
+    .map(([key, value]) => ({
+      name: SOURCES[key] ?? key,
+      value,
+      emphasis: key.includes('TIKTOK') || key.includes('INSTAGRAM') || key.includes('YOUTUBE'),
+    }))
+    .sort((a, b) => b.value - a.value);
 
   const accounts: ShareSlice[] = [
     ...Object.entries(q.cuentas.suman).map(([key, value]) => ({
@@ -87,7 +90,7 @@ export function MethodPage() {
         <Panel
           id="personalidades-fuentes"
           title="De dónde sale el padrón (cantidad de fichas por fuente)"
-          lede="Una persona puede estar en varias fuentes. Wikidata aporta sobre todo deportistas, políticos y obispos con artículo."
+          lede="Las redes sociales (TikTok, Instagram y YouTube) constituyen la fuente principal del padrón de creadores y figuras públicas de Bolivia. Wikidata y Merco complementan con trayectoria y registro empresarial."
           source={SOURCE}
           updated={updated}
         >
@@ -98,7 +101,10 @@ export function MethodPage() {
             height={Math.max(260, bySource.length * 32)}
           />
           <ChartLegend
-            items={[{ color: 'var(--official)', label: 'Fichas que aporta cada fuente' }]}
+            items={[
+              { color: 'var(--official)', label: 'Redes sociales (fuente principal de impacto)' },
+              { color: 'var(--text-muted, #888)', label: 'Otras fuentes de validación' },
+            ]}
           />
         </Panel>
       </div>

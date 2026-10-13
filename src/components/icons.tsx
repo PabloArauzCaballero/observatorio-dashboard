@@ -22,6 +22,8 @@ const PATHS = {
   plegar: '<path d="m6 14.5 6-6 6 6"/>',
   cajas:
     '<rect x="3.5" y="3.5" width="7.5" height="7.5" rx="1.4"/><rect x="13" y="3.5" width="7.5" height="7.5" rx="1.4"/><rect x="3.5" y="13" width="7.5" height="7.5" rx="1.4"/><rect x="13" y="13" width="7.5" height="7.5" rx="1.4"/>',
+  clima:
+    '<path d="M17.5 19H9a5 5 0 0 1-.3-10 6 6 0 0 1 11.3 2A4 4 0 0 1 17.5 19zM12 3v2.5M18.4 5.6l-1.8 1.8M5.6 5.6l1.8 1.8"/>',
   calendario:
     '<rect x="3.5" y="5" width="17" height="15.5" rx="2"/><path d="M3.5 9.5h17M8 3v4M16 3v4"/>',
   camion:

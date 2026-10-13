@@ -26,6 +26,9 @@ export const sectorLabel = (key: string): string =>
   SECTORS.find((sector) => sector.key === key)?.label ?? 'Por clasificar';
 
 export const SOURCES: Record<string, string> = {
+  TIKTOK_CREATORS_BOLIVIA: 'TikTok Bolivia (creadores y figuras públicas)',
+  INSTAGRAM_CREATORS_BOLIVIA: 'Instagram Bolivia (cuentas verificadas)',
+  YOUTUBE_CREATORS_BOLIVIA: 'YouTube Bolivia (canales y creadores)',
   MERCO_LEADERS_2025_26: 'Merco Líderes 2025/26',
   OEP_ELECTION_2025: 'Órgano Electoral 2025',
   IPDRS_CREATOR_STUDY_2024: 'Estudio IPDRS 2024',

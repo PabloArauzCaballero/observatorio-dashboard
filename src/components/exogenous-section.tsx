@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from 'react';
 import dynamic from 'next/dynamic';
-import { ExternalDrivers } from './exogenous-drivers';
 import { OnOpenNotice } from './on-open';
 import type { ExogenousBoard } from '@/lib/exogenous-board';
 
@@ -29,12 +28,7 @@ const ExogenousExplorer = dynamic(
  * `ExternalDrivers`.
  */
 export function ExogenousSection() {
-  return (
-    <>
-      <PricesOnOpen />
-      <ExternalDrivers />
-    </>
-  );
+  return <PricesOnOpen />;
 }
 
 /** El histórico de precios se pide solamente cuando el lector llega a la página. */
