@@ -9963,4 +9963,69 @@ button.download-btn {
 .vehicle-card-body span {
   color: var(--ink-soft);
   font-variant-numeric: tabular-nums;
+
+/* === Carril de filtros · buscador y desplazamiento de las listas largas === */
+
+/* El campo que `RailListSearch` pone encima de toda lista de nueve opciones o más. */
+.rail-list-find {
+  padding: 0 0.875rem var(--s1);
+}
+
+.rail-list-find input {
+  width: 100%;
+  min-height: var(--control-h-sm);
+  padding: 0.3rem 0.65rem;
+  border: 1px solid var(--rule);
+  border-radius: var(--radius-md);
+  background: var(--panel);
+  color: var(--ink);
+  font: inherit;
+  font-size: var(--text-sm);
+  transition:
+    border-color var(--fast) var(--ease),
+    box-shadow var(--fast) var(--ease);
+}
+
+.rail-list-find input::placeholder {
+  color: var(--ink-faint);
+}
+
+.rail-list-find input:focus-visible {
+  outline: none;
+  border-color: var(--series-1);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--series-1) 22%, transparent);
+}
+
+/* Un teléfono hace zoom sobre todo campo por debajo de 16 px. */
+@media (pointer: coarse) {
+  .rail-list-find input {
+    font-size: var(--text-base);
+  }
+}
+
+.rail-list-empty {
+  margin: 0;
+  padding: var(--s1) 0.875rem;
+  font-size: var(--text-xs);
+  color: var(--ink-soft);
+}
+
+/* Una lista larga que no era `.rail-list` se mueve por dentro en vez de empujar el carril. */
+[data-rail-scroll] {
+  max-height: 15.5rem;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+}
+
+/* `.rail-item` fija su propio `display`, y eso le gana al atributo `hidden` del navegador. */
+[data-rail-find] > .rail-item[hidden],
+.rail-list-empty[hidden] {
+  display: none;
+}
+
+/* === Empresas · Bolsa de valores: el cambio entre hechos relevantes y noticias === */
+
+.bbv-switch {
+  margin-bottom: var(--s3);
 }

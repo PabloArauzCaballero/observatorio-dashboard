@@ -91,13 +91,25 @@ export function tickCountOf(dominio: readonly [number, number] | undefined): num
 }
 
 /**
- * Los decimales que hacen falta para que dos marcas vecinas no se lean igual: un
- * paso de 0,05 con una etiqueta de un decimal imprimía «12,3 · 12,3 · 12,2 · 12,2».
- * `base` es lo que el gráfico ya pedía; nunca baja de ahí.
+ * Los decimales que necesita el paso del eje, ni uno más ni uno menos.
+ *
+ * Un paso de 0,05 con una etiqueta de un decimal imprimía «12,3 · 12,3 · 12,2 · 12,2»,
+ * y un paso de 25 con la misma etiqueta imprimía «175,0 · 200,0»: el cero final no dice
+ * nada y ensucia el eje. Para un dominio de `fittedDomain` los decimales son los del propio
+ * paso (25 → 0, 2,5 → 1, 0,05 → 2); para cualquier otro se respeta `base`, lo que el
+ * gráfico ya pedía.
  */
 export function axisDecimals(dominio: readonly [number, number] | undefined, base: number): number {
   const paso = dominio ? ESCALAS.get(dominio)?.paso : undefined;
   if (!paso || paso <= 0) return base;
-  const hacen = Math.max(0, Math.ceil(-Math.log10(paso) - 1e-9));
-  return Math.min(4, Math.max(base, hacen));
+  return decimalesDe(paso);
+}
+
+/** Cuántos decimales tiene un paso «redondo» (1, 2, 2,5, 5 por una potencia de diez), hasta 4. */
+function decimalesDe(valor: number): number {
+  for (let decimales = 0; decimales < 4; decimales += 1) {
+    const escalado = valor * 10 ** decimales;
+    if (Math.abs(escalado - Math.round(escalado)) < 1e-9) return decimales;
+  }
+  return 4;
 }

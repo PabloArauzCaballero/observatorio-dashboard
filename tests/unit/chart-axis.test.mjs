@@ -97,9 +97,21 @@ test('axisDecimals: un paso de 0,05 pide dos decimales para que dos marcas no se
   // Los bancos: de 12,2 a 12,4, con una etiqueta de un decimal imprimía «12,3 · 12,3 · 12,2 · 12,2».
   const dominio = fittedDomain([12.2, 12.2, 12.3, 12.31]);
   assert.ok(axisDecimals(dominio, 1) >= 2, `decimales: ${axisDecimals(dominio, 1)}`);
-  // Una escala holgada no sube los decimales que el gráfico ya pedía.
-  assert.equal(axisDecimals(fittedDomain([0, 80]), 1), 1);
-  assert.equal(axisDecimals(fittedDomain([0, 80]), 0), 0);
   // Fuera de fittedDomain se respeta lo pedido.
   assert.equal(axisDecimals([0, 100], 2), 2);
+});
+
+test('axisDecimals: un paso entero no imprime ceros finales («175», no «175,0»)', () => {
+  assert.equal(axisDecimals(fittedDomain([0, 80]), 1), 0);
+  assert.equal(axisDecimals(fittedDomain([50, 163]), 1), 0);
+  assert.equal(axisDecimals(fittedDomain([0, 80]), 0), 0);
+});
+
+test('axisDecimals: un paso de 2,5 pide un decimal y uno de 0,25 pide dos', () => {
+  // 0–10 en cuatro intervalos: 0 · 2,5 · 5 · 7,5 · 10.
+  assert.equal(axisDecimals(fittedDomain([0, 9]), 0), 1);
+  // 0–1 en cuatro intervalos: 0 · 0,25 · 0,5 · 0,75 · 1.
+  assert.equal(axisDecimals(fittedDomain([0, 0.9]), 0), 2);
+  // 6–14 de dos en dos: sin decimales aunque el gráfico pidiera uno.
+  assert.equal(axisDecimals(fittedDomain([6.96, 12.3]), 1), 0);
 });
