@@ -4,6 +4,7 @@ import { useEffect, useRef } from 'react';
 import { DivergingBars, WorldLines, seriesTone } from './charts';
 import type { WorldLineSeries } from './charts';
 import { CompanyLogo } from './company-logo';
+import { PersonAvatar } from './person-avatar';
 import styles from './business.module.css';
 import { SinDeclarar } from './transport-views';
 import { Panel } from '@/components/ui/panel';
@@ -88,7 +89,15 @@ export function BusinessOwnerHistory({
       aria-label={`Ficha histórica de ${history.name}`}
     >
       <header className="panel-group-head">
-        <h3>Nombre, trayectoria y empresas principales</h3>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginBottom: '14px', flexWrap: 'wrap' }}>
+          <PersonAvatar slug={person} name={history.name} sector="BUSINESS" size={68} />
+          <div>
+            <h3 style={{ margin: 0, fontSize: '1.45rem', fontWeight: 700 }}>{history.name}</h3>
+            <p style={{ margin: '4px 0 0', color: 'var(--ink-soft)', fontSize: '0.88rem' }}>
+              {history.bestRank ? `Mejor puesto registrado: #${history.bestRank}` : 'Empresario boliviano'} · {history.years.length} gestiones documentadas ({history.firstYear}–{history.latestYear})
+            </p>
+          </div>
+        </div>
         <p>Elegí cualquiera de las {histories.length} personas con estimaciones documentables.</p>
         <label className={styles.chooser}>
           Empresario

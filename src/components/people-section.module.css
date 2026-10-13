@@ -12,13 +12,23 @@
 .peopleList, .sources, .posts, .cloud { list-style: none; margin: 0; padding: 0; }
 .peopleList { max-height: 720px; overflow-y: auto; border-top: 1px solid var(--rule-soft); }
 .peopleList li { border-bottom: 1px solid var(--rule-soft); }
-.peopleList button { width: 100%; border: 0; background: transparent; text-align: left; color: var(--ink); padding: 10px 8px; cursor: pointer; display: grid; gap: 2px; border-radius: 6px; }
+.peopleList button { width: 100%; border: 0; background: transparent; text-align: left; color: var(--ink); padding: 8px; cursor: pointer; display: flex; align-items: center; gap: 11px; border-radius: 8px; transition: background 0.15s ease; }
 .peopleList button:hover, .peopleList button:focus-visible, .peopleList .selected { background: var(--panel-tint); outline-offset: -2px; }
+.peopleList button .personInfo { display: grid; gap: 2px; min-width: 0; }
 .peopleList button span { color: var(--ink-soft); font-size: .78rem; }
 .peopleList button em { color: var(--down); font-size: .75rem; font-style: normal; font-weight: 700; }
 .more { width: 100%; border: 1px solid var(--rule); border-radius: 7px; background: var(--panel-tint); color: var(--ink); padding: 9px; margin-top: 9px; cursor: pointer; }
+.rankingBanner { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; margin: 16px 0; }
+.rankingCard { border: 1px solid var(--rule); background: var(--panel); border-radius: 10px; padding: 12px; display: flex; align-items: center; gap: 12px; cursor: pointer; transition: transform 0.15s ease, border-color 0.15s ease; }
+.rankingCard:hover { transform: translateY(-2px); border-color: var(--series-1); }
+.rankingCard .rankBadge { font-size: 1.15rem; font-weight: 800; color: var(--series-1); min-width: 28px; }
+.rankingCard .rankMeta { display: grid; gap: 2px; min-width: 0; }
+.rankingCard strong { font-size: 0.88rem; color: var(--ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.rankingCard span { font-size: 0.76rem; color: var(--ink-soft); }
+.detailHead { display: flex; align-items: center; gap: 18px; margin-bottom: 12px; flex-wrap: wrap; }
+.detailHead .titleCol { min-width: 0; }
 .detailHead span { color: var(--series-1); font-size: .78rem; text-transform: uppercase; letter-spacing: .06em; font-weight: 750; }
-.detailHead h3 { font: 600 clamp(1.6rem, 2vw, 2.1rem) var(--font-newsreader), Georgia, serif; margin: 4px 0 7px; color: var(--ink); }
+.detailHead h3 { font: 600 clamp(1.6rem, 2vw, 2.1rem) var(--font-newsreader), Georgia, serif; margin: 4px 0 2px; color: var(--ink); }
 .detail h4 { color: var(--ink); font-size: .92rem; margin: 21px 0 9px; }
 .sources { display: flex; flex-wrap: wrap; gap: 8px; }
 .sources a, .pilotHead a { color: var(--series-1); text-decoration: underline; text-underline-offset: 2px; }

@@ -3,6 +3,7 @@
 import { useMemo, useState } from 'react';
 import { OnOpenNotice, useOnOpen } from '@/components/on-open';
 import { TabHeader } from '@/components/ui/tab-header';
+import { PersonAvatar } from './person-avatar';
 import styles from './people-section.module.css';
 
 interface Evidence { source: string; url: string; rank?: number }
@@ -25,6 +26,12 @@ interface PilotPerson {
 }
 interface PeoplePayload {
   research: { status: string; generatedAt: string; sectors: Record<string, number>; people: Person[] };
+  ranking?: {
+    status: string;
+    title: string;
+    metric: string;
+    people: Array<{ rank: number; slug: string; name: string; impactSharePercent: number; sector: string }>;
+  };
   pilot: {
     status: string; windowStart: string; windowEnd: string;
     coverage: { researchPeople: number; peopleWithPilotSentiment: number; commentsCaptured: number; commentsAnalyzedSpanish: number };
@@ -139,6 +146,31 @@ export function PeopleSection() {
             buscadores y Wikidata se revisan antes de publicar métricas personales. Los datos de comentarios
             corresponden solo a tres canales corroborados y al período {payload.pilot.windowStart}–{payload.pilot.windowEnd}.
           </p>
+          {payload.ranking?.people?.length ? (
+            <div style={{ margin: '14px 0 18px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
+                <strong style={{ fontSize: '0.92rem', color: 'var(--ink)' }}>Top Figuras de Mayor Impacto Percibido (Ipsos CIESMORI)</strong>
+                <small style={{ color: 'var(--ink-soft)' }}>Muestra activa en redes · Anuario 2025</small>
+              </div>
+              <div className={styles.rankingBanner}>
+                {payload.ranking.people.map((fig) => (
+                  <div
+                    key={fig.slug}
+                    className={styles.rankingCard}
+                    onClick={() => setSelectedSlug(fig.slug)}
+                    title={`Ver ficha de ${fig.name}`}
+                  >
+                    <span className={styles.rankBadge}>#{fig.rank}</span>
+                    <PersonAvatar slug={fig.slug} name={fig.name} sector={fig.sector} size={42} />
+                    <div className={styles.rankMeta}>
+                      <strong>{fig.name}</strong>
+                      <span>{fig.impactSharePercent}% menciones</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ) : null}
           <div className={styles.layout}>
             <div className={styles.listPanel}>
               <div className={styles.filters}>
@@ -155,8 +187,12 @@ export function PeopleSection() {
                     <button type="button" aria-pressed={selected?.slug === person.slug}
                       className={selected?.slug === person.slug ? styles.selected : ''}
                       onClick={() => setSelectedSlug(person.slug)}>
-                      <b>{person.name}</b><span>{SECTORS[person.sector] ?? person.sector}</span>
-                      {payload.pilot.people.some((entry) => entry.slug === person.slug) ? <em>Comentarios analizados</em> : null}
+                      <PersonAvatar slug={person.slug} name={person.name} sector={person.sector} size={36} />
+                      <div className={styles.personInfo}>
+                        <b>{person.name}</b>
+                        <span>{SECTORS[person.sector] ?? person.sector}</span>
+                        {payload.pilot.people.some((entry) => entry.slug === person.slug) ? <em>Comentarios analizados</em> : null}
+                      </div>
                     </button>
                   </li>
                 ))}
@@ -164,7 +200,13 @@ export function PeopleSection() {
               {filtered.length > limit ? <button type="button" className={styles.more} onClick={() => setLimit((value) => value + 30)}>Mostrar 30 más</button> : null}
             </div>
             {selected ? <article className={styles.detail}>
-              <div className={styles.detailHead}><span>{SECTORS[selected.sector] ?? selected.sector}</span><h3>{selected.name}</h3></div>
+              <div className={styles.detailHead}>
+                <PersonAvatar slug={selected.slug} name={selected.name} sector={selected.sector} size={76} />
+                <div className={styles.titleCol}>
+                  <span>{SECTORS[selected.sector] ?? selected.sector}</span>
+                  <h3>{selected.name}</h3>
+                </div>
+              </div>
               <p className={styles.muted}>{selected.evidence.length} fuentes de identificación · {selected.accountLeadCount} pistas de cuenta social pendientes de verificar.</p>
               <h4>Fuentes de la ficha</h4>
               <ul className={styles.sources}>{selected.evidence.map((source) =>
