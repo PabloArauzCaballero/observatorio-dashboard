@@ -21,3 +21,4 @@
 .automotive-source { overflow-wrap: anywhere; font-size: .8rem; padding-block: .6rem; }
 .automotive-study .table-wrap { max-width: 100%; overflow-x: auto; }
 .automotive-study .table td { min-width: 100px; max-width: 420px; white-space: normal; vertical-align: top; }
+.automotive-band { margin: .75rem 0 -.5rem; font-size: .8rem; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--ink-soft, #6b7280); }

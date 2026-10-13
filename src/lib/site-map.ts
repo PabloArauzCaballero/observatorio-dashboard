@@ -83,11 +83,8 @@ export const SITE: readonly SiteSection[] = [
     icon: 'camion',
     pages: paginas(
       'Automotor',
-        'Vehículos 0 km',
-        'Estudio automotor',
-        'Competencia automotriz',
-        'Precios internacionales',
-        'Escenarios automotores',
+      'Vehículos 0 km',
+      'Estudio automotor',
       'Carburantes',
       'Pasajes',
       'Tarifas publicadas',
@@ -101,11 +98,18 @@ export const SITE: readonly SiteSection[] = [
   { label: 'Método', icon: 'info', pages: [] },
 ];
 
-/** Páginas de «Macroeconomía» que dejaron de existir como entrada propia y dónde viven ahora. */
-const PAGINAS_FUSIONADAS: Readonly<Record<string, string>> = {
-  'demanda-externa-y-clima': 'Variables exógenas',
-  'factores-externos': 'Variables exógenas',
-  'detalle-aduanero-ine': 'Comercio exterior',
+/** Páginas que dejaron de existir como entrada propia y dónde viven ahora, por sección. */
+const PAGINAS_FUSIONADAS: Readonly<Record<string, Readonly<Record<string, string>>>> = {
+  macroeconomia: {
+    'demanda-externa-y-clima': 'Variables exógenas',
+    'factores-externos': 'Variables exógenas',
+    'detalle-aduanero-ine': 'Comercio exterior',
+  },
+  transporte: {
+    'competencia-automotriz': 'Estudio automotor',
+    'precios-internacionales': 'Estudio automotor',
+    'escenarios-automotores': 'Estudio automotor',
+  },
 };
 
 /** El ancla de una sección: «tipo-de-cambio». */
@@ -129,8 +133,8 @@ export interface Destino {
 export function destinoDe(pestana: string | null, pagina: string | null): Destino | null {
   if (!pestana) return null;
   /* Páginas que se fusionaron en otra: los enlaces viejos llegan a la que las absorbió. */
-  const vieja = pagina ? PAGINAS_FUSIONADAS[slug(pagina)] : undefined;
-  if (vieja && slug(pestana) === 'macroeconomia') pagina = vieja;
+  const vieja = pagina ? PAGINAS_FUSIONADAS[slug(pestana)]?.[slug(pagina)] : undefined;
+  if (vieja) pagina = vieja;
   const seccion = SITE.find((s) => slug(s.label) === slug(pestana));
   if (!seccion) return null;
   const hallada = pagina ? seccion.pages.find((p) => slug(p.label) === slug(pagina)) : undefined;

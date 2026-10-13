@@ -221,7 +221,7 @@ function VehiclePriceBoard({
         }}
       >
         <StatStrip stats={stats} />
-        <p className="panel-note">Ofertas observadas, sin cuota de mercado. La investigación ampliada de redes, conflictos y equivalencia por país está en las páginas Competencia automotriz y Precios internacionales. Impuestos finales, vigencia y disponibilidad requieren confirmación.</p>
+        <p className="panel-note">Ofertas observadas, sin cuota de mercado. La investigación ampliada de redes, conflictos y equivalencia por país está en la página Estudio automotor. Impuestos finales, vigencia y disponibilidad requieren confirmación.</p>
         <details className="panel-note">
           <summary>Cómo leer estos precios</summary>
           <p>
