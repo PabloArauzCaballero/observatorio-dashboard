@@ -15,6 +15,7 @@ import { OnOpenNotice, useOnOpen } from './on-open';
 import { PanelSection } from './panel-section';
 import { ResourcesSection } from './resources-section';
 import { SubSections } from './site-layout';
+import { SubTabs } from './tabs';
 import { TradeRecordsSection } from './trade-records-section';
 import { WorldExplorer } from './world-explorer';
 import { TabHeader } from '@/components/ui/tab-header';
@@ -69,27 +70,59 @@ export function MacroSection() {
           'Social Info',
           'Bolivia ante el mundo',
           'Variables exógenas',
-          'Demanda externa y clima',
-          'Factores externos',
           'Series del BCB',
           'Comercio exterior',
-          'Detalle aduanero (INE)',
         ]}
-        icons={['linea', 'capas', 'globo', 'monedas', 'clima', 'linea', 'banco', 'globo', 'cajas']}
+        icons={['linea', 'capas', 'globo', 'monedas', 'banco', 'globo']}
       >
         <MeasuresPanel />
         <PanelSection
           guests={[{ label: 'Instituciones', icon: 'escudo', panel: <InstitutionsPanel /> }]}
         />
         <WorldExplorer />
-        <ExogenousSection />
-        <ExternalDrivers />
-        <ExogenousFactorsExplorer />
+        <ExogenousPage />
         <BcbSection />
-        <ForeignTradeSection />
-        <TradeRecordsSection />
+        <TradePage />
       </SubSections>
     </>
+  );
+}
+
+/**
+ * «Variables exógenas»: lo que llega a Bolivia desde fuera, en tres miradas de una misma página.
+ *
+ * Eran tres entradas sueltas del índice —precios, demanda externa y clima, factores— que el
+ * lector no sabía distinguir. Van juntas, con una pestaña arriba por cada mirada. `SubTabs`
+ * monta sólo la abierta, así que ninguna pide sus datos hasta que alguien la elige.
+ */
+function ExogenousPage() {
+  return (
+    <SubTabs
+      labels={['Precios por producto', 'Demanda externa y clima', 'Factores externos']}
+      icons={['monedas', 'clima', 'linea']}
+    >
+      <ExogenousSection />
+      <ExternalDrivers />
+      <ExogenousFactorsExplorer />
+    </SubTabs>
+  );
+}
+
+/**
+ * «Comercio exterior»: una pestaña arriba por cada fuente.
+ *
+ * El resumen (Comtrade, INE por departamento y ránking de exportadoras) y el detalle aduanero
+ * del INE, registro por registro, responden a la misma pregunta con fuentes distintas.
+ */
+function TradePage() {
+  return (
+    <SubTabs
+      labels={['Resumen: Comtrade e INE', 'Detalle aduanero (INE)']}
+      icons={['globo', 'cajas']}
+    >
+      <ForeignTradeSection />
+      <TradeRecordsSection />
+    </SubTabs>
   );
 }
 
