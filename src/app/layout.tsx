@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import localFont from 'next/font/local';
+import { RailListSearch } from '@/components/rail-list-search';
 import { VisitReporter } from '@/components/visit-reporter';
 import './globals.css';
 import './automotive.css';
@@ -43,6 +44,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <div className="shell">{children}</div>
         {/* Reports one visit and nothing else; it renders no markup and never blocks. */}
         <VisitReporter />
+        {/* Un buscador para toda lista larga del carril de filtros; no pinta marcado propio. */}
+        <RailListSearch />
       </body>
     </html>
   );

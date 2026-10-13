@@ -458,35 +458,37 @@ export function PressExplorer({
             Tema
             <PickedCount choice={selection.topic} base={NO_SELECTION.topic} />
           </div>
-          <button
-            type="button"
-            className={
-              same(selection.topic, NO_SELECTION.topic) ? 'rail-item rail-item-on' : 'rail-item'
-            }
-            aria-pressed={same(selection.topic, NO_SELECTION.topic)}
-            onClick={() => reset('topic')}
-          >
-            <Icon name="tendencia" size={16} />
-            <span className="rail-name">Sólo económicos</span>
-            <span className="rail-n">{economicTotal.toLocaleString('es-BO')}</span>
-          </button>
-          {topics.map(([key, count]) => {
-            const on = picked(selection.topic, key);
-            return (
-              <button
-                key={key}
-                type="button"
-                className={on ? 'rail-item rail-item-on' : 'rail-item'}
-                aria-pressed={on}
-                title={multiTitle(TOPIC_LABEL[key] ?? key, on)}
-                onClick={(event) => pick('topic', key, additive(event))}
-              >
-                <Icon name={TOPIC_ICON[key] ?? 'cajas'} size={16} />
-                <span className="rail-name">{TOPIC_LABEL[key] ?? key}</span>
-                <span className="rail-n">{count.toLocaleString('es-BO')}</span>
-              </button>
-            );
-          })}
+          <div className="rail-list rail-list-cut">
+            <button
+              type="button"
+              className={
+                same(selection.topic, NO_SELECTION.topic) ? 'rail-item rail-item-on' : 'rail-item'
+              }
+              aria-pressed={same(selection.topic, NO_SELECTION.topic)}
+              onClick={() => reset('topic')}
+            >
+              <Icon name="tendencia" size={16} />
+              <span className="rail-name">Sólo económicos</span>
+              <span className="rail-n">{economicTotal.toLocaleString('es-BO')}</span>
+            </button>
+            {topics.map(([key, count]) => {
+              const on = picked(selection.topic, key);
+              return (
+                <button
+                  key={key}
+                  type="button"
+                  className={on ? 'rail-item rail-item-on' : 'rail-item'}
+                  aria-pressed={on}
+                  title={multiTitle(TOPIC_LABEL[key] ?? key, on)}
+                  onClick={(event) => pick('topic', key, additive(event))}
+                >
+                  <Icon name={TOPIC_ICON[key] ?? 'cajas'} size={16} />
+                  <span className="rail-name">{TOPIC_LABEL[key] ?? key}</span>
+                  <span className="rail-n">{count.toLocaleString('es-BO')}</span>
+                </button>
+              );
+            })}
+          </div>
         </div>
 
         <div className="rail-sec">
@@ -495,33 +497,35 @@ export function PressExplorer({
             Medio ({outlets.length})
             <PickedCount choice={selection.outlet} />
           </div>
-          <button
-            type="button"
-            className={selection.outlet.size === 0 ? 'rail-item rail-item-on' : 'rail-item'}
-            aria-pressed={selection.outlet.size === 0}
-            onClick={() => reset('outlet')}
-          >
-            <Icon name="ventana" size={16} />
-            <span className="rail-name">Todos los medios</span>
-            <span className="rail-n">{total.toLocaleString('es-BO')}</span>
-          </button>
-          {outlets.map(([name, count]) => {
-            const on = picked(selection.outlet, name);
-            return (
-              <button
-                key={name}
-                type="button"
-                className={on ? 'rail-item rail-item-on' : 'rail-item'}
-                aria-pressed={on}
-                title={multiTitle(name, on)}
-                onClick={(event) => pick('outlet', name, additive(event))}
-              >
-                <Icon name="ventana" size={16} />
-                <span className="rail-name">{name}</span>
-                <span className="rail-n">{count.toLocaleString('es-BO')}</span>
-              </button>
-            );
-          })}
+          <div className="rail-list rail-list-cut">
+            <button
+              type="button"
+              className={selection.outlet.size === 0 ? 'rail-item rail-item-on' : 'rail-item'}
+              aria-pressed={selection.outlet.size === 0}
+              onClick={() => reset('outlet')}
+            >
+              <Icon name="ventana" size={16} />
+              <span className="rail-name">Todos los medios</span>
+              <span className="rail-n">{total.toLocaleString('es-BO')}</span>
+            </button>
+            {outlets.map(([name, count]) => {
+              const on = picked(selection.outlet, name);
+              return (
+                <button
+                  key={name}
+                  type="button"
+                  className={on ? 'rail-item rail-item-on' : 'rail-item'}
+                  aria-pressed={on}
+                  title={multiTitle(name, on)}
+                  onClick={(event) => pick('outlet', name, additive(event))}
+                >
+                  <Icon name="ventana" size={16} />
+                  <span className="rail-name">{name}</span>
+                  <span className="rail-n">{count.toLocaleString('es-BO')}</span>
+                </button>
+              );
+            })}
+          </div>
         </div>
 
         <div className="rail-sec">

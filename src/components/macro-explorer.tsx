@@ -382,46 +382,47 @@ export function MacroExplorer({
             Rubro
             <PickedCount choice={sector} />
           </div>
-          <button
-            type="button"
-            className={
-              sector.size === 0 && openGuest === null ? 'rail-item rail-item-on' : 'rail-item'
-            }
-            aria-pressed={sector.size === 0 && openGuest === null}
-            onClick={() => {
-              setOffset(0);
-              setSector(ANY);
-              setOpenGuest(null);
-            }}
-          >
-            <Icon name="cajas" size={16} />
-            <span className="rail-name">Todos los rubros</span>
-            <span className="rail-n">{total}</span>
-          </button>
-          {sectors.map(([key, count]) => {
-            const on = picked(sector, key);
-            return (
-              <button
-                key={key}
-                type="button"
-                className={on ? 'rail-item rail-item-on' : 'rail-item'}
-                aria-pressed={on}
-                title={multiTitle(SECTOR_LABEL[key] ?? key, on)}
-                onClick={(event) => {
-                  setOffset(0);
-                  setOpenGuest(null);
-                  setSector((current) => toggleChoice(current, key, additive(event)));
-                }}
-              >
-                <Icon name={SECTOR_ICON[key] ?? 'cajas'} size={16} />
-                <span className="rail-name">{SECTOR_LABEL[key] ?? key}</span>
-                <span className="rail-n">{count}</span>
-              </button>
-            );
-          })}
-          {guests?.length ? (
-            <>
-              {/*
+          <div className="rail-list rail-list-cut">
+            <button
+              type="button"
+              className={
+                sector.size === 0 && openGuest === null ? 'rail-item rail-item-on' : 'rail-item'
+              }
+              aria-pressed={sector.size === 0 && openGuest === null}
+              onClick={() => {
+                setOffset(0);
+                setSector(ANY);
+                setOpenGuest(null);
+              }}
+            >
+              <Icon name="cajas" size={16} />
+              <span className="rail-name">Todos los rubros</span>
+              <span className="rail-n">{total}</span>
+            </button>
+            {sectors.map(([key, count]) => {
+              const on = picked(sector, key);
+              return (
+                <button
+                  key={key}
+                  type="button"
+                  className={on ? 'rail-item rail-item-on' : 'rail-item'}
+                  aria-pressed={on}
+                  title={multiTitle(SECTOR_LABEL[key] ?? key, on)}
+                  onClick={(event) => {
+                    setOffset(0);
+                    setOpenGuest(null);
+                    setSector((current) => toggleChoice(current, key, additive(event)));
+                  }}
+                >
+                  <Icon name={SECTOR_ICON[key] ?? 'cajas'} size={16} />
+                  <span className="rail-name">{SECTOR_LABEL[key] ?? key}</span>
+                  <span className="rail-n">{count}</span>
+                </button>
+              );
+            })}
+            {guests?.length ? (
+              <>
+                {/*
                 Bajo su propio rótulo y no al final de la lista sin más.
                 «Social Info» ya tiene un rubro llamado Instituciones —51
                 series del catálogo— y dos entradas del mismo nombre en la
@@ -433,30 +434,31 @@ export function MacroExplorer({
                 porque «Paneles» sobre una sola entrada promete una lista que
                 no está.
               */}
-              <div className="rail-split">
-                <Icon name="capas" size={12} />
-                {guests.length === 1 ? 'Panel' : 'Paneles'}
-              </div>
-              {guests.map((one) => (
-                <button
-                  key={one.label}
-                  type="button"
-                  className={openGuest === one.label ? 'rail-item rail-item-on' : 'rail-item'}
-                  aria-pressed={openGuest === one.label}
-                  title={`Abrir el panel de ${one.label}`}
-                  onClick={() => {
-                    setOffset(0);
-                    setOpened(null);
-                    setOpenGuest(one.label);
-                  }}
-                >
-                  <Icon name={one.icon} size={16} />
-                  <span className="rail-name">{one.label}</span>
-                  <span className="rail-n rail-n-word">abrir</span>
-                </button>
-              ))}
-            </>
-          ) : null}
+                <div className="rail-split">
+                  <Icon name="capas" size={12} />
+                  {guests.length === 1 ? 'Panel' : 'Paneles'}
+                </div>
+                {guests.map((one) => (
+                  <button
+                    key={one.label}
+                    type="button"
+                    className={openGuest === one.label ? 'rail-item rail-item-on' : 'rail-item'}
+                    aria-pressed={openGuest === one.label}
+                    title={`Abrir el panel de ${one.label}`}
+                    onClick={() => {
+                      setOffset(0);
+                      setOpened(null);
+                      setOpenGuest(one.label);
+                    }}
+                  >
+                    <Icon name={one.icon} size={16} />
+                    <span className="rail-name">{one.label}</span>
+                    <span className="rail-n rail-n-word">abrir</span>
+                  </button>
+                ))}
+              </>
+            ) : null}
+          </div>
         </div>
 
         <div className="rail-sec">
