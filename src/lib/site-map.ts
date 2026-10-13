@@ -48,11 +48,8 @@ export const SITE: readonly SiteSection[] = [
       'Social Info',
       'Bolivia ante el mundo',
       'Variables exógenas',
-      'Demanda externa y clima',
-      'Factores externos',
       'Series del BCB',
       'Comercio exterior',
-      'Detalle aduanero (INE)',
     ),
   },
   {
@@ -104,6 +101,13 @@ export const SITE: readonly SiteSection[] = [
   { label: 'Método', icon: 'info', pages: [] },
 ];
 
+/** Páginas de «Macroeconomía» que dejaron de existir como entrada propia y dónde viven ahora. */
+const PAGINAS_FUSIONADAS: Readonly<Record<string, string>> = {
+  'demanda-externa-y-clima': 'Variables exógenas',
+  'factores-externos': 'Variables exógenas',
+  'detalle-aduanero-ine': 'Comercio exterior',
+};
+
 /** El ancla de una sección: «tipo-de-cambio». */
 export const idDeSeccion = (rotulo: string): string => slug(rotulo);
 
@@ -124,6 +128,9 @@ export interface Destino {
  */
 export function destinoDe(pestana: string | null, pagina: string | null): Destino | null {
   if (!pestana) return null;
+  /* Páginas que se fusionaron en otra: los enlaces viejos llegan a la que las absorbió. */
+  const vieja = pagina ? PAGINAS_FUSIONADAS[slug(pagina)] : undefined;
+  if (vieja && slug(pestana) === 'macroeconomia') pagina = vieja;
   const seccion = SITE.find((s) => slug(s.label) === slug(pestana));
   if (!seccion) return null;
   const hallada = pagina ? seccion.pages.find((p) => slug(p.label) === slug(pagina)) : undefined;

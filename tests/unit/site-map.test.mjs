@@ -59,3 +59,15 @@ test('una dirección ?pestana=&pagina= lleva a la página, a la sección o a nin
   assert.equal(destinoDe('inventada', null), null);
   assert.equal(destinoDe(null, 'cobertura'), null);
 });
+
+test('los enlaces a páginas fusionadas de Macroeconomía llegan a la página que las absorbió', () => {
+  for (const [vieja, actual] of [
+    ['Demanda externa y clima', 'Variables exógenas'],
+    ['Factores externos', 'Variables exógenas'],
+    ['Detalle aduanero (INE)', 'Comercio exterior'],
+  ]) {
+    const destino = destinoDe('Macroeconomía', vieja);
+    assert.equal(destino?.pagina, actual, vieja);
+  }
+  assert.equal(destinoDe('Transporte', 'Factores externos')?.pagina, undefined);
+});
