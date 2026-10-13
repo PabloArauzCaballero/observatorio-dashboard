@@ -68,14 +68,14 @@ export function PersonAvatar({
   size = 36,
   className = '',
 }: {
-  slug: string | null | undefined;
+  slug?: string | null | undefined;
   name: string;
-  sector?: string;
-  size?: number;
-  className?: string;
+  sector?: string | undefined;
+  size?: number | undefined;
+  className?: string | undefined;
 }) {
   const [loadError, setLoadError] = useState(false);
-  const file = findPersonPhoto(slug);
+  const file = findPersonPhoto(slug, name);
   const theme = SECTOR_GRADIENTS[sector.toUpperCase()] ?? DEFAULT_GRADIENT;
 
   const style: React.CSSProperties = {

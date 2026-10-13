@@ -84,3 +84,7 @@ jobs:
           echo "=== bases de datos del servidor ==="
           api databases \
             | jq -r "$unwrap"' | .[] | "\(.uuid)  \(.name)  tipo=\(.type // "n/d")  estado=\(.status // "n/d")"'
+
+      - name: Leave the tailnet
+        if: always()
+        run: sudo tailscale logout || true

@@ -1,31 +1,17 @@
-import research from '@/data/people-research-300.json';
-import pilot from '@/data/people-pilot-3.json';
-import ranking from '@/data/people-impact-ranking-2025.json';
+import { peopleSummary } from '@/lib/people-data';
 import { jsonResponse } from '@/lib/respond';
 
-export const dynamic = 'force-dynamic';
-
-/** Research coverage and aggregate comments. Unverified account URLs stay internal. */
+/**
+ * El resumen de «Personalidades»: el ránking de Ipsos, las 298 personas con sus cifras, la
+ * calidad de las fuentes y lo que hay de conversación. La evidencia, las direcciones de las
+ * cuentas, los videos y las palabras de cada persona están en `/api/personalidades/[slug]`
+ * y se piden al abrir su ficha. Las direcciones de cuentas sin verificar no salen de aquí.
+ *
+ * Son archivos del repositorio, así que se pueden guardar un rato; un despliegue nuevo cambia
+ * el contenido y a lo sumo se tarda esos diez minutos en verlo.
+ */
 export function GET(request: Request): Response {
-  const people = research.people.map((person) => ({
-    slug: person.slug,
-    name: person.name,
-    sector: person.sector,
-    evidence: person.evidence,
-    accountLeadCount: person.accountLeads.length,
-    accountVerification: person.accountVerification,
-    identityReview: person.identityReview,
-    ageReview: person.ageReview,
-  }));
-  return jsonResponse(request, {
-    research: {
-      status: research.status,
-      generatedAt: research.generatedAt,
-      method: research.method,
-      sectors: research.sectors,
-      people,
-    },
-    ranking,
-    pilot,
-  }, { headers: { 'Cache-Control': 'no-store' } });
+  return jsonResponse(request, peopleSummary(), {
+    headers: { 'Cache-Control': 'public, max-age=60, s-maxage=600, stale-while-revalidate=3600' },
+  });
 }

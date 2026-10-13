@@ -58,15 +58,29 @@ export const PERSON_PHOTOS: Readonly<Record<string, string>> = {
 };
 
 /**
- * Devuelve el nombre de archivo en `public/people/` si existe correspondencia exacta o normalizada.
+ * Devuelve el nombre de archivo en `public/people/` si existe correspondencia exacta o normalizada por clave o nombre.
  */
-export function findPersonPhoto(slugOrKey: string | null | undefined): string | null {
-  if (!slugOrKey) return null;
-  const direct = PERSON_PHOTOS[slugOrKey];
-  if (direct) return direct;
+export function findPersonPhoto(slugOrKey?: string | null, name?: string): string | null {
+  if (slugOrKey) {
+    const direct = PERSON_PHOTOS[slugOrKey];
+    if (direct) return direct;
 
-  const clean = slugOrKey.replace(/^P_/u, '').toUpperCase();
-  if (PERSON_PHOTOS[clean]) return PERSON_PHOTOS[clean];
+    const clean = slugOrKey.replace(/^P_/u, '').toUpperCase();
+    if (PERSON_PHOTOS[clean]) return PERSON_PHOTOS[clean];
+  }
+
+  if (name) {
+    const normalized = name
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .toUpperCase()
+      .replace(/[^A-Z0-9]+/g, '_')
+      .replace(/^_+|_+$/g, '');
+    const exact = PERSON_PHOTOS[normalized];
+    if (exact) return exact;
+    const pref = PERSON_PHOTOS[`P_${normalized}`];
+    if (pref) return pref;
+  }
 
   return null;
 }

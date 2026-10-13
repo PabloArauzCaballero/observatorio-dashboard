@@ -13,7 +13,12 @@
     "url": "https://ipsosciesmori.com/wp-content/uploads/2025/12/ICM-25-DIC-PRES-ANUARIO_vf.pdf",
     "sampleSize": 600,
     "population": "Personas de 18 años o más con acceso a internet; público activo en redes sociales",
-    "geographicCoverage": ["La Paz", "El Alto", "Cochabamba", "Santa Cruz"],
+    "geographicCoverage": [
+      "La Paz",
+      "El Alto",
+      "Cochabamba",
+      "Santa Cruz"
+    ],
     "fieldworkStart": "2025-11-15",
     "fieldworkEnd": "2025-11-30",
     "referenceMarginOfErrorPercentagePoints": 2.83
@@ -25,10 +30,41 @@
     "currentness": "La medición es de 2025. Para actualidad política, consultar por separado el Monitor de Opinión Pública de septiembre de 2026: https://www.ipsosciesmori.com/direccion-del-pais-evaluacion-de-autoridades-y-lideres-de-oposicion-septiembre-2026/"
   },
   "people": [
-    {"rank": 1, "slug": "P_RODRIGO_PAZ_PEREIRA", "name": "Rodrigo Paz", "impactSharePercent": 24, "sector": "POLITICS"},
-    {"rank": 2, "slug": "P_EDMAND_LARA", "name": "Edmand Lara", "impactSharePercent": 20, "sector": "POLITICS"},
-    {"rank": 3, "slug": "P_JORGE_QUIROGA_RAMIREZ", "name": "Jorge ‘Tuto’ Quiroga", "impactSharePercent": 8, "sector": "POLITICS"},
-    {"rank": 4, "slug": "P_LUIS_ARCE", "name": "Luis Arce", "impactSharePercent": 7, "sector": "POLITICS"},
-    {"rank": 5, "slug": "P_JAIME_DUNN", "name": "Jaime Dunn", "impactSharePercent": 5, "sector": "POLITICS"}
-  ]
+    {
+      "rank": 1,
+      "slug": "P_RODRIGO_PAZ_PEREIRA",
+      "name": "Rodrigo Paz",
+      "impactSharePercent": 24,
+      "sector": "POLITICS"
+    },
+    {
+      "rank": 2,
+      "slug": "P_EDMAND_LARA",
+      "name": "Edmand Lara",
+      "impactSharePercent": 20,
+      "sector": "POLITICS"
+    },
+    {
+      "rank": 3,
+      "slug": "P_JORGE_QUIROGA_RAMIREZ",
+      "name": "Jorge ‘Tuto’ Quiroga",
+      "impactSharePercent": 8,
+      "sector": "POLITICS"
+    },
+    {
+      "rank": 4,
+      "slug": "P_LUIS_ARCE",
+      "name": "Luis Arce",
+      "impactSharePercent": 7,
+      "sector": "POLITICS"
+    },
+    {
+      "rank": 5,
+      "slug": "P_JAIME_DUNN",
+      "name": "Jaime Dunn",
+      "impactSharePercent": 5,
+      "sector": "POLITICS"
+    }
+  ],
+  "accessNote": "Nota del 7-oct-2026: el PDF original ya no responde (error 404 en esa fecha); las cifras, la muestra y las fechas se leyeron de ese documento el 6-oct-2026 y no se pudieron volver a contrastar con otra copia."
 }

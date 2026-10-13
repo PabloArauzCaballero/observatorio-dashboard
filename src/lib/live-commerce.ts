@@ -21,6 +21,26 @@ export function readLiveCommerce(): Promise<LiveCommerceBoard> {
   return held('live-commerce', buildBoard);
 }
 
+const ROOM_COLUMNS = `room_key, to_char(live_date, 'YYYY-MM-DD') AS live_date, live_hour, weekday, live_status,
+  rubro, product, city, audience_size, minutes, viewers_peak, viewers_median, messages, authors, buyers, signals,
+  payments, destinations, emotions, polarity, gifts, follows, shares, likes, speech_segments, screen_reads`;
+
+/**
+ * Las filas de cada live. La curva de espectadores y las menciones del dólar llegaron con la migración
+ * `read-the-live-videos`: si la base todavía no la tiene (42703), se leen sin ellas y la página dice que
+ * esos dos paneles aún no tienen datos, en vez de quedarse vacía entera.
+ */
+async function readRooms(): Promise<{ rows: RoomRow[] }> {
+  try {
+    return await pool().query<RoomRow>(
+      `SELECT ${ROOM_COLUMNS}, viewer_curve, dollar_talk FROM read_models.live_commerce_room`,
+    );
+  } catch (error) {
+    if ((error as { code?: string }).code !== '42703') throw error;
+    return pool().query<RoomRow>(`SELECT ${ROOM_COLUMNS} FROM read_models.live_commerce_room`);
+  }
+}
+
 interface RoomRow {
   room_key: string;
   live_date: string;
@@ -44,6 +64,10 @@ interface RoomRow {
   polarity: Counts | null;
   gifts: number;
   follows: number;
+  shares: number;
+  likes: number;
+  viewer_curve?: [number, number][] | null;
+  dollar_talk?: number | null;
   speech_segments: number;
   screen_reads: number;
 }
@@ -53,15 +77,67 @@ const numberOr = (value: unknown, fallback = 0): number => {
   return typeof parsed === 'number' && Number.isFinite(parsed) ? parsed : fallback;
 };
 
+const firstLiveDate = (rows: readonly RoomRow[]): string =>
+  rows.reduce((first, row) => (row.live_date < first ? row.live_date : first), '9999-12-31');
+
+/**
+ * La UFV desde dos meses antes del primer live (la última publicada puede ser anterior): con ella se lee si el precio en los lives sube más o
+ * menos que los precios del país. Sale de la misma lectura diaria que ya sostiene «Tipo de cambio»; si
+ * no está, el panel lo dice y el resto de la página no cambia.
+ */
+const BCB_UFV = 'https://www.bcb.gob.bo/librerias/charts/ufv.php';
+
+/** `dd/mm/aaaa` como lo escribe el BCB, a `aaaa-mm-dd`. */
+const isoOf = (stated: string): string | null => {
+  const match = /^(\d{2})\/(\d{2})\/(\d{4})$/u.exec(stated);
+  return match ? `${match[3]}-${match[2]}-${match[1]}` : null;
+};
+
+/**
+ * La UFV desde dos meses antes del primer live, pedida a su emisor: el endpoint del Banco Central que
+ * alimenta su gráfico de la UFV (el mismo que usa `scripts/bcb/collect-ufv-history.ts` del núcleo). La
+ * lectura diaria de la base se cancela por tiempo cuando Contabo está cargado (57014); si el Banco no
+ * responde en 10 s, se intenta la base con un filtro, y si tampoco, el panel lo dice.
+ */
+async function readUfvSince(first: string): Promise<{ date: string; value: number }[]> {
+  const since = new Date(new Date(`${first}T12:00:00Z`).getTime() - 60 * 86_400_000).toISOString().slice(0, 10);
+  const until = new Date(Date.now() + 40 * 86_400_000).toISOString().slice(0, 10);
+  try {
+    const response = await fetch(`${BCB_UFV}?cFecIni=${since}&cFecFin=${until}`, {
+      headers: { 'User-Agent': 'Mozilla/5.0 (compatible; ObservatorioEconomicoBO/1.0)' },
+      signal: AbortSignal.timeout(10_000),
+    });
+    if (response.ok) {
+      const records = (await response.json()) as { fecha?: string; val_ufv?: string }[];
+      const points = records
+        .map((record) => ({ date: isoOf(record.fecha ?? ''), value: Number(record.val_ufv) }))
+        .filter((point): point is { date: string; value: number } => point.date !== null && Number.isFinite(point.value));
+      if (points.length) return points.sort((a, b) => a.date.localeCompare(b.date));
+    }
+  } catch (error) {
+    console.warn('[observatorio] UFV del BCB no disponible para ventas en vivo', error);
+  }
+  try {
+    const { rows } = await pool().query<{ event_date: string; value_median: string }>(
+      `SELECT event_date::text AS event_date, value_median::text AS value_median
+       FROM read_models.economic_indicator_daily
+       WHERE indicator_code = 'UFV_BOB' AND event_date >= $1::date
+       ORDER BY event_date`,
+      [since],
+    );
+    return rows
+      .map((row) => ({ date: row.event_date, value: Number(row.value_median) }))
+      .filter((point) => Number.isFinite(point.value));
+  } catch (error) {
+    console.warn('[observatorio] UFV ilegible para ventas en vivo', error);
+    return [];
+  }
+}
+
 async function buildBoard(): Promise<LiveCommerceBoard> {
   try {
     const [rooms, prices, phrases, terms, coverage, snapshot] = await Promise.all([
-      pool().query<RoomRow>(
-        `SELECT room_key, to_char(live_date, 'YYYY-MM-DD') AS live_date, live_hour, weekday, live_status, rubro,
-                product, city, audience_size, minutes, viewers_peak, viewers_median, messages, authors, buyers,
-                signals, payments, destinations, emotions, polarity, gifts, follows, speech_segments, screen_reads
-         FROM read_models.live_commerce_room`,
-      ),
+      readRooms(),
       pool().query<{
         room_key: string;
         price_date: string;
@@ -131,6 +207,10 @@ async function buildBoard(): Promise<LiveCommerceBoard> {
         polarity: row.polarity ?? {},
         gifts: numberOr(row.gifts),
         follows: numberOr(row.follows),
+        shares: numberOr(row.shares),
+        likes: numberOr(row.likes),
+        curve: (row.viewer_curve ?? []).map(([minute, viewers]) => [numberOr(minute), numberOr(viewers)] as const),
+        dollarTalk: numberOr(row.dollar_talk),
         speechSegments: numberOr(row.speech_segments),
         screenReads: numberOr(row.screen_reads),
       })),
@@ -163,6 +243,7 @@ async function buildBoard(): Promise<LiveCommerceBoard> {
         prices: numberOr(row.prices),
         minutes: numberOr(row.minutes),
       })),
+      ufv: await readUfvSince(firstLiveDate(rooms.rows)),
     };
   } catch (error) {
     const code = (error as { code?: string }).code;
