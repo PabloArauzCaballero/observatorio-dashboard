@@ -42,11 +42,13 @@ export function factorPageMetadata(
 }
 
 /**
- * Series que el lector ya tiene en su propia página y que el explorador de factores no repite.
- * El tipo de cambio oficial vive en «Tipo de cambio»; aquí no se vuelve a dibujar.
+ * Series que el lector ya tiene en su propia página y que el catálogo de factores no repite:
+ * `EXO_*` (precios, y el dólar oficial en «Tipo de cambio»), `EXF_NOAA_*` (clima) y
+ * `EXF_WDI_*` (crecimiento de socios en «Demanda externa y clima»; el resto, en «Social Info»).
+ * Se siguen pudiendo pedir por código: lo que cambia es lo que el catálogo ofrece.
  */
-const SHOWN_ELSEWHERE: ReadonlySet<string> = new Set(['EXO_FX_USD']);
-export const isShownElsewhere = (code: string): boolean => SHOWN_ELSEWHERE.has(code);
+export const isShownElsewhere = (code: string): boolean =>
+  /^(?:EXO_|EXF_NOAA_|EXF_WDI_)/.test(code);
 
 export const normalizeFactorText = (value: string): string =>
   value
