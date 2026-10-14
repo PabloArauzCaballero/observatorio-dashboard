@@ -22,6 +22,7 @@ import type {
 } from '@/lib/exogenous-board';
 import { DatedLines, WorldLines, seriesTone } from './charts';
 import type { DatedLinePoint, WorldLinePoint } from './charts';
+import { ExogenousCompare } from './exogenous-compare';
 import { ExogenousTable, sourcesOf } from './exogenous-table';
 import { FreightReferences } from './freight-references';
 import { FilterHint, PickedCount } from './filters';
@@ -494,7 +495,8 @@ export function ExogenousExplorer({
           {group === 'FREIGHT' ? <FreightReferences /> : null}
           <MonthlyCharts series={monthly} measure={measure} from={from} to={to} />
           <AnnualChart series={annual} measure={measure} from={from} to={to} />
-          <ExogenousTable series={listed} />
+          <ExogenousTable series={listed} everything={all} />
+          <ExogenousCompare all={all} listed={listed} from={from} to={to} />
           {UNSOURCED[group].length ? (
             <div className="callout">
               <b>Sin fuente disponible.</b>

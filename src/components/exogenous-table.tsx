@@ -8,6 +8,9 @@ import { celda } from '@/components/ui/panel-data';
 import { ViewToggle } from '@/components/ui/view-toggle';
 import { SCOPES, sayPeriod, summarize } from '@/lib/exogenous-board';
 import type { ExogenousSeries } from '@/lib/exogenous-board';
+import { downloadCsv } from '@/lib/csv';
+import { asFamilyData } from '@/lib/exogenous-board-adapter';
+import { buildFamilyTables, familyCsvRows, FAMILY_CSV_HEADER } from '@/lib/exogenous-factor-table';
 
 /**
  * Todas las lecturas del recorte, con la última cifra y cómo se movió.
@@ -114,7 +117,95 @@ function ChangeChart({ rows }: { rows: readonly ExogenousSeries[] }) {
   );
 }
 
-export function ExogenousTable({ series }: { series: readonly ExogenousSeries[] }) {
+const FREQ_NAME: Record<string, string> = { MONTHLY: 'mensual', ANNUAL: 'anual', DAILY: 'diaria' };
+
+/**
+ * El histórico entero de las lecturas del recorte: una tabla por frecuencia, una columna por
+ * lectura, todas las filas. Los dos botones bajan una observación por fila: el recorte, o todo
+ * «Precios por producto».
+ */
+function FullHistory({
+  series,
+  everything,
+}: {
+  series: readonly ExogenousSeries[];
+  everything: readonly ExogenousSeries[];
+}) {
+  const data = series.map(asFamilyData);
+  const groups = buildFamilyTables(data);
+  const stamp = new Date().toISOString().slice(0, 10);
+  return (
+    <div className="stack">
+      <div className="chips">
+        <button
+          type="button"
+          className="chip"
+          onClick={() =>
+            downloadCsv(`precios-por-producto_recorte_${stamp}.csv`, FAMILY_CSV_HEADER, familyCsvRows(data))
+          }
+        >
+          Descargar CSV del recorte ({data.length} lecturas)
+        </button>
+        <button
+          type="button"
+          className="chip"
+          onClick={() =>
+            downloadCsv(
+              `precios-por-producto_todas_${stamp}.csv`,
+              FAMILY_CSV_HEADER,
+              familyCsvRows(everything.map(asFamilyData)),
+            )
+          }
+        >
+          Descargar CSV de todas las lecturas ({everything.length})
+        </button>
+      </div>
+      {groups.map((group) => (
+        <div key={group.frequency} className="table-wrap">
+          <table className="grid-table">
+            <caption>
+              Frecuencia {FREQ_NAME[group.frequency] ?? group.frequency} · {group.columns.length}{' '}
+              lecturas · {group.rows.length} períodos, del más reciente al más antiguo. Una celda
+              vacía es un período sin dato; no se rellena.
+            </caption>
+            <thead>
+              <tr>
+                <th>Período</th>
+                {group.columns.map((column) => (
+                  <th key={column.code} className="num">
+                    {column.name}
+                    <br />
+                    <small>{column.unit}</small>
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {group.rows.map((row) => (
+                <tr key={row.period}>
+                  <th scope="row">{row.period}</th>
+                  {row.values.map((value, index) => (
+                    <td key={group.columns[index]!.code} className="num">
+                      {value === null ? '' : number(value)}
+                    </td>
+                  ))}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+export function ExogenousTable({
+  series,
+  everything,
+}: {
+  series: readonly ExogenousSeries[];
+  everything: readonly ExogenousSeries[];
+}) {
   if (!series.length) return null;
   const rows = series.filter((one) => summarize(one).last);
 
@@ -162,6 +253,8 @@ export function ExogenousTable({ series }: { series: readonly ExogenousSeries[] 
     >
       <ViewToggle
         chart={<ChangeChart rows={rows} />}
+        variation={<FullHistory series={series} everything={everything} />}
+        variationLabel="Histórico completo"
         table={
           <div className="table-wrap">
             <table className="grid-table">
