@@ -73,7 +73,7 @@ export function ExogenousCompare({
   }, [byCode, left, right, mode, from, to]);
 
   const select = (value: string, set: (code: string) => void, name: string) => (
-    <label>
+    <label style={{ display: 'grid', gap: 4 }}>
       {name}
       <select value={value} onChange={(event) => set(event.target.value)}>
         {groups.map(([group, members]) => (
@@ -107,7 +107,7 @@ export function ExogenousCompare({
       <div style={{ display: 'grid', gap: 12 }}>
         {select(left, setLeft, 'Primera lectura')}
         {select(right, setRight, 'Segunda lectura')}
-        <label htmlFor={`${id}-mode`}>
+        <label htmlFor={`${id}-mode`} style={{ display: 'grid', gap: 4 }}>
           Forma de comparar
           <select
             id={`${id}-mode`}
@@ -152,7 +152,7 @@ export function ExogenousCompare({
                 </div>
               }
               table={
-                <div className="table-wrap">
+                <div className="table-wrap" style={{ maxHeight: 480, overflow: 'auto' }}>
                   <button
                     type="button"
                     className="chip"

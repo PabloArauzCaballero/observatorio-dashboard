@@ -161,7 +161,7 @@ function FullHistory({
         </button>
       </div>
       {groups.map((group) => (
-        <div key={group.frequency} className="table-wrap">
+        <div key={group.frequency} className="table-wrap" style={{ maxHeight: 480, overflow: 'auto' }}>
           <table className="grid-table">
             <caption>
               Frecuencia {FREQ_NAME[group.frequency] ?? group.frequency} · {group.columns.length}{' '}
@@ -170,9 +170,9 @@ function FullHistory({
             </caption>
             <thead>
               <tr>
-                <th>Período</th>
+                <th style={{ position: 'sticky', top: 0, background: 'var(--panel)' }}>Período</th>
                 {group.columns.map((column) => (
-                  <th key={column.code} className="num">
+                  <th key={column.code} className="num" style={{ position: 'sticky', top: 0, background: 'var(--panel)' }}>
                     {column.name}
                     <br />
                     <small>{column.unit}</small>
