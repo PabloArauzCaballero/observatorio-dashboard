@@ -29,8 +29,6 @@ const REGISTROS = {
   'company-social-table.tsx': 'cuentas por empresa: ordenable, con enlaces y estados de lectura',
   'departments-explorer.tsx':
     '«Las seis cuentas regionales»: cada fila en su propia unidad, y la tabla es la comparación con el país',
-  'exogenous-factor-family-table.tsx':
-    'la vista «Tabla» del gráfico de la familia (se monta dentro de su ViewToggle): todas las series, una por columna',
   'freight-references.tsx': 'citas de tarifas con texto y fuente enlazada por fila',
   'macro-analysis.tsx': 'años atípicos de una serie: una o dos filas, un gráfico quedaría vacío',
   'macro-explorer.tsx':
