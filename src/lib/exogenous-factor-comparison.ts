@@ -226,7 +226,9 @@ export function compareFactorSeries(input: FactorComparisonInput): FactorCompari
   const range = points.length
     ? `Períodos mostrados: ${points[0]!.period} a ${points.at(-1)!.period}.`
     : 'No hay períodos para mostrar.';
-  const baseline = `Base común real: ${basePeriod}; valores iniciales ${leftBaseValue} ${leftSeries.unit} y ${rightBaseValue} ${rightSeries.unit}. Los períodos anteriores a esa base se excluyen.`;
+  const shown = (value: number | null) =>
+    value === null ? 'sin dato' : new Intl.NumberFormat('es-BO', { maximumFractionDigits: 4 }).format(value);
+  const baseline = `Base común real: ${basePeriod}; valores iniciales ${shown(leftBaseValue)} ${leftSeries.unit} y ${shown(rightBaseValue)} ${rightSeries.unit}. Los períodos anteriores a esa base se excluyen.`;
   const description =
     mode === 'LEVEL'
       ? `Niveles originales en ${leftSeries.unit}. ${range}`
