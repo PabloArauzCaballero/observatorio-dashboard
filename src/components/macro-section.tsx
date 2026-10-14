@@ -89,21 +89,22 @@ export function MacroSection() {
 }
 
 /**
- * «Variables exógenas»: lo que llega a Bolivia desde fuera, en tres miradas de una misma página.
+ * «Variables exógenas»: lo que llega a Bolivia desde fuera, en dos miradas de una misma página.
  *
- * Eran tres entradas sueltas del índice —precios, demanda externa y clima, factores— que el
- * lector no sabía distinguir. Van juntas, con una pestaña arriba por cada mirada. `SubTabs`
+ * Eran entradas sueltas del índice —precios, demanda externa y clima, factores— que el
+ * lector no sabía distinguir. Van juntas, con una pestaña arriba por cada mirada. «Factores
+ * externos» ya no existe: las 150 series de su catálogo estaban, una por una, en estas dos
+ * pestañas, en el tipo de cambio o en «Social Info»; repetirlas era el defecto. `SubTabs`
  * monta sólo la abierta, así que ninguna pide sus datos hasta que alguien la elige.
  */
 function ExogenousPage() {
   return (
     <SubTabs
-      labels={['Precios por producto', 'Demanda externa y clima', 'Factores externos']}
-      icons={['monedas', 'clima', 'linea']}
+      labels={['Precios por producto', 'Demanda externa y clima']}
+      icons={['monedas', 'clima']}
     >
       <ExogenousSection />
       <ExternalDrivers />
-      <ExogenousFactorsExplorer />
     </SubTabs>
   );
 }
@@ -125,12 +126,6 @@ function TradePage() {
     </SubTabs>
   );
 }
-
-/** Las series de factores externos y su comparación; pesan (gráficos), así que se piden al abrir la página. */
-const ExogenousFactorsExplorer = dynamic(
-  () => import('./exogenous-factors-explorer').then((module) => module.ExogenousFactorsExplorer),
-  { loading: () => <OnOpenNotice what="los factores externos" failed={false} /> },
-);
 
 /**
  * Lo que el observatorio mide de Bolivia, con tres rubros invitados.
