@@ -149,7 +149,13 @@ const PAGE_SIZE = 40;
 const shortName = (name: string): string =>
   name.length > 26 ? `${name.slice(0, 25).trimEnd()}…` : name;
 
-export function FilingExplorer({ filings, onReadNews }: { filings: CompanyFiling[]; onReadNews?: (code: string) => void }) {
+export function FilingExplorer({
+  filings,
+  onReadNews,
+}: {
+  filings: CompanyFiling[];
+  onReadNews?: (code: string) => void;
+}) {
   /*
    * Cada recorte es un conjunto y no un nombre.
    *
@@ -370,36 +376,38 @@ export function FilingExplorer({ filings, onReadNews }: { filings: CompanyFiling
             Tipo de hecho
             <PickedCount choice={category} />
           </div>
-          <button
-            type="button"
-            className={category.size === 0 ? 'rail-item rail-item-on' : 'rail-item'}
-            aria-pressed={category.size === 0}
-            onClick={() => {
-              setOffset(0);
-              setCategory(ANY);
-            }}
-          >
-            <Icon name="capas" size={16} />
-            <span className="rail-name">Todos los tipos</span>
-            <span className="rail-n">{categoryTotal.toLocaleString('es-BO')}</span>
-          </button>
-          {categories.map(([key, count]) => {
-            const on = picked(category, key);
-            return (
-              <button
-                key={key}
-                type="button"
-                className={on ? 'rail-item rail-item-on' : 'rail-item'}
-                aria-pressed={on}
-                title={multiTitle(CATEGORY_LABEL[key] ?? key, on)}
-                onClick={(event) => pickCategory(key, additive(event))}
-              >
-                <Icon name={CATEGORY_ICON[key] ?? 'cajas'} size={16} />
-                <span className="rail-name">{CATEGORY_LABEL[key] ?? key}</span>
-                <span className="rail-n">{count.toLocaleString('es-BO')}</span>
-              </button>
-            );
-          })}
+          <div className="rail-list rail-list-cut">
+            <button
+              type="button"
+              className={category.size === 0 ? 'rail-item rail-item-on' : 'rail-item'}
+              aria-pressed={category.size === 0}
+              onClick={() => {
+                setOffset(0);
+                setCategory(ANY);
+              }}
+            >
+              <Icon name="capas" size={16} />
+              <span className="rail-name">Todos los tipos</span>
+              <span className="rail-n">{categoryTotal.toLocaleString('es-BO')}</span>
+            </button>
+            {categories.map(([key, count]) => {
+              const on = picked(category, key);
+              return (
+                <button
+                  key={key}
+                  type="button"
+                  className={on ? 'rail-item rail-item-on' : 'rail-item'}
+                  aria-pressed={on}
+                  title={multiTitle(CATEGORY_LABEL[key] ?? key, on)}
+                  onClick={(event) => pickCategory(key, additive(event))}
+                >
+                  <Icon name={CATEGORY_ICON[key] ?? 'cajas'} size={16} />
+                  <span className="rail-name">{CATEGORY_LABEL[key] ?? key}</span>
+                  <span className="rail-n">{count.toLocaleString('es-BO')}</span>
+                </button>
+              );
+            })}
+          </div>
         </div>
 
         <div className="rail-sec">
@@ -408,39 +416,41 @@ export function FilingExplorer({ filings, onReadNews }: { filings: CompanyFiling
             Rubro del emisor
             <PickedCount choice={sector} />
           </div>
-          <button
-            type="button"
-            className={sector.size === 0 ? 'rail-item rail-item-on' : 'rail-item'}
-            aria-pressed={sector.size === 0}
-            onClick={() => {
-              setOffset(0);
-              setSector(ANY);
-              setFiler(ANY);
-            }}
-          >
-            <Icon name="cajas" size={16} />
-            <span className="rail-name">Todos los rubros</span>
-            <span className="rail-n">
-              {sectors.reduce((sum, [, count]) => sum + count, 0).toLocaleString('es-BO')}
-            </span>
-          </button>
-          {sectors.map(([key, count]) => {
-            const on = picked(sector, key);
-            return (
-              <button
-                key={key}
-                type="button"
-                className={on ? 'rail-item rail-item-on' : 'rail-item'}
-                aria-pressed={on}
-                title={multiTitle(SECTOR_LABEL[key] ?? key, on)}
-                onClick={(event) => pickSector(key, additive(event))}
-              >
-                <Icon name={SECTOR_ICON[key] ?? 'cajas'} size={16} />
-                <span className="rail-name">{SECTOR_LABEL[key] ?? key}</span>
-                <span className="rail-n">{count}</span>
-              </button>
-            );
-          })}
+          <div className="rail-list rail-list-cut">
+            <button
+              type="button"
+              className={sector.size === 0 ? 'rail-item rail-item-on' : 'rail-item'}
+              aria-pressed={sector.size === 0}
+              onClick={() => {
+                setOffset(0);
+                setSector(ANY);
+                setFiler(ANY);
+              }}
+            >
+              <Icon name="cajas" size={16} />
+              <span className="rail-name">Todos los rubros</span>
+              <span className="rail-n">
+                {sectors.reduce((sum, [, count]) => sum + count, 0).toLocaleString('es-BO')}
+              </span>
+            </button>
+            {sectors.map(([key, count]) => {
+              const on = picked(sector, key);
+              return (
+                <button
+                  key={key}
+                  type="button"
+                  className={on ? 'rail-item rail-item-on' : 'rail-item'}
+                  aria-pressed={on}
+                  title={multiTitle(SECTOR_LABEL[key] ?? key, on)}
+                  onClick={(event) => pickSector(key, additive(event))}
+                >
+                  <Icon name={SECTOR_ICON[key] ?? 'cajas'} size={16} />
+                  <span className="rail-name">{SECTOR_LABEL[key] ?? key}</span>
+                  <span className="rail-n">{count}</span>
+                </button>
+              );
+            })}
+          </div>
         </div>
 
         <div className="rail-sec">
@@ -731,7 +741,15 @@ export function FilingExplorer({ filings, onReadNews }: { filings: CompanyFiling
                       </p>
                     ) : null}
                     <p className="filing-foot">
-{filing.filerCode && onReadNews ? <button type="button" className="filing-toggle" onClick={() => onReadNews(filing.filerCode!)}>Noticias ABI del emisor</button> : null}
+                      {filing.filerCode && onReadNews ? (
+                        <button
+                          type="button"
+                          className="filing-toggle"
+                          onClick={() => onReadNews(filing.filerCode!)}
+                        >
+                          Noticias ABI del emisor
+                        </button>
+                      ) : null}
                       <button
                         type="button"
                         className="filing-toggle"
