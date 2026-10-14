@@ -63,6 +63,18 @@ export interface Talk {
   analyzed: number;
   /** `null` mientras la muestra no alcanza el mínimo para publicar el porcentaje. */
   sentiment: Sentiment | null;
+  /**
+   * Lo que comenta la audiencia en los últimos videos de SU PROPIO canal de YouTube. Es otra medida: no habla de
+   * quienes comentan videos sobre la persona, sino de su público. `null` si no se leyó ese canal.
+   */
+  channel: TalkChannel | null;
+}
+
+export interface TalkChannel {
+  videos: number;
+  read: number;
+  analyzed: number;
+  sentiment: Sentiment | null;
 }
 
 export interface PersonRow {
