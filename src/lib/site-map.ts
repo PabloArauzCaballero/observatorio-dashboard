@@ -81,18 +81,7 @@ export const SITE: readonly SiteSection[] = [
   {
     label: 'Transporte',
     icon: 'camion',
-    pages: paginas(
-      'Automotor',
-      'Vehículos 0 km',
-      'Estudio automotor',
-      'Carburantes',
-      'Pasajes',
-      'Tarifas publicadas',
-      'Carreteras',
-      'Ferrocarriles',
-      'Ríos y puertos',
-      'Fletes',
-    ),
+    pages: paginas('Parque y mercado', 'Combustible y pasajes', 'Infraestructura', 'Fletes'),
   },
   { label: 'Prensa', icon: 'ventana', pages: paginas('Cobertura', 'Temas') },
   { label: 'Método', icon: 'info', pages: [] },
@@ -106,9 +95,19 @@ const PAGINAS_FUSIONADAS: Readonly<Record<string, Readonly<Record<string, string
     'detalle-aduanero-ine': 'Comercio exterior',
   },
   transporte: {
-    'competencia-automotriz': 'Estudio automotor',
-    'precios-internacionales': 'Estudio automotor',
-    'escenarios-automotores': 'Estudio automotor',
+    /* Diez páginas pasaron a cuatro: los enlaces viejos llegan a la que las absorbió. */
+    automotor: 'Parque y mercado',
+    'vehiculos-0-km': 'Parque y mercado',
+    'estudio-automotor': 'Parque y mercado',
+    'competencia-automotriz': 'Parque y mercado',
+    'precios-internacionales': 'Parque y mercado',
+    'escenarios-automotores': 'Parque y mercado',
+    carburantes: 'Combustible y pasajes',
+    pasajes: 'Combustible y pasajes',
+    'tarifas-publicadas': 'Combustible y pasajes',
+    carreteras: 'Infraestructura',
+    ferrocarriles: 'Infraestructura',
+    'rios-y-puertos': 'Infraestructura',
   },
 };
 

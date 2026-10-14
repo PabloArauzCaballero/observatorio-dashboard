@@ -59,8 +59,8 @@ export const GUIA: readonly EntradaGuia[] = [
   },
   {
     pestana: 'Transporte',
-    que: 'Seis páginas: «Automotor» (parque 2003–2025, servicio, clase, capacidad y GNV), «Pasajes» (tarifarios ATT de 2013 y 2025 por ruta y tipo de asiento), «Carreteras», «Ferrocarriles», «Ríos y puertos» y «Fletes» (histórico boliviano de aduana, índices internacionales y referencias nacionales documentadas).',
-    como: 'En «Pasajes» elegí el tarifario y buscá origen o destino. En «Fletes» la vista inicial muestra el histórico boliviano; los filtros permiten comparar otras familias sin mezclar unidades. En las páginas de infraestructura filtrá por departamento y red.',
+    que: 'Cuatro páginas, cada una con sus pestañas: «Parque y mercado» (Automotor: parque 2003–2025, servicio, clase, capacidad y GNV; Vehículos 0 km; Estudio automotor), «Combustible y pasajes» (Carburantes, Pasajes con los tarifarios ATT de 2013 y 2025 por ruta y tipo de asiento, y Tarifas publicadas), «Infraestructura» (Carreteras, Ferrocarriles, Ríos y puertos) y «Fletes» (histórico boliviano de aduana, índices internacionales y referencias nacionales documentadas).',
+    como: 'En «Combustible y pasajes › Pasajes» elegí el tarifario y buscá origen o destino. En «Fletes» la vista inicial muestra el histórico boliviano; los filtros permiten comparar otras familias sin mezclar unidades. En las pestañas de infraestructura filtrá por departamento y red.',
   },
   {
     pestana: 'Prensa',
@@ -124,7 +124,7 @@ export const DESTINO_DE_PAQUETE: Record<string, Destino> = {
   EMPRESAS: { pestana: 'Empresas', pagina: 'Bolsa de valores (BBV)' },
   VENTAS_VIVO: { pestana: 'Empresas', pagina: 'Ventas en vivo' },
   CIUDADES: { pestana: 'Ciudades' },
-  CARRETERAS: { pestana: 'Transporte', pagina: 'Pasajes' },
+  CARRETERAS: { pestana: 'Transporte', pagina: 'Combustible y pasajes' },
   PRENSA: { pestana: 'Prensa', pagina: 'Cobertura' },
   METODO: { pestana: 'Método' },
 };

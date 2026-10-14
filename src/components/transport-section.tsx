@@ -4,7 +4,12 @@ import { OnOpenNotice, useOnOpen } from './on-open';
 import { RailExplorer } from './rail-explorer';
 import { RoadsSection } from './roads-section';
 import { SubSections } from './site-layout';
-import { FuelPricesExplorer, PassengerFaresExplorer, VehiclePricesExplorer } from './transport-prices-explorer';
+import { SubTabs } from './tabs';
+import {
+  FuelPricesExplorer,
+  PassengerFaresExplorer,
+  VehiclePricesExplorer,
+} from './transport-prices-explorer';
 import { WaterwaysExplorer } from './waterways-explorer';
 import { TabHeader } from '@/components/ui/tab-header';
 import { RoadTransportSection } from './road-transport-section';
@@ -14,11 +19,13 @@ import { AutomotiveStudyPage } from './automotive-study-page';
 import type { RailBoard, WaterBoard } from '@/lib/transport-board';
 
 /**
- * El capítulo de transporte: automotor, pasajes, infraestructura y fletes, nueve páginas.
+ * El capítulo de transporte: cuatro páginas en el índice y, dentro de cada una, sus pestañas.
  *
- * Cada página pide su tablero al abrirse y no antes, como hacía «Carreteras»
- * sola: `SubSections` monta cada página al acercarse, así que abrir el capítulo no
- * trae la red fluvial de nadie que no la mire.
+ * Eran diez entradas en el índice lateral, que era más lista que capítulo. Ahora el índice dice
+ * «qué hay» en cuatro líneas y cada página abre en la pestaña de siempre; una barra de pestañas
+ * monta solo la activa, así que agrupar no trae más datos de una vez. Los enlaces viejos
+ * (`?pagina=pasajes`) siguen valiendo: el mapa los lleva a la página que los absorbió y su barra
+ * los reconoce por alias.
  */
 export function TransportSection() {
   return (
@@ -29,22 +36,63 @@ export function TransportSection() {
         lede="Mercado automotor, pasajes e infraestructura de Bolivia. Parque y tarifas de fuentes oficiales; precios de anuncios comerciales y análisis empresarial con sus condiciones. Los mapas recogen lo trazado en OpenStreetMap."
       />
       <SubSections
-        labels={['Automotor', 'Vehículos 0 km', 'Estudio automotor', 'Carburantes', 'Pasajes', 'Tarifas publicadas', 'Carreteras', 'Ferrocarriles', 'Ríos y puertos', 'Fletes']}
-        icons={['camion', 'camion', 'barras', 'gota', 'etiqueta', 'etiqueta', 'mapa', 'linea', 'gota', 'cajas']}
+        labels={['Parque y mercado', 'Combustible y pasajes', 'Infraestructura', 'Fletes']}
+        icons={['camion', 'gota', 'mapa', 'cajas']}
         enlace
       >
-        <RoadTransportSection />
-        <VehiclePricesExplorer />
-        <AutomotiveStudyPage />
-        <FuelPricesExplorer />
-        <FaresSection />
-        <PassengerFaresExplorer />
-        <RoadsSection />
-        <RailSection />
-        <WaterwaysSection />
+        <ParqueYMercado />
+        <CombustibleYPasajes />
+        <Infraestructura />
         <FreightSection />
       </SubSections>
     </>
+  );
+}
+
+function ParqueYMercado() {
+  return (
+    <SubTabs
+      labels={['Automotor', 'Vehículos 0 km', 'Estudio automotor']}
+      icons={['camion', 'camion', 'barras']}
+      enlace
+      alias={{
+        'competencia-automotriz': 'Estudio automotor',
+        'precios-internacionales': 'Estudio automotor',
+        'escenarios-automotores': 'Estudio automotor',
+      }}
+    >
+      <RoadTransportSection />
+      <VehiclePricesExplorer />
+      <AutomotiveStudyPage />
+    </SubTabs>
+  );
+}
+
+function CombustibleYPasajes() {
+  return (
+    <SubTabs
+      labels={['Carburantes', 'Pasajes', 'Tarifas publicadas']}
+      icons={['gota', 'etiqueta', 'etiqueta']}
+      enlace
+    >
+      <FuelPricesExplorer />
+      <FaresSection />
+      <PassengerFaresExplorer />
+    </SubTabs>
+  );
+}
+
+function Infraestructura() {
+  return (
+    <SubTabs
+      labels={['Carreteras', 'Ferrocarriles', 'Ríos y puertos']}
+      icons={['mapa', 'linea', 'gota']}
+      enlace
+    >
+      <RoadsSection />
+      <RailSection />
+      <WaterwaysSection />
+    </SubTabs>
   );
 }
 

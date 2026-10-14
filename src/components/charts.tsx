@@ -3095,6 +3095,7 @@ export function DatedLines({
   monthly = false,
   domain: fixedDomain,
   yearTicks = false,
+  clipOutliers = false,
 }: {
   data: DatedLinePoint[];
   series: readonly DatedLineSeries[];
@@ -3115,6 +3116,15 @@ export function DatedLines({
   height?: 'small' | 'normal' | 'tall';
   /** Points are months (the first of each): label month and year, not day. */
   monthly?: boolean;
+  /**
+   * Corta el eje donde termina el grueso de las lecturas y dice cuántas quedan por encima.
+   *
+   * Un solo mes de 8.000 en una serie que vive entre 100 y 500 aplana las demás en una raya
+   * junto al cero. Solo actúa si el máximo es una espiga —más de 2,5 veces el percentil 97—,
+   * nunca en una tendencia que simplemente sube; la espiga sigue en el emergente, en la tabla y
+   * en la descarga, y el pie lo dice.
+   */
+  clipOutliers?: boolean;
 }) {
   useDatosDeFigura(
     () => ({ unidad: unit, ...filasDeSeries(data, { key: 'date', label: 'Fecha' }, series) }),
@@ -3127,10 +3137,20 @@ export function DatedLines({
   const values = shown.flatMap((row) =>
     series.map((one) => row[one.key]).filter((value): value is number => typeof value === 'number'),
   );
+  /* La espiga, si la hay: dónde corta el eje y cuántas lecturas quedan por encima. */
+  let clipAt: number | null = null;
+  if (clipOutliers && !fixedDomain && values.length > 20) {
+    const sorted = [...values].sort((left, right) => left - right);
+    const p97 = sorted[Math.floor(0.97 * (sorted.length - 1))] ?? 0;
+    const top = sorted[sorted.length - 1] ?? 0;
+    if (p97 > 0 && top > p97 * 2.5) clipAt = p97 * 1.25;
+  }
+  const clipped = clipAt === null ? 0 : values.filter((value) => value > (clipAt ?? 0)).length;
+  const kept = clipAt === null ? values : values.filter((value) => value <= (clipAt ?? 0));
   const domain =
     fixedDomain ??
-    (values.length
-      ? fittedDomain(referenceLine === undefined ? values : [...values, referenceLine])
+    (kept.length
+      ? fittedDomain(referenceLine === undefined ? kept : [...kept, referenceLine])
       : undefined);
 
   const renderTooltip = ({ active, payload, label }: TooltipRender) => {
@@ -3168,6 +3188,7 @@ export function DatedLines({
             <XAxis dataKey="date" tickFormatter={tickLabel} minTickGap={52} {...AXIS} />
             <YAxis
               {...(domain ? { domain } : {})}
+              {...(clipped ? { allowDataOverflow: true } : {})}
               tickCount={tickCountOf(domain)}
               width={54}
               tickFormatter={(value: number) =>
@@ -3254,6 +3275,13 @@ export function DatedLines({
        * llevan los gráficos de al lado.
        */}
       {series.length ? <ChartLegend items={lineLegend(series)} /> : null}
+      {clipped ? (
+        <p className="chart-clip-note">
+          El eje llega hasta {number(domain?.[1] ?? 0, 0)} {unit}: {clipped}{' '}
+          {clipped === 1 ? 'lectura queda' : 'lecturas quedan'} por encima y sigue
+          {clipped === 1 ? '' : 'n'} en el emergente, la tabla y la descarga.
+        </p>
+      ) : null}
     </div>
   );
 }

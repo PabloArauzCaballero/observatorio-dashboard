@@ -10064,3 +10064,11 @@ button.download-btn {
   padding-bottom: 0.12rem;
   line-height: 1.3;
 }
+
+/* === Gráficos: aviso del eje cortado en series con espigas === */
+
+.chart-clip-note {
+  margin: var(--s1) 0 0;
+  font-size: var(--text-xs);
+  color: var(--ink-soft);
+}
