@@ -71,3 +71,21 @@ test('los enlaces a páginas fusionadas de Macroeconomía llegan a la página qu
   }
   assert.equal(destinoDe('Transporte', 'Factores externos')?.pagina, undefined);
 });
+
+test('las diez páginas viejas de Transporte llegan a las cuatro que las agrupan', () => {
+  for (const [vieja, actual] of [
+    ['Automotor', 'Parque y mercado'],
+    ['Vehículos 0 km', 'Parque y mercado'],
+    ['Estudio automotor', 'Parque y mercado'],
+    ['Competencia automotriz', 'Parque y mercado'],
+    ['Carburantes', 'Combustible y pasajes'],
+    ['Pasajes', 'Combustible y pasajes'],
+    ['Tarifas publicadas', 'Combustible y pasajes'],
+    ['Carreteras', 'Infraestructura'],
+    ['Ferrocarriles', 'Infraestructura'],
+    ['Ríos y puertos', 'Infraestructura'],
+    ['Fletes', 'Fletes'],
+  ]) {
+    assert.equal(destinoDe('transporte', vieja)?.pagina, actual, vieja);
+  }
+});

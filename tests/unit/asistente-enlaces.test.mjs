@@ -73,10 +73,10 @@ test('los enlaces no se repiten y siguen el orden del tablero', () => {
   assert.deepEqual(enlacesPara(['GUIA']), []);
 });
 
-test('el asistente manda las consultas de transporte al histórico visible de pasajes', () => {
+test('el asistente manda las consultas de transporte a la página que agrupa los pasajes', () => {
   assert.deepEqual(DESTINO_DE_PAQUETE.CARRETERAS, {
     pestana: 'Transporte',
-    pagina: 'Pasajes',
+    pagina: 'Combustible y pasajes',
   });
 });
 

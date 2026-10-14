@@ -181,7 +181,9 @@ test('pasajes es una página principal de transporte con ambos tarifarios oficia
     'utf8',
   );
 
-  assert.match(transport, /labels=\{\[[^\]]*'Automotor'[^\]]*'Pasajes'[^\]]*'Carreteras'/u);
+  // Pasajes es una pestaña de «Combustible y pasajes», junto a Carburantes y Tarifas publicadas.
+  assert.match(transport, /'Combustible y pasajes'/u);
+  assert.match(transport, /labels=\{\[\s*'Carburantes',\s*'Pasajes',\s*'Tarifas publicadas'/u);
   assert.match(transport, /<FaresSection \/>/u);
   assert.doesNotMatch(road, /'Pasajes'/u);
   assert.match(fares, /ATT_0032_2025/u);

@@ -3,7 +3,15 @@
 import { useEffect, useId, useRef, useState } from 'react';
 import { Icon } from './icons';
 import type { IconName } from './icons';
-import { EVENTO_ENLACE, PARAM_PAGINA, PARAM_PESTANA, anotar, indicePorSlug, leerParametro, slug } from '@/lib/enlace-tablero';
+import {
+  EVENTO_ENLACE,
+  PARAM_PAGINA,
+  PARAM_PESTANA,
+  anotar,
+  indicePorSlug,
+  leerParametro,
+  slug,
+} from '@/lib/enlace-tablero';
 
 /**
  * Sigue la dirección: al montar, cuando el asistente pide un destino y cuando
@@ -11,13 +19,26 @@ import { EVENTO_ENLACE, PARAM_PAGINA, PARAM_PESTANA, anotar, indicePorSlug, leer
  * La clave es el texto de los rótulos y no el arreglo, que llega nuevo en cada
  * render del padre.
  */
-function useSeguirDireccion(labels: readonly string[], parametro: string, setActive: (index: number) => void, activo: boolean) {
+function useSeguirDireccion(
+  labels: readonly string[],
+  parametro: string,
+  setActive: (index: number) => void,
+  activo: boolean,
+  alias?: Readonly<Record<string, string>>,
+) {
   const clave = labels.join('|');
+  const claveAlias = alias ? JSON.stringify(alias) : '';
   useEffect(() => {
     if (!activo) return;
     const rotulos = clave.split('|');
     const sincronizar = () => {
-      const index = indicePorSlug(rotulos, leerParametro(parametro));
+      const valor = leerParametro(parametro);
+      let index = indicePorSlug(rotulos, valor);
+      /* Un enlace viejo (`pagina=pasajes`) que esta barra absorbió nombra la pestaña por su alias. */
+      if (index < 0 && valor && claveAlias) {
+        const destino = (JSON.parse(claveAlias) as Record<string, string>)[slug(valor)];
+        if (destino) index = indicePorSlug(rotulos, destino);
+      }
       if (index >= 0) setActive(index);
     };
     sincronizar();
@@ -27,7 +48,7 @@ function useSeguirDireccion(labels: readonly string[], parametro: string, setAct
       window.removeEventListener(EVENTO_ENLACE, sincronizar);
       window.removeEventListener('popstate', sincronizar);
     };
-  }, [clave, parametro, setActive, activo]);
+  }, [clave, claveAlias, parametro, setActive, activo]);
 }
 
 /**
@@ -88,10 +109,13 @@ export function SubTabs({
   icons,
   children,
   enlace = false,
+  alias,
 }: {
   labels: string[];
   icons: IconName[];
   children: React.ReactNode[];
+  /** Enlaces viejos que esta barra absorbió: «slug viejo» → rótulo de la pestaña que los recibe. */
+  alias?: Readonly<Record<string, string>>;
   /**
    * Si esta barra es la que nombra `pagina=` en la dirección. Solo la de
    * primer nivel de cada pestaña: una anidada («Comercio», «Pagos») pisaría la
@@ -107,7 +131,7 @@ export function SubTabs({
     if (enlace && label) anotar({ [PARAM_PAGINA]: slug(label) });
   };
   const { buttonsRef, onKeyDown } = useTablistKeyboard(labels.length, elegir);
-  useSeguirDireccion(labels, PARAM_PAGINA, setActive, enlace);
+  useSeguirDireccion(labels, PARAM_PAGINA, setActive, enlace, alias);
 
   return (
     <>

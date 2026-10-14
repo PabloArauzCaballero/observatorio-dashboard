@@ -647,6 +647,7 @@ function MonthlyPanel({
           unit={measureUnit(measure, unit)}
           decimals={decimalsFor(values)}
           monthly
+          clipOutliers
           {...(measure === 'INDEX' ? { referenceLine: 100 } : {})}
           {...(measure === 'YOY' ? { referenceLine: 0 } : {})}
         />
