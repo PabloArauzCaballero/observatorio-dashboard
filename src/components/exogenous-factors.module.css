@@ -96,6 +96,7 @@
 .tableScroll thead th small { display: block; font-weight: 400; color: var(--ink-soft); font-size: .66rem; margin-top: 2px; }
 .tableScroll th[scope='row'] { position: sticky; left: 0; background: var(--panel); font-weight: 600; }
 .tableScroll thead th:first-child { left: 0; z-index: 2; }
+.familyTable thead th:not(:first-child) { text-align: right; }
 .tableScroll .num { text-align: right; font-variant-numeric: tabular-nums; }
 .tableScroll .selectedColumn { box-shadow: inset 0 -2px 0 var(--series-1); }
 .modeNav { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 20px; padding-bottom: 15px; border-bottom: 1px solid var(--rule); }
