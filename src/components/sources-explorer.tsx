@@ -359,36 +359,40 @@ export function SourcesExplorer({
             Publicador
             <PickedCount choice={publisher} />
           </div>
-          <button
-            type="button"
-            className={publisher.size === 0 ? 'rail-item rail-item-on' : 'rail-item'}
-            aria-pressed={publisher.size === 0}
-            onClick={() => {
-              setOffset(0);
-              setPublisher(ANY);
-            }}
-          >
-            <Icon name="capas" size={16} />
-            <span className="rail-name">Todos los publicadores</span>
-            <span className="rail-n">{publishers.reduce((sum, [, count]) => sum + count, 0)}</span>
-          </button>
-          {publishers.map(([name, count]) => {
-            const on = picked(publisher, name);
-            return (
-              <button
-                key={name}
-                type="button"
-                className={on ? 'rail-item rail-item-on' : 'rail-item'}
-                aria-pressed={on}
-                title={multiTitle(name, on)}
-                onClick={(event) => pickPublisher(name, additive(event))}
-              >
-                <Icon name={PUBLISHER_ICON[name] ?? 'edificio'} size={16} />
-                <span className="rail-name">{name}</span>
-                <span className="rail-n">{count}</span>
-              </button>
-            );
-          })}
+          <div className="rail-list rail-list-cut">
+            <button
+              type="button"
+              className={publisher.size === 0 ? 'rail-item rail-item-on' : 'rail-item'}
+              aria-pressed={publisher.size === 0}
+              onClick={() => {
+                setOffset(0);
+                setPublisher(ANY);
+              }}
+            >
+              <Icon name="capas" size={16} />
+              <span className="rail-name">Todos los publicadores</span>
+              <span className="rail-n">
+                {publishers.reduce((sum, [, count]) => sum + count, 0)}
+              </span>
+            </button>
+            {publishers.map(([name, count]) => {
+              const on = picked(publisher, name);
+              return (
+                <button
+                  key={name}
+                  type="button"
+                  className={on ? 'rail-item rail-item-on' : 'rail-item'}
+                  aria-pressed={on}
+                  title={multiTitle(name, on)}
+                  onClick={(event) => pickPublisher(name, additive(event))}
+                >
+                  <Icon name={PUBLISHER_ICON[name] ?? 'edificio'} size={16} />
+                  <span className="rail-name">{name}</span>
+                  <span className="rail-n">{count}</span>
+                </button>
+              );
+            })}
+          </div>
         </div>
 
         {frequencies.length > 1 ? (

@@ -714,36 +714,38 @@ export function SubjectsExplorer({ months, totals }: { months: TermMonth[]; tota
             Familia ({families.length})
             <PickedCount choice={family} />
           </div>
-          <button
-            type="button"
-            className={family.size === 0 ? 'rail-item rail-item-on' : 'rail-item'}
-            aria-pressed={family.size === 0}
-            onClick={() => {
-              setFamily(ANY);
-              setTerm('');
-            }}
-          >
-            <Icon name="capas" size={16} />
-            <span className="rail-name">Todas las familias</span>
-            <span className="rail-n">{count(sumOf(familyCounts.values()))}</span>
-          </button>
-          {families.map(([name, fold]) => {
-            const on = picked(family, name);
-            return (
-              <button
-                key={name}
-                type="button"
-                className={on ? 'rail-item rail-item-on' : 'rail-item'}
-                aria-pressed={on}
-                title={multiTitle(FAMILY_LABEL[name] ?? name, on)}
-                onClick={(event) => pickFamily(name, additive(event))}
-              >
-                <Icon name={FAMILY_ICON[name] ?? 'cajas'} size={16} />
-                <span className="rail-name">{FAMILY_LABEL[name] ?? name}</span>
-                <span className="rail-n">{count(fold.mentions)}</span>
-              </button>
-            );
-          })}
+          <div className="rail-list rail-list-cut">
+            <button
+              type="button"
+              className={family.size === 0 ? 'rail-item rail-item-on' : 'rail-item'}
+              aria-pressed={family.size === 0}
+              onClick={() => {
+                setFamily(ANY);
+                setTerm('');
+              }}
+            >
+              <Icon name="capas" size={16} />
+              <span className="rail-name">Todas las familias</span>
+              <span className="rail-n">{count(sumOf(familyCounts.values()))}</span>
+            </button>
+            {families.map(([name, fold]) => {
+              const on = picked(family, name);
+              return (
+                <button
+                  key={name}
+                  type="button"
+                  className={on ? 'rail-item rail-item-on' : 'rail-item'}
+                  aria-pressed={on}
+                  title={multiTitle(FAMILY_LABEL[name] ?? name, on)}
+                  onClick={(event) => pickFamily(name, additive(event))}
+                >
+                  <Icon name={FAMILY_ICON[name] ?? 'cajas'} size={16} />
+                  <span className="rail-name">{FAMILY_LABEL[name] ?? name}</span>
+                  <span className="rail-n">{count(fold.mentions)}</span>
+                </button>
+              );
+            })}
+          </div>
         </div>
 
         <div className="rail-sec">
