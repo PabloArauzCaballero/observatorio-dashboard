@@ -48,7 +48,10 @@ export function ConversationPage() {
     { name: 'Personas en el ranking', value: summary.people.length },
     { name: 'Con comentarios leídos', value: conversation.peopleRead },
     { name: 'Con muestra suficiente para publicar', value: conversation.peoplePublishable },
-    { name: 'Con muestra suficiente en su propio canal', value: channelPublishable },
+    // Solo cuando existe: una barra en cero se lee como un dato roto, no como «todavía no se leyó».
+    ...(channelPublishable > 0
+      ? [{ name: 'Con muestra en su canal', value: channelPublishable }]
+      : []),
   ];
   const wordBars: ShareSlice[] = words
     .slice(0, 15)
