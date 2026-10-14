@@ -167,7 +167,11 @@ function Indice({
                 {seccion.label}
               </a>
               {esActiva && seccion.pages.length > 0 ? (
-                <ul className="site-pages">
+                <ul
+                  className={
+                    seccion.pages.length > 6 ? 'site-pages site-pages-dense' : 'site-pages'
+                  }
+                >
                   {seccion.pages.map((pagina) => (
                     <li key={pagina.label}>
                       <a
