@@ -1,5 +1,6 @@
 'use client';
 
+import { ImageCredits } from './image-credits';
 import { OnOpenNotice, useOnOpen } from './on-open';
 import { SourcesExplorer } from './sources-explorer';
 import { TabHeader } from '@/components/ui/tab-header';
@@ -36,6 +37,7 @@ export function SourcesSection() {
       ) : (
         <OnOpenNotice what="las fuentes" failed={failed} />
       )}
+      <ImageCredits />
     </>
   );
 }

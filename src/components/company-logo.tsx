@@ -26,6 +26,18 @@ function initials(name: string): string {
   return letters.toLocaleUpperCase('es');
 }
 
+/**
+ * Nombres con que el ránking de grandes contribuyentes llama a empresas que ya tienen logotipo bajo
+ * otra clave (la razón social larga frente al nombre comercial del monitor de reputación).
+ */
+const ALIAS: Readonly<Record<string, string>> = {
+  BANCO_SOLIDARIO_S_A_BANCOSOL: 'BANCOSOL',
+  BANCO_PYME_ECOFUTURO: 'BANCO_ECOFUTURO',
+  BANCO_PYME_LOS_ANDES_PROCREDIT: 'BANCO_LOS_ANDES_PROCREDIT',
+  BANCO_PARA_EL_FOMENTO_A_INICIATIVAS_ECONOMICAS_S: 'BANCO_FIE',
+  AIDISA_BOLIVIA: 'AIDISA',
+};
+
 export function CompanyLogo({
   slug,
   name,
@@ -35,7 +47,7 @@ export function CompanyLogo({
   name: string;
   size?: number;
 }) {
-  const file = COMPANY_LOGOS[slug];
+  const file = COMPANY_LOGOS[slug] ?? COMPANY_LOGOS[ALIAS[slug] ?? ''];
   const style = { width: size, height: size };
   if (!file) {
     return (
