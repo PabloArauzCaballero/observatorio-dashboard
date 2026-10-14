@@ -163,7 +163,7 @@ function FullHistory({
       {groups.map((group) => (
         <div key={group.frequency} className="table-wrap" style={{ maxHeight: 480, overflow: 'auto' }}>
           <table className="grid-table">
-            <caption>
+            <caption style={{ textAlign: 'left' }}>
               Frecuencia {FREQ_NAME[group.frequency] ?? group.frequency} · {group.columns.length}{' '}
               lecturas · {group.rows.length} períodos, del más reciente al más antiguo. Una celda
               vacía es un período sin dato; no se rellena.
@@ -183,7 +183,7 @@ function FullHistory({
             <tbody>
               {group.rows.map((row) => (
                 <tr key={row.period}>
-                  <th scope="row">{row.period}</th>
+                  <th scope="row" style={{ textAlign: 'left', fontWeight: 500 }}>{row.period}</th>
                   {row.values.map((value, index) => (
                     <td key={group.columns[index]!.code} className="num">
                       {value === null ? '' : number(value)}

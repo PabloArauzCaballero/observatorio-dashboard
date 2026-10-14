@@ -165,7 +165,7 @@ export function ExogenousCompare({
                     Descargar CSV de la comparación
                   </button>
                   <table className="grid-table">
-                    <caption>
+                    <caption style={{ textAlign: 'left' }}>
                       {result.points.length} períodos, en {result.unit}. Una celda vacía es un período sin dato; no se rellena.
                     </caption>
                     <thead>
@@ -174,7 +174,7 @@ export function ExogenousCompare({
                     <tbody>
                       {[...result.points].reverse().map((point) => (
                         <tr key={point.period}>
-                          <th scope="row">{point.period}</th>
+                          <th scope="row" style={{ textAlign: 'left', fontWeight: 500 }}>{point.period}</th>
                           <td className="num">{point.left === null ? '' : format(point.left)}</td>
                           <td className="num">{point.right === null ? '' : format(point.right)}</td>
                         </tr>
