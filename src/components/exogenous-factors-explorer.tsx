@@ -9,6 +9,7 @@ import type {
   FactorSeries, FactorSeriesResponse,
 } from '@/lib/exogenous-factor-types';
 import { ExogenousFactorComparison } from './exogenous-factor-comparison';
+import { FactorFamilyTable } from './exogenous-factor-family-table';
 import { ViewToggle } from './ui/view-toggle';
 import styles from './exogenous-factors.module.css';
 
@@ -255,7 +256,7 @@ function FamilyDetail({ family, sector }: { family: FactorFamily; sector: string
       <label className={styles.seriesSelect} htmlFor={`${id}-series`}>Serie para consultar
         <select id={`${id}-series`} value={selected.code} onChange={(event) => setPicked(event.target.value)}>{series.map((one) => <option key={one.code} value={one.code}>{one.name} · {one.unit} · {FREQUENCIES[one.frequency] ?? one.frequency}</option>)}</select>
       </label>
-      <HistoryViewer key={selected.code} series={selected} />
+      <HistoryViewer key={selected.code} series={selected} family={series} familyId={family.id} />
       <ExogenousFactorComparison key={`compare-${selected.code}`} series={series} initialCode={selected.code} />
     </>}
   </>;
@@ -322,7 +323,7 @@ function initialFrom(series: FactorSeries, currentYear: number): string {
   return String(Math.min(currentYear, Math.max(2000, latest - span + 1)));
 }
 
-function HistoryViewer({ series }: { series: FactorSeries }) {
+function HistoryViewer({ series, family, familyId }: { series: FactorSeries; family: FactorSeries[]; familyId: string }) {
   const id = useId();
   const currentYear = new Date().getFullYear();
   const [range, setRange] = useState({ from: initialFrom(series, currentYear), to: String(currentYear), asOf: '' });
@@ -346,7 +347,6 @@ function HistoryViewer({ series }: { series: FactorSeries }) {
   const numeric = points.filter((point) => point.value !== null);
   const last = numeric.at(-1);
   const metadata = data?.series ?? series;
-  const tablePoints = points.slice(-100);
 
   const exportCsv = async () => {
     downloadController.current?.abort();
@@ -413,14 +413,10 @@ function HistoryViewer({ series }: { series: FactorSeries }) {
             <YAxis width={74} tick={{ fill: 'var(--ink-soft)', fontSize: 11 }} tickFormatter={(value: number) => number(value)} axisLine={false} tickLine={false} domain={['auto', 'auto']} />
             <Tooltip contentStyle={{ background: 'var(--panel)', border: '1px solid var(--rule)', borderRadius: 8, color: 'var(--ink)' }} formatter={(value) => [typeof value === 'number' ? number(value) : 'Sin dato', series.unit]} />
             <Legend />
-            <Line type="linear" dataKey="value" name={series.name} stroke="var(--series-1)" strokeWidth={2} dot={numeric.length < 40 ? { r: 2 } : false} activeDot={{ r: 4 }} connectNulls={false} isAnimationActive={false} />
+            <Line type="monotone" dataKey="value" name={series.name} stroke="var(--series-1)" strokeWidth={2} dot={numeric.length < 40 ? { r: 2 } : false} activeDot={{ r: 4 }} connectNulls={false} isAnimationActive={false} />
           </LineChart>
         </ResponsiveContainer>
-      </div>} table={
-        <div className={styles.tableScroll}><table><caption>{tablePoints.length < points.length ? `Últimas ${tablePoints.length} observaciones de las ${points.length} cargadas. Descarga el CSV para el período completo.` : 'Observaciones del período cargado.'} Todas las cifras en {series.unit}.</caption>
-          <thead><tr><th scope="col">Período</th><th scope="col">Valor</th><th scope="col">Estado</th><th scope="col">Publicado</th><th scope="col">Disponible desde</th><th scope="col">Fuente</th></tr></thead>
-          <tbody>{tablePoints.map((point) => <tr key={point.period}><th scope="row">{point.period}</th><td>{point.value === null ? 'Sin dato' : number(point.value)}</td><td>{label(point.status)}</td><td>{point.publishedAt?.slice(0, 10) ?? 'No consta'}</td><td>{point.availableAt?.slice(0, 10) || 'No consta'}</td><td><SourceLink url={point.sourceUrl}>Fuente</SourceLink></td></tr>)}</tbody>
-        </table></div>
+      </div>} table={<FactorFamilyTable series={family} familyId={familyId} selectedCode={series.code} />
       } /> : <div className={styles.empty}><strong>No hay valores observados para este período y fecha de corte.</strong><p>Amplía los años o elimina el corte de información para revisar otras observaciones.</p></div>}
       {data.nextCursor && <div className={styles.more}><p>El histórico está paginado. Se muestran {number(points.length)} períodos; todavía quedan observaciones por cargar.</p>
         <button type="button" className={styles.button} disabled={history.moreLoading} onClick={() => void history.loadMore()}>{history.moreLoading ? 'Cargando…' : history.moreError ? 'Reintentar siguiente página' : 'Cargar más observaciones'}</button></div>}

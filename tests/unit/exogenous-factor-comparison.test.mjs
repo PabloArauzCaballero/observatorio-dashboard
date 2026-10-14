@@ -99,13 +99,48 @@ test('no inventa base común cuando sólo existen faltantes, ceros o negativos',
   }
 });
 
-test('rechaza frecuencias distintas en los tres modos y unidades incompatibles en niveles/cambios', () => {
-  for (const mode of ['LEVEL', 'BASE100', 'CHANGE']) {
-    assert.throws(
-      () => compareFactorSeries(input({ mode, rightSeries: series({ frequency: 'ANNUAL' }) })),
-      /frecuencias distintas/,
-    );
-  }
+test('frecuencias distintas se llevan a la más gruesa promediando, sin interpolar', () => {
+  const result = compareFactorSeries(
+    input({
+      mode: 'BASE100',
+      leftSeries: series({ name: 'Trigo mensual' }),
+      rightSeries: series({ frequency: 'ANNUAL', unit: 'US$/kg', name: 'Harina anual' }),
+      leftPoints: [
+        point('2023-01', 10),
+        point('2023-02', 20),
+        point('2024-01', 30),
+        point('2024-02', null, 'MISSING'),
+      ],
+      rightPoints: [point('2023', 4), point('2024', 6), point('2025', 8)],
+    }),
+  );
+  assert.equal(result.frequency, 'ANNUAL');
+  assert.equal(result.basePeriod, '2023');
+  assert.deepEqual(result.points, [
+    { period: '2023', left: 100, right: 100 },
+    { period: '2024', left: 200, right: 150 },
+    { period: '2025', left: null, right: 200 },
+  ]);
+  assert.ok(result.warnings.some((message) => /promedió por año/.test(message)));
+});
+
+test('un precio diario se promedia por mes frente a una serie mensual', () => {
+  const result = compareFactorSeries(
+    input({
+      mode: 'LEVEL',
+      leftSeries: series({ frequency: 'DAILY' }),
+      leftPoints: [point('2024-01-02', 10), point('2024-01-03', 20), point('2024-02-01', 5)],
+      rightPoints: [point('2024-01', 1), point('2024-02', 2)],
+    }),
+  );
+  assert.equal(result.frequency, 'MONTHLY');
+  assert.deepEqual(result.points, [
+    { period: '2024-01', left: 15, right: 1 },
+    { period: '2024-02', left: 5, right: 2 },
+  ]);
+});
+
+test('unidades y tipos de medida incompatibles se rechazan en niveles y cambios', () => {
   assert.throws(
     () => compareFactorSeries(input({ rightSeries: series({ unit: 'BOB/t' }) })),
     /misma unidad/,
