@@ -1526,5 +1526,320 @@
     "domain": "ypfb.gob.bo",
     "home": "https://www.ypfb.gob.bo/",
     "confidence": "high"
+  },
+  "YACIMIENTOS_PETROLIFEROS_FISCALES_BOLIVIANOS": {
+    "domain": "ypfb.gob.bo",
+    "home": "https://www.ypfb.gob.bo/",
+    "confidence": "high",
+    "note": "portada comprobada: el título nombra a la empresa"
+  },
+  "YPFB_CHACO": {
+    "domain": "ypfbchaco.com.bo",
+    "home": "https://www.ypfbchaco.com.bo/",
+    "confidence": "high",
+    "note": "portada comprobada: el título nombra a la empresa"
+  },
+  "YPFB_LOGISTICA": {
+    "domain": "ypfblogistica.com.bo",
+    "home": "https://www.ypfblogistica.com.bo/",
+    "confidence": "high",
+    "note": "portada comprobada: el título nombra a la empresa"
+  },
+  "YPFB_REFINACION": {
+    "domain": "ypfbrefinacion.com.bo",
+    "home": "https://www.ypfbrefinacion.com.bo/",
+    "confidence": "high",
+    "note": "portada comprobada: el título nombra a la empresa",
+    "logo": false
+  },
+  "YPFB_TRANSIERRA": {
+    "domain": "ypfbtransierra.com.bo",
+    "home": "https://www.ypfbtransierra.com.bo/",
+    "confidence": "high",
+    "note": "portada comprobada: el título nombra a la empresa"
+  },
+  "NAVEGACION_AEREA_Y_AEROPUERTOS_BOLIVIANOS": {
+    "domain": "naabol.gob.bo",
+    "home": "https://www.naabol.gob.bo/",
+    "confidence": "high",
+    "note": "portada comprobada: el título nombra a la empresa"
+  },
+  "EMPRESA_DE_CORREOS_DE_BOLIVIA_ECOBOL": {
+    "domain": "correos.gob.bo",
+    "home": "https://www.correos.gob.bo/",
+    "confidence": "high",
+    "note": "portada comprobada: el título nombra a la empresa"
+  },
+  "EPSAS_EMPRESA_PUBLICA_SOCIAL_DE_AGUA_Y_SANEAMIEN": {
+    "domain": "epsas.com.bo",
+    "home": "https://www.epsas.com.bo/",
+    "confidence": "high",
+    "note": "portada comprobada: el título nombra a la empresa"
+  },
+  "EMPRESA_PUBLICA_SOCIAL_DE_AGUA_Y_SANEAMIENTO_S_A": {
+    "domain": "epsas.com.bo",
+    "home": "https://www.epsas.com.bo/",
+    "confidence": "high",
+    "note": "portada comprobada: el título nombra a la empresa"
+  },
+  "COOPERATIVA_DE_SERVICIOS_PUBLICOS_SANTA_CRUZ": {
+    "domain": "saguapac.com.bo",
+    "home": "https://www.saguapac.com.bo/",
+    "confidence": "high",
+    "note": "portada comprobada: el título nombra a la empresa"
+  },
+  "COOPERATIVA_BOLIVIANA_DE_CEMENTO_INDUSTRIAS_Y_SE": {
+    "domain": "coboce.com",
+    "home": "https://www.coboce.com/",
+    "confidence": "high",
+    "note": "portada comprobada: el título nombra a la empresa"
+  },
+  "COOPERATIVA_MULTIACTIVA_COBOCE": {
+    "domain": "coboce.com",
+    "home": "https://www.coboce.com/",
+    "confidence": "high",
+    "note": "portada comprobada: el título nombra a la empresa"
+  },
+  "UNION_AGROINDUSTRIAL_DE_CANEROS_UNAGRO": {
+    "domain": "unagro.com.bo",
+    "home": "https://www.unagro.com.bo/",
+    "confidence": "high",
+    "note": "portada comprobada: el título nombra a la empresa"
+  },
+  "LABORATORIOS_BAGO_DE_BOLIVIA": {
+    "domain": "bago.com.bo",
+    "home": "https://www.bago.com.bo/",
+    "confidence": "high",
+    "note": "portada comprobada: el título nombra a la empresa"
+  },
+  "LABORATORIOS_DE_COSMETICA_Y_FARMOQUIMICA_S_A_COF": {
+    "domain": "cofar.com.bo",
+    "home": "https://www.cofar.com.bo/",
+    "confidence": "high",
+    "note": "portada comprobada: el título nombra a la empresa"
+  },
+  "LABORATORIO_DE_COSMETICA_Y_FARMOQUIMICA_S_A_COFA": {
+    "domain": "cofar.com.bo",
+    "home": "https://www.cofar.com.bo/",
+    "confidence": "high",
+    "note": "portada comprobada: el título nombra a la empresa"
+  },
+  "CARGILL_BOLIVIA": {
+    "domain": "cargill.com",
+    "home": "https://www.cargill.com/",
+    "confidence": "high",
+    "note": "portada comprobada: el título nombra a la empresa",
+    "logo": false
+  },
+  "HUAWEI_TECHNOLOGIES_BOLIVIA": {
+    "domain": "huawei.com",
+    "home": "https://www.huawei.com/",
+    "confidence": "high",
+    "note": "portada comprobada: el título nombra a la empresa"
+  },
+  "ZTE_BOLIVIA": {
+    "domain": "zte.com.cn",
+    "home": "https://www.zte.com.cn/",
+    "confidence": "high",
+    "note": "portada comprobada: el título nombra a la empresa"
+  },
+  "UNILEVER_ANDINA_BOLIVIA": {
+    "domain": "unilever.com",
+    "home": "https://www.unilever.com/",
+    "confidence": "high",
+    "note": "portada comprobada: el título nombra a la empresa"
+  },
+  "SHELL_BOLIVIA_CORPORATION": {
+    "domain": "shell.com",
+    "home": "https://www.shell.com/",
+    "confidence": "high",
+    "note": "portada comprobada: el título nombra a la empresa"
+  },
+  "REPSOL_BOLIVIA": {
+    "domain": "repsol.com",
+    "home": "https://www.repsol.com/",
+    "confidence": "high",
+    "note": "portada comprobada: el título nombra a la empresa"
+  },
+  "REPSOL_E_P_BOLIVIA": {
+    "domain": "repsol.com",
+    "home": "https://www.repsol.com/",
+    "confidence": "high",
+    "note": "portada comprobada: el título nombra a la empresa"
+  },
+  "TOTAL_ENERGIES_EP_BOLIVIE": {
+    "domain": "totalenergies.com",
+    "home": "https://www.totalenergies.com/",
+    "confidence": "high",
+    "note": "portada comprobada: el título nombra a la empresa"
+  },
+  "TOTAL_E_P_BOLIVIE": {
+    "domain": "totalenergies.com",
+    "home": "https://www.totalenergies.com/",
+    "confidence": "high",
+    "note": "portada comprobada: el título nombra a la empresa"
+  },
+  "HALLIBURTON_LATIN_AMERICA_S_R_L_SUCURSAL_BOLIVIA": {
+    "domain": "halliburton.com",
+    "home": "https://www.halliburton.com/",
+    "confidence": "high",
+    "note": "portada comprobada: el título nombra a la empresa"
+  },
+  "SCHLUMBERGER_SURENCO_S_A_SUCURSAL_BOLIVIA": {
+    "domain": "slb.com",
+    "home": "https://www.slb.com/",
+    "confidence": "high",
+    "note": "portada comprobada: el título nombra a la empresa"
+  },
+  "BAKER_HUGHES_INTERNATIONAL_BRANCHES_INC": {
+    "domain": "bakerhughes.com",
+    "home": "https://www.bakerhughes.com/",
+    "confidence": "high",
+    "note": "portada comprobada: el título nombra a la empresa"
+  },
+  "WEATHERFORD_LATIN_AMERICA_INC_SUC_BOLIVIA": {
+    "domain": "weatherford.com",
+    "home": "https://www.weatherford.com/",
+    "confidence": "high",
+    "note": "portada comprobada: el título nombra a la empresa"
+  },
+  "PRAXAIR_BOLIVIA": {
+    "domain": "linde.com",
+    "home": "https://www.linde.com/",
+    "confidence": "high",
+    "note": "portada comprobada: el título nombra a la empresa"
+  },
+  "COMPANIA_PANAMENA_DE_AVIACION_S_A_COPA_AIRLINES": {
+    "domain": "copaair.com",
+    "home": "https://www.copaair.com/",
+    "confidence": "high",
+    "note": "portada comprobada: el título nombra a la empresa"
+  },
+  "AEROVIAS_DEL_CONTINENTE_AMERICANO_S_A_AVIANCA": {
+    "domain": "avianca.com",
+    "home": "https://www.avianca.com/",
+    "confidence": "high",
+    "note": "portada comprobada: el título nombra a la empresa"
+  },
+  "AVIANCA_PERU": {
+    "domain": "avianca.com",
+    "home": "https://www.avianca.com/",
+    "confidence": "high",
+    "note": "portada comprobada: el título nombra a la empresa"
+  },
+  "AIR_EUROPA_LINEAS_AEREAS_S_A_U_SUCURSAL_EN_BOLIV": {
+    "domain": "aireuropa.com",
+    "home": "https://www.aireuropa.com/",
+    "confidence": "high",
+    "note": "portada comprobada: el título nombra a la empresa"
+  },
+  "YANBAL_DE_BOLIVIA": {
+    "domain": "yanbal.com",
+    "home": "https://www.yanbal.com/",
+    "confidence": "high",
+    "note": "portada comprobada: el título nombra a la empresa"
+  },
+  "DXN_BOLIVIA": {
+    "domain": "dxn2u.com",
+    "home": "https://www.dxn2u.com/",
+    "confidence": "high",
+    "note": "portada comprobada: el título nombra a la empresa"
+  },
+  "TECHINT_INGENIERIA_Y_CONSTRUCCION_BOLIVIA_S_A_TE": {
+    "domain": "techint.com",
+    "home": "https://www.techint.com/",
+    "confidence": "high",
+    "note": "portada comprobada: el título nombra a la empresa"
+  },
+  "MAXAM_FANEXA": {
+    "domain": "maxamcorp.com",
+    "home": "https://www.maxamcorp.com/",
+    "confidence": "high",
+    "note": "portada comprobada: el título nombra a la empresa"
+  },
+  "SOCIEDAD_COMERCIAL_E_INDUSTRIAL_HANSA": {
+    "domain": "hansa.com.bo",
+    "home": "https://www.hansa.com.bo/",
+    "confidence": "high",
+    "note": "portada comprobada: el título nombra a la empresa"
+  },
+  "NACIONAL_SEGUROS_PATRIMONIALES_Y_FIANZAS": {
+    "domain": "nacionalseguros.com.bo",
+    "home": "https://www.nacionalseguros.com.bo/",
+    "confidence": "high",
+    "note": "portada comprobada: el título nombra a la empresa"
+  },
+  "SEGUROS_Y_REASEGUROS_PERSONALES_UNIVIDA": {
+    "domain": "univida.bo",
+    "home": "https://www.univida.bo/",
+    "confidence": "high",
+    "note": "portada comprobada: el título nombra a la empresa"
+  },
+  "UNIVERSIDAD_CATOLICA_BOLIVIANA_SAN_PABLO": {
+    "domain": "ucb.edu.bo",
+    "home": "https://www.ucb.edu.bo/",
+    "confidence": "high",
+    "note": "portada comprobada: el título nombra a la empresa"
+  },
+  "UNIVERSIDAD_PRIVADA_DEL_VALLE": {
+    "domain": "univalle.edu",
+    "home": "https://www.univalle.edu/",
+    "confidence": "high",
+    "note": "portada comprobada: el título nombra a la empresa"
+  },
+  "POLICIA_BOLIVIANA": {
+    "domain": "policia.bo",
+    "home": "https://www.policia.bo/",
+    "confidence": "high",
+    "note": "portada comprobada: el título nombra a la empresa"
+  },
+  "SOALPRO": {
+    "domain": "soalpro.com",
+    "home": "https://www.soalpro.com/",
+    "confidence": "high",
+    "note": "portada comprobada: el título nombra a la empresa"
+  },
+  "SOCIEDAD_DE_ALIMENTOS_PROCESADOS_SANTIAGO_S_R_L_": {
+    "domain": "soalpro.com",
+    "home": "https://www.soalpro.com/",
+    "confidence": "high",
+    "note": "portada comprobada: el título nombra a la empresa"
+  },
+  "INDUSTRIAS_FERROTODO": {
+    "domain": "ferrotodo.com",
+    "home": "https://www.ferrotodo.com/",
+    "confidence": "high",
+    "note": "portada comprobada: el título nombra a la empresa"
+  },
+  "GAS_TRANSBOLIVIANO": {
+    "domain": "gtb.com.bo",
+    "home": "https://www.gtb.com.bo/",
+    "confidence": "high",
+    "note": "portada comprobada: el título nombra a la empresa"
+  },
+  "INTERCONEXION_ELECTRICA_ISA_BOLIVIA": {
+    "domain": "isa.com.bo",
+    "home": "https://www.isa.com.bo/",
+    "confidence": "high",
+    "note": "portada comprobada: el título nombra a la empresa"
+  },
+  "EMPRESA_NACIONAL_DE_ELECTRICIDAD_ENDE": {
+    "domain": "ende.bo",
+    "home": "https://www.ende.bo/",
+    "confidence": "high",
+    "note": "portada comprobada: el título nombra a la empresa"
+  },
+  "ENDE_TRANSMISION": {
+    "domain": "ende.bo",
+    "home": "https://www.ende.bo/",
+    "confidence": "high",
+    "note": "portada comprobada: el título nombra a la empresa"
+  },
+  "TELEFONICA_CELULAR_DE_BOLIVIA": {
+    "domain": "tigo.com.bo",
+    "home": "https://www.tigo.com.bo/",
+    "confidence": "high",
+    "note": "portada comprobada: el título nombra a la empresa",
+    "logo": false
   }
 }

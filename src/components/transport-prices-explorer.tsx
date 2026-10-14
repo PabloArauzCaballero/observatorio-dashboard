@@ -7,6 +7,7 @@ import { Panel } from '@/components/ui/panel';
 import { FilterHint, PickedCount } from './filters';
 import { Icon } from './icons';
 import { Pager } from './pager';
+import { VehicleModelGallery } from './vehicle-model-gallery';
 import { OnOpenNotice, useOnOpen } from './on-open';
 import {
   FareChangesFigure,
@@ -336,6 +337,28 @@ function VehiclePriceBoard({
           </div>
         </FilterRail>
         <div className="workspace-main">
+          <Panel
+            id="vehiculos-modelos"
+            className="transp"
+            title="Modelos de la selección (versiones y rango de precio anunciado)"
+            lede="Un ejemplar fotografiado de cada modelo, con licencia libre: no es necesariamente la versión ni el año que anuncia el representante."
+            source={SOURCE_VEHICLES}
+            {...(observedAt ? { updated: observedAt } : {})}
+            data={{
+              columnas: ['Marca', 'Modelo', 'Versiones'],
+              filas: [...new Set(selected.map((row) => `${row.brand}|${row.model}`))].map((key) => {
+                const [brandName = '', modelName = ''] = key.split('|');
+                return [
+                  brandName,
+                  modelName,
+                  selected.filter((row) => row.brand === brandName && row.model === modelName).length,
+                ];
+              }),
+              nota: 'Cifras de la selección vigente en los filtros. Fotos: ver «Método › Créditos de las imágenes».',
+            }}
+          >
+            <VehicleModelGallery rows={selected} money={money} />
+          </Panel>
           <Panel
             id="vehiculos-cobertura"
             className="transp"

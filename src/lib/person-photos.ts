@@ -10,7 +10,29 @@
  * fotos: se retiraron. Una persona vuelve a tener imagen sólo con una fotografía real y
  * autorizada en `public/people/`, una por persona, anotada aquí por su clave.
  */
-export const PERSON_PHOTOS: Readonly<Record<string, string>> = {};
+export const PERSON_PHOTOS: Readonly<Record<string, string>> = {
+  ANABEL_ANGUS: 'anabel-angus.webp',
+  CARLOS_MESA: 'carlos-mesa.webp',
+  EDMAND_LARA: 'edmand-lara.webp',
+  ELVIRA_ESPEJO_AYCA: 'elvira-espejo-ayca.webp',
+  EVA_COPA: 'eva-copa.webp',
+  EVO_MORALES: 'evo-morales.webp',
+  JORGE_QUIROGA_RAMIREZ: 'jorge-quiroga-ramirez.webp',
+  LUIS_ARCE: 'luis-arce.webp',
+  MANFRED_REYES_VILLA: 'manfred-reyes-villa.webp',
+  MARCELO_CLAURE: 'marcelo-claure.webp',
+  MARIA_GALINDO: 'maria-galindo.webp',
+  MIGUEL_KRIGSNER: 'miguel-krigsner.webp',
+  RODRIGO_PAZ_PEREIRA: 'rodrigo-paz-pereira.webp',
+  SAMUEL_DORIA_MEDINA: 'samuel-doria-medina.webp',
+  // Nombres cortos con que otras fuentes llaman a la misma persona.
+  ELVIRA_ESPEJO: 'elvira-espejo-ayca.webp',
+  JORGE_QUIROGA: 'jorge-quiroga-ramirez.webp',
+  JORGE_TUTO_QUIROGA: 'jorge-quiroga-ramirez.webp',
+  LUIS_ARCE_CATACORA: 'luis-arce.webp',
+  RODRIGO_PAZ: 'rodrigo-paz-pereira.webp',
+  SAMUEL_DORIA: 'samuel-doria-medina.webp',
+};
 
 /**
  * Devuelve el nombre de archivo en `public/people/` si existe correspondencia exacta o normalizada por clave o nombre.

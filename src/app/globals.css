@@ -9916,3 +9916,51 @@ button.download-btn {
   font-variant-numeric: tabular-nums;
 }
 .social-comment-summary strong { color: var(--ink); }
+
+/* === Transporte · Vehículos 0 km: galería de modelos === */
+.vehicle-gallery {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 14rem), 1fr));
+  gap: 0.9rem;
+}
+.vehicle-card {
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--rule);
+  border-radius: 0.6rem;
+  overflow: hidden;
+  background: var(--panel);
+}
+.vehicle-card-photo {
+  aspect-ratio: 3 / 2;
+  background: var(--panel-tint);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.vehicle-card-photo img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+.vehicle-card-photo span {
+  font-size: 1.4rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: var(--ink-faint);
+}
+.vehicle-card-body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  padding: 0.6rem 0.75rem 0.75rem;
+  font-size: 0.85rem;
+}
+.vehicle-card-body span {
+  color: var(--ink-soft);
+  font-variant-numeric: tabular-nums;
+}
