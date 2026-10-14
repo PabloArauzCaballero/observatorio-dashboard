@@ -17,8 +17,68 @@ export interface FactorComparisonResult {
   points: Array<{ period: string; left: number | null; right: number | null }>;
   warnings: string[];
   description: string;
+  /** Frecuencia en que quedó la comparación: la más gruesa de las dos series. */
+  frequency: string;
 }
 export class FactorComparisonError extends Error {}
+
+const FREQUENCY_RANK: Record<string, number> = {
+  DAILY: 0,
+  WEEKLY: 1,
+  MONTHLY: 2,
+  QUARTERLY: 3,
+  ANNUAL: 4,
+};
+const FREQUENCY_LABEL: Record<string, string> = {
+  DAILY: 'diaria',
+  WEEKLY: 'semanal',
+  MONTHLY: 'mensual',
+  QUARTERLY: 'trimestral',
+  ANNUAL: 'anual',
+};
+const BUCKET_LABEL: Record<string, string> = {
+  WEEKLY: 'semana',
+  MONTHLY: 'mes',
+  QUARTERLY: 'trimestre',
+  ANNUAL: 'año',
+};
+
+/** El período de la frecuencia gruesa al que pertenece uno más fino: «2024-03-05» → «2024-03» → «2024». */
+export function bucketOfPeriod(period: string, target: string): string | null {
+  const year = /^(\d{4})(?:-(\d{2}))?/.exec(period);
+  if (!year) return null;
+  if (target === 'ANNUAL') return year[1]!;
+  if (target === 'MONTHLY') return year[2] ? `${year[1]}-${year[2]}` : null;
+  if (target === 'QUARTERLY') {
+    if (/^\d{4}-Q[1-4]$/.test(period)) return period;
+    return year[2] ? `${year[1]}-Q${Math.ceil(Number(year[2]) / 3)}` : null;
+  }
+  return null;
+}
+
+/**
+ * Lleva una serie a una frecuencia más gruesa promediando lo observado dentro de cada
+ * período (el promedio mensual de un precio diario, el promedio anual de uno mensual).
+ * No inventa valores: un período sin observaciones queda nulo.
+ */
+function toCoarser(values: Map<string, number | null>, target: string): Map<string, number | null> {
+  const sums = new Map<string, { sum: number; count: number }>();
+  for (const [period, value] of values) {
+    const bucket = bucketOfPeriod(period, target);
+    if (bucket === null) {
+      throw new FactorComparisonError(
+        'No se puede llevar una de las series a la frecuencia de la otra: sus períodos no son compatibles.',
+      );
+    }
+    const slot = sums.get(bucket) ?? { sum: 0, count: 0 };
+    if (value !== null) {
+      slot.sum += value;
+      slot.count += 1;
+    }
+    sums.set(bucket, slot);
+  }
+  return new Map([...sums].map(([bucket, { sum, count }]) => [bucket, count ? sum / count : null]));
+}
 
 const BASE_TYPES = new Set(['PRICE', 'INDEX', 'STOCK', 'FLOW', 'QUANTITY', 'COUNT', 'DURATION']);
 const CHANGE_TYPES = new Set(['RATE', 'PROPORTION']);
@@ -47,10 +107,10 @@ export function compareFactorSeries(input: FactorComparisonInput): FactorCompari
   if (!['LEVEL', 'BASE100', 'CHANGE'].includes(mode)) {
     throw new FactorComparisonError('Modo de comparación no válido.');
   }
-  if (leftSeries.frequency !== rightSeries.frequency) {
-    throw new FactorComparisonError(
-      'Las series tienen frecuencias distintas. No se agregan ni interpolan automáticamente.',
-    );
+  const leftRank = FREQUENCY_RANK[leftSeries.frequency];
+  const rightRank = FREQUENCY_RANK[rightSeries.frequency];
+  if (leftSeries.frequency !== rightSeries.frequency && (leftRank === undefined || rightRank === undefined)) {
+    throw new FactorComparisonError('La frecuencia de una de las series no es reconocida.');
   }
   const leftForecast = leftSeries.observationStatus === 'FORECAST';
   const rightForecast = rightSeries.observationStatus === 'FORECAST';
@@ -94,12 +154,24 @@ export function compareFactorSeries(input: FactorComparisonInput): FactorCompari
     );
   }
 
-  const left = observedValues(leftPoints);
-  const right = observedValues(rightPoints);
+  let left = observedValues(leftPoints);
+  let right = observedValues(rightPoints);
+  const warnings = ['Una comparación descriptiva no demuestra causalidad'];
+  /* Frecuencias distintas: la más fina se promedia al período de la más gruesa. Nunca se interpola. */
+  let frequency = leftSeries.frequency;
+  if (leftSeries.frequency !== rightSeries.frequency) {
+    const finerIsLeft = leftRank! < rightRank!;
+    frequency = finerIsLeft ? rightSeries.frequency : leftSeries.frequency;
+    const finer = finerIsLeft ? leftSeries : rightSeries;
+    if (finerIsLeft) left = toCoarser(left, frequency);
+    else right = toCoarser(right, frequency);
+    warnings.push(
+      `«${finer.name}» es ${FREQUENCY_LABEL[finer.frequency]} y la otra serie es ${FREQUENCY_LABEL[frequency]}: se promedió por ${BUCKET_LABEL[frequency]} lo observado, sin interpolar. El último período puede promediar solo los datos disponibles.`,
+    );
+  }
   const periods = [...new Set([...left.keys(), ...right.keys()])].sort((a, b) =>
     a.localeCompare(b),
   );
-  const warnings = ['Una comparación descriptiva no demuestra causalidad'];
   if (leftForecast)
     warnings.push(
       'Ambas series son pronósticos; sus valores no representan resultados realizados.',
@@ -175,5 +247,6 @@ export function compareFactorSeries(input: FactorComparisonInput): FactorCompari
     points,
     warnings,
     description,
+    frequency,
   };
 }

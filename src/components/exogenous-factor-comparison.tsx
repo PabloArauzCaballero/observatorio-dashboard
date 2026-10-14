@@ -6,16 +6,15 @@ import {
   compareFactorSeries, FactorComparisonError,
   type FactorComparisonMode, type FactorComparisonResult,
 } from '@/lib/exogenous-factor-comparison';
-import type { FactorHistoryResponse, FactorObservation, FactorSeries } from '@/lib/exogenous-factor-types';
+import { fetchCompleteHistory, FactorFetchError } from '@/lib/exogenous-factor-client';
+import { downloadCsv } from '@/lib/csv';
+import type { FactorSeries } from '@/lib/exogenous-factor-types';
 import { ViewToggle } from './ui/view-toggle';
 import styles from './exogenous-factors.module.css';
 
-const MAX_POINTS = 20_000;
 const FREQUENCIES: Record<string, string> = { DAILY: 'Diaria', WEEKLY: 'Semanal', MONTHLY: 'Mensual', QUARTERLY: 'Trimestral', ANNUAL: 'Anual' };
 const format = (value: number) => new Intl.NumberFormat('es-BO', { maximumFractionDigits: 4 }).format(value);
-class ComparisonFetchError extends Error {}
 
-interface CompleteSeries { series: FactorSeries; points: FactorObservation[]; warnings: string[] }
 interface ComparisonRequest {
   left: string; right: string; from: string; to: string;
   asOf: string; chosenDate: string; mode: FactorComparisonMode;
@@ -24,42 +23,6 @@ interface ComparisonState {
   key: string; result: FactorComparisonResult | null;
   left: FactorSeries | null; right: FactorSeries | null;
   warnings: string[]; progress: [number, number]; error: string | null;
-}
-
-/** Nunca compara páginas parciales: la misma fecha de conocimiento fija ambas consultas. */
-async function completeHistory(
-  code: string, request: ComparisonRequest, signal: AbortSignal, progress: (count: number) => void,
-): Promise<CompleteSeries> {
-  const params = new URLSearchParams({ series: code, from: request.from, to: request.to, asOf: request.asOf, pageSize: '500' });
-  const points = new Map<string, FactorObservation>();
-  const warnings = new Set<string>();
-  const cursors = new Set<string>();
-  let metadata: FactorSeries | null = null;
-  for (let page = 0; page < MAX_POINTS / 500; page += 1) {
-    const response = await fetch(`/api/exogenas/factores?${params}`, { signal });
-    if (!response.ok) throw new ComparisonFetchError('No se pudo completar una de las series. Reintenta la consulta.');
-    const body = await response.json() as FactorHistoryResponse;
-    if (signal.aborted) throw new DOMException('Consulta cancelada', 'AbortError');
-    if (metadata && (
-      metadata.unit !== body.series.unit || metadata.frequency !== body.series.frequency || metadata.measureType !== body.series.measureType ||
-      metadata.geography !== body.series.geography || metadata.observationStatus !== body.series.observationStatus ||
-      metadata.measurementStatus !== body.series.measurementStatus || metadata.transformationType !== body.series.transformationType
-    )) {
-      throw new ComparisonFetchError('La definición de una serie cambió entre páginas. Reintenta para obtener una lectura consistente.');
-    }
-    metadata = body.series;
-    for (const point of body.points) {
-      if (points.has(point.period)) throw new ComparisonFetchError('El histórico repite un período entre páginas. Reintenta para comparar una sola revisión por período.');
-      points.set(point.period, point);
-    }
-    body.warnings.forEach((warning) => warnings.add(warning));
-    progress(points.size);
-    if (!body.nextCursor) return { series: metadata, points: [...points.values()].sort((a, b) => a.period.localeCompare(b.period)), warnings: [...warnings] };
-    if (cursors.has(body.nextCursor)) throw new ComparisonFetchError('No se pudo completar la paginación. La comparación no se presenta con datos parciales.');
-    cursors.add(body.nextCursor);
-    params.set('cursor', body.nextCursor);
-  }
-  throw new ComparisonFetchError(`La consulta supera el límite de ${format(MAX_POINTS)} observaciones por serie. Reduce el período para comparar.`);
 }
 
 function Source({ series }: { series: FactorSeries }) {
@@ -94,8 +57,8 @@ export function ExogenousFactorComparison({ series, initialCode }: { series: Fac
       });
     };
     Promise.all([
-      completeHistory(request.left, request, controller.signal, progress(0)),
-      completeHistory(request.right, request, controller.signal, progress(1)),
+      fetchCompleteHistory(request.left, request, controller.signal, progress(0)),
+      fetchCompleteHistory(request.right, request, controller.signal, progress(1)),
     ]).then(([left, right]) => {
       if (controller.signal.aborted) return;
       const result = compareFactorSeries({ leftSeries: left.series, rightSeries: right.series, leftPoints: left.points, rightPoints: right.points, mode: request.mode });
@@ -103,7 +66,7 @@ export function ExogenousFactorComparison({ series, initialCode }: { series: Fac
     }).catch((error: unknown) => {
       if (controller.signal.aborted) return;
       controller.abort();
-      setState((old) => old.key === key ? { ...old, error: error instanceof FactorComparisonError || error instanceof ComparisonFetchError ? error.message : 'No se pudo preparar la comparación. Reintenta la consulta.' } : old);
+      setState((old) => old.key === key ? { ...old, error: error instanceof FactorComparisonError || error instanceof FactorFetchError ? error.message : 'No se pudo preparar la comparación. Reintenta la consulta.' } : old);
     });
     return () => controller.abort();
   }, [request, key]);
@@ -121,7 +84,7 @@ export function ExogenousFactorComparison({ series, initialCode }: { series: Fac
   return <details className={styles.comparison}>
     <summary>Comparar dos series de esta familia</summary>
     <div className={styles.comparisonBody}>
-      <p className={styles.muted}>Se comparan dos series con la misma frecuencia, sin interpolar ni convertir unidades. La base o el cambio se calculan desde un período común. Los controles de esta comparación son independientes del gráfico individual.</p>
+      <p className={styles.muted}>Se comparan dos series sin interpolar ni convertir unidades. Si una es mensual y la otra anual, la más frecuente se promedia al período de la más gruesa y la comparación lo dice. La base o el cambio se calculan desde un período común. Los controles de esta comparación son independientes del gráfico individual.</p>
       <form className={styles.comparisonForm} onSubmit={(event) => {
         event.preventDefault();
         if (!draft.left || !draft.right || draft.left === draft.right) { setValidation('Selecciona dos series distintas.'); return; }
@@ -169,15 +132,25 @@ export function ExogenousFactorComparison({ series, initialCode }: { series: Fac
                 <YAxis width={74} tick={{ fill: 'var(--ink-soft)', fontSize: 11 }} tickFormatter={(value: number) => format(value)} domain={['auto', 'auto']} axisLine={false} tickLine={false} />
                 <Tooltip contentStyle={{ background: 'var(--panel)', border: '1px solid var(--rule)', color: 'var(--ink)' }} formatter={(value, name) => [typeof value === 'number' ? `${format(value)} ${result.unit}` : 'Sin dato', name]} />
                 <Legend formatter={(name) => <span className={styles.comparisonLegend}>{name}</span>} />
-                <Line type="linear" dataKey="left" name={state.left.name} stroke="var(--series-1)" strokeWidth={2} dot={false} connectNulls={false} isAnimationActive={false} />
-                <Line type="linear" dataKey="right" name={state.right.name} stroke="var(--series-2)" strokeWidth={2} strokeDasharray="6 3" dot={false} connectNulls={false} isAnimationActive={false} />
+                <Line type="monotone" dataKey="left" name={state.left.name} stroke="var(--series-1)" strokeWidth={2} dot={false} connectNulls={false} isAnimationActive={false} />
+                <Line type="monotone" dataKey="right" name={state.right.name} stroke="var(--series-2)" strokeWidth={2} strokeDasharray="6 3" dot={false} connectNulls={false} isAnimationActive={false} />
               </LineChart>
             </ResponsiveContainer>
-          </div>} table={<div className={styles.tableScroll}><table>
-            <caption>Últimos {Math.min(result.points.length, 100)} períodos comparados, en {result.unit}. Las descargas individuales conservan los datos originales.</caption>
-            <thead><tr><th scope="col">Período</th><th scope="col">{state.left.name}</th><th scope="col">{state.right.name}</th></tr></thead>
-            <tbody>{result.points.slice(-100).map((point) => <tr key={point.period}><th scope="row">{point.period}</th><td>{point.left === null ? 'Sin dato' : format(point.left)}</td><td>{point.right === null ? 'Sin dato' : format(point.right)}</td></tr>)}</tbody>
-          </table></div>} />
+          </div>} table={<div className={styles.familyTable}>
+            <div className={styles.export}>
+              <button type="button" className={styles.button} onClick={() => downloadCsv(
+                `comparacion_${request.left}_${request.right}.csv`,
+                ['periodo', state.left!.name, state.right!.name],
+                result.points.map((point) => [point.period, point.left, point.right]),
+              )}>Descargar CSV de la comparación</button>
+              <span>{format(result.points.length)} períodos, en {result.unit}.</span>
+            </div>
+            <div className={styles.tableScroll}><table>
+              <caption>Todos los períodos comparados, en {result.unit}. Una celda vacía es un período sin observación; no se rellena. Las descargas individuales conservan los datos originales.</caption>
+              <thead><tr><th scope="col">Período</th><th scope="col">{state.left.name}</th><th scope="col">{state.right.name}</th></tr></thead>
+              <tbody>{[...result.points].reverse().map((point) => <tr key={point.period}><th scope="row">{point.period}</th><td className={styles.num}>{point.left === null ? '' : format(point.left)}</td><td className={styles.num}>{point.right === null ? '' : format(point.right)}</td></tr>)}</tbody>
+            </table></div>
+          </div>} />
         </> : <p className={styles.empty}>No hay períodos comparables dentro del rango y corte seleccionados.</p>}
         <div className={styles.comparisonSources}><Source series={state.left} /><Source series={state.right} /></div>
       </>}

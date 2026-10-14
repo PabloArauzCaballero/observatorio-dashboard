@@ -41,6 +41,13 @@ export function factorPageMetadata(
   return series[exportAll ? series.length - 1 : Math.min(pageSize, series.length) - 1];
 }
 
+/**
+ * Series que el lector ya tiene en su propia página y que el explorador de factores no repite.
+ * El tipo de cambio oficial vive en «Tipo de cambio»; aquí no se vuelve a dibujar.
+ */
+const SHOWN_ELSEWHERE: ReadonlySet<string> = new Set(['EXO_FX_USD']);
+export const isShownElsewhere = (code: string): boolean => SHOWN_ELSEWHERE.has(code);
+
 export const normalizeFactorText = (value: string): string =>
   value
     .normalize('NFD')

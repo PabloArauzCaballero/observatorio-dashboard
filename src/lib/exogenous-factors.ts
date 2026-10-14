@@ -8,6 +8,7 @@ import {
   catalogueQuery,
   filterFamilies,
   historyQuery,
+  isShownElsewhere,
   selectKnownPoints,
   supportsSnapshotFallback,
   factorPageMetadata,
@@ -221,8 +222,9 @@ export async function readFactorCatalogue(
 ): Promise<FactorCatalogueResponse> {
   const query = catalogueQuery(params);
   const index = await readFactorIndex();
+  const visible = index.series.filter((s) => !isShownElsewhere(s.code));
   const counts = new Map<string, number>();
-  for (const s of index.series)
+  for (const s of visible)
     for (const id of new Set(s.familyIds)) counts.set(id, (counts.get(id) ?? 0) + 1);
   const families = (catalogue.families as FactorFamily[]).map((f) => ({
     ...f,
@@ -239,7 +241,7 @@ export async function readFactorCatalogue(
     coverage: {
       families: families.length,
       linkedFamilies: families.filter((f) => f.seriesCount > 0).length,
-      series: index.series.length,
+      series: visible.length,
     },
     warnings: index.warnings,
   };
@@ -251,7 +253,10 @@ export async function readFactorSeries(params: URLSearchParams): Promise<FactorS
   return {
     ...index,
     series: index.series.filter(
-      (s) => (!family || s.familyIds.includes(family)) && (!sector || s.sectorIds.includes(sector)),
+      (s) =>
+        !isShownElsewhere(s.code) &&
+        (!family || s.familyIds.includes(family)) &&
+        (!sector || s.sectorIds.includes(sector)),
     ),
   };
 }
