@@ -79,6 +79,49 @@ export const GRID = { stroke: 'var(--grid)', vertical: false } as const;
 export const BAR_CAP = 24;
 
 /**
+ * El grosor de una barra de ránking: una línea gruesa, no un bloque.
+ *
+ * Con 24 px y un solo azul saturado, doce filas eran un muro: el ojo no
+ * encontraba la diferencia entre 8.775 y 6.060 porque el color pesaba más que
+ * el largo. Delgada y sobre una pista clara (la medida completa de la
+ * escala), la barra vuelve a ser una longitud, que es lo que se lee.
+ */
+export const RANK_BAR = 12;
+
+/** Cuántas letras de un rótulo de categoría caben antes de cortarlo con «…». */
+const ROW_LABEL_MAX = 34;
+
+/** Un rótulo largo, cortado; el nombre completo sigue en el emergente. */
+const clipLabel = (value: unknown, max = ROW_LABEL_MAX): string => {
+  const text = String(value ?? '');
+  return text.length > max ? `${text.slice(0, max - 1).trimEnd()}…` : text;
+};
+
+/**
+ * El tono de una barra de ránking según cuánto pesa frente a la primera.
+ *
+ * Es un solo azul en dos pasos de la rampa secuencial (`--seq-400` a `--seq-600`),
+ * mezclados entre sí y nunca con transparencia: la barra mayor es la más densa y
+ * la menor la más ligera, así que el tono dice lo mismo que el largo y ninguna
+ * barra se confunde con el fondo. En oscuro la rampa se ancla al revés («mucho»
+ * es claro) y la mezcla sigue siendo coherente.
+ */
+const rankShade = (ratio: number): string => {
+  const share = Math.round(Math.min(1, Math.max(0, ratio)) * 100);
+  return `color-mix(in srgb, var(--seq-600) ${share}%, var(--seq-400))`;
+};
+
+/** El azul «oficial» por defecto: el único tono que se gradúa; los demás van planos. */
+const isDefaultTone = (tone: string): boolean =>
+  tone === 'var(--official)' || tone === 'var(--series-1)';
+
+/** La pista que se dibuja detrás de cada barra de ránking. */
+const RANK_TRACK = { fill: 'var(--rule-soft)', radius: RANK_BAR / 2 } as const;
+
+/** Rótulo de categoría: tinta de texto a 12 px, no el gris de una nota al margen. */
+const ROW_TICK = { fill: 'var(--ink-soft)', fontSize: 12 } as const;
+
+/**
  * La rendija que separa dos marcas que se tocan.
  *
  * Son 2 px del color de la superficie entre los tramos de un apilado. Es el
@@ -993,7 +1036,30 @@ export function SeriesChart({
   const values = data.map((point) => point.value);
   const zoom = useRangeZoom(data.map((point) => point.date));
   const shown = zoom.visible(data);
-  const axisDomain = domain ?? fittedDomain(values);
+  /*
+   * Una barra se lee por su largo, y un largo solo es honesto si parte de cero: con el eje
+   * «ajustado» las recalificaciones de 14.000 y de 31.000 parecían tener una razón de 1 a 20.
+   */
+  const axisDomain = domain ?? fittedDomain(kind === 'bar' ? [0, ...values] : values);
+  /** Una serie con un dato por año (todos en 1.º de enero) rotula años, no «ene ’17». */
+  const yearly = data.length > 1 && data.every((point) => point.date.endsWith('-01-01'));
+  const sayTick = (value: string): string => (yearly ? value.slice(0, 4) : shortLabel(value));
+  const sayWhen = (value: string): string =>
+    yearly ? value.slice(0, 4) : longDate.format(asDate(value));
+  /*
+   * Rotulación selectiva: el máximo, el mínimo y el último dato llevan su cifra sobre la barra;
+   * el resto se lee en el eje y en el emergente. Una cifra sobre cada barra se pisa en medio
+   * panel y convierte el dibujo en una tabla con barras.
+   */
+  const labelled = kind === 'bar' && shown.length > 2 && shown.length <= 14;
+  const marked = new Set<number>();
+  if (labelled) {
+    const high = values.length ? Math.max(...shown.map((point) => point.value)) : 0;
+    const low = values.length ? Math.min(...shown.map((point) => point.value)) : 0;
+    marked.add(shown.findIndex((point) => point.value === high));
+    marked.add(shown.findIndex((point) => point.value === low));
+    marked.add(shown.length - 1);
+  }
 
   const renderTooltip = ({ active, payload, label }: TooltipRender) => {
     if (!active || !payload?.length || typeof label !== 'string') return null;
@@ -1001,7 +1067,7 @@ export function SeriesChart({
     if (!point) return null;
     return (
       <TooltipShell
-        label={longDate.format(asDate(label))}
+        label={sayWhen(label)}
         rows={[{ name: seriesName ?? 'Valor', value: `${number(point.value, decimals)} ${unit}` }]}
       />
     );
@@ -1020,12 +1086,12 @@ export function SeriesChart({
 
   return (
     <div className="chart-stack">
-      <ZoomExit zoom={zoom} format={(label) => longDate.format(asDate(label))} />
+      <ZoomExit zoom={zoom} format={(label) => sayWhen(label)} />
       <div className={frameClass} onContextMenu={(event) => event.preventDefault()}>
         <ResponsiveContainer width="100%" height="100%">
           <ComposedChart
             data={shown}
-            margin={{ top: 10, right: 14, bottom: 4, left: 4 }}
+            margin={{ top: labelled ? 22 : 10, right: 14, bottom: 4, left: 4 }}
             onMouseDown={(event) => zoom.begin(event?.activeLabel)}
             onMouseMove={(event) => zoom.drag(event?.activeLabel)}
             onMouseUp={zoom.finish}
@@ -1038,7 +1104,13 @@ export function SeriesChart({
               </linearGradient>
             </defs>
             <CartesianGrid {...GRID} />
-            <XAxis dataKey="date" tickFormatter={shortLabel} minTickGap={52} {...AXIS} />
+            <XAxis
+              dataKey="date"
+              tickFormatter={sayTick}
+              minTickGap={yearly ? 24 : 52}
+              interval={yearly && shown.length <= 14 ? 0 : 'preserveEnd'}
+              {...AXIS}
+            />
             <YAxis
               domain={axisDomain}
               tickCount={tickCountOf(axisDomain)}
@@ -1073,12 +1145,41 @@ export function SeriesChart({
               <Bar
                 dataKey="value"
                 fill={tone}
-                maxBarSize={BAR_CAP}
-                radius={[4, 4, 0, 0]}
+                maxBarSize={labelled ? 30 : BAR_CAP}
+                radius={[6, 6, 0, 0]}
                 isAnimationActive
                 animationDuration={MOTION.duration}
                 animationEasing={MOTION.easing}
-              />
+              >
+                {labelled ? (
+                  <LabelList
+                    dataKey="value"
+                    content={(props: unknown) => {
+                      const { x, y, width, value, index } = props as {
+                        x: number;
+                        y: number;
+                        width: number;
+                        value: number;
+                        index: number;
+                      };
+                      if (!marked.has(index) || typeof value !== 'number') return null;
+                      return (
+                        <text
+                          x={x + width / 2}
+                          y={y - 7}
+                          textAnchor="middle"
+                          fontSize={12}
+                          fontWeight={600}
+                          fill="var(--ink)"
+                          style={{ fontVariantNumeric: 'tabular-nums' }}
+                        >
+                          {number(value, decimals)}
+                        </text>
+                      );
+                    }}
+                  />
+                ) : null}
+              </Bar>
             ) : kind === 'area' ? (
               <Area
                 type="monotone"
@@ -1107,7 +1208,11 @@ export function SeriesChart({
       </div>
       {seriesName ? (
         <ChartLegend
-          items={lineLegend([{ label: unit ? `${seriesName} (${unit})` : seriesName, tone }])}
+          items={
+            kind === 'bar'
+              ? [{ color: tone, label: unit ? `${seriesName} (${unit})` : seriesName }]
+              : lineLegend([{ label: unit ? `${seriesName} (${unit})` : seriesName, tone }])
+          }
         />
       ) : null}
     </div>
@@ -1634,7 +1739,6 @@ export function ShareBars({
   data,
   tone = 'var(--official)',
   unit = '%',
-  height = 220,
   onPick,
   decimals: fixedDecimals,
   declare = true,
@@ -1642,6 +1746,10 @@ export function ShareBars({
   data: ShareSlice[];
   tone?: string;
   unit?: string;
+  /**
+   * Ya no manda: el alto sale del número de filas (36 px cada una). Se conserva en la firma
+   * para que las llamadas que lo pasaban —pensado para barras de 24 px— sigan compilando.
+   */
   height?: number;
   /** Decimales fijos, para conteos: «13 menciones», no «13,0». */
   decimals?: number;
@@ -1685,6 +1793,10 @@ export function ShareBars({
    * atajo sobre el dibujo, nunca la única puerta.
    */
   const clickable = Boolean(onPick) && rows.some((row) => row.pick);
+  /** Cada fila gasta 36 px: la barra es delgada y el resto es aire, no un hueco que rellenar. */
+  const frame = Math.max(96, rows.length * 36 + 8);
+  /** Solo el azul por defecto se gradúa; un tono pedido (naranja, violeta…) va plano. */
+  const graded = isDefaultTone(tone);
   /** Un decimal donde cambia algo, ninguno donde la cifra son miles (o lo que pida quien cuenta). */
   const decimals = fixedDecimals ?? (peak >= 100 ? 0 : 1);
   const say = (value: number): string =>
@@ -1714,10 +1826,15 @@ export function ShareBars({
   };
 
   return (
-    <div className="chart-frame" style={{ height: framed(height) }}>
+    <div className="chart-frame" style={{ height: frame }}>
       <ResponsiveContainer width="100%" height="100%">
         {/* El margen derecho es el sitio donde vive la cifra de la barra más larga. */}
-        <BarChart data={rows} layout="vertical" margin={{ top: 4, right: 88, bottom: 0, left: 4 }}>
+        <BarChart
+          data={rows}
+          layout="vertical"
+          margin={{ top: 2, right: 76, bottom: 2, left: 4 }}
+          barCategoryGap="30%"
+        >
           <XAxis type="number" domain={[0, peak > 0 ? peak : 1]} hide />
           {/*
            * `auto`, and not the 172 pixels this column used to be fixed at: a
@@ -1725,14 +1842,24 @@ export function ShareBars({
            * económica» left sixty pixels of padding the bars could have used,
            * and a longer name was wrapped onto two lines or cut. Recharts
            * measures the longest label it actually has to draw and gives the
-           * rest of the width to the bars.
+           * rest of the width to the bars. Un nombre de más de 34 letras se corta
+           * con «…» y su texto completo va en el emergente.
            */}
-          <YAxis type="category" interval={0} dataKey="name" width="auto" {...AXIS} />
-          <Tooltip content={renderTooltip} cursor={{ fill: 'var(--rule-soft)' }} />
+          <YAxis
+            type="category"
+            interval={0}
+            dataKey="name"
+            width="auto"
+            tickFormatter={(value: unknown) => clipLabel(value)}
+            tick={ROW_TICK}
+            {...AXIS}
+          />
+          <Tooltip content={renderTooltip} cursor={{ fill: 'var(--rule-soft)', opacity: 0.6 }} />
           <Bar
             dataKey="value"
-            maxBarSize={BAR_CAP}
-            radius={[0, 4, 4, 0]}
+            maxBarSize={RANK_BAR}
+            radius={RANK_BAR / 2}
+            background={RANK_TRACK}
             animationDuration={MOTION.duration}
             animationEasing={MOTION.easing}
             {...(clickable
@@ -1754,15 +1881,25 @@ export function ShareBars({
             <LabelList
               dataKey="value"
               position="right"
-              offset={8}
-              fontSize={11}
-              fill="var(--ink-soft)"
+              offset={10}
+              fontSize={12}
+              fontWeight={600}
+              fill="var(--ink)"
+              style={{ fontVariantNumeric: 'tabular-nums' }}
               formatter={(value: unknown) => (typeof value === 'number' ? say(value) : '')}
             />
             {rows.map((row) => (
               <Cell
                 key={row.name}
-                fill={marked ? (row.emphasis ? tone : 'var(--series-rest)') : tone}
+                fill={
+                  marked
+                    ? row.emphasis
+                      ? tone
+                      : 'var(--series-rest)'
+                    : graded
+                      ? rankShade(peak > 0 ? row.value / peak : 0)
+                      : tone
+                }
               />
             ))}
           </Bar>
@@ -2029,12 +2166,12 @@ export interface DivergingRow {
 export function DivergingBars({
   data,
   unit = 'puntos',
-  height = 260,
   signed = false,
   ordered = false,
 }: {
   data: DivergingRow[];
   unit?: string;
+  /** Ya no manda: el alto sale del número de filas. Se conserva para las llamadas que lo pasan. */
   height?: number;
   signed?: boolean;
   /** Respeta el orden de `data` (años, meses) en lugar de ordenar de mayor a menor. */
@@ -2083,14 +2220,24 @@ export function DivergingBars({
     );
   };
 
+  const hasPlus = rows.some((row) => row.value >= 0);
+  const hasMinus = rows.some((row) => row.value < 0);
+  /* La leyenda nombra solo los lados que el dibujo tiene: «Negativo» sin una barra es ruido. */
+  const key = (signed ? SIGN_KEY(unit) : DISTANCE_KEY(unit)).filter((_item, index) =>
+    index === 0 ? hasPlus || !hasMinus : hasMinus,
+  );
+  const signedLabel = (value: unknown): string =>
+    typeof value === 'number' ? `${value > 0 ? '+' : ''}${number(value, 1)}` : '';
+
   return (
     <div className="chart-stack">
-      <div className="chart-frame" style={{ height: framed(height) }}>
+      <div className="chart-frame" style={{ height: Math.max(120, rows.length * 34 + 44) }}>
         <ResponsiveContainer width="100%" height="100%">
           <BarChart
             data={rows}
             layout="vertical"
-            margin={{ top: 4, right: 24, bottom: 0, left: 4 }}
+            margin={{ top: 2, right: 64, bottom: 0, left: 4 }}
+            barCategoryGap="30%"
           >
             <CartesianGrid {...GRID} horizontal={false} vertical />
             <XAxis
@@ -2098,8 +2245,16 @@ export function DivergingBars({
               tickFormatter={(value: number) => `${value > 0 ? '+' : ''}${number(value, 0)}`}
               {...AXIS}
             />
-            <YAxis type="category" interval={0} dataKey="name" width={210} {...AXIS} />
-            <Tooltip content={renderTooltip} cursor={{ fill: 'var(--rule-soft)' }} />
+            <YAxis
+              type="category"
+              interval={0}
+              dataKey="name"
+              width="auto"
+              tickFormatter={(value: unknown) => clipLabel(value)}
+              tick={ROW_TICK}
+              {...AXIS}
+            />
+            <Tooltip content={renderTooltip} cursor={{ fill: 'var(--rule-soft)', opacity: 0.6 }} />
             {/* El cero es la referencia del gráfico: una regla del eje, sólida. */}
             <ReferenceLine x={0} stroke="var(--axis-rule)" strokeWidth={1} />
             {/*
@@ -2112,24 +2267,46 @@ export function DivergingBars({
               dataKey="above"
               stackId="cero"
               fill={plus}
-              maxBarSize={BAR_CAP}
-              radius={[0, 4, 4, 0]}
+              maxBarSize={RANK_BAR}
+              radius={[0, RANK_BAR / 2, RANK_BAR / 2, 0]}
               animationDuration={MOTION.duration}
               animationEasing={MOTION.easing}
-            />
+            >
+              <LabelList
+                dataKey="above"
+                position="right"
+                offset={8}
+                fontSize={12}
+                fontWeight={600}
+                fill="var(--ink)"
+                style={{ fontVariantNumeric: 'tabular-nums' }}
+                formatter={signedLabel}
+              />
+            </Bar>
             <Bar
               dataKey="below"
               stackId="cero"
               fill={minus}
-              maxBarSize={BAR_CAP}
-              radius={[4, 0, 0, 4]}
+              maxBarSize={RANK_BAR}
+              radius={[RANK_BAR / 2, 0, 0, RANK_BAR / 2]}
               animationDuration={MOTION.duration}
               animationEasing={MOTION.easing}
-            />
+            >
+              <LabelList
+                dataKey="below"
+                position="left"
+                offset={8}
+                fontSize={12}
+                fontWeight={600}
+                fill="var(--ink)"
+                style={{ fontVariantNumeric: 'tabular-nums' }}
+                formatter={signedLabel}
+              />
+            </Bar>
           </BarChart>
         </ResponsiveContainer>
       </div>
-      <ChartLegend items={signed ? SIGN_KEY(unit) : DISTANCE_KEY(unit)} />
+      <ChartLegend items={key} />
     </div>
   );
 }

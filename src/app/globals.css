@@ -10030,3 +10030,37 @@ button.download-btn {
 .bbv-switch {
   margin-bottom: var(--s3);
 }
+
+/* === Transporte: gráficos de barras, foco y índice comprimido === */
+
+/*
+ * El gráfico se enfoca con el teclado, no con un marco negro de 2 px alrededor de media
+ * pantalla: un anillo suave del azul del tablero, solo con `:focus-visible`.
+ */
+.chart-frame .recharts-wrapper:focus,
+.chart-frame .recharts-surface:focus {
+  outline: none;
+}
+
+.chart-frame .recharts-wrapper:focus-visible,
+.chart-frame .recharts-surface:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--series-1) 45%, var(--panel));
+  outline-offset: 2px;
+  border-radius: var(--radius-md);
+}
+
+/* Barras de ránking: la cifra y el rótulo en tinta de texto, con cifras de ancho fijo. */
+.chart-frame .recharts-bar-rectangle {
+  transition: opacity var(--fast) var(--ease);
+}
+
+/* Índice lateral con muchas páginas (Transporte, 10): filas más juntas y sin aire de más. */
+.site-pages-dense {
+  margin-bottom: 0.2rem !important;
+}
+
+.site-pages-dense .site-page {
+  padding-top: 0.12rem;
+  padding-bottom: 0.12rem;
+  line-height: 1.3;
+}

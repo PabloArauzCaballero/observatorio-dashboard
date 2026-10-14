@@ -574,7 +574,7 @@ function CapacityGnv({ board }: { board: RoadTransportBoard }) {
         source={GNV_SOURCE}
       >
         <div className="grid-pair">
-          {(['CONVERSION', 'CYLINDER_REQUALIFICATION'] as const).map((metric, index) => (
+          {(['CONVERSION', 'CYLINDER_REQUALIFICATION'] as const).map((metric) => (
             <div key={metric}>
               <h4>{metric === 'CONVERSION' ? 'Conversiones' : 'Recalificaciones'}</h4>
               <SeriesChart
@@ -582,7 +582,7 @@ function CapacityGnv({ board }: { board: RoadTransportBoard }) {
                   .filter((point) => point.metric === metric)
                   .map((point) => ({ date: `${point.period}-01-01`, value: point.value }))}
                 kind="bar"
-                tone={`var(--series-${index + 1})`}
+                tone="var(--series-1)"
                 unit="operaciones"
                 label={
                   metric === 'CONVERSION' ? 'Conversiones a GNV' : 'Recalificaciones de cilindros'
