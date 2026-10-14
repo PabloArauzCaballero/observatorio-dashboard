@@ -9963,6 +9963,7 @@ button.download-btn {
 .vehicle-card-body span {
   color: var(--ink-soft);
   font-variant-numeric: tabular-nums;
+}
 
 /* === Carril de filtros · buscador y desplazamiento de las listas largas === */
 
