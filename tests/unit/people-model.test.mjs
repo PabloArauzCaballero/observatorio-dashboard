@@ -28,6 +28,8 @@ import {
   signed,
   sortRows,
   talkState,
+  channelState,
+  channelNetOf,
 } from '../../src/components/people/people-model.ts';
 
 const load = (name) =>
@@ -207,4 +209,28 @@ test('mediana, iniciales', () => {
   assert.equal(initials('Jorge ‘Tuto’ Quiroga'), 'JQ');
   assert.equal(initials('Madonna'), 'M');
   assert.equal(initials(''), '?');
+});
+
+test('el canal propio es otra medida y no se mezcla con la conversación sobre la persona', () => {
+  const slug = raw.top300.people[0].slug;
+  const sentiment = { analyzed: 60, positivePct: 70, negativePct: 10, neutralPct: 20, netScore: 60 };
+  const conversation = {
+    ...raw.conversation,
+    people: {
+      ...raw.conversation.people,
+      [slug]: {
+        videosRead: 0, commentsRead: 0, commentsAnalyzed: 0, videos: [], sentiment: null, words: null,
+        own: { videosRead: 5, commentsRead: 400, commentsAnalyzed: 60, sentiment, words: null },
+      },
+    },
+  };
+  const row = buildSummary({ ...raw, conversation }).people.find((p) => p.slug === slug);
+  // Sin muestra sobre la persona: no publica «conversación», aunque sí tenga la de su canal.
+  assert.equal(talkState(row), 'insufficient');
+  assert.equal(netOf(row), null);
+  assert.equal(channelState(row), 'publishable');
+  assert.equal(channelNetOf(row), 60);
+  // Quien no tiene lectura de canal no cuenta como «insuficiente», sino como «ninguna».
+  const other = summary.people.find((p) => !p.talk?.channel);
+  assert.equal(channelState(other), 'none');
 });

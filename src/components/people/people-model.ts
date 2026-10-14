@@ -53,6 +53,7 @@ export const VERIFICATION: Record<string, string> = {
   PLATFORM_VERIFIED: 'verificada por la plataforma',
   HANDLE_MATCHES_WIKIDATA: 'mismo usuario que su cuenta oficial en Wikidata',
   SOURCE_LINKED: 'enlazada por una fuente oficial o de prensa',
+  DIRECTORY_LISTED: 'figura en el directorio «más seguidos de Bolivia» (la ficha nace de esta cuenta)',
   HANDLE_UNCONFIRMED_SMALL: 'mismo usuario que su cuenta oficial, pero muy pequeña y sin verificar',
   IMPLAUSIBLY_SMALL: 'demasiado pequeña para esta figura: probable cuenta abandonada o ajena',
   NAME_MISMATCH: 'el nombre mostrado no coincide',
@@ -163,6 +164,18 @@ export function talkState(row: PersonRow): TalkState {
   if (!row.talk) return 'none';
   return row.talk.sentiment ? 'publishable' : 'insufficient';
 }
+
+/** Estado de la conversación en el canal propio del creador (otra medida que `talkState`). */
+export function channelState(row: PersonRow): TalkState {
+  if (!row.talk?.channel) return 'none';
+  return row.talk.channel.sentiment ? 'publishable' : 'insufficient';
+}
+
+export const channelNetOf = (row: PersonRow): number | null => {
+  const s = row.talk?.channel?.sentiment;
+  if (!s) return null;
+  return s.netScore ?? s.positivePct - s.negativePct;
+};
 
 /** Positivos menos negativos, en puntos porcentuales. */
 export const netOf = (row: PersonRow): number | null => {

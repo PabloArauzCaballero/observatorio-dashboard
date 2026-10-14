@@ -10,7 +10,7 @@ import {
 import { Panel } from '@/components/ui/panel';
 import { FilterBar } from './filter-bar';
 import { usePeople } from './people-context';
-import { netOf, num, talkState } from './people-model';
+import { channelNetOf, channelState, netOf, num, talkState } from './people-model';
 import { Empty } from './people-ui';
 import s from './people.module.css';
 
@@ -34,10 +34,21 @@ export function ConversationPage() {
     meta: `${num(row.talk?.analyzed ?? 0)} comentarios en español clasificados`,
   }));
 
+  const channelRows = filtered.filter((row) => channelState(row) === 'publishable');
+  const channelNet: DivergingRow[] = channelRows.map((row) => ({
+    name: row.name,
+    value: channelNetOf(row) ?? 0,
+    meta: `${num(row.talk?.channel?.analyzed ?? 0)} comentarios en español clasificados`,
+  }));
+  const channelPublishable = summary.people.filter(
+    (row) => channelState(row) === 'publishable',
+  ).length;
+
   const funnel: ShareSlice[] = [
     { name: 'Personas en el ranking', value: summary.people.length },
     { name: 'Con comentarios leídos', value: conversation.peopleRead },
     { name: 'Con muestra suficiente para publicar', value: conversation.peoplePublishable },
+    { name: 'Con muestra suficiente en su propio canal', value: channelPublishable },
   ];
   const wordBars: ShareSlice[] = words
     .slice(0, 15)
@@ -97,6 +108,30 @@ export function ConversationPage() {
           </Empty>
         )}
       </Panel>
+
+      {channelNet.length ? (
+        <Panel
+          id="personalidades-canal"
+          title="Saldo de sentimiento en su propio canal de YouTube (puntos porcentuales)"
+          lede="Positivos menos negativos en los comentarios de los últimos videos del canal de cada creador: es su público, no quienes hablan de él."
+          meta={`${num(channelNet.length)} personas`}
+          source={SOURCE}
+          updated={updated}
+        >
+          <DivergingBars
+            data={channelNet}
+            unit="puntos"
+            signed
+            height={Math.max(220, channelNet.length * 30 + 40)}
+          />
+          <p className={s.footnote}>
+            Es la audiencia que ya sigue al creador y comenta en su canal: suele ser más favorable
+            que la conversación sobre la persona y no mide a toda Bolivia. Los creadores cuyo
+            contenido está solo en TikTok o Instagram no aparecen: sin sesión iniciada esas
+            plataformas no entregan comentarios.
+          </p>
+        </Panel>
+      ) : null}
 
       <div className="grid-pair">
         <Panel

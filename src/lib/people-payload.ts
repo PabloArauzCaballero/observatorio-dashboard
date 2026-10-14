@@ -56,6 +56,14 @@ interface RawConversationEntry {
   videos: TalkVideo[];
   sentiment: Sentiment | null;
   words: Array<{ kind: string; term: string; count: number }> | null;
+  /** Comentarios en los últimos videos de su propio canal (otra medida, ver `Talk.channel`). */
+  own?: {
+    videosRead: number;
+    commentsRead: number;
+    commentsAnalyzed: number;
+    sentiment: Sentiment | null;
+    words: Array<{ kind: string; term: string; count: number }> | null;
+  };
 }
 
 interface RawPilot {
@@ -101,7 +109,12 @@ export interface RawPeopleData {
   };
   conversation: {
     method: { source: string; limits: string[]; minComments: number };
-    coverage: { peopleRead: number; peoplePublishable: number; commentsAnalyzed: number };
+    coverage: {
+      peopleRead: number;
+      peoplePublishable: number;
+      ownChannelPublishable?: number;
+      commentsAnalyzed: number;
+    };
     people: Record<string, RawConversationEntry>;
   };
   pilot: { people: RawPilot[] };
@@ -145,6 +158,14 @@ export function buildSummary(raw: RawPeopleData): PeopleSummary {
           read: entry.commentsRead,
           analyzed: entry.commentsAnalyzed,
           sentiment: entry.sentiment,
+          channel: entry.own
+            ? {
+                videos: entry.own.videosRead,
+                read: entry.own.commentsRead,
+                analyzed: entry.own.commentsAnalyzed,
+                sentiment: entry.own.sentiment,
+              }
+            : null,
         }
       : null;
     if (entry?.sentiment) {
