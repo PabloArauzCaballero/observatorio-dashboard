@@ -334,6 +334,15 @@ const monthLabel = (value: string): string => {
   return `${MONTH_NAME[date.getUTCMonth()]?.slice(0, 3) ?? ''} ’${String(date.getUTCFullYear()).slice(2)}`;
 };
 
+/** A year on its own, for a series whose points are whole years: «2024». */
+const yearLabel = (value: string): string => String(asDate(value).getUTCFullYear());
+
+/** A quarter, for a series whose points are quarters: «T3 2024». */
+const quarterLabel = (value: string): string => {
+  const date = asDate(value);
+  return `T${Math.floor(date.getUTCMonth() / 3) + 1} ${date.getUTCFullYear()}`;
+};
+
 /** A month written out, for the tooltip of a monthly series: «agosto de 2024». */
 const longMonth = (value: string): string => {
   const date = asDate(value);
@@ -1827,7 +1836,7 @@ export function ShareBars({
   };
 
   return (
-    <div className="chart-frame" style={{ height: frame }}>
+    <div className="chart-frame chart-frame-rows" style={{ height: frame }}>
       <ResponsiveContainer width="100%" height="100%">
         {/* El margen derecho es el sitio donde vive la cifra de la barra más larga. */}
         <BarChart
@@ -2232,7 +2241,7 @@ export function DivergingBars({
 
   return (
     <div className="chart-stack">
-      <div className="chart-frame" style={{ height: Math.max(120, rows.length * 34 + 44) }}>
+      <div className="chart-frame chart-frame-rows" style={{ height: Math.max(120, rows.length * 34 + 44) }}>
         <ResponsiveContainer width="100%" height="100%">
           <BarChart
             data={rows}
@@ -2244,6 +2253,8 @@ export function DivergingBars({
             <XAxis
               type="number"
               tickFormatter={(value: number) => `${value > 0 ? '+' : ''}${number(value, 0)}`}
+              /* La cifra de la barra negativa más larga va a la izquierda de su punta: sitio para ella. */
+              padding={{ left: hasMinus ? 52 : 0, right: 0 }}
               {...AXIS}
             />
             <YAxis
@@ -2259,10 +2270,14 @@ export function DivergingBars({
             {/* El cero es la referencia del gráfico: una regla del eje, sólida. */}
             <ReferenceLine x={0} stroke="var(--axis-rule)" strokeWidth={1} />
             {/*
-             * Dos barras sobre una sola pila, una por lado del cero: la punta
-             * redondeada tiene que estar del lado hacia el que crece la barra,
-             * y el radio se declara por serie. Cada fila trae su valor en una
-             * sola de las dos claves, así que no se dibuja nada dos veces.
+             * Dos barras sobre una sola pila, una por lado del cero. Cada fila trae su valor en
+             * una sola de las dos claves, así que no se dibuja nada dos veces.
+             *
+             * Recharts dibuja la barra negativa con ancho negativo desde el cero, y tanto el radio
+             * como la posición de la cifra se leen en el sentido en que crece la barra, no en el de
+             * la pantalla: «derecha» es su punta, a la izquierda del cero. Con el radio y la cifra
+             * escritos en pantalla, las naranjas salían redondeadas del lado del cero, planas en la
+             * punta y con la cifra pegada al eje: barras al revés.
              */}
             <Bar
               dataKey="above"
@@ -2289,13 +2304,13 @@ export function DivergingBars({
               stackId="cero"
               fill={minus}
               maxBarSize={RANK_BAR}
-              radius={[RANK_BAR / 2, 0, 0, RANK_BAR / 2]}
+              radius={[0, RANK_BAR / 2, RANK_BAR / 2, 0]}
               animationDuration={MOTION.duration}
               animationEasing={MOTION.easing}
             >
               <LabelList
                 dataKey="below"
-                position="left"
+                position="right"
                 offset={8}
                 fontSize={12}
                 fontWeight={600}
@@ -3097,6 +3112,7 @@ export function DatedLines({
   domain: fixedDomain,
   yearTicks = false,
   clipOutliers = false,
+  cadence,
 }: {
   data: DatedLinePoint[];
   series: readonly DatedLineSeries[];
@@ -3126,13 +3142,33 @@ export function DatedLines({
    * en la descarga, y el pie lo dice.
    */
   clipOutliers?: boolean;
+  /**
+   * Cada punto es un año o un trimestre entero: el eje y el emergente dicen «2019» o «T2 2019».
+   * Sin esto, una serie anual fechada el 1 de enero se leía «ene ’09, ene ’11» en el eje y
+   * «ene 2008 – ene 2026» en la tabla, como si fuera de enero.
+   */
+  cadence?: 'year' | 'quarter';
 }) {
   useDatosDeFigura(
     () => ({ unidad: unit, ...filasDeSeries(data, { key: 'date', label: 'Fecha' }, series) }),
     [data, series, unit],
   );
-  const tickLabel = monthly || yearTicks ? monthLabel : shortLabel;
-  const sayLabel = monthly ? longMonth : (label: string) => longDate.format(asDate(label));
+  const tickLabel =
+    cadence === 'year'
+      ? yearLabel
+      : cadence === 'quarter'
+        ? quarterLabel
+        : monthly || yearTicks
+          ? monthLabel
+          : shortLabel;
+  const sayLabel =
+    cadence === 'year'
+      ? yearLabel
+      : cadence === 'quarter'
+        ? quarterLabel
+        : monthly
+          ? longMonth
+          : (label: string) => longDate.format(asDate(label));
   const zoom = useRangeZoom(data.map((point) => point.date));
   const shown = zoom.visible(data);
   const values = shown.flatMap((row) =>
@@ -3153,6 +3189,20 @@ export function DatedLines({
     (kept.length
       ? fittedDomain(referenceLine === undefined ? kept : [...kept, referenceLine])
       : undefined);
+
+  /*
+   * El eje mide lo que mide su rótulo más largo. Con 54 px fijos, «120.000.000» se cortaba por la
+   * izquierda y el lector veía «0.000.000».
+   */
+  const axisDigits = axisDecimals(domain, decimals === 0 ? 0 : 1);
+  const axisWidth = domain
+    ? Math.max(
+        54,
+        Math.ceil(
+          Math.max(...domain.map((edge) => number(edge, axisDigits).length)) * 6.8 + 12,
+        ),
+      )
+    : 54;
 
   const renderTooltip = ({ active, payload, label }: TooltipRender) => {
     if (!active || !payload?.length || typeof label !== 'string') return null;
@@ -3191,10 +3241,8 @@ export function DatedLines({
               {...(domain ? { domain } : {})}
               {...(clipped ? { allowDataOverflow: true } : {})}
               tickCount={tickCountOf(domain)}
-              width={54}
-              tickFormatter={(value: number) =>
-                number(value, axisDecimals(domain, decimals === 0 ? 0 : 1))
-              }
+              width={axisWidth}
+              tickFormatter={(value: number) => number(value, axisDigits)}
               {...AXIS}
             />
             <Tooltip content={renderTooltip} cursor={{ stroke: 'var(--rule)', strokeWidth: 1 }} />

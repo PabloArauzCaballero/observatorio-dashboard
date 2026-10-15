@@ -2,6 +2,7 @@
 
 import { useId, useMemo } from 'react';
 import { ChipsHint } from '@/components/filters';
+import { Icon } from '@/components/icons';
 import { additive, toggle } from '@/lib/choice';
 import type { SectorKey } from '@/lib/people-types';
 import { usePeople } from './people-context';
@@ -9,10 +10,10 @@ import { SECTORS, applyFilters, isFiltered, num, type Only, type SortKey } from 
 import s from './people.module.css';
 
 const ONLY: ReadonlyArray<{ key: Only; label: string }> = [
-  { key: 'views', label: 'Con Wikipedia' },
-  { key: 'social', label: 'Con audiencia verificada' },
-  { key: 'merco', label: 'En Merco' },
-  { key: 'talk', label: 'Con sentimiento' },
+  { key: 'views', label: 'Wikipedia' },
+  { key: 'social', label: 'Audiencia verificada' },
+  { key: 'merco', label: 'Puesto en Merco' },
+  { key: 'talk', label: 'Sentimiento medido' },
 ];
 
 const SORTS: ReadonlyArray<{ key: SortKey; label: string }> = [
@@ -51,21 +52,51 @@ export function FilterBar({
   }, [rows, filters]);
   const active = isFiltered(filters);
 
+  const sectorChips = (
+    <div className={s.facetChips} role="group" aria-labelledby={`${id}-sector`}>
+      {SECTORS.map((sector) => {
+        const on = filters.sectors.includes(sector.key);
+        const n = counts.get(sector.key) ?? 0;
+        return (
+          <button
+            key={sector.key}
+            type="button"
+            className={on ? 'chip chip-on' : 'chip'}
+            aria-pressed={on}
+            disabled={n === 0 && !on}
+            onClick={(event) =>
+              setFilters({
+                sectors: [
+                  ...toggle(new Set(filters.sectors), sector.key, additive(event)),
+                ] as SectorKey[],
+              })
+            }
+          >
+            {sector.label} <span className={s.chipN}>{num(n)}</span>
+          </button>
+        );
+      })}
+    </div>
+  );
+
   return (
     <div className={s.filters} role="group" aria-label="Filtros de personalidades">
-      <div className={s.filterRow}>
-        <label className={s.filterField}>
-          <span className={s.filterLabel}>Buscar por nombre</span>
+      <div className={s.filterTop}>
+        <label className={s.search}>
+          <span className={s.searchIcon} aria-hidden="true">
+            <Icon name="buscar" size={15} />
+          </span>
           <input
             type="search"
+            aria-label="Buscar por nombre"
             value={filters.query}
-            placeholder="Por ejemplo: Quiroga"
+            placeholder="Buscar por nombre…"
             onChange={(event) => setFilters({ query: event.target.value })}
             autoComplete="off"
           />
         </label>
         {withSort ? (
-          <label className={s.filterField}>
+          <label className={s.inlineField}>
             <span className={s.filterLabel}>Ordenar por</span>
             <select
               value={filters.sort}
@@ -80,119 +111,91 @@ export function FilterBar({
           </label>
         ) : null}
         {compact ? null : (
-          <div className={s.filterField}>
+          <div className={s.inlineField}>
             <label className={s.filterLabel} htmlFor={`${id}-min`}>
-              Índice de atención desde
+              Índice desde
             </label>
-            <span className={s.rangeField}>
-              <input
-                id={`${id}-min`}
-                type="range"
-                min={0}
-                max={90}
-                step={5}
-                value={filters.min}
-                onChange={(event) =>
-                  setFilters({
-                    min: Number(event.target.value),
-                    max: Math.max(filters.max, Number(event.target.value)),
-                  })
-                }
-              />
-              <output htmlFor={`${id}-min`}>{filters.min === 0 ? 'todo' : `${filters.min}`}</output>
-            </span>
+            <input
+              id={`${id}-min`}
+              className={s.range}
+              type="range"
+              min={0}
+              max={90}
+              step={5}
+              value={filters.min}
+              onChange={(event) =>
+                setFilters({
+                  min: Number(event.target.value),
+                  max: Math.max(filters.max, Number(event.target.value)),
+                })
+              }
+            />
+            <output className={s.rangeOut} htmlFor={`${id}-min`}>
+              {filters.min === 0 ? 'todos' : `≥ ${filters.min}`}
+            </output>
           </div>
         )}
-        <span className={s.filterCount} aria-live="polite">
-          {num(filtered.length)} de {num(rows.length)} personas
-        </span>
-      </div>
-
-      <div className={s.filterRow}>
-        <span className={s.filterLabel} id={`${id}-sector`}>
-          Sector
-        </span>
-        <div className="chips" role="group" aria-labelledby={`${id}-sector`}>
-          {SECTORS.map((sector) => {
-            const on = filters.sectors.includes(sector.key);
-            const n = counts.get(sector.key) ?? 0;
-            return (
-              <button
-                key={sector.key}
-                type="button"
-                className={on ? 'chip chip-on' : 'chip'}
-                aria-pressed={on}
-                disabled={n === 0 && !on}
-                onClick={(event) =>
-                  setFilters({
-                    sectors: [
-                      ...toggle(new Set(filters.sectors), sector.key, additive(event)),
-                    ] as SectorKey[],
-                  })
-                }
-              >
-                {sector.label} <span className={s.chipN}>{num(n)}</span>
-              </button>
-            );
-          })}
-        </div>
-      </div>
-
-      {compact ? (
-        active ? (
-          <div className={s.filterRow}>
-            {filters.min > 0 || filters.only.length > 0 ? (
-              <span className={s.filterLabel}>
-                También activo:{' '}
-                {[
-                  filters.min > 0 ? `índice desde ${filters.min}` : null,
-                  ...filters.only.map(
-                    (key) => ONLY.find((item) => item.key === key)?.label.toLowerCase() ?? key,
-                  ),
-                ]
-                  .filter(Boolean)
-                  .join(' · ')}
-              </span>
-            ) : null}
-            <button type="button" className="chip" onClick={clearFilters}>
-              Quitar filtros
-            </button>
-          </div>
-        ) : null
-      ) : (
-        <div className={s.filterRow}>
-          <span className={s.filterLabel} id={`${id}-only`}>
-            Solo quienes tienen
+        <div className={s.filterStatus}>
+          <span className={s.filterCount} aria-live="polite">
+            <strong>{num(filtered.length)}</strong> de {num(rows.length)} personas
           </span>
-          <div className="chips" role="group" aria-labelledby={`${id}-only`}>
-            {ONLY.map((item) => {
-              const on = filters.only.includes(item.key);
-              return (
-                <button
-                  key={item.key}
-                  type="button"
-                  className={on ? 'chip chip-on' : 'chip'}
-                  aria-pressed={on}
-                  onClick={() =>
-                    setFilters({
-                      only: on
-                        ? filters.only.filter((key) => key !== item.key)
-                        : [...filters.only, item.key],
-                    })
-                  }
-                >
-                  {item.label}
-                </button>
-              );
-            })}
-          </div>
           {active ? (
-            <button type="button" className="chip" onClick={clearFilters}>
+            <button type="button" className={s.clear} onClick={clearFilters}>
               Quitar filtros
             </button>
           ) : null}
         </div>
-      )}
+      </div>
+
+      <div className={s.facets}>
+        <span className={s.facetLabel} id={`${id}-sector`}>
+          Sector
+        </span>
+        {sectorChips}
+        {compact ? null : (
+          <>
+            <span className={s.facetLabel} id={`${id}-only`}>
+              Solo con
+            </span>
+            <div className={s.facetChips} role="group" aria-labelledby={`${id}-only`}>
+              {ONLY.map((item) => {
+                const on = filters.only.includes(item.key);
+                return (
+                  <button
+                    key={item.key}
+                    type="button"
+                    className={on ? 'chip chip-on' : 'chip'}
+                    aria-pressed={on}
+                    onClick={() =>
+                      setFilters({
+                        only: on
+                          ? filters.only.filter((key) => key !== item.key)
+                          : [...filters.only, item.key],
+                      })
+                    }
+                  >
+                    {item.label}
+                  </button>
+                );
+              })}
+            </div>
+          </>
+        )}
+      </div>
+
+      {compact && (filters.min > 0 || filters.only.length > 0) ? (
+        <p className={s.filterAlso}>
+          También activo:{' '}
+          {[
+            filters.min > 0 ? `índice desde ${filters.min}` : null,
+            ...filters.only.map(
+              (key) => `con ${ONLY.find((item) => item.key === key)?.label.toLowerCase() ?? key}`,
+            ),
+          ]
+            .filter(Boolean)
+            .join(' · ')}
+        </p>
+      ) : null}
       {hint ? <ChipsHint /> : null}
     </div>
   );
