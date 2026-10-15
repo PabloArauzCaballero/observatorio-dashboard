@@ -15,7 +15,7 @@ import type { ResourceBoard } from '@/lib/resources-board';
  * El tablero llega ya armado desde `/api/recursos`: lo que viaja son las
  * cifras del capítulo y no las filas del panel del Banco Mundial que las arman.
  */
-export function ResourcesSection() {
+export function ResourcesSection({ embedded = false }: { embedded?: boolean } = {}) {
   const { payload, failed } = useOnOpen<{ board: ResourceBoard }>('/api/recursos');
 
   if (!payload) return <OnOpenNotice what="el capítulo de recursos naturales" failed={failed} />;
@@ -29,5 +29,5 @@ export function ResourcesSection() {
     );
   }
 
-  return <ResourcesExplorer board={payload.board} />;
+  return <ResourcesExplorer board={payload.board} embedded={embedded} />;
 }
