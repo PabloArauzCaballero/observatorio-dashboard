@@ -98,6 +98,24 @@ const clipLabel = (value: unknown, max = ROW_LABEL_MAX): string => {
 };
 
 /**
+ * Cuántas letras de un rótulo de fila caben sin comerse las barras.
+ *
+ * El eje de categorías mide el rótulo más largo y le da esa columna entera: en un
+ * panel de 350 px, «Gasolina Especial + Internacional» se llevaba más de la mitad
+ * y la barra mayor quedaba en 75 px. La columna no pasa del 36 % del ancho medido
+ * (a unos 6,3 px la letra, en 12 px de texto) y un panel ancho sigue en el tope
+ * de siempre. El nombre completo sigue en el emergente y en la tabla.
+ */
+function useRowLabelMax(): { max: number; onResize: (width: number) => void } {
+  const [width, setWidth] = useState(0);
+  const max =
+    width > 0
+      ? Math.min(ROW_LABEL_MAX, Math.max(12, Math.floor((width * 0.36) / 6.3)))
+      : ROW_LABEL_MAX;
+  return { max, onResize: (next: number) => setWidth(Math.round(next)) };
+}
+
+/**
  * El tono de una barra de ránking según cuánto pesa frente a la primera.
  *
  * La primera lleva EXACTAMENTE el azul de la serie (`--series-1`), el mismo que
@@ -1793,6 +1811,7 @@ export function ShareBars({
   );
   const rows = [...data].sort((left, right) => right.value - left.value);
   const peak = rows.reduce((highest, row) => Math.max(highest, row.value), 0);
+  const labelMax = useRowLabelMax();
   const marked = rows.some((row) => row.emphasis);
   /*
    * El dibujo se toca sólo si hay adónde ir.
@@ -1837,7 +1856,7 @@ export function ShareBars({
 
   return (
     <div className="chart-frame chart-frame-rows" style={{ height: frame }}>
-      <ResponsiveContainer width="100%" height="100%">
+      <ResponsiveContainer width="100%" height="100%" onResize={labelMax.onResize}>
         {/* El margen derecho es el sitio donde vive la cifra de la barra más larga. */}
         <BarChart
           data={rows}
@@ -1860,7 +1879,7 @@ export function ShareBars({
             interval={0}
             dataKey="name"
             width="auto"
-            tickFormatter={(value: unknown) => clipLabel(value)}
+            tickFormatter={(value: unknown) => clipLabel(value, labelMax.max)}
             tick={ROW_TICK}
             {...AXIS}
           />
@@ -2230,6 +2249,7 @@ export function DivergingBars({
     );
   };
 
+  const labelMax = useRowLabelMax();
   const hasPlus = rows.some((row) => row.value >= 0);
   const hasMinus = rows.some((row) => row.value < 0);
   /* La leyenda nombra solo los lados que el dibujo tiene: «Negativo» sin una barra es ruido. */
@@ -2242,7 +2262,7 @@ export function DivergingBars({
   return (
     <div className="chart-stack">
       <div className="chart-frame chart-frame-rows" style={{ height: Math.max(120, rows.length * 34 + 44) }}>
-        <ResponsiveContainer width="100%" height="100%">
+        <ResponsiveContainer width="100%" height="100%" onResize={labelMax.onResize}>
           <BarChart
             data={rows}
             layout="vertical"
@@ -2262,7 +2282,7 @@ export function DivergingBars({
               interval={0}
               dataKey="name"
               width="auto"
-              tickFormatter={(value: unknown) => clipLabel(value)}
+              tickFormatter={(value: unknown) => clipLabel(value, labelMax.max)}
               tick={ROW_TICK}
               {...AXIS}
             />
