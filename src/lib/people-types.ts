@@ -75,6 +75,8 @@ export interface TalkChannel {
   read: number;
   analyzed: number;
   sentiment: Sentiment | null;
+  /** Palabras más repetidas en los comentarios de su canal; vacío mientras la muestra no alcanza para publicar. */
+  words: Term[];
 }
 
 export interface PersonRow {

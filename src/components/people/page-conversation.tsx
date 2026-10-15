@@ -58,6 +58,16 @@ export function ConversationPage() {
     .slice(0, 15)
     .map((word) => ({ name: word.term, value: word.count }));
 
+  // Palabras del público de cada canal, sumadas solo entre quienes están en el filtro actual.
+  const channelTotals = new Map<string, number>();
+  for (const row of channelRows)
+    for (const word of row.talk?.channel?.words ?? [])
+      channelTotals.set(word.term, (channelTotals.get(word.term) ?? 0) + word.count);
+  const channelWordBars: ShareSlice[] = [...channelTotals.entries()]
+    .sort((left, right) => right[1] - left[1] || left[0].localeCompare(right[0], 'es'))
+    .slice(0, 15)
+    .map(([term, count]) => ({ name: term, value: count }));
+
   return (
     <>
       <FilterBar compact />
@@ -133,6 +143,31 @@ export function ConversationPage() {
             que la conversación sobre la persona y no mide a toda Bolivia. Los creadores cuyo
             contenido está solo en TikTok o Instagram no aparecen: sin sesión iniciada esas
             plataformas no entregan comentarios.
+          </p>
+        </Panel>
+      ) : null}
+
+      {channelWordBars.length ? (
+        <Panel
+          id="personalidades-canal-palabras"
+          title="Palabras más repetidas en el público de su canal (apariciones)"
+          lede="Sumadas entre los creadores con muestra suficiente en su canal. Sin el nombre de quien publica ni palabras vacías."
+          meta={`${num(channelRows.length)} personas`}
+          source={SOURCE}
+          updated={updated}
+        >
+          <ShareBars
+            data={channelWordBars}
+            unit="apariciones"
+            decimals={0}
+            height={Math.max(220, channelWordBars.length * 26)}
+          />
+          <ChartLegend
+            items={[{ color: 'var(--official)', label: 'Apariciones en comentarios en español' }]}
+          />
+          <p className={s.footnote}>
+            Una palabra frecuente no es una opinión: «felicidades» o «saludos» dicen que el público
+            acompaña, no cuánto aprueba.
           </p>
         </Panel>
       ) : null}
