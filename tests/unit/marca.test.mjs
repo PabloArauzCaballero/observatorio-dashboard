@@ -98,7 +98,7 @@ test('ningún color se escribe a mano fuera de los tokens', () => {
 });
 
 test('toda variable CSS que se usa existe', () => {
-  const definidas = new Set(['--font-newsreader', '--font-public-sans']);
+  const definidas = new Set(['--font-gelasio', '--font-libre-franklin']);
   const todos = archivos(SRC, ['.ts', '.tsx', '.css']).filter((f) => !esAdmin(rel(f)));
   for (const f of todos) {
     const texto = leer(f);

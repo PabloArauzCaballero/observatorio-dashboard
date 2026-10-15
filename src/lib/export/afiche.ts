@@ -262,12 +262,12 @@ async function fuenteBase64(ruta: string): Promise<string> {
 
 export async function hojaDeFuentes(): Promise<string> {
   const [sans, serif] = await Promise.all([
-    fuenteBase64('/fonts/PublicSans-Variable.woff2'),
-    fuenteBase64('/fonts/Newsreader-Variable.woff2'),
+    fuenteBase64('/fonts/LibreFranklin-Variable.woff2'),
+    fuenteBase64('/fonts/Gelasio-Variable.woff2'),
   ]);
   return (
     `@font-face{font-family:'ObsSans';font-weight:100 900;src:url(data:font/woff2;base64,${sans}) format('woff2');}` +
-    `@font-face{font-family:'ObsSerif';font-weight:200 800;src:url(data:font/woff2;base64,${serif}) format('woff2');}`
+    `@font-face{font-family:'ObsSerif';font-weight:400 700;src:url(data:font/woff2;base64,${serif}) format('woff2');}`
   );
 }
 

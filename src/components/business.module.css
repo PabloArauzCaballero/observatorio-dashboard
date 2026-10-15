@@ -287,8 +287,8 @@
 }
 
 .topRank {
-  font-family: var(--serif);
-  font-size: 1.05rem;
+  font-family: var(--sans);
+  font-size: var(--text-md);
   font-weight: 700;
   font-variant-numeric: tabular-nums;
   text-align: right;

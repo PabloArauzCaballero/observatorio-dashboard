@@ -212,7 +212,7 @@ export function DensityHistogram({
               ))}
             </Bar>
             <Line
-              type="monotone"
+              type="linear"
               dataKey="curve"
               stroke="var(--gap)"
               strokeWidth={2.2}
@@ -235,14 +235,14 @@ export function DensityHistogram({
                 x={meanAt}
                 stroke="var(--parallel)"
                 strokeDasharray="4 3"
-                label={{ value: 'media', position: 'top', fill: 'var(--ink-soft)', fontSize: 10 }}
+                label={{ value: 'media', position: 'top', fill: 'var(--ink-soft)', fontSize: 11 }}
               />
             )}
             {medianAt === undefined || medianAt === meanAt ? null : (
               <ReferenceLine
                 x={medianAt}
                 stroke="var(--ink)"
-                label={{ value: 'mediana', position: 'top', fill: 'var(--ink-soft)', fontSize: 10 }}
+                label={{ value: 'mediana', position: 'top', fill: 'var(--ink-soft)', fontSize: 11 }}
               />
             )}
           </ComposedChart>
@@ -380,7 +380,7 @@ export function ViolinPlot({
               x={pad.left - 10}
               y={y(tick) + 3.5}
               textAnchor="end"
-              fontSize={10}
+              fontSize={11}
               fill="var(--axis-ink)"
               fontFamily="var(--sans)"
             >
@@ -468,7 +468,7 @@ export function ViolinPlot({
           x={axis}
           y={H - 8}
           textAnchor="middle"
-          fontSize={10}
+          fontSize={11}
           fill="var(--axis-ink)"
           fontFamily="var(--sans)"
         >
