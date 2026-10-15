@@ -29,7 +29,8 @@
 .rank,
 .year {
   fill: var(--ink-soft);
-  font-family: var(--mono);
+  font-family: var(--sans);
+  font-variant-numeric: tabular-nums;
   font-size: 11px;
   font-variant-numeric: tabular-nums;
 }

@@ -934,7 +934,7 @@ export function PlacesMap({ places }: { places: Place[] }) {
     const style = getComputedStyle(document.documentElement);
     const read = (name: string, fallback: string) =>
       style.getPropertyValue(name).trim() || fallback;
-    context.fillStyle = read('--panel-tint', '#f6f8fa');
+    context.fillStyle = read('--panel-tint', '#efe9dd');
     context.fillRect(0, 0, width, height);
 
     const scale = width / view.width;
@@ -979,8 +979,8 @@ export function PlacesMap({ places }: { places: Place[] }) {
     /* Los respaldos son los valores claros de los tokens, para el caso en que
        el lienzo se dibuje antes de que el navegador resuelva la hoja de
        estilos. Estaban apuntando a la paleta anterior. */
-    draw(false, read('--official', '#2a78d6'), 0.75);
-    draw(true, read('--parallel', '#eb6834'), 0.9);
+    draw(false, read('--official', '#3963b2'), 0.75);
+    draw(true, read('--parallel', '#ba813d'), 0.9);
 
     context.font = '20px ui-sans-serif, system-ui, sans-serif';
     context.fillStyle = 'rgba(255,255,255,0.85)';

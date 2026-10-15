@@ -429,11 +429,11 @@ export function SubjectsExplorer({ months, totals }: { months: TermMonth[]; tota
    * A name that says what is inside the file.
    *
    * Four downloads taken from four different selections all arrive as
-   * `observatorio-temas.csv`, and the reader is left with `(1)`, `(2)` and `(3)`
+   * `datosbolivia-temas.csv`, and the reader is left with `(1)`, `(2)` and `(3)`
    * in their downloads folder and no way to tell which year is which.
    */
   const fileName = (subjectTerm: string | undefined, format: string): string => {
-    const parts = ['observatorio-temas'];
+    const parts = ['datosbolivia-temas'];
     if (subjectTerm) parts.push(subjectTerm.toLocaleLowerCase('es'));
     else if (family.size) parts.push(list(family).join('-').toLocaleLowerCase('es'));
     if (year.size) parts.push(chosenYears.join('-'));

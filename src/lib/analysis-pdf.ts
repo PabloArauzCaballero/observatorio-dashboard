@@ -734,7 +734,7 @@ export function printAnalysis(report: AnalysisReport): void {
     // El título del documento es lo que el diálogo propone como nombre de
     // archivo, así que el PDF sale llamándose como el indicador y no
     // «about:blank».
-    view.document.title = `observatorio-${slug(report.title)}-${report.code}`;
+    view.document.title = `datosbolivia-${slug(report.title)}-${report.code}`;
     window.addEventListener('focus', onFocus);
     view.focus();
     view.print();

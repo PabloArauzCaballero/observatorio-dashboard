@@ -1,4 +1,4 @@
-import { Icon } from '@/components/icons';
+import { Masthead } from '@/components/masthead';
 
 /**
  * What the reader sees while the briefing is being built.
@@ -21,21 +21,7 @@ import { Icon } from '@/components/icons';
 export default function Loading() {
   return (
     <main>
-      <header className="topbar">
-        <div className="brand">
-          <span className="brand-mark">
-            <Icon name="barras" size={19} />
-          </span>
-          <div>
-            <h1>DatosBolivia.com</h1>
-            <div className="dateline">Centro de Datos de Bolivia</div>
-          </div>
-        </div>
-        <div className="topbar-stamp">
-          <Icon name="reloj" size={14} />
-          <span aria-hidden="true">Cargando datos…</span>
-        </div>
-      </header>
+      <Masthead stamp={<span aria-hidden="true">Cargando datos…</span>} />
 
       <div className="loading-note" role="status" aria-live="polite">
         <span className="loading-spin" aria-hidden="true" />

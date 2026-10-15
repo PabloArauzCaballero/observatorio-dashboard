@@ -1,3 +1,4 @@
+import Link from 'next/link';
 import type { ReactNode } from 'react';
 import { Monogram } from '@/components/brand/monogram';
 import { Donate } from '@/components/donate';
@@ -24,7 +25,7 @@ export function Masthead({ stamp }: { stamp: ReactNode }) {
           <Donate />
         </div>
       </div>
-      <a className="masthead-brand" href="/">
+      <Link className="masthead-brand" href="/">
         <Monogram size={64} title="" className="masthead-mono" />
         <div className="masthead-lockup">
           <h1 className="masthead-word">
@@ -36,7 +37,7 @@ export function Masthead({ stamp }: { stamp: ReactNode }) {
             <span className="masthead-sub-rule" aria-hidden="true" />
           </span>
         </div>
-      </a>
+      </Link>
       <p className="masthead-stamp">{stamp}</p>
     </header>
   );

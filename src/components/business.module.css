@@ -75,7 +75,7 @@
 }
 
 .sheet:focus {
-  outline: 2px solid var(--official);
+  outline: 2px solid var(--accent);
   outline-offset: 4px;
 }
 
@@ -86,7 +86,7 @@
 }
 
 .ficha:focus {
-  outline: 2px solid var(--official);
+  outline: 2px solid var(--accent);
   outline-offset: 4px;
 }
 
@@ -173,7 +173,7 @@
   border: 1px solid var(--rule-soft);
   border-radius: var(--radius-lg);
   padding: var(--s2);
-  background: color-mix(in srgb, var(--paper) 94%, var(--official));
+  background: var(--panel-tint);
 }
 
 .wordCloud {
@@ -200,7 +200,7 @@
 .word:hover,
 .word:focus-visible,
 .wordOn {
-  color: var(--official);
+  color: var(--accent);
   text-decoration: underline;
   text-underline-offset: 0.18rem;
 }
@@ -261,7 +261,8 @@
   border-radius: var(--radius);
   background: var(--panel);
   color: var(--ink);
-  font-family: var(--mono);
+  font-family: var(--sans);
+  font-variant-numeric: tabular-nums;
   font-size: var(--text-sm);
 }
 
@@ -286,7 +287,7 @@
 }
 
 .topRank {
-  font-family: var(--mono);
+  font-family: var(--serif);
   font-size: 1.05rem;
   font-weight: 700;
   font-variant-numeric: tabular-nums;
@@ -308,7 +309,8 @@
 }
 
 .topValue {
-  font-family: var(--mono);
+  font-family: var(--sans);
+  font-variant-numeric: tabular-nums;
   font-size: var(--text-sm);
   font-variant-numeric: tabular-nums;
   text-align: right;
@@ -316,7 +318,8 @@
 }
 
 .topMove {
-  font-family: var(--mono);
+  font-family: var(--sans);
+  font-variant-numeric: tabular-nums;
   font-size: var(--text-xs);
   font-variant-numeric: tabular-nums;
   color: var(--ink-soft);
@@ -346,7 +349,7 @@
 }
 
 .personButton strong {
-  color: var(--official);
+  color: var(--ink);
   font-size: var(--text-sm);
   line-height: 1.25;
   text-decoration: underline;
@@ -429,7 +432,7 @@
 }
 
 button.rankingName {
-  color: var(--official);
+  color: var(--ink);
   cursor: pointer;
   text-decoration: underline;
   text-decoration-color: transparent;
@@ -509,7 +512,7 @@ button.rankingName:focus-visible {
 }
 
 .milestones li::before {
-  background: var(--official);
+  background: var(--gold);
   border: 3px solid var(--panel);
   border-radius: 50%;
   content: '';

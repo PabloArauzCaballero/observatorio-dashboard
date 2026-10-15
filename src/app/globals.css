@@ -161,7 +161,8 @@
   --radius-sm: 2px;
   --radius-md: 3px;
   --radius-lg: 4px;
-  --radius-pill: 999px;
+  /* Las «píldoras» de botones y fichas también quedan rectas; un círculo de verdad usa 50 %. */
+  --radius-pill: 3px;
   --radius: var(--radius-md);
 
   --control-h-sm: 2rem;
@@ -421,139 +422,6 @@ a:hover {
     animation: none !important;
     transition-duration: 1ms !important;
   }
-}
-
-/* Top bar and tabs ------------------------------------------------------- */
-
-.topbar {
-  display: flex;
-  align-items: center;
-  gap: var(--s2);
-  flex-wrap: wrap;
-  padding-bottom: var(--s2);
-}
-
-.brand {
-  display: flex;
-  align-items: center;
-  gap: 0.625rem;
-  margin-right: auto;
-}
-
-.brand-mark {
-  width: 34px;
-  height: 34px;
-  border-radius: var(--radius-sm);
-  background: var(--ink);
-  color: var(--paper);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex: none;
-}
-
-.brand h1 {
-  font-family: var(--serif);
-  font-size: clamp(1.1rem, 2vw, 1.28rem);
-  font-weight: 600;
-  letter-spacing: -0.015em;
-  margin: 0;
-  line-height: 1.2;
-}
-
-.brand .dateline {
-  margin-bottom: 0;
-  margin-top: 1px;
-}
-
-.topbar-stamp {
-  display: flex;
-  align-items: center;
-  gap: 0.375rem;
-  font-family: var(--sans);
-  font-size: var(--text-xs);
-  letter-spacing: 0.01em;
-  color: var(--ink-soft);
-}
-
-/*
- * La cabecera, en un telefono, gastaba 350px antes de la primera pestaña: el
- * titulo a dos lineas en cuerpo de escritorio, la marca de tiempo en otras dos
- * y el boton de donar en una propia. Sigue diciendo lo mismo —quien publica,
- * a que fecha estan los datos y donde donar— en poco mas de la mitad.
- */
-@media (max-width: 720px) {
-  .topbar {
-    gap: var(--s1);
-    padding-bottom: var(--s1);
-  }
-
-  .brand-mark {
-    width: 28px;
-    height: 28px;
-    border-radius: var(--radius-md);
-  }
-
-  /*
-   * El titulo se mide contra la pantalla, no contra un tamaño fijo.
-   *
-   * A 320px «Observatorio Económico de Bolivia» partia en dos lineas y el
-   * subtitulo en otras dos, con el icono centrado a media altura del bloque,
-   * flotando junto a ninguna de las dos. Ahora el cuerpo sigue al ancho
-   * disponible y el icono se alinea con la primera linea, que es la que lleva
-   * el nombre.
-   */
-  .brand {
-    align-items: flex-start;
-    min-width: 0;
-  }
-
-  .brand > div {
-    min-width: 0;
-  }
-
-  .brand h1 {
-    font-size: clamp(0.82rem, 4.3vw, 1rem);
-    letter-spacing: -0.02em;
-    text-wrap: balance;
-    overflow-wrap: anywhere;
-  }
-
-  .topbar-stamp {
-    font-size: var(--text-xs);
-    letter-spacing: 0.04em;
-    text-transform: none;
-  }
-}
-
-.tab .ic {
-  opacity: 0.8;
-}
-
-.tab-active .ic {
-  opacity: 1;
-}
-
-/* Masthead and tabs ------------------------------------------------------ */
-
-.masthead {
-  padding-bottom: var(--s2);
-}
-
-.masthead h1 {
-  font-family: var(--serif);
-  font-size: clamp(1.55rem, 3vw, 2rem);
-  font-weight: 600;
-  letter-spacing: -0.015em;
-  margin: 0;
-}
-
-.dateline {
-  font-family: var(--sans);
-  font-size: var(--text-xs);
-  letter-spacing: 0.01em;
-  color: var(--ink-soft);
-  margin-bottom: var(--s1);
 }
 
 /* Layout ---------------------------------------------------------------- */
@@ -8817,7 +8685,8 @@ button.download-btn {
 /* Impresión (Ctrl+P): el contenido sin los controles ----------------------- */
 
 @media print {
-  .topbar,
+  .masthead-strip,
+  .site-sections,
   nav.subtabs,
   .rail,
   .skip-link,
@@ -10137,7 +10006,7 @@ button.download-btn {
 
 .masthead-mono {
   flex: none;
-  width: 4.5rem;
+  width: 6.25rem;
   height: auto;
 }
 
@@ -10197,7 +10066,7 @@ button.download-btn {
   }
 
   .masthead-mono {
-    width: 3.1rem;
+    width: 4rem;
   }
 
   .masthead-sub {
@@ -10219,8 +10088,8 @@ button.download-btn {
 /* --- Cabecera de sección: antetítulo, título y bajada --------------------- */
 
 .tab-head {
-  padding: var(--s1) 0 var(--s3);
-  border-bottom: 1px solid var(--rule);
+  padding: var(--s1) 0 var(--s2);
+  border-bottom: 0;
 }
 
 .tab-kicker {
@@ -10257,8 +10126,21 @@ button.download-btn {
 }
 
 .panel-top h3 {
+  margin: 0;
   font-weight: 650;
   letter-spacing: -0.015em;
+}
+
+.panel-top .panel-lede {
+  margin-top: 0.45rem;
+}
+
+/* Deslizadores, casillas y opciones del navegador, en el acento de la marca. */
+input[type='range'],
+input[type='checkbox'],
+input[type='radio'],
+progress {
+  accent-color: var(--accent);
 }
 
 .panel-lede {

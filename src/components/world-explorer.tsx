@@ -567,7 +567,7 @@ export function WorldExplorer() {
             <a
               className="download-btn"
               href={`/api/export?${exportQuery.toString()}&format=csv`}
-              download={`observatorio-mundo-${region.toLowerCase()}-desde-${from}.csv`}
+              download={`datosbolivia-mundo-${region.toLowerCase()}-desde-${from}.csv`}
               title={`Una fila por indicador, lugar y año, para el mundo, ${regionLabel} y Bolivia: todas las páginas`}
             >
               Selección en CSV
@@ -575,7 +575,7 @@ export function WorldExplorer() {
             <a
               className="download-btn"
               href={`/api/export?${exportQuery.toString()}&format=json`}
-              download={`observatorio-mundo-${region.toLowerCase()}-desde-${from}.json`}
+              download={`datosbolivia-mundo-${region.toLowerCase()}-desde-${from}.json`}
               title={`Una fila por indicador, lugar y año, para el mundo, ${regionLabel} y Bolivia: todas las páginas`}
             >
               Selección en JSON
