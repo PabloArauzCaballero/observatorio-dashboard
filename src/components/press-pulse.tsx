@@ -235,7 +235,17 @@ export function PressPulse({ cube, selection, span, onPick }: PressPulseProps) {
   // the comparison between years readable at all.
   const peakShare = Math.max(1, ...alarmByYear.map((row) => row.share));
 
-  const period = span.firstDay && span.lastDay ? `Del ${span.firstDay} al ${span.lastDay}. ` : '';
+  const enLetra = (dia: string): string =>
+    new Date(`${dia}T12:00:00Z`).toLocaleDateString('es-BO', {
+      day: 'numeric',
+      month: 'long',
+      year: 'numeric',
+      timeZone: 'UTC',
+    });
+  const period =
+    span.firstDay && span.lastDay
+      ? `Del ${enLetra(span.firstDay)} al ${enLetra(span.lastDay)}. `
+      : '';
   const round1 = (value: number): number => Number(value.toFixed(1));
   const regionKey = [
     { color: 'var(--official)', label: 'Notas que nombran el departamento' },
@@ -360,7 +370,7 @@ export function PressPulse({ cube, selection, span, onPick }: PressPulseProps) {
                     />
                   </span>
                   <span className="barlist-n barlist-n-wide">
-                    {row.share.toFixed(1)} % de {row.articles.toLocaleString('es-BO')}{' '}
+                    {row.share.toLocaleString('es-BO', { minimumFractionDigits: 1, maximumFractionDigits: 1 })} % de {row.articles.toLocaleString('es-BO')}{' '}
                     <span className="barlist-aside">({row.outlets})</span>
                   </span>
                 </button>

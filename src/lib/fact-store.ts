@@ -342,7 +342,7 @@ export function describe(
           hasta: last.date,
           desde: ordered[0]?.date ?? null,
           n: moves.length,
-          formula: `Desviaciones típicas entre el movimiento de ${month} días de hoy y la distribución de todos los de la serie (media ${mean.toFixed(3)}, sigma ${sd.toFixed(3)}).`,
+          formula: `Desviaciones típicas entre el movimiento de ${month} días de hoy y la distribución de todos los de la serie (media ${mean.toLocaleString('es-BO', { maximumFractionDigits: 3 })}, desviación típica ${sd.toLocaleString('es-BO', { maximumFractionDigits: 3 })}).`,
         }),
       );
     }
