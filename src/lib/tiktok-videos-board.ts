@@ -88,16 +88,16 @@ export const KIND_LABEL: Record<string, string> = {
 };
 
 export const ORIGIN_LABEL: Record<string, string> = {
-  LIVE: 'Vista vendiendo en un live',
-  SIMILAR: 'Cuenta parecida (sugerida por TikTok)',
+  LIVE: 'Vista vendiendo en una transmisión en vivo',
+  SIMILAR: 'Cuenta similar (sugerida por TikTok)',
 };
 
 export const TACTIC_LABEL: Record<string, string> = {
   PRECIO: 'Dice el precio',
-  ENVIO: 'Ofrece envío o delivery',
+  ENVIO: 'Ofrece envío o entrega a domicilio',
   CONTACTO: 'Pide contacto (WhatsApp, privado)',
   PROMO: 'Promoción, oferta o remate',
-  LIVE: 'Anuncia o recorta un live',
+  LIVE: 'Anuncia o recorta una transmisión en vivo',
   SORTEO: 'Sorteo o premio',
   MAYOR: 'Por mayor o por docena',
   NUEVO_STOCK: 'Mercadería nueva',

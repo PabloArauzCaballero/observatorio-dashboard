@@ -41,7 +41,7 @@ const SORT_LABEL: Record<SortKey, string> = {
   merco: 'Merco',
   total: 'Total',
   engagement: 'Interacción',
-  pace: 'Posts/sem.',
+  pace: 'Publ./semana',
   net: 'Sentimiento',
   ...PLATFORM_LABEL,
 };
@@ -122,8 +122,8 @@ export function CompanySocialTable({
   return (
     <Panel
       id="empresas-redes-tabla"
-      title="Seguidores por red y empresa (cuentas declaradas; interacción en %, sentimiento en puntos)"
-      lede={`${rows.length} empresas con los filtros puestos.`}
+      title="Seguidores por red y empresa (seguidores declarados; interacción en %, sentimiento en puntos)"
+      lede={`${rows.length} empresas con los filtros aplicados.`}
       source={SOCIAL_SOURCE}
       data={() => ({
         unidad: 'seguidores',
@@ -160,9 +160,10 @@ export function CompanySocialTable({
       <details className="panel-note">
         <summary>Cómo leerlo</summary>
         <p>
-          «Interacción» es la mediana de interacciones por post sobre seguidores; «Sentimiento», %
-          de comentarios positivos menos % negativos. Toca un encabezado para ordenar y una empresa
-          para aislarla abajo.
+          «Interacción» es la mediana de interacciones por publicación sobre seguidores;
+          «Sentimiento», el % de comentarios positivos menos el % de negativos. Al seleccionar un
+          encabezado se ordena la tabla; al seleccionar una empresa se aísla en los gráficos de
+          abajo.
         </p>
       </details>
       <Pager
@@ -177,7 +178,7 @@ export function CompanySocialTable({
         noun="empresas"
       />
       {rows.length === 0 ? (
-        <div className="callout">Ninguna empresa coincide con los filtros.</div>
+        <div className="callout">No hay empresas para estos filtros.</div>
       ) : (
         <div className="table-wrap">
           <table className="grid-table social-table">
@@ -242,7 +243,7 @@ export function CompanySocialTable({
                             rel="noopener noreferrer"
                             title={`@${account.handle}`}
                           >
-                            {account.followers === null ? 's/d' : count(account.followers)}
+                            {account.followers === null ? 'n.d.' : count(account.followers)}
                           </a>
                         </td>
                       );

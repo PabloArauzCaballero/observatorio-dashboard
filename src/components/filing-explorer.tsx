@@ -132,7 +132,7 @@ const BAR_TONE = 'var(--official)';
 
 /** Quién publica: el rubro y el tipo los deriva el Observatorio y el pie lo dice. */
 const SOURCE =
-  'Bolsa Boliviana de Valores (hechos relevantes de sus emisores); rubro y tipo derivados por el Observatorio';
+  'Bolsa Boliviana de Valores (hechos relevantes de sus emisores); rubro y tipo de hecho clasificados por DatosBolivia.com';
 
 /** One page of the register. The whole register is already in the browser, so
  * paging it costs nothing but the state that says where the reader is. */
@@ -308,7 +308,7 @@ export function FilingExplorer({
       key: `filer-${value}`,
       icon: 'edificio' as const,
       label: shortName(value),
-      title: `${value} — tocá para quitar este filtro`,
+      title: `${value}: quitar este filtro`,
       remove: () => {
         setOffset(0);
         setFiler((current) => without(current, value));
@@ -513,7 +513,7 @@ export function FilingExplorer({
               type="search"
               value={search}
               aria-label="Buscar en el hecho relevante"
-              placeholder="calificación, emisión, dividendos…"
+              placeholder="Buscar calificación, emisión, dividendos…"
               onChange={(event) => {
                 setOffset(0);
                 setSearch(event.target.value);
@@ -537,8 +537,8 @@ export function FilingExplorer({
         <header className="page-intro">
           <h3 className="page-intro-title">Hechos relevantes de la Bolsa Boliviana de Valores</h3>
           <p className="page-intro-lede">
-            Lo que las empresas que cotizan o emiten deuda en la BBV están obligadas a comunicar: no
-            es el universo de empresas del país.
+            Comunicados obligatorios de las empresas que cotizan o emiten deuda en la Bolsa
+            Boliviana de Valores (BBV). No representan al conjunto de empresas del país.
           </p>
           <details className="panel-note">
             <summary>Qué es y qué no es este registro</summary>
@@ -547,11 +547,11 @@ export function FilingExplorer({
               <strong>Bolsa Boliviana de Valores</strong> (BBV), que es la bolsa de valores de
               Bolivia y la única fuente de este registro. Aquí no está el universo de empresas del
               país: están <strong>las que cotizan o emiten deuda en la BBV</strong> y, de ellas,
-              sólo lo que la normativa las obliga a comunicar. Una empresa grande que no acude al
+              solo lo que la normativa las obliga a comunicar. Una empresa grande que no acude al
               mercado de valores no aparece en ninguna de estas filas, y su ausencia no dice nada
-              sobre ella. Elegí un rubro a la izquierda para leer sólo ese sector, o sumá varios con{' '}
-              <strong>Ctrl+clic</strong>; la bolsa no publica una clasificación sectorial propia,
-              así que el rubro se <strong>deriva de la razón social</strong> del emisor.
+              sobre ella. La bolsa no publica una clasificación sectorial propia: el rubro se{' '}
+              <strong>deriva de la razón social</strong> del emisor. En el panel de filtros, un
+              rubro aísla ese sector y <strong>Ctrl+clic</strong> suma varios.
             </p>
             <div className="brief-points">
               <div className="brief-point">
@@ -588,8 +588,8 @@ export function FilingExplorer({
         {categories.length > 1 ? (
           <Panel
             id="empresas-bbv-tipos"
-            title="Análisis por tipo de hecho (cantidad de comunicados)"
-            lede={`${categoryTotal.toLocaleString('es-BO')} comunicados, sin filtrar por tipo: el asunto leído por su redacción, no una clasificación de la bolsa.`}
+            title="Hechos relevantes por tipo (cantidad de comunicados)"
+            lede={`${categoryTotal.toLocaleString('es-BO')} comunicados, sin aplicar el filtro de tipo. El tipo se asigna según la redacción del asunto; la bolsa no publica esta clasificación.`}
             source={SOURCE}
             data={() => ({
               unidad: 'comunicados',
@@ -631,8 +631,8 @@ export function FilingExplorer({
         {sectors.length > 1 ? (
           <Panel
             id="empresas-bbv-rubros"
-            title="Actividad por rubro (cantidad de comunicados)"
-            lede={`${sectors.reduce((sum, [, count]) => sum + count, 0).toLocaleString('es-BO')} comunicados, sin filtrar por rubro.`}
+            title="Hechos relevantes por rubro del emisor (cantidad de comunicados)"
+            lede={`${sectors.reduce((sum, [, count]) => sum + count, 0).toLocaleString('es-BO')} comunicados, sin aplicar el filtro de rubro. El rubro se deriva de la razón social del emisor.`}
             source={SOURCE}
             data={() => ({
               unidad: 'comunicados',
@@ -776,7 +776,7 @@ export function FilingExplorer({
               })}
             </div>
           ) : (
-            <div className="callout">Ningún hecho relevante coincide con esta selección.</div>
+            <div className="callout">No hay hechos relevantes para estos filtros.</div>
           )}
 
           {pages > 1 ? (

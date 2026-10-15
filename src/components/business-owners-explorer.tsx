@@ -38,48 +38,48 @@ import type { OwnerEstimate, OwnersBoard, OwnerYearHistory } from '@/lib/busines
  */
 const BENCHMARK_NAMES: Record<string, { name: string; unit: string }> = {
   WEALTH_UBS_ADULTS_UNDER_10K_PCT: {
-    name: 'Adultos con patrimonio de menos de 10.000 dólares',
+    name: 'Adultos con patrimonio inferior a USD 10.000',
     unit: '% de los adultos',
   },
   WEALTH_UBS_ADULTS_10K_100K_PCT: {
-    name: 'Adultos con patrimonio de 10.000 a 100.000 dólares',
+    name: 'Adultos con patrimonio de USD 10.000 a 100.000',
     unit: '% de los adultos',
   },
   WEALTH_UBS_ADULTS_100K_1M_PCT: {
-    name: 'Adultos con patrimonio de 100.000 a 1 millón de dólares',
+    name: 'Adultos con patrimonio de USD 100.000 a 1 millón',
     unit: '% de los adultos',
   },
   WEALTH_UBS_ADULTS_OVER_1M_PCT: {
-    name: 'Adultos con patrimonio de más de 1 millón de dólares',
+    name: 'Adultos con patrimonio superior a USD 1 millón',
     unit: '% de los adultos',
   },
   WEALTH_UBS_ADULTS_THOUSAND: { name: 'Población adulta', unit: 'miles de personas' },
-  WEALTH_UBS_DEBTS_PER_ADULT_USD: { name: 'Deudas por adulto', unit: 'dólares' },
-  WEALTH_UBS_FINANCIAL_PER_ADULT_USD: { name: 'Patrimonio financiero por adulto', unit: 'dólares' },
+  WEALTH_UBS_DEBTS_PER_ADULT_USD: { name: 'Deudas por adulto', unit: 'USD' },
+  WEALTH_UBS_FINANCIAL_PER_ADULT_USD: { name: 'Patrimonio financiero por adulto', unit: 'USD' },
   WEALTH_UBS_NONFINANCIAL_PER_ADULT_USD: {
     name: 'Patrimonio no financiero por adulto',
-    unit: 'dólares',
+    unit: 'USD',
   },
-  WEALTH_UBS_MEAN_PER_ADULT_USD: { name: 'Patrimonio medio por adulto', unit: 'dólares' },
-  WEALTH_UBS_MEDIAN_PER_ADULT_USD: { name: 'Patrimonio mediano por adulto', unit: 'dólares' },
+  WEALTH_UBS_MEAN_PER_ADULT_USD: { name: 'Patrimonio medio por adulto', unit: 'USD' },
+  WEALTH_UBS_MEDIAN_PER_ADULT_USD: { name: 'Patrimonio mediano por adulto', unit: 'USD' },
   WEALTH_UBS_GINI_PCT: { name: 'Desigualdad de la riqueza (índice de Gini)', unit: '%' },
   WEALTH_UBS_TOTAL_WEALTH_BN_USD: {
     name: 'Patrimonio total',
-    unit: 'miles de millones de dólares',
+    unit: 'miles de millones de USD',
   },
 };
 
-const FALLBACK_SOURCE = 'Observatorio Económico de Bolivia (ver «Método»)';
+const FALLBACK_SOURCE = 'ver «Método»';
 
 type Basis = 'book' | 'market';
 
 const usd = (value: number): string =>
-  `$us ${value.toLocaleString('es-BO', { minimumFractionDigits: value < 10 ? 1 : 0, maximumFractionDigits: value < 10 ? 1 : 0 })} M`;
+  `USD ${value.toLocaleString('es-BO', { minimumFractionDigits: value < 10 ? 1 : 0, maximumFractionDigits: value < 10 ? 1 : 0 })} M`;
 const UNIT_LABEL: Record<string, string> = {
   COUNT: 'cantidad',
-  USD: 'dólares',
-  MILLION_USD: 'millones de dólares',
-  BILLION_USD: 'miles de millones de dólares',
+  USD: 'USD',
+  MILLION_USD: 'millones de USD',
+  BILLION_USD: 'miles de millones de USD',
   THOUSAND_PERSONS: 'miles de personas',
   PERCENT: '%',
   RATIO: 'razón',
@@ -290,6 +290,7 @@ export function BusinessOwnersExplorer({ board }: { board: OwnersBoard }) {
               <button
                 type="button"
                 className={styles.rankingName}
+                title={`Abrir la ficha de ${row.name}`}
                 aria-controls="empresario-ficha"
                 aria-expanded={open === row.key}
                 onClick={() => setOpen(row.key)}
@@ -334,20 +335,20 @@ export function BusinessOwnersExplorer({ board }: { board: OwnersBoard }) {
           id="empresarios-top"
           title={
             topYear === null
-              ? `Los ${topRows.length} mayores empresarios por fortuna estimada en libros, último dato de cada uno (millones de dólares)`
-              : `Los ${topRows.length} mayores empresarios por fortuna estimada en libros, ${podium.year} (millones de dólares)`
+              ? `Los ${topRows.length} mayores empresarios por patrimonio contable estimado, último dato de cada persona (millones de USD)`
+              : `Los ${topRows.length} mayores empresarios por patrimonio contable estimado, ${podium.year} (millones de USD)`
           }
           lede={
             topYear === null
-              ? `Cada persona con su estimación más reciente.${stale ? ` ${topRows.length - stale} llegan a ${latestYear}; para las otras ${stale} el último documento público es anterior y el año va junto al nombre.` : ''} Elegí un año para ver el orden de ese año solo. Toca un nombre para abrir su ficha.`
+              ? `Cada persona figura con su estimación más reciente.${stale ? ` ${topRows.length - stale} tienen dato de ${latestYear}; para las otras ${stale}, el último documento público es anterior y el año figura junto al nombre.` : ''}`
               : podium.places.length < TOP_PLACES
-                ? `En ${podium.year} sólo ${podium.population} personas tienen participación y patrimonio públicos, así que hay ${podium.places.length} puestos y no diez${fullYears.length ? `; los diez completos están en ${fullYears.join(', ')}` : ''}. Toca un nombre para abrir su ficha.`
-                : `Puesto entre las ${podium.population} personas con participación y patrimonio públicos ese año, y cuánto se movió cada una frente al año anterior. Toca un nombre para abrir su ficha.`
+                ? `En ${podium.year}, solo ${podium.population} personas tienen participación accionaria y patrimonio públicos, por lo que la clasificación tiene ${podium.places.length} puestos${fullYears.length ? `; los años con diez puestos son ${fullYears.join(', ')}` : ''}.`
+                : `Puesto de cada persona entre las ${podium.population} con participación accionaria y patrimonio públicos en ${podium.year}, y su variación frente al año anterior.`
           }
           ledeText={
             topYear === null
-              ? 'Cada persona con su estimación más reciente; el año va junto al nombre cuando es anterior.'
-              : `Puesto entre las ${podium.population} personas con participación y patrimonio públicos en ${podium.year}.`
+              ? 'Cada persona figura con su estimación más reciente; el año aparece junto al nombre cuando es anterior.'
+              : `Puesto de cada persona entre las ${podium.population} con participación accionaria y patrimonio públicos en ${podium.year}.`
           }
           source={ESTIMATE_SOURCE}
           data={() => ({
@@ -378,6 +379,7 @@ export function BusinessOwnersExplorer({ board }: { board: OwnersBoard }) {
             <label className={styles.topYear}>
               <span>Año</span>
               <select
+                title="Al elegir un año se muestra la clasificación de ese año"
                 value={topYear === null ? '' : String(podium.year)}
                 onChange={(event) => {
                   if (!event.target.value) {
@@ -389,7 +391,7 @@ export function BusinessOwnersExplorer({ board }: { board: OwnersBoard }) {
                   setYear(chosen);
                 }}
               >
-                <option value="">Último dato de cada uno</option>
+                <option value="">Último dato de cada persona</option>
                 {[...board.podiums].reverse().map((one) => (
                   <option key={one.year} value={one.year}>
                     {one.year}
@@ -407,6 +409,7 @@ export function BusinessOwnersExplorer({ board }: { board: OwnersBoard }) {
                   <button
                     type="button"
                     className={styles.personButton}
+                    title={`Abrir la ficha de ${row.name}`}
                     aria-controls="empresario-ficha"
                     aria-expanded={open === row.person}
                     onClick={() => {
@@ -429,17 +432,17 @@ export function BusinessOwnersExplorer({ board }: { board: OwnersBoard }) {
             })}
           </ol>
           <ChartLegend
-            items={[{ color: 'var(--official)', label: 'Piso contable (millones de dólares)' }]}
+            items={[{ color: 'var(--official)', label: 'Piso contable (millones de USD)' }]}
           />
           <details className="panel-note">
             <summary>Cómo leerlo</summary>
             <p>
-              Ordena sólo a las personas con participación y patrimonio públicos: no es un ránking
-              de fortunas reales. Con «Último dato de cada uno» cada persona entra con su estimación
-              más reciente, y a la derecha va el año cuando no es el último publicado. Con un año
-              elegido, ▲ y ▼ dicen cuántos puestos subió o bajó frente al año anterior; «nuevo», que
-              ese año no tenía estimación. Un año con menos de diez personas calculables muestra
-              menos puestos.
+              La clasificación ordena solo a las personas con participación accionaria y patrimonio
+              públicos; no mide fortunas totales. Con «Último dato de cada persona», cada una figura
+              con su estimación más reciente y el año aparece junto al nombre cuando no es el último
+              publicado. Con un año elegido, ▲ y ▼ indican cuántos puestos subió o bajó frente al año
+              anterior; «nuevo», que ese año no tenía estimación. Un año con menos de diez personas
+              calculables muestra menos puestos. Al seleccionar un nombre se abre su ficha.
             </p>
           </details>
         </Panel>
@@ -449,8 +452,8 @@ export function BusinessOwnersExplorer({ board }: { board: OwnersBoard }) {
         <Panel
           id="empresarios-cintas"
           title={`Puesto de cada empresario entre los ${TOP_PLACES} primeros, ${board.podiums[0]?.year ?? ''}–${board.podiums.at(-1)?.year ?? ''} (puesto por año)`}
-          lede="Cada cinta es una persona: sube cuando mejora su puesto y se corta el año en que no tiene estimación o queda fuera de los diez. Pasa por encima para ver el año; toca una cinta para resaltarla y abrir su ficha."
-          ledeText="Cada cinta es una persona; se corta el año en que no tiene estimación o queda fuera de los diez."
+          lede="Posición anual de cada empresario en la clasificación de patrimonio. Una línea interrumpida indica un año sin estimación o fuera de los diez primeros."
+          ledeText="Posición anual de cada empresario en la clasificación de patrimonio. Una línea interrumpida indica un año sin estimación o fuera de los diez primeros."
           source={ESTIMATE_SOURCE}
           data={() => ({
             unidad: 'puesto',
@@ -486,8 +489,8 @@ export function BusinessOwnersExplorer({ board }: { board: OwnersBoard }) {
 
       <Panel
         id="empresarios-resumen"
-        title={`Empresarios de Bolivia: fortuna estimada por sus participaciones en empresas, ${year} (millones de dólares)`}
-        lede="Estimación del Observatorio, una cota inferior: participación documentada por patrimonio de la empresa."
+        title={`Empresarios de Bolivia: patrimonio estimado por sus participaciones en empresas, ${year} (millones de USD)`}
+        lede="Estimación de DatosBolivia.com y cota inferior: participación accionaria documentada multiplicada por el patrimonio contable de cada empresa."
         source={ESTIMATE_SOURCE}
         data={() => ({
           columnas: ['Cifra', 'Valor', 'Detalle'],
@@ -545,20 +548,21 @@ export function BusinessOwnersExplorer({ board }: { board: OwnersBoard }) {
           <summary>Cómo leerlo</summary>
           <p>
             <span className={`${styles.badge} ${styles.estimate}`}>
-              Estimación del Observatorio
+              Estimación de DatosBolivia.com
             </span>{' '}
             cota inferior: participación documentada × patrimonio de la empresa. No incluye
             inmuebles, cuentas, empresas fuera de la lista ni activos fuera de Bolivia.{' '}
-            <span className={styles.badge}>Forbes</span> cifra publicada por Forbes, sólo para quien
-            Forbes nombra.
+            <span className={styles.badge}>Forbes</span> cifra publicada por Forbes, solo para las
+            personas que incluye en su lista.
           </p>
           <p>
             Cómo se calcula. 1) Participación efectiva de cada persona en cada empresa, directa o a
             través de sociedades, según el documento público más reciente hasta ese año (memorias de
             bancos, prospectos y registros de la bolsa). 2) Piso contable: participación ×
             patrimonio del balance auditado que publica la propia empresa. 3) Referencia de mercado:
-            el piso por la razón precio/valor en libros de su industria en mercados emergentes
-            (Damodaran) ese año. 4) Bolivianos a dólares a 6,96.
+            el piso multiplicado por la razón precio/valor en libros de su industria en mercados
+            emergentes (Aswath Damodaran, NYU Stern) ese año. 4) Conversión de bolivianos a dólares
+            al tipo de cambio oficial de Bs 6,96 por USD.
           </p>
         </details>
       </Panel>
@@ -601,7 +605,7 @@ export function BusinessOwnersExplorer({ board }: { board: OwnersBoard }) {
           <div className="rail-sec">
             <div className="rail-head">
               <Icon name="monedas" size={13} />
-              Vara de la estimación
+              Base de la estimación
             </div>
             <div className="rail-pills">
               {(['book', 'market'] as const).map((value) => (
@@ -635,7 +639,7 @@ export function BusinessOwnersExplorer({ board }: { board: OwnersBoard }) {
             <div className="rail-field">
               <input
                 type="search"
-                placeholder="Buscar por nombre…"
+                placeholder="Buscar persona"
                 aria-label="Buscar una persona"
                 value={query}
                 onChange={(event) => setQuery(event.target.value)}
@@ -678,9 +682,9 @@ export function BusinessOwnersExplorer({ board }: { board: OwnersBoard }) {
         <div className={`workspace-main ${styles.board}`}>
           <Panel
             id="empresarios-orden"
-            title={`Orden ${year}: ${estimates.length} estimaciones por fortuna ${basis === 'book' ? 'en libros' : 'a valor de mercado de referencia'} (millones de dólares)`}
-            lede="La posición compara sólo los pisos que pudieron calcularse ese año, no fortunas reales. Toca un nombre para abrir su ficha."
-            source={`${ESTIMATE_SOURCE}; Forbes, World’s Billionaires, sólo para quien Forbes nombra`}
+            title={`Clasificación ${year}: ${estimates.length} patrimonios estimados ${basis === 'book' ? 'a valor en libros' : 'a valor de mercado de referencia'} (millones de USD)`}
+            lede="La posición compara solo los pisos contables que pudieron calcularse ese año; no mide fortunas totales."
+            source={`${ESTIMATE_SOURCE}; Forbes, World’s Billionaires (solo para las personas que incluye)`}
             data={() => ({
               unidad: 'millones de dólares',
               columnas: [
@@ -696,7 +700,7 @@ export function BusinessOwnersExplorer({ board }: { board: OwnersBoard }) {
                 row.name,
                 row.kind === 'forbes'
                   ? 'Forbes (sin puesto comparable)'
-                  : 'Estimación del Observatorio',
+                  : 'Estimación de DatosBolivia.com',
                 row.low,
                 row.high,
                 row.value,
@@ -720,20 +724,21 @@ export function BusinessOwnersExplorer({ board }: { board: OwnersBoard }) {
                 ) : null}
                 <ChartLegend
                   items={[
-                    { color: 'var(--official)', label: 'Fortuna mostrada (millones de dólares)' },
+                    { color: 'var(--official)', label: 'Patrimonio mostrado (millones de USD)' },
                   ]}
                 />
               </>
             ) : (
               <div className="callout">
-                No hay fortunas publicadas ni estimadas para {year} con estos filtros.
+                No hay patrimonios publicados ni estimados para {year} con estos filtros.
               </div>
             )}
             <details className="panel-note">
               <summary>Cómo leerlo</summary>
               <p>
-                Las cifras Forbes se muestran aparte y sin puesto comparable. La barra fina marca el
-                rango entre el piso contable y la referencia de mercado.
+                Las cifras de Forbes se muestran aparte y sin puesto comparable. La barra fina marca
+                el rango entre el piso contable y la referencia de mercado. Al seleccionar un nombre
+                se abre su ficha.
               </p>
             </details>
           </Panel>
@@ -741,8 +746,8 @@ export function BusinessOwnersExplorer({ board }: { board: OwnersBoard }) {
           {forbesSeries.length ? (
             <Panel
               id="empresarios-forbes"
-              title={`Nacidos en Bolivia en la lista de Forbes, ${forbesYears[0]}–${forbesYears.at(-1)} (patrimonio, millones de dólares)`}
-              lede="Ninguna persona con ciudadanía boliviana figura en la lista en ningún año."
+              title={`Personas nacidas en Bolivia en la lista de Forbes, ${forbesYears[0]}–${forbesYears.at(-1)} (patrimonio en millones de USD)`}
+              lede="Las personas incluidas nacieron en Bolivia y tienen otra ciudadanía; ninguna con ciudadanía boliviana figura en la lista en los años disponibles."
               source={`${board.sources['WEALTH_FORBES']?.publisher || 'Forbes'}, World’s Billionaires`}
             >
               <WorldLines
@@ -767,8 +772,8 @@ export function BusinessOwnersExplorer({ board }: { board: OwnersBoard }) {
               <Panel
                 id="empresarios-fortunas-contribuyentes"
                 title="Impuesto a las Grandes Fortunas: contribuyentes por año (cantidad de personas)"
-                lede="Personas con patrimonio neto sobre Bs 30 millones que lo declararon y pagaron."
-                source={board.sources['WEALTH_IGF']?.publisher || 'Impuestos Nacionales'}
+                lede="Personas con patrimonio neto superior a Bs 30 millones que declararon y pagaron el Impuesto a las Grandes Fortunas (IGF)."
+                source={board.sources['WEALTH_IGF']?.publisher || 'Servicio de Impuestos Nacionales (SIN)'}
               >
                 <WorldLines
                   data={board.wealthTax.map((row) => ({
@@ -783,9 +788,9 @@ export function BusinessOwnersExplorer({ board }: { board: OwnersBoard }) {
               </Panel>
               <Panel
                 id="empresarios-fortunas-recaudacion"
-                title={`Impuesto a las Grandes Fortunas: recaudación por año (${board.wealthTax.find((row) => row.unit)?.unit === 'MILLION_BOB' ? 'millones de bolivianos' : 'bolivianos'})`}
-                lede="Lo que el impuesto recaudó cada gestión; el año en curso puede ser parcial."
-                source={board.sources['WEALTH_IGF']?.publisher || 'Impuestos Nacionales'}
+                title={`Impuesto a las Grandes Fortunas: recaudación por año (${board.wealthTax.find((row) => row.unit)?.unit === 'MILLION_BOB' ? 'millones de Bs' : 'Bs'})`}
+                lede="Recaudación del IGF por gestión. La gestión en curso puede ser parcial."
+                source={board.sources['WEALTH_IGF']?.publisher || 'Servicio de Impuestos Nacionales (SIN)'}
               >
                 <WorldLines
                   data={board.wealthTax.map((row) => ({
@@ -822,8 +827,8 @@ export function BusinessOwnersExplorer({ board }: { board: OwnersBoard }) {
                     title={`${name}, ${first === last ? first : `${first}–${last}`} (${unit})`}
                     lede={
                       single
-                        ? 'Una cifra del país, sin nombres de personas.'
-                        : 'Una cifra del país, sin nombres de personas, año a año.'
+                        ? 'Indicador agregado del país, sin datos de personas.'
+                        : 'Indicador agregado del país por año, sin datos de personas.'
                     }
                     source={
                       board.sources[one.code.split('_').slice(0, 2).join('_')]?.publisher ||

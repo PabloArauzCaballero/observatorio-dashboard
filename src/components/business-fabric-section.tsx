@@ -17,8 +17,8 @@ export function BusinessFabricSection() {
   if (!payload.board.firms.length && !payload.board.taxRoll.length) {
     return (
       <div className="callout">
-        Todavía no hay base empresarial cargada. La página se llena sola cuando el núcleo haya sembrado el registro de
-        comercio y el padrón de Impuestos.
+        Todavía no hay datos del tejido empresarial. La página se completa cuando se cargan el registro de
+        comercio y el padrón de Impuestos Nacionales.
       </div>
     );
   }

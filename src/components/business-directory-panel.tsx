@@ -50,10 +50,10 @@ export function BusinessDirectoryPanel() {
   return (
     <Panel
       id="tejido-directorio"
-      title="Directorio de empresas disponible (cantidad de empresas)"
-      lede="Nombres y datos públicos de los registros SEPREC reunidos por el Observatorio. La cobertura es parcial: la base oficial completa se solicita mediante el Trámite 58 del SEPREC."
+      title="Directorio de empresas del registro de comercio (cantidad de empresas)"
+      lede="Nombre, ubicación y dirección declarada de empresas inscritas en el Servicio Plurinacional de Registro de Comercio (SEPREC). La cobertura es parcial: la base oficial completa se solicita al SEPREC mediante el Trámite 58."
       meta={result ? `${say(result.total)} coincidencias` : undefined}
-      source="SEPREC, directorio parcial de empresas reunido por el Observatorio"
+      source="Servicio Plurinacional de Registro de Comercio (SEPREC), directorio parcial de empresas"
       extraDownloads={[
         {
           etiqueta: 'Todas las empresas filtradas',
@@ -87,11 +87,11 @@ export function BusinessDirectoryPanel() {
 
           <form className={styles.directoryFilters} onSubmit={submitSearch}>
             <label>
-              <span>Buscar nombre</span>
+              <span>Nombre</span>
               <input
                 type="search"
                 value={search}
-                placeholder="Ej.: Cóndor"
+                placeholder="Buscar empresa"
                 onChange={(event) => setSearch(event.target.value)}
               />
             </label>
@@ -245,7 +245,7 @@ export function BusinessDirectoryPanel() {
         </>
       ) : status === 'loading' ? (
         <div className="callout" role="status">
-          Cargando directorio empresarial…
+          Cargando el directorio de empresas…
         </div>
       ) : null}
     </Panel>

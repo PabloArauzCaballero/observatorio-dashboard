@@ -52,7 +52,7 @@ const TONES: ReadonlyArray<{ value: SocialFilters['tone']; label: string }> = [
 const KINDS: ReadonlyArray<{ value: TermKind; label: string }> = [
   { value: 'WORD', label: 'Palabras' },
   { value: 'BIGRAM', label: 'Frases de dos palabras' },
-  { value: 'HASHTAG', label: 'Hashtags' },
+  { value: 'HASHTAG', label: 'Etiquetas (#)' },
   { value: 'EMOJI', label: 'Emojis' },
 ];
 
@@ -168,8 +168,8 @@ export function CompanySocialExplorer({ board }: { board: CompanySocialBoard }) 
   if (!board.companies.length) {
     return (
       <div className="callout">
-        Todavía no hay lectura de redes sociales cargada. La página se llena sola cuando el núcleo
-        siembre la primera corrida (migración 0094).
+        Todavía no hay datos de redes sociales de las empresas. La página se completa con la
+        primera lectura de los perfiles.
       </div>
     );
   }
@@ -179,8 +179,8 @@ export function CompanySocialExplorer({ board }: { board: CompanySocialBoard }) 
       <Panel
         id="empresas-redes-resumen"
         className="emp-hero"
-        title={`Redes sociales de las empresas Merco: seguidores, interacción y sentimiento (lectura del ${board.readingDate ? sayDate(board.readingDate) : '—'})`}
-        lede="Perfiles sociales encontrados en webs corporativas y buscadores, leídos sin iniciar sesión. Algunos hallazgos siguen pendientes de verificar."
+        title={`Redes sociales de las empresas de la clasificación Merco, lectura del ${board.readingDate ? sayDate(board.readingDate) : '—'} (seguidores, interacción y sentimiento)`}
+        lede={`Las ${count(chosen.length)} empresas seleccionadas suman ${millions(followers)} seguidores declarados, con duplicados entre redes. Los perfiles se localizaron en sitios web corporativos y buscadores y se leyeron sin iniciar sesión; algunos están pendientes de verificación.`}
         source={SOCIAL_SOURCE}
         data={() => ({
           unidad: 'seguidores',
@@ -192,7 +192,7 @@ export function CompanySocialExplorer({ board }: { board: CompanySocialBoard }) 
               followers,
               'suma de cuentas leídas, con duplicados entre redes',
             ],
-            ['Posts leídos', postsRead, 'en la ventana de 90 días y la grilla visible'],
+            ['Publicaciones leídas', postsRead, 'de los últimos 90 días y de la cuadrícula visible del perfil'],
             [
               'Sentimiento neto',
               net === null ? null : Number(net.toFixed(1)),
@@ -227,9 +227,9 @@ export function CompanySocialExplorer({ board }: { board: CompanySocialBoard }) 
             <span className="stat-hint">suma de cuentas leídas, con duplicados entre redes</span>
           </div>
           <div className="stat">
-            <span className="stat-label">Posts leídos</span>
+            <span className="stat-label">Publicaciones leídas</span>
             <span className="stat-value">{count(postsRead)}</span>
-            <span className="stat-hint">en la ventana de 90 días y la grilla visible</span>
+            <span className="stat-hint">de los últimos 90 días y de la cuadrícula visible del perfil</span>
           </div>
           <div className="stat">
             <span className="stat-label">Sentimiento neto</span>
@@ -297,7 +297,7 @@ export function CompanySocialExplorer({ board }: { board: CompanySocialBoard }) 
             <div className="rail-field">
               <input
                 type="search"
-                placeholder="Buscar por nombre…"
+                placeholder="Buscar empresa"
                 aria-label="Buscar una empresa por su nombre"
                 value={query}
                 onChange={(event) => setQuery(event.target.value)}
@@ -330,7 +330,7 @@ export function CompanySocialExplorer({ board }: { board: CompanySocialBoard }) 
                 onChange={(event) => setTopOnly(event.target.checked)}
               />
               <span>
-                <Icon name="escudo" size={13} /> Sólo el top 50 de Merco
+                <Icon name="escudo" size={13} /> Solo las 50 primeras de Merco
               </span>
             </label>
           </div>
@@ -379,8 +379,8 @@ export function CompanySocialExplorer({ board }: { board: CompanySocialBoard }) 
           <div className="grid-pair">
             <Panel
               id="empresas-redes-seguidores"
-              title="Seguidores declarados por red (suma de las empresas elegidas, cuentas)"
-              lede="Toca una red para filtrar por ella. Una persona que sigue a la empresa en dos redes cuenta dos veces."
+              title="Seguidores declarados por red (seguidores, suma de las empresas seleccionadas)"
+              lede="Suma de los seguidores que declara cada red. Una persona que sigue a la empresa en dos redes cuenta dos veces."
               source={SOCIAL_SOURCE}
             >
               {byPlatform.length ? (
@@ -394,25 +394,26 @@ export function CompanySocialExplorer({ board }: { board: CompanySocialBoard }) 
                       setPlatforms((current) => toggle(current, platform, add))
                     }
                   />
-                  {barsKey('Seguidores declarados por la red, sumados entre las empresas elegidas')}
+                  {barsKey('Seguidores declarados por la red, sumados entre las empresas seleccionadas')}
+                  <p className="chart-note">Al seleccionar una red se filtra la página por ella.</p>
                 </>
               ) : (
-                <div className="callout">Ninguna cuenta leída con los filtros puestos.</div>
+                <div className="callout">No hay cuentas leídas para estos filtros.</div>
               )}
             </Panel>
 
             <Panel
               id="empresas-redes-interaccion"
-              title="Interacción por post (% de los seguidores, mediana de las cuentas de cada empresa)"
-              lede="Cuánto responde la audiencia, no su tamaño: las 15 más altas; toca una para aislarla."
+              title="Interacción por publicación (% de los seguidores, mediana de las cuentas de cada empresa)"
+              lede="Mide la respuesta de la audiencia, no su tamaño. Se muestran las 15 empresas con la tasa más alta."
               source={SOCIAL_SOURCE}
             >
               <details className="panel-note">
                 <summary>Cómo leerlo</summary>
                 <p>
-                  Likes, comentarios y compartidos de cada post de los últimos 90 días dividido por
-                  los seguidores de la cuenta. Mide cuánto responde la audiencia, no su tamaño. Las
-                  15 más altas; toca una para aislarla.
+                  Reacciones, comentarios y veces compartida de cada publicación de los últimos 90
+                  días, divididos por los seguidores de la cuenta. Mide la respuesta de la audiencia,
+                  no su tamaño. Al seleccionar una barra se aísla esa empresa.
                 </p>
               </details>
               {engagement.length ? (
@@ -424,11 +425,11 @@ export function CompanySocialExplorer({ board }: { board: CompanySocialBoard }) 
                     height={Math.max(220, engagement.length * 26)}
                     onPick={(slug, add) => setFocus((current) => toggle(current, slug, add))}
                   />
-                  {barsKey('Mediana de (likes + comentarios + compartidos) ÷ seguidores, en %')}
+                  {barsKey('Mediana de (reacciones + comentarios + compartidos) ÷ seguidores (%)')}
                 </>
               ) : (
                 <div className="callout">
-                  Sin posts con cifras de interacción para las empresas elegidas.
+                  No hay publicaciones con cifras de interacción para las empresas seleccionadas.
                 </div>
               )}
             </Panel>
@@ -450,7 +451,7 @@ export function CompanySocialExplorer({ board }: { board: CompanySocialBoard }) 
                   <div><strong>{breakdown.ironyPct.toFixed(1)} %</strong><span>irónicos</span></div>
                 ) : null}
               </div>
-            ) : <div className="callout">Sin comentarios visibles para este filtro.</div>}
+            ) : <div className="callout">No hay comentarios visibles para estos filtros.</div>}
             <p className="panel-note">Son señales del texto que captó el modelo; no describen el estado emocional de cada persona.</p>
           </Panel>
 
@@ -471,7 +472,7 @@ export function CompanySocialExplorer({ board }: { board: CompanySocialBoard }) 
               <DivergingBars data={tones} unit="puntos" height={Math.max(220, tones.length * 26)} />
             ) : (
               <div className="callout">
-                Ninguna empresa elegida tiene {MIN_COMMENTS} comentarios clasificados.
+                Ninguna empresa seleccionada tiene {MIN_COMMENTS} o más comentarios clasificados.
               </div>
             )}
           </Panel>
@@ -480,8 +481,8 @@ export function CompanySocialExplorer({ board }: { board: CompanySocialBoard }) 
 
           <Panel
             id="empresas-redes-terminos"
-            title={`Lo más repetido en ${scope === 'COMPANY' ? 'lo que publican' : 'lo que les comentan'}: ${kindLabel?.label.toLowerCase()} (menciones)`}
-            lede="Sin artículos, preposiciones, muletillas de redes ni el nombre de la propia empresa."
+            title={`Términos más frecuentes en ${scope === 'COMPANY' ? 'las publicaciones de las empresas' : 'los comentarios del público'}: ${kindLabel?.label.toLowerCase()} (menciones)`}
+            lede="Excluye artículos, preposiciones, fórmulas habituales de las redes y el nombre de la propia empresa."
             source={SOCIAL_SOURCE}
           >
             <details className="panel-note">
@@ -497,7 +498,7 @@ export function CompanySocialExplorer({ board }: { board: CompanySocialBoard }) 
                   aria-pressed={scope === value}
                   onClick={() => setScope(value)}
                 >
-                  {value === 'COMPANY' ? 'Lo que publican' : 'Lo que les comentan'}
+                  {value === 'COMPANY' ? 'Publicaciones' : 'Comentarios'}
                 </button>
               ))}
               {KINDS.map((option) => (
@@ -516,7 +517,7 @@ export function CompanySocialExplorer({ board }: { board: CompanySocialBoard }) 
               <AudienceWordCloud terms={cloudTerms} />
             ) : null}
             {platforms.size ? (
-              <div className="callout">Los términos se recopilan por empresa, sin distinguir la red. Quita el filtro de red para verlos.</div>
+              <div className="callout">Los términos se recopilan por empresa, sin distinguir la red; solo se muestran sin filtro de red.</div>
             ) : terms.length ? (
               <>
                 <ShareBars
@@ -530,11 +531,11 @@ export function CompanySocialExplorer({ board }: { board: CompanySocialBoard }) 
                   height={Math.max(220, terms.length * 24)}
                 />
                 {barsKey(
-                  `Veces que aparece en ${scope === 'COMPANY' ? 'los posts de las empresas' : 'los comentarios'}`,
+                  `Veces que aparece en ${scope === 'COMPANY' ? 'las publicaciones de las empresas' : 'los comentarios'}`,
                 )}
               </>
             ) : (
-              <div className="callout">Sin términos repetidos para esta combinación.</div>
+              <div className="callout">No hay términos repetidos para esta combinación.</div>
             )}
           </Panel>
 

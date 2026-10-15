@@ -49,7 +49,7 @@ const PAGE = 25;
 const FOLLOWED_MAX = 6;
 
 /** Quién publica cada vara: lo que va en el pie de cada panel y en cada archivo que se baja. */
-const SOURCE_TAX = 'Servicio de Impuestos Nacionales: las cien empresas que más impuestos pagaron';
+const SOURCE_TAX = 'Servicio de Impuestos Nacionales (SIN), cien mayores contribuyentes';
 const SOURCE_LARGEST = '«Las 500 empresas más grandes de Bolivia», de Hugo Siles Espada';
 
 /** Una cifra con la unidad que el colector declaró. */
@@ -67,11 +67,11 @@ export function money(value: number, unit: string | undefined): string {
     case 'BOB':
       return `Bs ${say(value / 1_000_000, 1)} M`;
     case 'MILLION_USD':
-      return `$us ${say(value, 1)} M`;
+      return `USD ${say(value, 1)} M`;
     case 'THOUSAND_USD':
-      return `$us ${say(value / 1000, 1)} M`;
+      return `USD ${say(value / 1000, 1)} M`;
     case 'USD':
-      return `$us ${say(value / 1_000_000, 1)} M`;
+      return `USD ${say(value / 1_000_000, 1)} M`;
     case 'PERCENT':
       return `${say(value, 1)} %`;
     default:
@@ -270,16 +270,16 @@ export function LargestCompaniesExplorer({
     (needle ? 1 : 0);
 
   if (!board.companies.length) {
-    return <div className="callout">Todavía no hay ránking de empresas cargado.</div>;
+    return <div className="callout">Todavía no hay datos de las principales empresas.</div>;
   }
 
   const source = spec.source === 'TAXTOP' ? SOURCE_TAX : SOURCE_LARGEST;
   const unitName =
     spec.source === 'TAXTOP'
-      ? 'millones de bolivianos'
+      ? 'millones de Bs'
       : unit?.includes('USD')
-        ? 'millones de dólares'
-        : 'millones de bolivianos';
+        ? 'millones de USD'
+        : 'millones de Bs';
   const top10Share = total
     ? `${((topTen / total) * 100).toLocaleString('es-BO', { maximumFractionDigits: 1 })} %`
     : '—';
@@ -298,8 +298,8 @@ export function LargestCompaniesExplorer({
         <Panel
           id="empresas-principales-top"
           title={`Los ${topRows.length} ${listName} por ${spec.label.toLowerCase()}, ${year} (${unitName})`}
-          lede={`Puesto entre las ${ranked.length} empresas de la lista de ${year}, y cuánto se movió cada una frente a ${previousYear ?? 'el año anterior'}. Toca un nombre para abrir su ficha y resaltar su cinta.`}
-          ledeText={`Puesto entre las ${ranked.length} empresas de la lista de ${year}.`}
+          lede={`Puesto de cada empresa entre las ${ranked.length} de la lista de ${year} y su variación frente a ${previousYear ?? 'el año anterior'}.`}
+          ledeText={`Puesto de cada empresa entre las ${ranked.length} de la lista de ${year}.`}
           source={source}
           data={() => ({
             unidad: unitName,
@@ -359,10 +359,11 @@ export function LargestCompaniesExplorer({
           <details className="panel-note">
             <summary>Cómo leerlo</summary>
             <p>
-              La barra es la cifra frente a la primera. ▲ y ▼ dicen cuántos puestos subió o bajó
-              frente al año anterior publicado; «nuevo», que ese año no estaba entre las diez.{' '}
+              La barra compara cada cifra con la de la primera empresa. ▲ y ▼ indican cuántos
+              puestos subió o bajó frente al año anterior publicado; «nuevo», que ese año no estaba
+              entre las diez. Al seleccionar un nombre se abre su ficha y se resalta su cinta.{' '}
               {spec.source === 'TAXTOP'
-                ? 'Mide impuesto pagado, no ventas: un banco rentable paga más que un comercio que factura el doble.'
+                ? 'Mide impuesto pagado, no ventas: un banco con alta utilidad puede pagar más que un comercio que factura el doble.'
                 : null}
             </p>
           </details>
@@ -373,8 +374,8 @@ export function LargestCompaniesExplorer({
         <Panel
           id="empresas-principales-cintas"
           title={`Puesto de cada empresa entre las ${TOP_TEN} ${listName}, ${ribbonYears[0]}–${ribbonYears.at(-1)} (puesto por año)`}
-          lede={`Cada cinta es una empresa: sube cuando mejora su puesto y se corta el año en que queda fuera de las diez. Pasa por encima para ver el año; toca una cinta para resaltarla y abrir su ficha.`}
-          ledeText="Cada cinta es una empresa; se corta el año en que queda fuera de las diez."
+          lede={`Posición anual de cada empresa entre las diez ${listName}. Una línea interrumpida indica un año fuera de las diez primeras.`}
+          ledeText={`Posición anual de cada empresa entre las diez ${listName}. Una línea interrumpida indica un año fuera de las diez primeras.`}
           source={source}
           data={() => ({
             unidad: 'puesto',
@@ -421,9 +422,13 @@ export function LargestCompaniesExplorer({
         className="emp-hero"
         title={`Principales empresas de Bolivia, ${year}: ${spec.label.toLowerCase()} (${unitName})`}
         lede={
-          spec.source === 'TAXTOP'
-            ? 'Las cien empresas que más impuestos pagaron: mide impuesto pagado, no ventas.'
-            : 'Las mayores empresas del país según sus estados publicados; no todos están auditados.'
+          total
+            ? spec.source === 'TAXTOP'
+              ? `Las diez primeras concentran ${top10Share} del impuesto que pagan las ${ranked.length} empresas de la lista de ${year}. La lista mide impuesto pagado, no ventas.`
+              : `Las diez primeras concentran ${top10Share} del total de ${spec.label.toLowerCase()} de las ${ranked.length} empresas de la lista de ${year}. No todos los estados financieros publicados están auditados.`
+            : spec.source === 'TAXTOP'
+              ? 'Las cien empresas que más impuestos pagaron. La lista mide impuesto pagado, no ventas.'
+              : 'Las mayores empresas del país según sus estados financieros publicados; no todos están auditados.'
         }
         source={source}
         data={() => ({
@@ -471,17 +476,17 @@ export function LargestCompaniesExplorer({
           <summary>Cómo leerlo</summary>
           <p>
             {spec.source === 'TAXTOP'
-              ? 'Servicio de Impuestos Nacionales: las cien empresas que más impuestos pagaron, con el monto y su parte de la recaudación. Mide impuesto pagado, no ventas.'
+              ? 'Lista del Servicio de Impuestos Nacionales con las cien empresas que más impuestos pagaron, el monto y su parte de la recaudación. Mide impuesto pagado, no ventas.'
               : '«Las 500 empresas más grandes de Bolivia», de Hugo Siles Espada: ingresos, utilidad, activo y patrimonio a partir de estados publicados por reguladores, la bolsa y las propias empresas; no todos están auditados.'}{' '}
             {measures.length === 1 && spec.source === 'TAXTOP'
-              ? 'La vara por ingresos y patrimonio («Las 500 empresas más grandes») no está: la única edición gratuita publica sus tablas como imagen y el observatorio no transcribe cifras a mano.'
+              ? 'La clasificación por ingresos y patrimonio («Las 500 empresas más grandes») no está disponible: la única edición gratuita publica sus tablas como imagen y DatosBolivia.com no transcribe cifras a mano.'
               : null}
           </p>
           <p>
-            <b>Dos varas distintas.</b> El impuesto pagado depende del régimen y de la utilidad: un
-            banco rentable paga más que un comercio que factura el doble. Los ingresos dicen el
-            tamaño de la operación. Por eso la página deja elegir la vara y no las mezcla en una
-            sola lista.
+            <b>Dos medidas distintas.</b> El impuesto pagado depende del régimen tributario y de la
+            utilidad: un banco con alta utilidad puede pagar más que un comercio que factura el
+            doble. Los ingresos miden el tamaño de la operación. Por eso la página presenta cada
+            medida por separado y no las combina en una sola lista.
           </p>
         </details>
       </Panel>
@@ -547,7 +552,7 @@ export function LargestCompaniesExplorer({
             <div className="rail-field">
               <input
                 type="search"
-                placeholder="Buscar por nombre…"
+                placeholder="Buscar empresa"
                 aria-label="Buscar una empresa"
                 value={query}
                 onChange={(event) => {
@@ -640,11 +645,11 @@ export function LargestCompaniesExplorer({
         <div className="workspace-main">
           <Panel
             id="empresas-principales-ranking"
-            title={`Ránking ${year}: ${spec.label.toLowerCase()} por empresa (${unitName})`}
+            title={`Clasificación ${year}: ${spec.label.toLowerCase()} por empresa (${unitName})`}
             lede={
               rows.length === ranked.length
                 ? `Las ${rows.length} empresas de la lista.`
-                : `${rows.length} de ${ranked.length} con los filtros puestos.`
+                : `${rows.length} de ${ranked.length} empresas con los filtros aplicados.`
             }
             source={source}
             data={() => ({
@@ -663,8 +668,9 @@ export function LargestCompaniesExplorer({
             <details className="panel-note">
               <summary>Cómo leerlo</summary>
               <p>
-                La barra es la cifra frente a la primera; el marcador, el puesto ganado o perdido
-                desde {previousYear ?? 'el año anterior'}. Toca un nombre para abrir su ficha.
+                La barra compara cada cifra con la de la primera empresa; el marcador indica los
+                puestos ganados o perdidos desde {previousYear ?? 'el año anterior'}. Al seleccionar
+                un nombre se abre su ficha; el botón de cada fila la agrega a la trayectoria.
               </p>
             </details>
             {shown.length ? (
@@ -737,7 +743,7 @@ export function LargestCompaniesExplorer({
                         title={
                           isFollowed
                             ? `Quitar ${row.company.name} de la trayectoria`
-                            : `Seguir a ${row.company.name}`
+                            : `Agregar ${row.company.name} a la trayectoria`
                         }
                       >
                         <Icon name="linea" size={14} />
@@ -748,7 +754,7 @@ export function LargestCompaniesExplorer({
               </ol>
             ) : (
               <div className="callout">
-                Ninguna empresa de {year} pasa estos filtros.{' '}
+                No hay empresas de {year} para estos filtros.{' '}
                 <button type="button" className="chip" onClick={reset}>
                   Limpiar filtros
                 </button>
@@ -762,7 +768,7 @@ export function LargestCompaniesExplorer({
               total={rows.length}
               pageSize={PAGE}
               onGo={setOffset}
-              where="ránking de empresas"
+              where="clasificación de empresas"
               noun="empresas"
             />
 
@@ -839,8 +845,8 @@ export function LargestCompaniesExplorer({
 
           <Panel
             id="empresas-principales-trayectoria"
-            title={`Trayectoria en el ránking (${spec.source === 'TAXTOP' ? 'Impuestos' : 'Las 500'}), ${span} (puesto, 1 = primera)`}
-            lede={`${followed.length ? 'Las empresas que elegiste.' : `Las cinco primeras de ${year}; elige otras con el botón de cada fila.`} Un hueco es un año en que la empresa no entró en la lista.`}
+            title={`Puesto en la clasificación (${spec.source === 'TAXTOP' ? 'Impuestos Nacionales' : '«Las 500»'}), ${span} (puesto; 1 = primera)`}
+            lede={`${followed.length ? 'Empresas seleccionadas de la clasificación.' : `Las cinco primeras de ${year}.`} Un hueco indica un año en que la empresa no figuró en la lista.`}
             source={source}
           >
             <RankLines
@@ -855,7 +861,7 @@ export function LargestCompaniesExplorer({
               <Panel
                 id="empresas-principales-concentracion"
                 title={`Concentración del impuesto, ${span} (%)`}
-                lede="Qué parte de la recaudación pagan las cien y qué parte de lo de las cien pagan las diez primeras."
+                lede="Parte de la recaudación total que pagan los cien mayores contribuyentes, y parte del impuesto de esos cien que pagan los diez primeros."
                 source={SOURCE_TAX}
               >
                 <WorldLines
@@ -870,8 +876,8 @@ export function LargestCompaniesExplorer({
               </Panel>
               <Panel
                 id="empresas-principales-departamento"
-                title={`Impuesto pagado por departamento, ${year} (millones de bolivianos)`}
-                lede="Suma de las empresas de la lista según la gerencia donde tributan. Toca una barra para filtrar."
+                title={`Impuesto pagado por departamento, ${year} (millones de Bs)`}
+                lede="Impuesto pagado por las empresas de la lista, sumado según la gerencia regional donde tributan."
                 source={SOURCE_TAX}
               >
                 <ShareBars
@@ -898,10 +904,11 @@ export function LargestCompaniesExplorer({
                   items={[
                     {
                       color: 'var(--official)',
-                      label: `Impuesto pagado en ${year}, en millones de Bs`,
+                      label: `Impuesto pagado en ${year} (millones de Bs)`,
                     },
                   ]}
                 />
+                <p className="chart-note">Al seleccionar una barra se filtra la lista por ese departamento.</p>
               </Panel>
             </div>
           ) : null}

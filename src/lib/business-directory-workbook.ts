@@ -19,7 +19,7 @@ export async function writeBusinessDirectoryWorkbook(
     useStyles: true,
     useSharedStrings: true,
   });
-  workbook.creator = 'Observatorio Económico y de Mercados de Bolivia';
+  workbook.creator = 'DatosBolivia.com';
   workbook.created = new Date();
 
   const companies = workbook.addWorksheet('Empresas', {
@@ -66,7 +66,7 @@ export async function writeBusinessDirectoryWorkbook(
   const metadataRows: Array<[string, string | number]> = [
     ['Cobertura', meta.coverage],
     ['Filas incluidas', rows.length],
-    ['Registros disponibles en el Observatorio', meta.availableRecords],
+    ['Registros disponibles en DatosBolivia.com', meta.availableRecords],
     ['Publicador', meta.publisher],
     ['Fuente', meta.sourceUrl],
     ['Fecha de corte disponible', meta.cutDate ?? 'No declarada por la fuente'],

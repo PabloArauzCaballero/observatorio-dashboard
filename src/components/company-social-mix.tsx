@@ -40,8 +40,8 @@ export function CompanySocialMix({
       <div className="grid-three">
         <Panel
           id="empresas-redes-formato"
-          title="Formato de los posts (% de los posts leídos)"
-          lede={`${count(posts)} posts de las empresas y redes elegidas; al pasar sobre una barra se ve la mediana y cuántos posts declararon interacciones.`}
+          title="Formato de las publicaciones (% de las publicaciones leídas)"
+          lede={`${count(posts)} publicaciones de las empresas y redes seleccionadas. El detalle de cada barra indica la mediana de interacciones y cuántas publicaciones las declaran.`}
           source={SOCIAL_SOURCE}
         >
           {formats.length ? (
@@ -51,25 +51,25 @@ export function CompanySocialMix({
                   name: row.name,
                   value: Number(row.value.toFixed(1)),
                   parts: [
-                    { name: 'Posts', value: row.posts },
+                    { name: 'Publicaciones', value: row.posts },
                     ...(row.median === null ? [] : [{ name: 'Mediana de interacciones', value: row.median }]),
-                    { name: 'Posts con interacciones', value: row.measured },
+                    { name: 'Publicaciones con interacciones', value: row.measured },
                   ],
                 }))}
                 unit="%"
                 height={Math.max(180, formats.length * 40)}
               />
-              {barsKey('Parte de los posts leídos que tiene ese formato, en %')}
+              {barsKey('Parte de las publicaciones leídas con ese formato (%)')}
             </>
           ) : (
-            <div className="callout">Sin posts para el recorte.</div>
+            <div className="callout">No hay publicaciones para estos filtros.</div>
           )}
         </Panel>
 
         <Panel
           id="empresas-redes-hora"
-          title="Hora de publicación en La Paz (% de los posts con hora)"
-          lede={`${count(hours.total)} posts cuya red da la hora exacta (Facebook, TikTok y parte de YouTube); Instagram y LinkedIn solo dan el día y no entran aquí.`}
+          title="Hora de publicación, hora de Bolivia (% de las publicaciones con hora)"
+          lede={`${count(hours.total)} publicaciones con hora exacta (Facebook, TikTok y parte de YouTube). Instagram y LinkedIn solo informan el día y quedan fuera del cálculo.`}
           source={SOCIAL_SOURCE}
         >
           {hours.total ? (
@@ -78,22 +78,22 @@ export function CompanySocialMix({
                 data={hours.rows.map((row) => ({
                   name: `${String(row.hour).padStart(2, '0')}:00`,
                   value: Number(row.value.toFixed(1)),
-                  parts: [{ name: 'Posts', value: row.posts }],
+                  parts: [{ name: 'Publicaciones', value: row.posts }],
                 }))}
                 unit="%"
                 height={24 * 22}
               />
-              {barsKey('Parte de los posts con hora publicados en esa franja de una hora, en %')}
+              {barsKey('Parte de las publicaciones con hora publicadas en esa franja horaria (%)')}
             </>
           ) : (
-            <div className="callout">Ningún post del recorte trae la hora de publicación.</div>
+            <div className="callout">Ninguna publicación de la selección informa la hora.</div>
           )}
         </Panel>
 
         <Panel
           id="empresas-redes-emociones"
           title="Emociones en los comentarios (% de los comentarios clasificados)"
-          lede={`${count(emotions.analyzed)} comentarios clasificados con el modelo de emociones de pysentimiento; lo que falta para cien es «otras»: preguntas, saludos, datos.`}
+          lede={`${count(emotions.analyzed)} comentarios clasificados con un modelo de detección de emociones en español (pysentimiento). La diferencia hasta 100 % corresponde a «otras»: preguntas, saludos y datos.`}
           source={SOCIAL_SOURCE}
         >
           {emotions.rows.length ? (
@@ -106,10 +106,10 @@ export function CompanySocialMix({
                 unit="%"
                 height={Math.max(200, emotions.rows.length * 40)}
               />
-              {barsKey('Parte de los comentarios clasificados con esa emoción, en %')}
+              {barsKey('Parte de los comentarios clasificados con esa emoción (%)')}
             </>
           ) : (
-            <div className="callout">Sin comentarios clasificados para el recorte.</div>
+            <div className="callout">No hay comentarios clasificados para estos filtros.</div>
           )}
         </Panel>
       </div>

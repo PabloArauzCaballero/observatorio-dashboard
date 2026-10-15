@@ -35,7 +35,7 @@ import type { CommentTone, MonthPoint, PostPage, PostSort } from '@/lib/company-
 type Metric = 'posts' | 'interactions' | 'views';
 
 const METRICS: ReadonlyArray<{ value: Metric; label: string }> = [
-  { value: 'posts', label: 'Posts publicados' },
+  { value: 'posts', label: 'Publicaciones' },
   { value: 'interactions', label: 'Interacciones' },
   { value: 'views', label: 'Vistas' },
 ];
@@ -163,7 +163,7 @@ export function CompanySocialPosts({ slugs, platforms, companies, emptySelection
 
   const unitName =
     metric === 'posts'
-      ? 'cantidad de posts'
+      ? 'cantidad de publicaciones'
       : metric === 'interactions'
         ? 'cantidad de interacciones'
         : 'cantidad de vistas';
@@ -171,8 +171,8 @@ export function CompanySocialPosts({ slugs, platforms, companies, emptySelection
   return (
     <Panel
       id="empresas-redes-posts"
-      title={`Posts a fondo: ${label.toLowerCase()} por mes y cada post leído (${unitName})`}
-      lede="Los posts de las empresas y redes elegidas arriba, sin el recorte de seis por cuenta, con su fecha y sus cifras."
+      title={`Publicaciones en detalle: ${label.toLowerCase()} por mes y cada publicación leída (${unitName})`}
+      lede="Todas las publicaciones leídas de las empresas y redes seleccionadas, sin el límite de seis por cuenta, con su fecha y sus cifras."
       source={SOCIAL_SOURCE}
       data={() => ({
         etiqueta: 'Posts',
@@ -207,15 +207,15 @@ export function CompanySocialPosts({ slugs, platforms, companies, emptySelection
           post.sentiment ? post.sentiment.analyzed : null,
           post.url,
         ]),
-        nota: 'Solo los posts de esta página; Anteriores y Siguientes recorren el resto.',
+        nota: 'Solo las publicaciones de esta página; los botones «Anteriores» y «Siguientes» recorren el resto.',
       })}
     >
       <details className="panel-note">
         <summary>Cómo leerlo</summary>
         <p>
-          Los de las empresas y redes elegidas arriba, sin el recorte de seis por cuenta. Filtra por
-          fecha de publicación, formato o texto; la serie por mes y la lista se recuentan con el
-          mismo filtro.
+          Publicaciones de las empresas y redes seleccionadas arriba, sin el límite de seis por
+          cuenta. Los filtros de fecha de publicación, formato y texto se aplican a la vez a la
+          serie mensual y a la lista.
         </p>
       </details>
 
@@ -237,11 +237,12 @@ export function CompanySocialPosts({ slugs, platforms, companies, emptySelection
         <MonthBars series={series} metric={metric} label={label} />
       ) : loading ? null : (
         <div className="callout">
-          Sin posts con fecha para este filtro: la serie por mes necesita la fecha de publicación.
+          No hay publicaciones con fecha para estos filtros; la serie mensual requiere la fecha de
+          publicación.
         </div>
       )}
 
-      <div className="rail-pills" role="group" aria-label="Formato del post">
+      <div className="rail-pills" role="group" aria-label="Formato de la publicación">
         <button
           type="button"
           className={format === null ? 'chip chip-on' : 'chip'}
@@ -277,9 +278,9 @@ export function CompanySocialPosts({ slugs, platforms, companies, emptySelection
         ))}
       </div>
 
-      <div className="rail-pills" role="group" aria-label="Sentimiento de comentarios del post">
+      <div className="rail-pills" role="group" aria-label="Sentimiento de los comentarios de la publicación">
         {([
-          ['all', 'Todos los posts'],
+          ['all', 'Todas las publicaciones'],
           ['analyzed', 'Con comentarios analizados'],
           ['positive', 'Saldo positivo'],
           ['negative', 'Saldo negativo'],
@@ -310,8 +311,8 @@ export function CompanySocialPosts({ slugs, platforms, companies, emptySelection
         </label>
         <input
           type="search"
-          placeholder="Buscar en el texto del post…"
-          aria-label="Buscar en el texto de los posts"
+          placeholder="Buscar en el texto"
+          aria-label="Buscar en el texto de las publicaciones"
           value={text}
           onChange={(event) => setText(event.target.value)}
         />
@@ -334,23 +335,23 @@ export function CompanySocialPosts({ slugs, platforms, companies, emptySelection
 
       {failed ? (
         <div className="callout">
-          No se pudieron leer los posts. Vuelve a intentarlo en un momento.
+          No se pudieron cargar las publicaciones. Volver a intentar en unos minutos.
         </div>
       ) : null}
       {page ? (
         <>
           <p className="panel-note" aria-live="polite">
-            {count(page.total)} post{page.total === 1 ? '' : 's'}
+            {count(page.total)} {page.total === 1 ? 'publicación' : 'publicaciones'}
             {page.dates.min && page.dates.max
-              ? ` publicados entre el ${sayDate(page.dates.min)} y el ${sayDate(page.dates.max)}`
+              ? `, del ${sayDate(page.dates.min)} al ${sayDate(page.dates.max)}`
               : ''}.
           </p>
           <div className="stat-strip">
-            <div className="stat"><span className="stat-label">Mediana de interacciones</span><span className="stat-value">{page.summary.medianInteractions === null ? '—' : count(page.summary.medianInteractions)}</span><span className="stat-hint">{count(page.summary.measured)} posts con interacciones declaradas</span></div>
-            <div className="stat"><span className="stat-label">Peso de los 5 principales</span><span className="stat-value">{page.summary.topFiveShare === null ? '—' : `${page.summary.topFiveShare.toLocaleString('es-BO', { maximumFractionDigits: 1 })} %`}</span><span className="stat-hint">de las interacciones declaradas del recorte</span></div>
+            <div className="stat"><span className="stat-label">Mediana de interacciones</span><span className="stat-value">{page.summary.medianInteractions === null ? '—' : count(page.summary.medianInteractions)}</span><span className="stat-hint">{count(page.summary.measured)} publicaciones con interacciones declaradas</span></div>
+            <div className="stat"><span className="stat-label">Peso de las 5 principales</span><span className="stat-value">{page.summary.topFiveShare === null ? '—' : `${page.summary.topFiveShare.toLocaleString('es-BO', { maximumFractionDigits: 1 })} %`}</span><span className="stat-hint">de las interacciones declaradas de la selección</span></div>
             <div className="stat"><span className="stat-label">Sentimiento neto</span><span className="stat-value">{page.summary.net === null ? '—' : `${page.summary.net > 0 ? '+' : ''}${page.summary.net.toLocaleString('es-BO', { maximumFractionDigits: 1 })}`}</span><span className="stat-hint">{count(page.summary.analyzed)} comentarios clasificados</span></div>
           </div>
-          <Pager page={pageNumber} pages={totalPages} first={page.total ? offset + 1 : 0} last={offset + page.rows.length} total={page.total} pageSize={PAGE} onGo={go} where="arriba" noun="posts" />
+          <Pager page={pageNumber} pages={totalPages} first={page.total ? offset + 1 : 0} last={offset + page.rows.length} total={page.total} pageSize={PAGE} onGo={go} where="arriba" noun="publicaciones" />
         </>
       ) : null}
 
@@ -374,17 +375,17 @@ export function CompanySocialPosts({ slugs, platforms, companies, emptySelection
                 {post.views !== null ? <span>{count(post.views)} vistas</span> : null}
                 {post.sentiment ? <CommentSentimentSummary sentiment={post.sentiment} /> : null}
                 <a href={post.url} target="_blank" rel="noopener noreferrer">
-                  Ver el post
+                  Ver la publicación
                 </a>
               </div>
             </li>
           ))}
         </ol>
       ) : page && !loading ? (
-        <div className="callout">Ningún post cumple este filtro.</div>
+        <div className="callout">No hay publicaciones para estos filtros.</div>
       ) : null}
 
-      {page ? <Pager page={pageNumber} pages={totalPages} first={page.total ? offset + 1 : 0} last={offset + page.rows.length} total={page.total} pageSize={PAGE} onGo={go} where="abajo" noun="posts" /> : null}
+      {page ? <Pager page={pageNumber} pages={totalPages} first={page.total ? offset + 1 : 0} last={offset + page.rows.length} total={page.total} pageSize={PAGE} onGo={go} where="abajo" noun="publicaciones" /> : null}
     </Panel>
   );
 }

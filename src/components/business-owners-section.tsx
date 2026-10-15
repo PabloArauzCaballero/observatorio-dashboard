@@ -12,8 +12,8 @@ export function BusinessOwnersSection() {
   if (!board.estimates.length && !board.forbes.length && !board.wealthTax.length) {
     return (
       <div className="callout">
-        Todavía no hay registro de empresarios cargado. La página se llena sola cuando el núcleo haya sembrado las
-        participaciones accionarias, «Las 500» y las fortunas publicadas.
+        Todavía no hay datos de empresarios. La página se completa cuando se cargan las participaciones
+        accionarias, «Las 500» y las fortunas publicadas.
       </div>
     );
   }

@@ -83,7 +83,7 @@ export function directoryExcelUrl(filters: BusinessDirectoryFilters): string {
 }
 
 export function directoryUnavailableMessage(): string {
-  return 'El directorio nominal no está disponible en este momento; el tablero agregado sigue disponible.';
+  return 'No se pudo cargar el directorio de empresas; el tablero agregado sigue disponible. Volver a intentar en unos minutos.';
 }
 
 export const DIRECTORY_SOURCE = {
@@ -91,7 +91,7 @@ export const DIRECTORY_SOURCE = {
   sourceUrl: 'https://servicios.seprec.gob.bo/',
   officialFullDatabaseUrl: 'https://www.seprec.gob.bo/index.php/tramite58/',
   licence: 'Información pública del directorio SEPREC; licencia abierta y redistribución no verificadas',
-  note: 'Directorio parcial disponible en el Observatorio. No equivale a la base completa del Registro de Comercio ni acredita operación actual del establecimiento.',
+  note: 'Directorio parcial disponible en DatosBolivia.com. No equivale a la base completa del Registro de Comercio ni acredita que el establecimiento opere en la actualidad.',
 };
 
 export function directoryMeta(
