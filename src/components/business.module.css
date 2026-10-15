@@ -63,7 +63,7 @@
 
 .estimate {
   border-color: var(--parallel);
-  color: var(--parallel);
+  color: var(--ink);
 }
 
 /* La ficha de una persona o de una empresa: una línea fina y el foco visible al abrirla. */

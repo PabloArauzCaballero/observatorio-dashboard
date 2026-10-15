@@ -1419,7 +1419,7 @@ code {
 
 .jump-to-filters:hover,
 .jump-to-filters:focus-visible {
-  border-color: var(--parallel);
+  border-color: var(--accent);
 }
 
 .rail-top {
@@ -4075,8 +4075,8 @@ button.download-btn {
 }
 
 .donate-btn:hover {
-  border-color: var(--parallel);
-  color: var(--parallel);
+  border-color: var(--gold);
+  color: var(--ink);
   transform: translateY(-1px);
 }
 
@@ -7482,7 +7482,9 @@ button.download-btn {
 }
 
 .rep-tag-export {
-  color: var(--series-6);
+  /* El verde de la serie da 3,6:1 como texto: la palabra va en tinta, el color en el borde. */
+  color: var(--ink-soft);
+  border-bottom: 2px solid var(--series-6);
   font-weight: 600;
   font-size: var(--text-xs);
 }
