@@ -67,7 +67,7 @@ export function TopNote({ shown, total, noun }: { shown: number; total: number; 
   if (shown >= total) return null;
   return (
     <p className="panel-note">
-      Se muestran {shown} de {total} {noun}; la tabla trae todas.
+      Se muestran {shown} de {total} {noun}; la tabla contiene la lista completa.
     </p>
   );
 }

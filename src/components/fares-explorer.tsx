@@ -87,7 +87,7 @@ export function FaresExplorer({ fares }: { fares: FareBand[] }) {
       id="pasajes-por-ruta"
       className="transp"
       title={`Pasajes interdepartamentales por ruta, tarifario ${year} (Bs por pasaje)`}
-      lede="Bandas mínima y máxima de la ATT para servicio normal, semicama y cama. «—» significa no publicado, no cero."
+      lede="Bandas mínima y máxima que fija la ATT para los servicios normal, semicama y cama. El signo «—» indica tarifa no publicada, no cero."
       meta={`${shown.length} de ${regulation === 'ATT_0032_2025' ? currentCount : historicalCount} filas`}
       source={SOURCE[regulation]}
       data={() => ({
@@ -156,9 +156,9 @@ export function FaresExplorer({ fares }: { fares: FareBand[] }) {
       </div>
       {regulation === 'ATT_0032_2025' ? (
         <div className="callout">
-          La resolución fijó aplicación del 2 de enero al 30 de junio de 2026. La ATT aún la
-          mostraba al recuperar su pizarra; se exponen ambas fechas sin presumir una vigencia
-          posterior.
+          La resolución fijó su aplicación del 2 de enero al 30 de junio de 2026. La ATT aún la
+          publicaba en su pizarra de tarifas en la última consulta; se muestran ambas fechas sin
+          presumir una vigencia posterior.
         </div>
       ) : (
         <div className="callout">

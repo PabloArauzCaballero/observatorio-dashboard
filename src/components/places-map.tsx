@@ -642,7 +642,7 @@ export function PlacesMap({ places }: { places: Place[] }) {
     if (place.confidence !== null) {
       rows.push({
         term: 'Confianza',
-        value: `${(place.confidence * 100).toFixed(0)}%${place.qualityGrade ? ` · ${place.qualityGrade}` : ''}`,
+        value: `${(place.confidence * 100).toFixed(0)} %${place.qualityGrade ? ` · ${place.qualityGrade}` : ''}`,
       });
       if (isLowConfidence(place)) rows.push({ term: 'Aviso', value: LOW_CONFIDENCE_NOTE });
     } else if (place.qualityGrade) {
@@ -1062,13 +1062,13 @@ export function PlacesMap({ places }: { places: Place[] }) {
       <div className="places-map-bar">
         <div className="places-map-keys">
           <span className="places-map-key">
-            <i className="places-map-swatch" /> lugar
+            <i className="places-map-swatch" /> Lugar
           </span>
           <span className="places-map-key">
-            <i className="places-map-swatch places-map-swatch-reg" /> actividad regulada
+            <i className="places-map-swatch places-map-swatch-reg" /> Actividad regulada
           </span>
           <span className="places-map-zoom-read">
-            {zoom < 1.05 ? 'toda la ciudad' : `×${zoom.toFixed(1)}`}
+            {zoom < 1.05 ? 'Toda la ciudad' : `×${zoom.toFixed(1)}`}
           </span>
         </div>
 
@@ -1221,17 +1221,17 @@ export function PlacesMap({ places }: { places: Place[] }) {
         ) : (
           <>
             {places.length.toLocaleString('es-BO')} lugares sobre el callejero,{' '}
-            {regulated.toLocaleString('es-BO')} de actividad regulada: deben verificarse con su
-            regulador, no están verificados. Rueda para acercar, arrastra para moverte; pasa el
-            cursor por un punto, o tócalo, para ver su ficha.
+            {regulated.toLocaleString('es-BO')} de actividad regulada, pendientes de verificar con
+            su regulador. La rueda acerca el mapa y el arrastre lo desplaza; al pasar el cursor
+            sobre un punto, o al tocarlo, se abre su ficha.
             {layout.outside > 0 ? (
               <>
                 {' '}
                 {layout.outside.toLocaleString('es-BO')}{' '}
                 {layout.outside === 1
-                  ? 'lugar queda fuera del encuadre'
-                  : 'lugares quedan fuera del encuadre'}{' '}
-                y no decide la escala; «Todo» los incluye.
+                  ? 'lugar queda fuera del encuadre y no cuenta para la escala'
+                  : 'lugares quedan fuera del encuadre y no cuentan para la escala'}
+                ; el botón «Todo» los incluye.
               </>
             ) : null}
           </>
