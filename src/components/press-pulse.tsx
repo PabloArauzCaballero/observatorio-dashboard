@@ -126,7 +126,7 @@ const REGION: Record<string, string> = {
 
 /** Quién dice lo que se cuenta aquí: las notas son de los medios, el tono lo calcula el Observatorio. */
 const PRESS_SOURCE =
-  'archivo de prensa de medios bolivianos (cada nota enlaza a su medio); el tono y el tema los calcula el Observatorio con listas de palabras (ver «Método»)';
+  'Medios de prensa bolivianos (cada nota enlaza a su medio); tono y tema asignados por DatosBolivia.com con listas de palabras (ver «Método»)';
 
 /** Qué significan las dos marcas de la lista por años: la de delante y la de detrás. */
 const YEAR_KEY = [
@@ -250,7 +250,7 @@ export function PressPulse({ cube, selection, span, onPick }: PressPulseProps) {
       <Panel
         id="prensa-tono"
         title="Tono de la cobertura (cantidad de notas)"
-        lede={`${period}Léxico, no modelo: cada categoría es una lista de palabras que podés revisar.`}
+        lede={`${period}La clasificación usa listas de palabras, no un modelo estadístico: cada categoría puede revisarse término por término.`}
         meta={`${shown.toLocaleString('es-BO')} de ${span.total.toLocaleString('es-BO')} notas`}
         source={PRESS_SOURCE}
         data={() => ({
@@ -295,16 +295,16 @@ export function PressPulse({ cube, selection, span, onPick }: PressPulseProps) {
           })}
         </div>
         <p className="panel-sub">
-          Tocá una categoría y el resto del tablero se filtra con ella; con Ctrl+clic (⌘ en Mac)
-          sumás varias y el tablero se queda con las notas de cualquiera de ellas. No lee ironía ni
+          Al seleccionar una categoría se filtra el resto del tablero; con Ctrl+clic (⌘ en Mac) se
+          suman varias y quedan las notas de cualquiera de ellas. El léxico no detecta la ironía ni
           distingue quién habla: un titular que cita la alarma de otro cuenta como alarma.
         </p>
         <p className="panel-sub">
-          «Sin marca» no quiere decir calma: quiere decir que ninguna palabra de la lista apareció.
-          Depende de cuánto texto hay que leer — <b>{span.unmarked.live} %</b> en las notas que
-          llegan con entradilla ({span.unmarked.liveLength} caracteres de media) y{' '}
-          <b>{span.unmarked.archive} %</b> en las de archivo, que sólo conservan el titular
-          reconstruido de su dirección ({span.unmarked.archiveLength} caracteres).
+          «Sin marca» no significa calma: significa que no apareció ninguna palabra de la lista. Su
+          peso depende del texto disponible: <b>{span.unmarked.live} %</b> en las notas que llegan
+          con entradilla ({span.unmarked.liveLength} caracteres de media) y{' '}
+          <b>{span.unmarked.archive} %</b> en las de archivo, que solo conservan el titular
+          reconstruido a partir de su dirección web ({span.unmarked.archiveLength} caracteres).
         </p>
       </Panel>
 
@@ -374,9 +374,9 @@ export function PressPulse({ cube, selection, span, onPick }: PressPulseProps) {
           */}
           <ChartLegend items={YEAR_KEY} />
           <p className="panel-sub">
-            Tocá un año para quedarte con él. La cifra entre paréntesis es <b>cuántos medios</b> se
-            pudieron leer ese año: un año con menos notas puede ser un año tranquilo o un año que
-            nadie archivó, y esa columna dice cuál.
+            La cifra entre paréntesis indica <b>cuántos medios</b> se pudieron leer ese año. Un año
+            con menos notas puede ser un año con menos noticias o un año del que se archivó menos,
+            y esa cifra permite distinguirlos.
           </p>
         </Panel>
       ) : null}
@@ -427,10 +427,10 @@ export function PressPulse({ cube, selection, span, onPick }: PressPulseProps) {
           </div>
           <ChartLegend items={termKey} />
           <p className="panel-sub">
-            Tocá un término y el tablero entero se queda con la cobertura que lo nombra; con
-            Ctrl+clic sumás varios. Ojo: una nota que nombra dos de los términos elegidos se cuenta
-            dos veces en estas cifras y una sola vez en el listado, así que los recuentos pasan a
-            ser un techo.
+            Al seleccionar un término, todo el tablero se limita a la cobertura que lo nombra; con
+            Ctrl+clic se suman varios. Una nota que nombra dos de los términos elegidos se cuenta
+            dos veces en estas cifras y una sola vez en el listado, de modo que los recuentos pasan
+            a ser un techo.
           </p>
         </Panel>
 
@@ -475,8 +475,8 @@ export function PressPulse({ cube, selection, span, onPick }: PressPulseProps) {
           </div>
           <ChartLegend items={regionKey} />
           <p className="panel-sub">
-            Ctrl+clic para comparar varios a la vez. {national.toLocaleString('es-BO')} notas no
-            nombran ningún departamento y no aparecen en la lista.
+            {national.toLocaleString('es-BO')} notas no nombran ningún departamento y no aparecen
+            en la lista. Con Ctrl+clic se comparan varios departamentos a la vez.
           </p>
         </Panel>
       </div>

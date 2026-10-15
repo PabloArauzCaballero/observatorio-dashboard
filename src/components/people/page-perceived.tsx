@@ -82,7 +82,7 @@ export function PerceivedPage() {
     <>
       <Facts
         items={[
-          { value: num(rows.length), label: 'personas en el ranking' },
+          { value: num(rows.length), label: 'personas en la clasificación' },
           { value: num(summary.method.measuredPeople), label: 'con atención medible' },
           {
             value: num(summary.conversation.peoplePublishable),
@@ -152,9 +152,9 @@ export function PerceivedPage() {
 
           <Panel
             id="personalidades-lentes"
-            title="Las cinco de Ipsos frente a su puesto en el índice (puesto entre las personas del ranking)"
-            lede="Preguntar a la gente y medir la atención no dan el mismo orden. La distancia entre los dos puntos de cada fila es esa diferencia."
-            source="Ipsos CIESMORI y Observatorio Económico de Bolivia"
+            title="Las cinco figuras de Ipsos en el índice de atención (puesto en la clasificación)"
+            lede="La encuesta y el índice de atención no ordenan igual a las mismas figuras: la distancia entre los dos puntos de cada fila mide esa diferencia."
+            source="Ipsos CIESMORI; índice de atención, cálculo de DatosBolivia.com"
             updated={updated}
             data={{
               columnas: [
@@ -187,8 +187,8 @@ export function PerceivedPage() {
           <Panel
             id="personalidades-indice-top10"
             title="Atención medible: las diez primeras (índice de 0 a 100)"
-            lede="Qué tanto se busca, se sigue y se cita a cada persona en fuentes abiertas. No mide importancia ni mérito."
-            source="Observatorio Económico de Bolivia con Wikipedia, cuentas verificadas y Merco Líderes 2025/26"
+            lede="Cuánto se busca, se sigue y se cita a cada persona en fuentes abiertas. No mide importancia ni mérito."
+            source="Wikipedia, cuentas verificadas en redes sociales y Merco Líderes 2025/26; cálculo de DatosBolivia.com"
             updated={updated}
           >
             <RankList

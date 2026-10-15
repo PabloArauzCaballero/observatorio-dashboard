@@ -100,7 +100,7 @@ export const IMAGE_CREDITS: readonly ImageCredit[] = [
     "kind": "Personas",
     "name": "María Galindo",
     "author": "Lina Etchesuri / Lavaca.org",
-    "license": "Attribution",
+    "license": "Atribución",
     "source": "https://commons.wikimedia.org/wiki/File:Mariagalindo.jpg"
   },
   {
@@ -212,14 +212,14 @@ export const IMAGE_CREDITS: readonly ImageCredit[] = [
     "kind": "Marcas",
     "name": "Viva (Nuevatel PCS de Bolivia)",
     "author": "VIVA",
-    "license": "Public domain",
+    "license": "Dominio público",
     "source": "https://commons.wikimedia.org/wiki/File:VIVA2020.png"
   },
   {
     "kind": "Marcas",
     "name": "Tigo (Telefónica Celular de Bolivia)",
     "author": "Millicom International Cellular S.A.",
-    "license": "Public domain",
+    "license": "Dominio público",
     "source": "https://commons.wikimedia.org/wiki/File:Logo_Tigo.svg"
   },
   {

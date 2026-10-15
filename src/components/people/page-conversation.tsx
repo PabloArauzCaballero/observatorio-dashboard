@@ -14,7 +14,8 @@ import { channelNetOf, channelState, netOf, num, talkState } from './people-mode
 import { Empty } from './people-ui';
 import s from './people.module.css';
 
-const SOURCE = 'Comentarios públicos de YouTube, clasificados con pysentimiento/robertuito';
+const SOURCE =
+  'Comentarios públicos de YouTube; clasificación de DatosBolivia.com con el modelo abierto pysentimiento';
 
 /**
  * «Conversación»: qué reacción generan en YouTube las personas con muestra suficiente.
@@ -45,7 +46,7 @@ export function ConversationPage() {
   ).length;
 
   const funnel: ShareSlice[] = [
-    { name: 'Personas en el ranking', value: summary.people.length },
+    { name: 'Personas en la clasificación', value: summary.people.length },
     { name: 'Con comentarios leídos', value: conversation.peopleRead },
     { name: 'Con muestra suficiente para publicar', value: conversation.peoplePublishable },
     // Solo cuando existe: una barra en cero se lee como un dato roto, no como «todavía no se leyó».
@@ -139,7 +140,7 @@ export function ConversationPage() {
       <div className="grid-pair">
         <Panel
           id="personalidades-muestra"
-          title="Quién tiene muestra suficiente (cantidad de personas)"
+          title="Personas con muestra suficiente de comentarios (cantidad de personas)"
           lede={`Para publicar un porcentaje hacen falta ${conversation.minComments} comentarios en español y al menos dos videos con 5 o más.`}
           source={SOURCE}
           updated={updated}
@@ -147,8 +148,8 @@ export function ConversationPage() {
           <ShareBars data={funnel} unit="personas" decimals={0} height={180} />
           <ChartLegend items={[{ color: 'var(--official)', label: 'Cantidad de personas' }]} />
           <p className={s.footnote}>
-            La mayoría no sale porque casi no hay videos recientes que las nombren o tienen pocos
-            comentarios. {conversation.source}.
+            La mayoría queda fuera porque hay pocos videos recientes que las nombren o porque esos
+            videos tienen pocos comentarios. {conversation.source}.
           </p>
         </Panel>
 

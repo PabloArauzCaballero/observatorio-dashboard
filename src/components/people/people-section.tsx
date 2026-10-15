@@ -29,7 +29,7 @@ export function PeopleSection() {
       <TabHeader
         id="personalidades"
         title="Personalidades de Bolivia"
-        lede="Quién pesa en Bolivia, medido de dos maneras: lo que la gente percibe (Ipsos, 2025) y la atención que ya se puede medir en fuentes abiertas. Ninguna mide mérito."
+        lede="Las figuras públicas de Bolivia vistas de dos maneras: la percepción del público, según la encuesta de Ipsos CIESMORI de 2025, y la atención que puede medirse en fuentes abiertas. Ninguna de las dos mide mérito."
       />
       <Loader key={attempt} onRetry={() => setAttempt((value) => value + 1)} />
     </>
@@ -43,7 +43,8 @@ function Loader({ onRetry }: { onRetry: () => void }) {
       <div className="callout">
         <div className={s.fail}>
           <span>
-            No pudimos leer la investigación de personalidades. El resto del informe sigue al día.
+            No se pudo cargar la investigación de personalidades. El resto del tablero sigue
+            disponible.
           </span>
           <button type="button" className="chip" onClick={onRetry}>
             Reintentar
@@ -52,7 +53,7 @@ function Loader({ onRetry }: { onRetry: () => void }) {
       </div>
     );
   }
-  if (!payload) return <Skeleton rows={6} label="Leyendo la investigación de personalidades…" />;
+  if (!payload) return <Skeleton rows={6} label="Cargando la investigación de personalidades…" />;
   return (
     <PeopleProvider summary={payload}>
       <SubSections
