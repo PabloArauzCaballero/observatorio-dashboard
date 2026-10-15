@@ -64,7 +64,7 @@ const percent = (value: number): string => `${number(value, 1)} %`;
 const SOURCE_INE = 'Instituto Nacional de Estadística (INE), comercio exterior por departamento';
 const SOURCE_COMTRADE = 'Naciones Unidas (Comtrade), comercio de bienes declarado por Bolivia';
 const SOURCE_EXPORTERS =
-  'Agregador comercial de registros aduaneros (orden y cuota, no dólares); ver «Método»';
+  'Agregador comercial de registros aduaneros (puesto y cuota, sin montos en USD); ver «Método»';
 
 /** Cuántos productos entran en la barra sin que deje de leerse. */
 const SHOWN_PRODUCTS = 15;
@@ -155,8 +155,7 @@ function ProductChapter({ board, from, to }: { board: DepartmentBoard; from: num
   if (!board.products.length) {
     return (
       <div className="callout">
-        Todavía no hay comercio exterior por departamento cargado; este panel se llena solo cuando
-        el núcleo lo siembre.
+        Aún no hay datos de comercio exterior por departamento disponibles.
       </div>
     );
   }
@@ -164,8 +163,9 @@ function ProductChapter({ board, from, to }: { board: DepartmentBoard; from: num
   if (!mixUsd.length) {
     return (
       <div className="callout">
-        Sin comercio por producto declarado para {year ?? 'el rango elegido'}. Ajustá el filtro de
-        años: el detalle nacional por producto cubre desde 2010 hasta {board.tradeYear ?? '—'}.
+        No hay comercio por producto declarado para {year ?? 'el rango elegido'}. El detalle
+        nacional por producto cubre de 2010 a {board.tradeYear ?? '—'}; para verlo, ampliar el
+        filtro de años.
       </div>
     );
   }
@@ -174,8 +174,8 @@ function ProductChapter({ board, from, to }: { board: DepartmentBoard; from: num
     <div className="grid-pair">
       <Panel
         id="comercio-productos-usd"
-        title={`Qué exporta Bolivia, por producto (millones de USD, ${year})`}
-        lede={`Los ${Math.min(SHOWN_PRODUCTS, mixUsd.length)} productos principales de ${mixUsd.length} que el INE publica, sumando los nueve departamentos: el total nacional no viene como una fila abierta en el cuadro original.`}
+        title={`Exportaciones por producto (millones de USD, ${year})`}
+        lede={`Los ${Math.min(SHOWN_PRODUCTS, mixUsd.length)} productos principales de los ${mixUsd.length} que publica el INE, sumados los nueve departamentos. El cuadro original no trae el total nacional como fila propia.`}
         source={SOURCE_INE}
       >
         <div className="fx-filters">
@@ -192,8 +192,8 @@ function ProductChapter({ board, from, to }: { board: DepartmentBoard; from: num
       </Panel>
       <Panel
         id="comercio-productos-toneladas"
-        title={`Cuánto pesa lo que exporta (toneladas, ${year})`}
-        lede="El mismo año en peso neto: el orden cambia frente al de dólares, porque el gas no pesa nada en un puerto y el mineral pesa mucho sin valer lo mismo."
+        title={`Exportaciones por producto, en peso (toneladas, ${year})`}
+        lede="El mismo año, en peso neto. El orden difiere del que da el valor: los minerales pesan mucho por cada dólar exportado y el gas, poco."
         source={SOURCE_INE}
       >
         <div className="fx-filters">
@@ -218,8 +218,8 @@ function ProductChapter({ board, from, to }: { board: DepartmentBoard; from: num
       </Panel>
       <Panel
         id="comercio-principales-usd"
-        title={`Los ${leading.length} productos principales en el tiempo (millones de USD, ${from}-${to})`}
-        lede={`Los que más valieron en ${year}, seguidos hacia atrás dentro del rango de años elegido.`}
+        title={`Exportaciones de los ${leading.length} productos principales (millones de USD, ${from}-${to})`}
+        lede={`Los productos de mayor valor exportado en ${year}, con su evolución en el rango de años seleccionado.`}
         source={SOURCE_INE}
       >
         {leadingUsd.data.length > 1 ? (
@@ -235,15 +235,15 @@ function ProductChapter({ board, from, to }: { board: DepartmentBoard; from: num
         <details className="panel-note">
           <summary>Cómo leerlo</summary>
           <p>
-            «Otros productos» queda fuera: es el residuo con el que cierra cada departamento, no un
-            producto que se pueda seguir.
+            «Otros productos» queda fuera: es la partida residual con la que cierra cada
+            departamento, no un producto identificable.
           </p>
         </details>
       </Panel>
       <Panel
         id="comercio-principales-toneladas"
-        title={`Los mismos productos, en peso (toneladas, ${from}-${to})`}
-        lede="Separa precio de volumen: una línea de dólares que sube mientras la de toneladas no dice que el mismo producto se vendió más caro, no que salió más."
+        title={`Exportaciones de los ${leading.length} productos principales, en peso (toneladas, ${from}-${to})`}
+        lede="Separa el efecto precio del efecto volumen. Si el valor sube y el peso no, el producto se vendió más caro; no salió en mayor cantidad."
         source={SOURCE_INE}
       >
         {leadingTonnes.data.length > 1 ? (
@@ -281,8 +281,7 @@ function ComtradeChapter({
   if (!board || (!board.exportsUsd.length && !board.importsUsd.length)) {
     return (
       <div className="callout">
-        Todavía no hay comercio exterior agregado de Naciones Unidas cargado; este panel espera a
-        que el núcleo siembre las series de Comtrade.
+        Aún no están disponibles las series de comercio exterior de Naciones Unidas (Comtrade).
       </div>
     );
   }
@@ -291,8 +290,8 @@ function ComtradeChapter({
     <div className="grid-two">
       <Panel
         id="comercio-exportaciones-total"
-        title="Exportaciones de bienes ante Naciones Unidas (millones de USD)"
-        lede="Lo que Bolivia declaró a Comtrade desde 1992, agregado y sin producto ni socio."
+        title="Exportaciones de bienes declaradas a Naciones Unidas (millones de USD)"
+        lede="Total anual que Bolivia declara a la base Comtrade de Naciones Unidas desde 1992, sin desglose por producto ni por socio."
         source={SOURCE_COMTRADE}
       >
         {exportsUsd.length > 1 ? (
@@ -318,8 +317,8 @@ function ComtradeChapter({
       </Panel>
       <Panel
         id="comercio-importaciones-total"
-        title="Importaciones de bienes ante Naciones Unidas (millones de USD)"
-        lede="Lo que compró Bolivia afuera, con el mismo agregado y la misma fuente."
+        title="Importaciones de bienes declaradas a Naciones Unidas (millones de USD)"
+        lede="Total anual de bienes importados por Bolivia, con la misma fuente y el mismo nivel de agregación."
         source={SOURCE_COMTRADE}
       >
         {importsUsd.length > 1 ? (
@@ -338,7 +337,7 @@ function ComtradeChapter({
         <details className="panel-note">
           <summary>Cómo leerlo</summary>
           <p>
-            Es la mitad del comercio que el ránking de exportadoras, más abajo, nunca puede mostrar.
+            La clasificación de exportadoras, más abajo, no cubre esta mitad del comercio.
           </p>
         </details>
       </Panel>
@@ -445,17 +444,19 @@ function DetailPanel({
     kind === 'lineas'
       ? chosen.size
         ? `${pickedLabel(lineEntries.length, noun.singular, noun.plural)}.`
-        : `Los ${lineEntries.length} ${noun.plural} con mayor valor reciente, de ${entries.length} publicados; ${hint}`
+        : `Los ${lineEntries.length} ${noun.plural} con mayor valor en el último año, de ${entries.length} publicados.`
       : `Los ${slices.length} ${noun.plural} publicados en ${year ?? to}${
-          chosen.size ? ', con los elegidos en el filtro marcados' : ''
+          chosen.size ? ', con los elegidos en el filtro resaltados' : ''
         }.`;
 
   /* Cómo tocar y cómo leer el área: la lectura detallada, plegada bajo la figura. */
   const note =
     kind === 'lineas'
-      ? null
-      : `Tocá uno para ponerlo en el filtro; Ctrl/⌘ suma.${
-          kind === 'cuadrados' ? ' El área es el valor y el porcentaje es sobre lo dibujado.' : ''
+      ? hint
+      : `Al seleccionar uno se añade al filtro; con Ctrl/⌘ se suman varios.${
+          kind === 'cuadrados'
+            ? ' El área representa el valor; el porcentaje se calcula sobre lo dibujado.'
+            : ''
         }`;
 
   return (
@@ -552,8 +553,7 @@ function PartnerChapter({
   if (!board || !board.partners.length) {
     return (
       <div className="callout">
-        Todavía no hay comercio exterior por socio comercial cargado; este panel espera a que el
-        núcleo siembre el desglose de Comtrade por país.
+        Aún no está disponible el desglose de Comtrade por país socio.
       </div>
     );
   }
@@ -563,25 +563,25 @@ function PartnerChapter({
     <div className="grid-two">
       <DetailPanel
         id="comercio-socios-vende"
-        subject="A quién le vende Bolivia"
+        subject="Exportaciones por país de destino"
         noun={noun}
         entries={flows.X}
         chosen={country}
         onPick={onPick}
         from={from}
         to={to}
-        hint="elegí uno o varios en el filtro de país, o en el mapa, para ver exactamente esos."
+        hint="El filtro de país y el mapa permiten elegir uno o varios países para ver solo esos."
       />
       <DetailPanel
         id="comercio-socios-compra"
-        subject="A quién le compra Bolivia"
+        subject="Importaciones por país de origen"
         noun={noun}
         entries={flows.M}
         chosen={country}
         onPick={onPick}
         from={from}
         to={to}
-        hint="el filtro de país también recorta este panel."
+        hint="El filtro de país también recorta este panel."
       />
     </div>
   );
@@ -620,8 +620,7 @@ function ProductDetailChapter({
   if (!board || !board.products.length) {
     return (
       <div className="callout">
-        Todavía no hay comercio exterior por capítulo del arancel cargado; este panel espera a que
-        el núcleo siembre el desglose de Comtrade por producto.
+        Aún no está disponible el desglose de Comtrade por capítulo del arancel.
       </div>
     );
   }
@@ -631,25 +630,25 @@ function ProductDetailChapter({
     <div className="grid-two">
       <DetailPanel
         id="comercio-capitulos-exporta"
-        subject="Qué capítulos exporta más Bolivia"
+        subject="Exportaciones por capítulo del arancel"
         noun={noun}
         entries={flows.X}
         chosen={chapter}
         onPick={onPick}
         from={from}
         to={to}
-        hint="elegí uno o varios en el filtro de producto para ver exactamente esos."
+        hint="El filtro de producto permite elegir uno o varios capítulos para ver solo esos."
       />
       <DetailPanel
         id="comercio-capitulos-importa"
-        subject="Qué capítulos importa más Bolivia"
+        subject="Importaciones por capítulo del arancel"
         noun={noun}
         entries={flows.M}
         chosen={chapter}
         onPick={onPick}
         from={from}
         to={to}
-        hint="el filtro de producto también recorta este panel."
+        hint="El filtro de producto también recorta este panel."
       />
     </div>
   );
@@ -707,18 +706,19 @@ function WorldChapter({
         ]
       : [],
   );
-  const verb = flow === 'X' ? 'le vende' : 'le compra';
+  const subject =
+    flow === 'X' ? 'exportaciones por país de destino' : 'importaciones por país de origen';
 
   return (
     <>
       <Panel
         id="comercio-mapa"
-        title={`A qué países ${verb} Bolivia: mapa de calor (millones de USD, ${year ?? to})`}
-        lede="El tono dice cuánto; toca un país para ponerlo en el filtro de la izquierda y abrir su ficha aquí debajo."
+        title={`Mapa de ${subject} (millones de USD, ${year ?? to})`}
+        lede="Cuanto más intenso el tono, mayor el valor comerciado con ese país en el último año del rango con datos."
         source={SOURCE_COMTRADE}
       >
         <div className="fx-filters">
-          <div className="chart-kind" role="group" aria-label="Flujo que pinta el mapa">
+          <div className="chart-kind" role="group" aria-label="Flujo representado en el mapa">
             {(
               [
                 ['X', 'Exportaciones'],
@@ -746,15 +746,16 @@ function WorldChapter({
         />
         {focus ? null : (
           <p className="chart-note">
-            Todavía no elegiste ningún país: la ficha con su comercio en el tiempo aparece al tocar
-            uno en el mapa o en el filtro.
+            Al seleccionar un país en el mapa o en el filtro se abre su ficha, con el comercio
+            bilateral en el tiempo.
           </p>
         )}
         <details className="panel-note">
           <summary>Cómo leerlo</summary>
           <p>
-            La clave de debajo del mapa dice qué extremo es el mayor. Ctrl/⌘ suma varios países. El
-            año es el último del rango con dato.
+            La escala bajo el mapa indica qué extremo corresponde al mayor valor. Al seleccionar un
+            país se añade al filtro de la izquierda y se abre su ficha debajo; con Ctrl/⌘ se suman
+            varios. El año es el último del rango con datos.
           </p>
         </details>
       </Panel>
@@ -796,7 +797,7 @@ function CountryCard({
   if (sold) {
     named.push({
       key: 'X',
-      label: 'Bolivia le vende',
+      label: 'Exportaciones de Bolivia',
       values: toMillions(sold.points),
       tone: 'var(--official)',
     });
@@ -804,7 +805,7 @@ function CountryCard({
   if (bought) {
     named.push({
       key: 'M',
-      label: 'Bolivia le compra',
+      label: 'Importaciones de Bolivia',
       values: toMillions(bought.points),
       tone: 'var(--parallel)',
     });
@@ -817,8 +818,8 @@ function CountryCard({
   return (
     <Panel
       id="comercio-ficha-pais"
-      title={`Bolivia y ${name}${year ? `, ${year}` : ''} (millones de USD)`}
-      lede="Lo que Bolivia le vende y le compra, qué parte del total es y cómo cambió en el tiempo."
+      title={`Comercio de Bolivia con ${name}${year ? `, ${year}` : ''} (millones de USD)`}
+      lede="Exportaciones e importaciones bilaterales, su peso en el total de Bolivia y su evolución."
       source={SOURCE_COMTRADE}
       data={() => ({
         etiqueta: `Cifras ${year ?? ''}`.trim(),
@@ -826,25 +827,32 @@ function CountryCard({
         columnas: ['Medida', 'Valor (millones de USD)', 'Parte del total (%)', 'Puesto'],
         filas: [
           [
-            'Bolivia le vende',
+            'Exportaciones',
             exportValue === null ? null : exportValue / 1_000_000,
             exportValue !== null && exportTotal ? (exportValue / exportTotal) * 100 : null,
             exportValue === null ? null : rankOf('X', exportValue),
           ],
           [
-            'Bolivia le compra',
+            'Importaciones',
             importValue === null ? null : importValue / 1_000_000,
             importValue !== null && importTotal ? (importValue / importTotal) * 100 : null,
             importValue === null ? null : rankOf('M', importValue),
           ],
-          ['Saldo (vende menos compra)', balance === null ? null : balance / 1_000_000, null, null],
+          [
+            'Saldo (exportaciones menos importaciones)',
+            balance === null ? null : balance / 1_000_000,
+            null,
+            null,
+          ],
         ],
       })}
     >
       <dl className="country-figures">
         <div>
-          <dt>Le vende</dt>
-          <dd>{exportValue !== null ? millions(exportValue) : 'no está entre los 20 destinos'}</dd>
+          <dt>Exportaciones</dt>
+          <dd>
+            {exportValue !== null ? millions(exportValue) : 'fuera de los 20 principales destinos'}
+          </dd>
           {exportValue !== null && exportTotal ? (
             <dd className="country-aside">
               {percent((exportValue / exportTotal) * 100)} de lo exportado · puesto{' '}
@@ -853,8 +861,10 @@ function CountryCard({
           ) : null}
         </div>
         <div>
-          <dt>Le compra</dt>
-          <dd>{importValue !== null ? millions(importValue) : 'no está entre los 20 orígenes'}</dd>
+          <dt>Importaciones</dt>
+          <dd>
+            {importValue !== null ? millions(importValue) : 'fuera de los 20 principales orígenes'}
+          </dd>
           {importValue !== null && importTotal ? (
             <dd className="country-aside">
               {percent((importValue / importTotal) * 100)} de lo importado · puesto{' '}
@@ -872,11 +882,11 @@ function CountryCard({
           {balance !== null ? (
             <dd className="country-aside">
               {balance >= 0
-                ? 'Bolivia le vende más de lo que le compra'
-                : 'Bolivia le compra más de lo que le vende'}
+                ? 'Superávit bilateral de Bolivia'
+                : 'Déficit bilateral de Bolivia'}
             </dd>
           ) : (
-            <dd className="country-aside">Hace falta el dato de los dos flujos</dd>
+            <dd className="country-aside">Requiere el dato de ambos flujos</dd>
           )}
         </div>
       </dl>
@@ -889,10 +899,10 @@ function CountryCard({
         />
       ) : null}
       <p className="chart-note">
-        Qué productos van a {name} no está publicado aquí: Comtrade da, para Bolivia, el comercio
-        por país y por capítulo como dos recortes separados que no se cruzan. La base aduanera del
-        INE sí los cruza: en «Detalle aduanero (INE)» el mismo mapa, con todos los países, abre una
-        ficha con los productos y los departamentos de cada uno.
+        Comtrade publica el comercio de Bolivia por país y por capítulo como dos recortes separados,
+        sin cruce entre ellos; por eso aquí no figura qué productos van a {name}. La base aduanera
+        del INE sí los cruza: en «Detalle aduanero (INE)», la ficha de cada país incluye sus
+        productos y sus departamentos.
       </p>
     </Panel>
   );
@@ -924,7 +934,7 @@ function ExportersRanking({ board }: { board: ExportersBoard }) {
     rank: row.rank,
     name: row.name,
     detail: board.crossings.some((cross) => cross.slug === row.slug)
-      ? 'También en el monitor Merco'
+      ? 'También figura en el monitor Merco'
       : undefined,
     value: row.share,
     shown: `${row.share.toLocaleString('es-BO', { minimumFractionDigits: 1, maximumFractionDigits: 1 })} %`,
@@ -937,7 +947,7 @@ function ExportersRanking({ board }: { board: ExportersBoard }) {
         <Panel
           id="comercio-exportadoras-top"
           title={`Las ${topRows.length} mayores exportadoras, gestión ${board.exportYear ?? '—'} (% de las exportaciones)`}
-          lede={`Juntas suman el ${percent(topTen)} de lo exportado. La fuente publica una sola gestión, así que no hay puesto del año anterior con qué comparar ni cintas año a año.`}
+          lede={`Las diez primeras suman el ${percent(topTen)} de lo exportado. La fuente publica una sola gestión, por lo que no hay comparación con el puesto del año anterior.`}
           ledeText={`Las diez primeras suman el ${percent(topTen)} de lo exportado en ${board.exportYear ?? 'la gestión'}.`}
           source={SOURCE_EXPORTERS}
           data={() => ({
@@ -958,19 +968,20 @@ function ExportersRanking({ board }: { board: ExportersBoard }) {
       ) : null}
       <Panel
         id="comercio-exportadoras"
-        title={`Quién exporta más (% de las exportaciones, gestión ${board.exportYear ?? '—'})`}
-        lede={`Orden y cuota de las cien primeras exportadoras; las diez primeras concentran el ${percent(topTen)} de lo exportado.`}
+        title={`Cuota de las principales exportadoras (% de las exportaciones, gestión ${board.exportYear ?? '—'})`}
+        lede={`Las diez primeras exportadoras concentran el ${percent(topTen)} de lo exportado. La lista abarca las cien primeras, con su puesto y su cuota.`}
         source={SOURCE_EXPORTERS}
       >
         <div className="callout">
-          <strong>Bolivia no publica sus exportaciones por empresa.</strong> El INE llega a
-          producto, departamento y país de destino —el panorama de arriba—; la Aduana Nacional
-          publica agregados; el Anuario de Minería separa por actor productivo —estatal, privado,
-          cooperativo— pero nunca por razón social, porque la declaración aduanera individual está
-          amparada por reserva. Esta lista viene de un agregador comercial de registros aduaneros, y
-          de ella se publica <strong>el orden y la cuota, no los dólares</strong>: el total que esa
-          misma fuente declara para {board.exportYear ?? 'la gestión'} no cuadra con el del INE y no
-          dice sobre qué base está calculado.
+          <strong>Bolivia no publica sus exportaciones por empresa.</strong> El INE desagrega por
+          producto, departamento y país de destino —el panorama de arriba—. La Aduana Nacional
+          publica agregados, y el <em>Anuario de Minería</em> separa por actor productivo (estatal,
+          privado, cooperativo), nunca por razón social: la declaración aduanera individual está
+          amparada por reserva. Esta lista procede de un agregador comercial de registros
+          aduaneros, y de ella se publican{' '}
+          <strong>el puesto y la cuota, no los montos en USD</strong>: el total que esa fuente
+          declara para {board.exportYear ?? 'la gestión'} no coincide con el del INE y no indica
+          sobre qué base se calcula.
         </div>
         <ShareBars data={bars} unit="%" height={520} />
         <ChartLegend
@@ -984,10 +995,11 @@ function ExportersRanking({ board }: { board: ExportersBoard }) {
           }
         />
         <p className="chart-note">
-          Se dibujan las {Math.min(SHOWN_EXPORTERS, board.exporters.length)} primeras de{' '}
-          {board.exporters.length}. Las barras marcadas son las que además midió el monitor de
-          reputación Merco en alguna de sus ediciones: {marked} aquí, {board.crossings.length} en la
-          lista entera. El cruce completo está en la pestaña «Reputación empresarial».
+          Se muestran las {Math.min(SHOWN_EXPORTERS, board.exporters.length)} primeras de{' '}
+          {board.exporters.length}. Las barras resaltadas corresponden a empresas que también evaluó
+          el monitor de reputación Merco en alguna edición: {marked} en el gráfico,{' '}
+          {board.crossings.length} en la lista completa. El cruce completo está en la pestaña
+          «Reputación empresarial».
         </p>
       </Panel>
     </>
@@ -1060,27 +1072,27 @@ export function ForeignTradeExplorer({
   return (
     <>
       <header className="page-intro">
-        <h3 className="page-intro-title">Qué vende Bolivia, a quién, y quién lo vende</h3>
+        <h3 className="page-intro-title">Comercio exterior: productos, socios y exportadoras</h3>
         <p className="page-intro-lede">
-          Producto, país y empresa en una sola página: el panorama del comercio exterior y, al
-          final, el ránking de quién exporta más.
+          Exportaciones e importaciones de bienes por producto y país socio, según el INE y
+          Naciones Unidas, y la clasificación de las principales exportadoras. Las cifras oficiales
+          están en USD; la clasificación por empresa publica solo puesto y cuota.
         </p>
         <details className="panel-note">
           <summary>Qué cubre esta página y qué no</summary>
           <p>
-            Producto, país y empresa en un mismo capítulo: el total nacional por producto desde
-            2010, el agregado de exportaciones e importaciones ante Naciones Unidas desde 1992, el
-            desglose por socio y por capítulo desde 2020, y el ránking de quién exporta más. Van
-            juntos porque contestan la misma pregunta —qué comercia Bolivia con el resto del mundo,
-            y quién lo hace— con las piezas que cada fuente sí puede sostener.
+            La página reúne el total nacional por producto desde 2010, el agregado de exportaciones
+            e importaciones declarado ante Naciones Unidas desde 1992, el desglose por socio y por
+            capítulo desde 2020 y la clasificación de las principales exportadoras. Cada pieza llega
+            hasta donde su fuente lo permite.
           </p>
           <p>
             <strong>Bolivia declara su comercio exterior en dólares estadounidenses (USD).</strong>{' '}
-            Lo que hay: producto, país y año, con fuentes oficiales; el detalle por partida NANDINA,
-            país, departamento y mes —cruzados entre sí, con el mismo mapa del mundo para todos los
-            países— está en la pestaña «Detalle aduanero (INE)». Lo que no hay y no va a haber: el
-            valor en dólares que exporta cada empresa —es secreto por ley, así que el ránking de más
-            abajo sólo publica orden y cuota—.
+            Aquí figuran producto, país y año, con fuentes oficiales. El detalle por partida de la
+            Nomenclatura Común Andina (NANDINA), país, departamento y mes, con cruces entre esas
+            dimensiones y un mapa con todos los países, está en la pestaña «Detalle aduanero (INE)».
+            El valor exportado por cada empresa no se publica: está amparado por reserva legal, y
+            por eso la clasificación de exportadoras muestra solo puesto y cuota.
           </p>
         </details>
         {/*
@@ -1099,11 +1111,11 @@ export function ForeignTradeExplorer({
       <DerivedReading
         id="comercio-lectura"
         title="Qué dicen estos datos"
-        note="Cada frase sale de las series de este capítulo, sin filtrar, y se recalcula con cada carga. Dice qué se vendió y contra qué se compara; no dice por qué ni qué va a pasar."
+        note="Cada frase se calcula con las series de esta página, sin filtros, y se actualiza con cada carga de datos. Describe lo ocurrido y su comparación; no explica causas ni hace proyecciones."
         conclusions={conclusions}
         icons={CONCLUSION_ICON}
         defaultOpen={false}
-        source="INE (comercio exterior por departamento) y Naciones Unidas (Comtrade); la lectura la calcula el Observatorio"
+        source="INE (comercio exterior por departamento) y Naciones Unidas (Comtrade); cálculo de DatosBolivia.com"
       />
 
       <div className="workspace">
@@ -1117,7 +1129,7 @@ export function ForeignTradeExplorer({
           </div>
 
           <FilterHint>
-            Recortan el panorama de arriba; el ránking de exportadoras no cambia.
+            Se aplican al panorama de comercio; la clasificación de exportadoras no cambia.
           </FilterHint>
 
           {active ? (
@@ -1221,7 +1233,7 @@ export function ForeignTradeExplorer({
                 </div>
               </>
             ) : (
-              <p className="rail-hint">Esperando el desglose por país.</p>
+              <p className="rail-hint">Desglose por país aún no disponible.</p>
             )}
           </div>
 
@@ -1255,7 +1267,7 @@ export function ForeignTradeExplorer({
                 </div>
               </>
             ) : (
-              <p className="rail-hint">Esperando el desglose por producto.</p>
+              <p className="rail-hint">Desglose por producto aún no disponible.</p>
             )}
           </div>
 
@@ -1267,7 +1279,7 @@ export function ForeignTradeExplorer({
             <div className="rail-field">
               <input
                 type="range"
-                aria-label={`Desde qué año se dibujan los gráficos: ${from}`}
+                aria-label={`Año inicial: ${from}`}
                 min={bounds.min}
                 max={to}
                 value={from}
@@ -1277,7 +1289,7 @@ export function ForeignTradeExplorer({
             <div className="rail-field rail-field-next">
               <input
                 type="range"
-                aria-label={`Hasta qué año se dibujan los gráficos: ${to}`}
+                aria-label={`Año final: ${to}`}
                 min={from}
                 max={bounds.max}
                 value={to}
@@ -1290,12 +1302,12 @@ export function ForeignTradeExplorer({
         <div className="workspace-main guest-board">
           {crossFilterGap ? (
             <div className="callout">
-              <strong>Aquí país y producto no se cruzan.</strong> Comtrade publica el comercio
-              boliviano por socio y por capítulo del arancel como dos recortes separados del mismo
-              total. El cruce —cuánto de ese comercio fue del capítulo elegido— sí existe en la base
-              del INE: está en la pestaña «Detalle aduanero (INE)». Abajo se ve cada filtro aplicado
-              por su cuenta: el país en «A quién le vende/compra Bolivia» y el producto en «Qué
-              capítulos exporta/importa más».
+              <strong>En esta página, país y producto no se cruzan.</strong> Comtrade publica el
+              comercio boliviano por socio y por capítulo del arancel como dos recortes separados del
+              mismo total. El cruce —cuánto de ese comercio corresponde al capítulo elegido— existe
+              en la base del INE, en la pestaña «Detalle aduanero (INE)». Abajo, cada filtro se
+              aplica por separado: el país, en los paneles por país de destino y de origen; el
+              producto, en los paneles por capítulo del arancel.
             </div>
           ) : null}
 
@@ -1315,7 +1327,8 @@ export function ForeignTradeExplorer({
 
           {tradeFailed ? (
             <div className="callout">
-              No se pudo leer el comercio exterior agregado. El resto del informe sigue al día.
+              No se pudo leer el comercio exterior agregado. Recargar la página o volver en unos
+              minutos; el resto de la página no se ve afectado.
             </div>
           ) : (
             <>
@@ -1338,14 +1351,14 @@ export function ForeignTradeExplorer({
 
           {exportersFailed ? (
             <div className="callout">
-              No se pudo leer el registro de exportadoras. El resto del informe sigue al día.
+              No se pudo leer la clasificación de exportadoras. Recargar la página o volver en unos
+              minutos; el resto de la página no se ve afectado.
             </div>
           ) : exportersBoard && exportersBoard.exporters.length ? (
             <ExportersRanking board={exportersBoard} />
           ) : (
             <div className="callout">
-              Todavía no hay registro de exportadoras cargado. Esta sección se llena sola cuando el
-              núcleo haya sembrado el ránking.
+              Aún no está disponible la clasificación de exportadoras.
             </div>
           )}
         </div>

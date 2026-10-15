@@ -115,8 +115,8 @@ export function DepartmentActivities({ board, place }: { board: DepartmentBoard;
   if (!structure.length) {
     return (
       <div className="callout">
-        Todavía no hay cuadros por actividad cargados para {name}. El capítulo se llena solo cuando
-        el núcleo haya sembrado los cuadros del INE.
+        Todavía no hay cuadros por actividad económica cargados para {name}. La sección se completa
+        cuando la base incorpora los cuadros del INE.
       </div>
     );
   }
@@ -129,12 +129,11 @@ export function DepartmentActivities({ board, place }: { board: DepartmentBoard;
     <>
       <section className="panel-group" aria-labelledby="dep-act-estructura-titulo">
         <header className="panel-group-head">
-          <h3 id="dep-act-estructura-titulo">De qué vive {name}</h3>
+          <h3 id="dep-act-estructura-titulo">Estructura productiva de {name}</h3>
           <p>
-            Las once actividades en que el INE abre el producto departamental, desde 1988. La
-            primera figura dice la estructura, la segunda en qué se aparta del país y la tercera
-            cuál creció de verdad; abajo, cualquiera de ellas seguida en el tiempo contra Bolivia y
-            Santa Cruz.
+            El INE desagrega el producto departamental en once actividades económicas desde 1988.
+            Las figuras muestran el reparto del producto, la distancia con la estructura nacional y
+            el crecimiento real de cada actividad en la última década.
           </p>
         </header>
 
@@ -142,9 +141,9 @@ export function DepartmentActivities({ board, place }: { board: DepartmentBoard;
           <Panel
             id="dep-act-reparto"
             title={`Reparto del producto de ${name} por actividad (% del producto, ${year ?? '—'})`}
-            lede={`De qué vive el departamento. Las once suman cien; los servicios bancarios imputados —el cobro que los bancos no facturan y que la contabilidad resta${
+            lede={`Peso de cada actividad en el producto del departamento; las once suman 100. Los servicios bancarios imputados —el cobro que los bancos no facturan y que la contabilidad resta${
               imputed === null ? '' : ` (${number(Math.abs(imputed))} % del producto de ${name})`
-            }— quedan fuera del reparto porque son un descuento y no una actividad. Toca una barra para seguirla en el tiempo, abajo.`}
+            }— quedan fuera del reparto porque son un descuento, no una actividad.`}
             source={SOURCE}
           >
             <ShareBars
@@ -162,7 +161,7 @@ export function DepartmentActivities({ board, place }: { board: DepartmentBoard;
               items={
                 marked
                   ? [
-                      { color: 'var(--official)', label: `${activityName(shown)} (la elegida)` },
+                      { color: 'var(--official)', label: `${activityName(shown)} (seleccionada)` },
                       { color: 'var(--series-rest)', label: 'Las demás actividades' },
                     ]
                   : [{ color: 'var(--official)', label: 'Peso en el producto (%)' }]
@@ -173,8 +172,8 @@ export function DepartmentActivities({ board, place }: { board: DepartmentBoard;
           <Panel
             id="dep-act-distancia"
             title={`Distancia de ${name} con Bolivia, por actividad (puntos porcentuales, ${year ?? '—'})`}
-            lede="En qué se aparta esta economía de la del país. Cada barra es la diferencia entre el peso que la actividad tiene aquí y el que tiene en Bolivia, con el denominador igualado: el cuadro departamental reparte sobre el producto a precios de mercado y el nacional sobre el valor agregado, y compararlos en crudo haría parecer a cualquier departamento menos industrial de lo que es."
-            source={`${SOURCE} y cálculo del Observatorio`}
+            lede="Diferencia entre el peso de cada actividad en el departamento y en Bolivia. El denominador se iguala: el cuadro departamental reparte sobre el producto a precios de mercado y el nacional, sobre el valor agregado. Sin ese ajuste, cualquier departamento parecería menos industrial que el país."
+            source={`${SOURCE}; cálculo de DatosBolivia.com`}
           >
             <DivergingBars data={gap} unit="puntos" height={300} />
           </Panel>
@@ -184,8 +183,8 @@ export function DepartmentActivities({ board, place }: { board: DepartmentBoard;
             title={`Crecimiento real por actividad en ${name} (${moves.at(0)?.from ?? '—'}–${
               moves.at(0)?.to ?? '—'
             }, % acumulado)`}
-            lede="Cuál creció y cuál se encogió de verdad. Va sobre el nivel a precios constantes y no sobre el reparto, porque el reparto es un juego de suma cero: una actividad puede ganar peso sin crecer, sólo porque otra se hundió, y contarlo con el reparto lo contaría al revés."
-            source={`${SOURCE} y cálculo del Observatorio`}
+            lede="Variación acumulada del valor de cada actividad a precios constantes de 1990. Se mide sobre el nivel y no sobre el reparto, que suma siempre 100: una actividad puede ganar peso sin crecer si otra cae."
+            source={`${SOURCE}; cálculo de DatosBolivia.com`}
           >
             <DivergingBars
               data={moves.map((row) => ({
@@ -204,12 +203,13 @@ export function DepartmentActivities({ board, place }: { board: DepartmentBoard;
         <header className="panel-group-head">
           <h3 id="dep-act-elegida-titulo">{activityName(shown)}</h3>
           <p>
-            Elige la actividad; las tres figuras de abajo hablan de ella en {name}, en Santa Cruz y
-            en Bolivia. Las ramas aparecen cuando el INE abre el grupo: son las que dicen si lo que
-            se movió fue el gas o el mineral dentro de «minas y canteras».
+            Las tres figuras siguen la actividad seleccionada en {name}, Santa Cruz y Bolivia.
+            Cuando el INE desagrega el grupo aparecen sus ramas, que distinguen, por ejemplo, el gas
+            del mineral dentro de «minas y canteras». La actividad se selecciona con los botones o
+            con una barra del reparto.
           </p>
 
-          <div className="chips">
+          <div className="chips" role="group" aria-label="Actividad económica">
             {ACTIVITY_GROUPS.map((one) => (
               <button
                 key={one.slug}
@@ -224,7 +224,7 @@ export function DepartmentActivities({ board, place }: { board: DepartmentBoard;
           </div>
 
           {branches.length ? (
-            <div className="chips">
+            <div className="chips" role="group" aria-label="Rama de la actividad">
               {branches.map((one) => (
                 <button
                   key={one.slug}
@@ -243,8 +243,8 @@ export function DepartmentActivities({ board, place }: { board: DepartmentBoard;
         <div className="grid-three">
           <Panel
             id="dep-act-peso"
-            title={`Peso de ${shownName} en su economía (% del producto)`}
-            lede="La estructura, año a año. Es la figura en la que se ve un cambio de motor: una línea que baja mientras las demás no se mueven es una economía que dejó de vivir de algo."
+            title={`Peso de ${shownName} en la economía (% del producto)`}
+            lede="Participación anual de la actividad en el producto. Un descenso sostenido en una línea, con las demás estables, indica un cambio en la estructura productiva de ese lugar."
             source={SOURCE}
           >
             {weight.data.length > 1 ? (
@@ -262,7 +262,7 @@ export function DepartmentActivities({ board, place }: { board: DepartmentBoard;
           <Panel
             id="dep-act-crecimiento-anual"
             title={`Crecimiento anual de ${shownName} (% anual)`}
-            lede="La variación que el INE publica sobre el nivel a precios constantes de 1990. Donde el cuadro nacional no publica el grupo —sí sus ramas— la línea de Bolivia sale del nivel sumado, año contra año anterior: sumar variaciones no da la variación de la suma."
+            lede="Variación anual que publica el INE sobre el nivel a precios constantes de 1990. Cuando el cuadro nacional publica solo las ramas del grupo, la línea de Bolivia se calcula sobre el nivel sumado de esas ramas, porque sumar variaciones no da la variación de la suma."
             source={SOURCE}
           >
             {growth.data.length > 1 ? (
@@ -280,7 +280,7 @@ export function DepartmentActivities({ board, place }: { board: DepartmentBoard;
           <Panel
             id="dep-act-tamano"
             title={`Tamaño real de ${shownName} (índice, ${size.base ?? '—'} = 100)`}
-            lede="En índice y no en bolivianos: el país es la suma de los nueve, así que en la escala de Bolivia un departamento chico sería una raya pegada al cero. El nivel en miles de bolivianos de 1990 sigue en la tabla de cifras del departamento."
+            lede="Valor de la actividad a precios constantes de 1990, en índice y no en Bs: el total nacional suma los nueve departamentos y, en su escala, uno pequeño quedaría pegado al eje."
             source={SOURCE}
           >
             {size.chart.data.length > 1 ? (

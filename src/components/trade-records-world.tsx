@@ -67,7 +67,8 @@ export function TradeWorld({
   const [measure, setMeasure] = useState<Measure>('usd');
   const map = useMemo(() => countryMap(view?.items ?? [], measure), [view, measure]);
 
-  const verb = flow === 'X' ? 'le vende' : 'le compra';
+  const subject =
+    flow === 'X' ? 'exportaciones por país de destino' : 'importaciones por país de origen';
   const value = flow === 'X' ? 'FOB' : 'CIF en frontera';
   const unit = measure === 'usd' ? 'MM USD' : 'mil t';
   const what = measure === 'usd' ? `valor ${value}` : flow === 'X' ? 'peso neto' : 'peso bruto';
@@ -83,14 +84,14 @@ export function TradeWorld({
     <>
       <Panel
         id="aduana-mapa"
-        title={`A qué países ${verb} Bolivia: mapa de calor (${
+        title={`Mapa de ${subject} (${
           measure === 'usd' ? 'millones de USD' : 'miles de toneladas'
         }, ${years})`}
-        lede={`El tono dice cuánto —${what}, sumado en el periodo—; toca un país para ponerlo en el filtro y abrir su ficha aquí debajo.`}
+        lede={`Cuanto más intenso el tono, mayor el ${what} acumulado en el periodo con cada país.`}
         source={SOURCE_ADUANA}
       >
         <div className="fx-filters">
-          <div className="chart-kind" role="group" aria-label="Flujo que pinta el mapa">
+          <div className="chart-kind" role="group" aria-label="Flujo representado en el mapa">
             {(
               [
                 ['X', 'Exportaciones'],
@@ -108,7 +109,7 @@ export function TradeWorld({
               </button>
             ))}
           </div>
-          <div className="chart-kind" role="group" aria-label="Qué mide el mapa">
+          <div className="chart-kind" role="group" aria-label="Medida del mapa">
             {MEASURES.map((option) => (
               <button
                 key={option.by}
@@ -143,32 +144,32 @@ export function TradeWorld({
 
         {map.unplaced.length ? (
           <p className="chart-note">
-            No se dibuja, por no ser un país con contorno:{' '}
+            No figura en el mapa por no ser un territorio con contorno:{' '}
             {map.unplaced
               .slice(0, 3)
               .map((row) => `${row.label} (${smart(row.value)} ${unit})`)
               .join(', ')}
             {map.unplaced.length > 3 ? ` y ${map.unplaced.length - 3} más` : ''}
-            {map.unplaced.length > 1 ? `; en total ${smart(unplaced)} ${unit}` : ''}. Sí cuenta en
-            los ránkings y en las cifras de arriba.
+            {map.unplaced.length > 1 ? `; en total ${smart(unplaced)} ${unit}` : ''}. Sí se incluye
+            en las clasificaciones y en las cifras clave.
           </p>
         ) : null}
 
         {focus ? null : (
           <p className="chart-note">
-            Todavía no elegiste ningún país: la ficha con su comercio en el tiempo, los productos
-            que van y vienen y los departamentos de origen aparece al tocar uno en el mapa o en el
-            filtro.
+            Al seleccionar un país en el mapa o en el filtro se abre su ficha: el comercio en el
+            tiempo, los productos exportados e importados y los departamentos de origen.
           </p>
         )}
 
         <details className="panel-note">
           <summary>Cómo leerlo</summary>
           <p>
-            La clave de debajo del mapa dice qué extremo es el mayor. Están todos los países que la
-            declaración aduanera nombra, no sólo los principales: el gris es «sin comercio declarado
-            con estos filtros». El mapa respeta el producto, el departamento y los meses elegidos;
-            sólo suelta el filtro de país. Ctrl/⌘ suma varios países.
+            La escala bajo el mapa indica qué extremo corresponde al mayor valor. Figuran todos los
+            países que nombra la declaración aduanera, no solo los principales: el gris significa
+            «sin comercio declarado con estos filtros». El mapa aplica el producto, el departamento
+            y los meses elegidos, pero no el filtro de país. Al seleccionar un país se añade al
+            filtro; con Ctrl/⌘ se suman varios.
           </p>
         </details>
       </Panel>

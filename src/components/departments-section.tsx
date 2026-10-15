@@ -21,13 +21,13 @@ import type { DepartmentBoard } from '@/lib/departments-board';
 export function DepartmentsSection() {
   const { payload, failed } = useOnOpen<{ board: DepartmentBoard }>('/api/departamentos');
 
-  if (!payload) return <OnOpenNotice what="el capítulo departamental" failed={failed} />;
+  if (!payload) return <OnOpenNotice what="las cuentas departamentales" failed={failed} />;
 
   if (!Object.keys(payload.board.series).length) {
     return (
       <div className="callout">
-        Todavía no hay cuentas departamentales cargadas. El capítulo se llena solo cuando el núcleo
-        haya sembrado los cuadros del INE.
+        Todavía no hay cuentas departamentales cargadas. La sección se completa cuando la base
+        incorpora los cuadros del INE.
       </div>
     );
   }

@@ -282,8 +282,8 @@ function DepartmentDetail({
     <>
       <Panel
         id="dep-resumen"
-        title={`${name}: las ocho medidas del INE en su último año (cada una en su unidad)`}
-        lede={`Las ocho cifras en su último año publicado, con el puesto que ocupa ${name} entre los nueve departamentos en ese mismo año. El per cápita cierra un año antes que las demás porque necesita la proyección de población.`}
+        title={`${name}: ocho indicadores del INE en el último año publicado (cada uno en su unidad)`}
+        lede={`Último valor publicado de cada indicador y puesto de ${name} entre los nueve departamentos en ese mismo año. El PIB per cápita cierra un año antes que el resto porque depende de la proyección de población.`}
         source={`${SOURCE_ACCOUNTS}; ${SOURCE_TRADE}`}
         data={() => ({
           columnas: ['Medida', 'Unidad', 'Año', 'Valor', 'Puesto entre los nueve'],
@@ -305,7 +305,7 @@ function DepartmentDetail({
       <Panel
         id="dep-cuadro"
         title={`Las seis cuentas regionales de ${name}, ${placeName(BENCHMARK)} y Bolivia (cada una en su unidad)`}
-        lede="La tabla es donde la comparación con el país cabe siempre y en su unidad: una cifra al lado de otra no tiene el problema de escala que tiene una línea al lado de otra. En participación la fila de Bolivia es cien por definición y en producto es la suma de las nueve, así que ahí la cifra del país sitúa al departamento pero no lo califica."
+        lede={`Las seis medidas de cuentas regionales en su último año, frente a ${placeName(BENCHMARK)} y al total nacional, cada una en su unidad. En la participación, la fila de Bolivia vale 100 por definición; en el producto, es la suma de los nueve departamentos. En esos casos la cifra nacional sitúa al departamento, pero no sirve para calificarlo.`}
         source={SOURCE_ACCOUNTS}
         data={() => ({
           columnas: [
@@ -338,7 +338,7 @@ function DepartmentDetail({
         title={`${measure.label} de ${listed(compared.drawn)} (${
           compared.base === null ? measure.unit : `índice, ${compared.base} = 100`
         })`}
-        lede="La medida que pinta el mapa, seguida en el tiempo. Tres líneas y no nueve: nueve es un peine en el que se ve que hay dispersión y no se ve ninguna de las nueve. Un año sin dato corta la línea en vez de unirla, porque unir dos años publicados afirmaría el de en medio, que nadie publicó."
+        lede={`Evolución del indicador que colorea el mapa, con ${placeName(BENCHMARK)} —la mayor economía departamental— y el total nacional como referencia. Un año sin dato interrumpe la línea: unir dos años publicados supondría un valor intermedio que el INE no publicó.`}
         source={SOURCE_ACCOUNTS}
       >
         {compared.data.length > 1 ? (
@@ -362,7 +362,7 @@ function DepartmentDetail({
             lede={`${one.what}${
               base === null
                 ? ''
-                : ' Va en índice porque la fila del país es la suma de los nueve y en su escala un departamento chico no se ve; el nivel en su unidad está en la tabla de arriba.'
+                : ' Se expresa en índice: la fila nacional suma los nueve departamentos y, en su escala, los más pequeños quedarían pegados al eje. El nivel en su unidad figura en la tabla de cuentas regionales.'
             }`}
             source={SOURCE_ACCOUNTS}
           >
@@ -374,7 +374,7 @@ function DepartmentDetail({
                 tick={(value) => number(value, 0)}
               />
             ) : (
-              <div className="callout">Esta medida no tiene serie para {name}.</div>
+              <div className="callout">No hay serie de esta medida para {name}.</div>
             )}
           </Panel>
         ))}
@@ -385,8 +385,8 @@ function DepartmentDetail({
       <div className="grid-three">
         <Panel
           id="dep-vende-usd"
-          title={`Qué vende ${name} (millones de USD, ${board.tradeYear ?? '—'})`}
-          lede="Los productos que el INE publica para este departamento, más el residuo de «otros productos». La lista no es la misma en cada departamento y esa asimetría es el dato: dice de qué vive cada uno."
+          title={`Exportaciones de ${name} por producto (millones de USD, ${board.tradeYear ?? '—'})`}
+          lede="Productos que el INE detalla para el departamento, más el residuo «otros productos». La lista cambia de un departamento a otro y refleja su especialización exportadora."
           source={SOURCE_TRADE}
         >
           {soldUsd.length ? (
@@ -395,13 +395,15 @@ function DepartmentDetail({
               {barsKey(`Valor exportado, millones de USD (${board.tradeYear ?? '—'})`)}
             </>
           ) : (
-            <div className="callout">Todavía no hay comercio exterior cargado para {name}.</div>
+            <div className="callout">
+              Todavía no hay datos de comercio exterior cargados para {name}.
+            </div>
           )}
         </Panel>
         <Panel
           id="dep-vende-toneladas"
-          title={`Cuánto pesa lo que vende ${name} (toneladas, ${board.tradeYear ?? '—'})`}
-          lede="El mismo año en peso neto. El orden cambia: el mineral pesa y el oro no, y esa es la diferencia entre de qué vive un departamento y qué carga en el camión."
+          title={`Exportaciones de ${name} por producto, en peso (toneladas, ${board.tradeYear ?? '—'})`}
+          lede="Las mismas exportaciones, en peso neto. El orden cambia frente al valor: los minerales concentrados pesan mucho por cada dólar exportado y el oro, muy poco."
           source={SOURCE_TRADE}
         >
           {soldTonnes.length ? (
@@ -410,13 +412,13 @@ function DepartmentDetail({
               {barsKey(`Peso exportado, toneladas (${board.tradeYear ?? '—'})`)}
             </>
           ) : (
-            <div className="callout">Sin peso publicado para {name}.</div>
+            <div className="callout">No hay datos de peso exportado para {name}.</div>
           )}
         </Panel>
         <Panel
           id="dep-exportaciones-usd"
           title={`Exportaciones de ${name} (millones de USD)`}
-          lede="Todo lo que salió del departamento, año a año, desde 2010. Es el valor declarado en aduana; el acumulado parcial del año en curso no se dibuja."
+          lede="Valor anual de las exportaciones del departamento desde 2010, según la declaración en aduana. El acumulado parcial del año en curso no se incluye."
           source={SOURCE_TRADE}
         >
           {exportsUsd.length > 1 ? (
@@ -427,7 +429,7 @@ function DepartmentDetail({
               label={`Exportaciones · ${name}`}
             />
           ) : (
-            <div className="callout">Sin serie de exportaciones para {name}.</div>
+            <div className="callout">No hay serie de exportaciones para {name}.</div>
           )}
         </Panel>
       </div>
@@ -435,8 +437,8 @@ function DepartmentDetail({
       <div className="grid-three">
         <Panel
           id="dep-productos-usd"
-          title={`Los ${leading.length} principales productos de ${name} (millones de USD)`}
-          lede={`Los que más valieron en ${board.tradeYear ?? '—'}, seguidos hacia atrás. «Otros productos» queda fuera: es la suma de lo que no se nombró, no un producto.`}
+          title={`Los ${leading.length} principales productos exportados por ${name} (millones de USD)`}
+          lede={`Los productos de mayor valor exportado en ${board.tradeYear ?? '—'}, con su serie completa. Se excluye «otros productos», que agrupa lo no detallado y no es un producto.`}
           source={SOURCE_TRADE}
         >
           {leadingUsd.data.length > 1 ? (
@@ -447,13 +449,13 @@ function DepartmentDetail({
               tick={(value) => number(value, 0)}
             />
           ) : (
-            <div className="callout">Sin productos con serie para {name}.</div>
+            <div className="callout">No hay productos con serie para {name}.</div>
           )}
         </Panel>
         <Panel
           id="dep-productos-toneladas"
-          title={`Los mismos ${leading.length} productos de ${name} en peso (toneladas)`}
-          lede="Separa precio de volumen: un año que vale más puede ser el mismo mineral más caro, y se ve porque la línea de dólares sube mientras la de toneladas no."
+          title={`Los ${leading.length} principales productos exportados por ${name}, en peso (toneladas)`}
+          lede="Los mismos productos, en peso neto. Separa precio de volumen: si el valor sube y el peso no, el aumento vino del precio."
           source={SOURCE_TRADE}
         >
           {leadingTonnes.data.length > 1 ? (
@@ -464,13 +466,13 @@ function DepartmentDetail({
               tick={(value) => number(value, 0)}
             />
           ) : (
-            <div className="callout">Sin peso por producto para {name}.</div>
+            <div className="callout">No hay datos de peso por producto para {name}.</div>
           )}
         </Panel>
         <Panel
           id="dep-exportaciones-toneladas"
           title={`Exportaciones de ${name} en peso (toneladas)`}
-          lede="El peso neto de todo lo que salió, año a año. Contra la figura de dólares dice si el departamento vendió más o sólo vendió más caro."
+          lede="Peso neto anual de las exportaciones del departamento. Frente a la serie en USD, indica si el departamento exportó más volumen o solo a mejor precio."
           source={SOURCE_TRADE}
         >
           {exportsTonnes.length > 1 ? (
@@ -481,7 +483,7 @@ function DepartmentDetail({
               label={`Exportaciones en peso · ${name}`}
             />
           ) : (
-            <div className="callout">Sin serie de peso para {name}.</div>
+            <div className="callout">No hay serie de peso exportado para {name}.</div>
           )}
         </Panel>
       </div>
@@ -521,11 +523,11 @@ export function DepartmentsExplorer({ board: entire }: { board: DepartmentBoard 
       <TabHeader
         id="departamentos"
         title="Bolivia por departamento"
-        lede={`Las cuentas regionales del INE —seis medidas para cada uno de los nueve departamentos, de 1988 a ${board.accountsYear ?? '—'}— y lo que cada uno vende al exterior, producto por producto, desde 2010 hasta ${board.tradeYear ?? '—'}. En la cifra nacional, una caída de un tercio en un departamento y una subida de la mitad en otro se cancelan hasta parecer quietud.`}
+        lede={`Cuentas regionales oficiales del INE —seis medidas para los nueve departamentos, de 1988 a ${board.accountsYear ?? '—'}— y exportaciones por departamento y producto, de 2010 a ${board.tradeYear ?? '—'}. El total nacional puede ocultar caídas y alzas de signo opuesto entre departamentos.`}
       />
       <DerivedReading
         title="Qué dicen estos datos"
-        note="Cada frase sale de las series de este capítulo y se recalcula con cada carga. Dice qué nivel hay y contra qué se compara; no dice por qué ni qué va a pasar."
+        note="Cada lectura se calcula con las series de esta sección y se actualiza con cada carga. Describe niveles y comparaciones; no atribuye causas ni hace proyecciones."
         conclusions={board.conclusions}
         icons={CONCLUSION_ICON}
         defaultOpen={false}
@@ -534,7 +536,7 @@ export function DepartmentsExplorer({ board: entire }: { board: DepartmentBoard 
       <Panel
         id="dep-mapa"
         title={`${painted.label} por departamento (${painted.unit}, ${paintedYear ?? '—'})`}
-        lede={`${painted.what} Toca un departamento, en el mapa o en la lista, para abrir debajo su vista completa.`}
+        lede={painted.what}
         source={SOURCE_ACCOUNTS}
         data={() => ({
           unidad: painted.unit,
@@ -542,7 +544,7 @@ export function DepartmentsExplorer({ board: entire }: { board: DepartmentBoard 
           filas: ranked.map((reading) => [reading.name, reading.value, reading.year]),
         })}
       >
-        <div className="chips">
+        <div className="chips" role="group" aria-label="Indicador que colorea el mapa">
           {MEASURES.map((one) => (
             <button
               key={one.slug}
@@ -566,7 +568,7 @@ export function DepartmentsExplorer({ board: entire }: { board: DepartmentBoard 
             onPick={setPlace}
           />
           <div className="map-side">
-            <h4 className="map-side-head">De más a menos</h4>
+            <h4 className="map-side-head">De mayor a menor</h4>
             <ul className="map-list">
               {ranked.map((reading, index) => (
                 <li key={reading.code}>
@@ -589,8 +591,8 @@ export function DepartmentsExplorer({ board: entire }: { board: DepartmentBoard 
             </ul>
             <p className="map-note">
               {place
-                ? `${placeName(place)} está abierto abajo. Toca otro departamento para cambiarlo.`
-                : 'Ningún departamento elegido todavía: el mapa y la lista son las dos formas de abrir uno.'}
+                ? `Debajo se muestra el detalle de ${placeName(place)}. Al seleccionar otro departamento, el detalle cambia.`
+                : 'Al seleccionar un departamento en el mapa o en la lista se abre su detalle debajo.'}
             </p>
           </div>
         </div>

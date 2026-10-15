@@ -254,7 +254,7 @@ export function foreignTradeConclusions(
       key: 'producto',
       claim: `${leader.name} es lo que más exportó Bolivia en ${year}`,
       figure: percent((leader.value / total) * 100),
-      detail: `Del total nacional por producto que resulta de sumar los nueve departamentos en ${year}, ${say(leader.value, 0)} de ${say(total, 0)} millones de dólares fueron ${leader.name.toLocaleLowerCase('es')}.`,
+      detail: `${say(leader.value, 0)} de los ${say(total, 0)} millones de USD exportados en ${year} correspondieron a ${leader.name.toLocaleLowerCase('es')}. El total nacional resulta de sumar los nueve departamentos.`,
       tone: 'neutral',
     });
   }
@@ -263,12 +263,12 @@ export function foreignTradeConclusions(
   if (top3 > 0 && total > 0 && mix.length > 2) {
     out.push({
       key: 'concentracion',
-      claim: 'Tres productos concentran buena parte de lo que Bolivia vende afuera',
+      claim: `Peso de los tres primeros productos en las exportaciones de ${year}`,
       figure: percent((top3 / total) * 100),
       detail: `Suma de ${mix
         .slice(0, 3)
         .map((row) => row.name.toLocaleLowerCase('es'))
-        .join(', ')} sobre el total nacional por producto en ${year}.`,
+        .join(', ')}, sobre el total nacional por producto de ${year}.`,
       tone: 'neutral',
     });
   }
@@ -284,10 +284,10 @@ export function foreignTradeConclusions(
         key: 'balanza',
         claim:
           balance >= 0
-            ? `Bolivia vendió más de lo que compró afuera en ${lastExport.year}`
-            : `Bolivia compró más de lo que vendió afuera en ${lastExport.year}`,
+            ? `Bolivia exportó más bienes de los que importó en ${lastExport.year}`
+            : `Bolivia importó más bienes de los que exportó en ${lastExport.year}`,
         figure: `${balance >= 0 ? '+' : ''}${say(balance / 1_000_000, 0)} millones de USD`,
-        detail: `Exportaciones de bienes por ${say(lastExport.value / 1_000_000, 0)} millones contra importaciones por ${say(matchedImport.value / 1_000_000, 0)} millones, declaradas ante Naciones Unidas.`,
+        detail: `Exportaciones de bienes por USD ${say(lastExport.value / 1_000_000, 0)} millones e importaciones por USD ${say(matchedImport.value / 1_000_000, 0)} millones, según lo declarado ante Naciones Unidas (Comtrade).`,
         tone: balance >= 0 ? 'favourable' : 'adverse',
       });
 
@@ -308,10 +308,10 @@ export function foreignTradeConclusions(
           key: 'crecimiento',
           claim:
             exportGrowth >= importGrowth
-              ? 'Las exportaciones crecieron más que las importaciones desde que Comtrade registra a Bolivia'
-              : 'Las importaciones crecieron más que las exportaciones desde que Comtrade registra a Bolivia',
+              ? 'Las exportaciones crecieron más que las importaciones desde el primer año disponible en Comtrade'
+              : 'Las importaciones crecieron más que las exportaciones desde el primer año disponible en Comtrade',
           figure: `${percent(exportGrowth, 0)} frente a ${percent(importGrowth, 0)}`,
-          detail: `Variación del total de bienes declarado ante Naciones Unidas entre ${firstExport.year} y ${lastExport.year}, exportado contra importado.`,
+          detail: `Variación del total de bienes exportado e importado declarado ante Naciones Unidas entre ${firstExport.year} y ${lastExport.year}.`,
           tone: exportGrowth >= importGrowth ? 'favourable' : 'adverse',
         });
       }
@@ -330,9 +330,9 @@ export function foreignTradeConclusions(
         shared.ine.value > 0 ? (Math.abs(unMillions - shared.ine.value) / shared.ine.value) * 100 : 0;
       out.push({
         key: 'coincide',
-        claim: 'El total que Bolivia declara ante la ONU coincide con el que declara al INE',
+        claim: 'Diferencia entre el total exportado que registra Comtrade (ONU) y el del INE',
         figure: `${say(diffPct, 2)} % de diferencia`,
-        detail: `En ${shared.un.year}, ${say(shared.ine.value, 0)} millones de dólares en el «total declarado» del INE por departamento contra ${say(unMillions, 0)} millones en Comtrade: la misma declaración aduanera, vista por dos publicadores.`,
+        detail: `En ${shared.un.year}, el «total declarado» del INE por departamento suma USD ${say(shared.ine.value, 0)} millones y Comtrade registra USD ${say(unMillions, 0)} millones. Ambas cifras proceden de la misma declaración aduanera.`,
         tone: 'neutral',
       });
     }

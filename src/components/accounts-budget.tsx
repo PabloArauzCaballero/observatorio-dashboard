@@ -137,29 +137,30 @@ export function AccountsBudget({ accounts }: { accounts: AccountsPayload }) {
       <header className="page-intro">
         <h3 className="page-intro-title">Ingresos y gastos, concepto por concepto</h3>
         <p className="page-intro-lede">
-          Armá tu propia comparación con las cuentas mensuales del Ministerio de Economía: elegí el
-          perímetro, los conceptos y si querés verlos mes a mes o año a año. Mes a mes se ven las
-          estaciones que un año cerrado esconde.
+          Las cuentas mensuales del Ministerio de Economía y Finanzas Públicas, concepto por
+          concepto, en los tres perímetros con que informa: sector público no financiero, gobierno
+          general y empresas públicas. La serie mensual muestra la estacionalidad de ingresos y
+          gastos que el total anual oculta.
         </p>
       </header>
 
       <Panel
         id="cuentas-conceptos"
         title={`Conceptos de ingreso y gasto, ${view === 'month' ? 'mes a mes' : 'año a año'} (${unitName})`}
-        lede={`${perimeterName}. Cifras preliminares, en millones de bolivianos corrientes. ${
-          view === 'year' ? 'Solo años cerrados.' : 'El último mes es el último publicado.'
+        lede={`${perimeterName}. Cifras preliminares, en millones de Bs corrientes. ${
+          view === 'year' ? 'Solo años cerrados.' : 'El último mes es el más reciente publicado.'
         }`}
         source={SOURCE.ministry}
       >
         <div className="slicer-row">
           <ChipPicker
-            label="Qué parte del Estado"
+            label="Perímetro del Estado"
             options={PERIMETERS.map((one) => ({ key: one.key, label: one.label, hint: one.hint }))}
             value={perimeter}
             onChange={setPerimeter}
           />
           <SelectField
-            label="Ver"
+            label="Frecuencia"
             value={view}
             options={[
               { key: 'month', label: 'Mes a mes' },
@@ -204,7 +205,7 @@ export function AccountsBudget({ accounts }: { accounts: AccountsPayload }) {
           base={new Set(DEFAULT)}
         />
         {chosen.length === 0 ? (
-          <div className="callout">Elegí al menos un concepto.</div>
+          <div className="callout">No hay conceptos seleccionados.</div>
         ) : view === 'month' ? (
           <DatedLines
             data={monthly}
@@ -226,8 +227,8 @@ export function AccountsBudget({ accounts }: { accounts: AccountsPayload }) {
 
       <Panel
         id="cuentas-ultimo-anio-conceptos"
-        title={`Las cuentas del último año cerrado, ${lastYear} (millones de Bs)`}
-        lede={`${perimeterName}, con la variación frente al año anterior y la proporción del PIB. El PIB es el nominal del Banco Mundial. Un resultado negativo es déficit.`}
+        title={`Ingresos y gastos por concepto, ${lastYear} (millones de Bs)`}
+        lede={`${perimeterName}, último año cerrado, con la variación frente al año anterior y el peso de cada concepto en el PIB nominal del Banco Mundial. Un resultado negativo indica déficit.`}
         source={`${SOURCE.ministry}; PIB: Banco Mundial`}
         data={{
           unidad: 'millones de Bs',
