@@ -19,6 +19,13 @@ import type { ExogenousSeries } from './exogenous-board';
  *
  * Sólo cuentan las filas con FOB y peso: una fila sin FOB haría pasar todo su
  * valor por flete. Es un valor unitario y no una tarifa; el panel lo dice.
+ *
+ * Y sólo los meses con peso suficiente: un cociente sobre un denominador ínfimo
+ * no es un flete, es ruido. Pando, julio de 2012, declaró 20 kg y 2.537 US$ de
+ * diferencia CIF−FOB: 8.350 US$ por tonelada, 110 veces su mediana, y esa sola
+ * lectura aplanaba las cinco series del gráfico. Medido sobre los 1.779 meses
+ * departamentales: bajo 100 t la mediana sube a 220–480 US$/t (frente a 114) y
+ * entre un quinto y dos quintos pasan de 600; sobre 500 t pasa el 0,4 %.
  */
 
 interface Row {
@@ -45,8 +52,11 @@ const DEPARTMENTS: Readonly<Record<string, string>> = {
 /** Menos meses que esto no dibujan una línea que se pueda leer. */
 const MINIMUM_MONTHS = 24;
 
+/** Peso mensual mínimo, en kg, para que el valor por tonelada diga algo: 100 toneladas. */
+const MINIMUM_KG = 100_000;
+
 const NOTE =
-  'Valor CIF en frontera menos valor FOB, por tonelada de peso bruto importada (base aduanera del INE). Incluye flete y seguro hasta la frontera, no sólo el tramo marítimo, y cambia con lo que se importa: es un valor unitario, no una tarifa.';
+  'Valor CIF en frontera menos valor FOB, por tonelada de peso bruto importada (base aduanera del INE). Incluye flete y seguro hasta la frontera, no sólo el tramo marítimo, y cambia con lo que se importa: es un valor unitario, no una tarifa. No se dibujan los meses de menos de 100 toneladas importadas: sobre un peso así el cociente es ruido.';
 
 const seriesOf = (
   code: string,
@@ -93,7 +103,7 @@ export async function readImpliedFreight(): Promise<ExogenousSeries[]> {
     const cif = Number(row.cif);
     const fob = Number(row.fob);
     const kg = Number(row.kg);
-    if (!(kg > 0) || cif < fob) continue;
+    if (!(kg >= MINIMUM_KG) || cif < fob) continue;
     const perTonne = ((cif - fob) / kg) * 1000;
     const key = row.department ?? 'TOTAL';
     const period = `${row.year}-${String(row.month).padStart(2, '0')}`;
