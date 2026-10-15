@@ -210,7 +210,7 @@ function VehiclePriceBoard({
       <Panel
         id="vehiculos-resumen"
         className="transp"
-        title="Precios de vehículos 0 km por versión (US$ y Bs por vehículo)"
+        title="Precios de vehículos 0 km por versión (USD y Bs por vehículo)"
         lede="Precios anunciados por representantes de marca en Bolivia; la disponibilidad se confirma con el vendedor."
         source={SOURCE_VEHICLES}
         {...(observedAt ? { updated: observedAt } : {})}
@@ -222,16 +222,16 @@ function VehiclePriceBoard({
         }}
       >
         <StatStrip stats={stats} />
-        <p className="panel-note">Ofertas observadas, sin cuota de mercado. La investigación ampliada de redes, conflictos y equivalencia por país está en la página Estudio automotor. Impuestos finales, vigencia y disponibilidad requieren confirmación.</p>
+        <p className="panel-note">Son ofertas observadas y no miden cuota de mercado. La página Estudio automotor amplía la investigación de redes comerciales, conflictos y equivalencia por país. Los impuestos finales, la vigencia y la disponibilidad requieren confirmación del vendedor.</p>
         <details className="panel-note">
           <summary>Cómo leer estos precios</summary>
           <p>
-            Última captura del conjunto: {observedAt || 'sin datos'}. Elegí tipo, marca, modelo,
-            versión, año modelo, moneda y rango de precio; transmisión y tracción se muestran cuando
-            constan en la versión. Los montos son anuncios y la disponibilidad se confirma con el
-            vendedor.
+            Última captura del conjunto: {observedAt || 'sin datos'}. Los filtros cubren tipo,
+            marca, modelo, versión, año modelo, moneda y rango de precio; transmisión y tracción se
+            muestran cuando constan en la versión. Los montos son anuncios y la disponibilidad se
+            confirma con el vendedor.
             {catalogOrigin === 'snapshot'
-              ? ' Esta vista usa la captura archivada mientras se habilita el catálogo del núcleo.'
+              ? ' Esta vista muestra la captura archivada mientras la base actualizada no está disponible.'
               : ''}
           </p>
         </details>
@@ -306,7 +306,7 @@ function VehiclePriceBoard({
               Precio anunciado {rangeCurrency ? `(${rangeCurrency})` : ''}
             </div>
             {!rangeCurrency ? (
-              <FilterHint>Elegí una moneda para fijar un rango de precio.</FilterHint>
+              <FilterHint>El rango de precio requiere una sola moneda seleccionada.</FilterHint>
             ) : null}
             <div className="transport-price-range">
               <label>
@@ -341,7 +341,7 @@ function VehiclePriceBoard({
             id="vehiculos-modelos"
             className="transp"
             title="Modelos de la selección (versiones y rango de precio anunciado)"
-            lede="Un ejemplar fotografiado de cada modelo, con licencia libre: no es necesariamente la versión ni el año que anuncia el representante."
+            lede="Cada modelo se ilustra con la foto de un ejemplar con licencia libre, que no es necesariamente la versión ni el año que anuncia el representante."
             source={SOURCE_VEHICLES}
             {...(observedAt ? { updated: observedAt } : {})}
             data={{
@@ -354,7 +354,7 @@ function VehiclePriceBoard({
                   selected.filter((row) => row.brand === brandName && row.model === modelName).length,
                 ];
               }),
-              nota: 'Cifras de la selección vigente en los filtros. Fotos: ver «Método › Créditos de las imágenes».',
+              nota: 'Cifras de la selección vigente en los filtros. Los créditos de las fotos figuran en «Método › Créditos de las imágenes».',
             }}
           >
             <VehicleModelGallery rows={selected} money={money} />
@@ -486,7 +486,7 @@ function VehiclePriceBoard({
           <Panel
             id="vehiculos-detalle"
             className="transp"
-            title="Detalle por versión (precio anunciado, US$ o Bs)"
+            title="Detalle por versión (precio anunciado, USD o Bs)"
             lede="La tabla conserva versiones y años por separado; un precio menor no implica un vehículo comparable."
             source={SOURCE_VEHICLES}
             extraDownloads={datasetDownloads('vehiculos')}
@@ -564,7 +564,7 @@ function VehiclePriceBoard({
                             Ver anuncio
                           </a>
                         </td>
-                        <td>{row.dealer ?? 'No identificado'}<br />{row.conditions ?? 'No informadas'}<br />Stock: {row.availability ?? 'No verificada'}.</td>
+                        <td>{row.dealer ?? 'No identificado'}<br />{row.conditions ?? 'No informadas'}<br />Disponibilidad: {row.availability ?? 'No verificada'}.</td>
                       </tr>
                     ))}
                   </tbody>
@@ -630,8 +630,8 @@ export function FuelPricesExplorer() {
       <Panel
         id="carburantes-resumen"
         className="transp"
-        title="Carburantes: precios publicados por ANH (Bs por litro, kilo o m³)"
-        lede="Precios de mercado interno y precios internacionales publicados por ANH, de 2010 a agosto de 2026."
+        title="Carburantes: precios publicados por la ANH (Bs por litro, kilo o m³)"
+        lede="Precios del mercado interno y precios internacionales publicados por la ANH, de 2010 a agosto de 2026."
         source={SOURCE_FUELS}
         extraDownloads={datasetDownloads('carburantes')}
         data={{
@@ -872,7 +872,7 @@ export function PassengerFaresExplorer() {
         id="pasajes-resumen"
         className="transp"
         title="Pasajes: tarifas de referencia por ruta (Bs por pasajero)"
-        lede="Máximos y referencias regulatorias publicados por ATT; no son pagos observados."
+        lede="Máximos y referencias regulatorias publicados por la ATT; no son pagos observados."
         source={SOURCE_FARES}
         extraDownloads={datasetDownloads('pasajes')}
         data={{
@@ -885,7 +885,7 @@ export function PassengerFaresExplorer() {
         <details className="panel-note">
           <summary>Cómo leer estas tarifas</summary>
           <p>
-            Historia publicada por ATT: máximos terrestres de 2016, tarifas aéreas de 2025, y
+            Historia publicada por la ATT: máximos terrestres de 2016, tarifas aéreas de 2025, y
             cuadros terrestre, aéreo y ferroviario de 2025–2026. Son límites o referencias
             regulatorias, no pagos observados. El plazo formal de varios cuadros de 2026 ya
             concluyó; se muestran como antecedentes tarifarios.

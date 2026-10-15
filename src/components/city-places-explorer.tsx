@@ -354,7 +354,7 @@ export function CityPlacesExplorer({ families }: { families: PlaceFamily[] }) {
           value={NUMBER.format(cityTotals.places)}
           note={
             picked(city, WITHOUT_LOCALITY) && city.size === 1
-              ? 'sin poblacion publicada'
+              ? 'sin población publicada'
               : city.size === 1
                 ? 'en el municipio'
                 : `en ${city.size} municipios`
@@ -545,10 +545,10 @@ export function CityPlacesExplorer({ families }: { families: PlaceFamily[] }) {
               })}
             </div>
             <div className="rail-foot">
-              El rubro y el sub-rubro los deriva este informe de la familia y el grupo del lugar; la
-              fuente no los publica. No hay minería ni banca de oficina: el registro mapea locales
+              El rubro y el sub-rubro se derivan de la familia y el grupo de cada lugar; la fuente
+              no los publica. No hay minería ni banca de oficina: el registro recoge locales
               urbanos. Lo que no encaja en un sub-rubro queda en «Otros» dentro de su rubro, y lo
-              que la fuente no clasificó, en «sin clasificar».
+              que la fuente no clasificó, en «Sin clasificar».
             </div>
           </div>
 
@@ -611,7 +611,8 @@ export function CityPlacesExplorer({ families }: { families: PlaceFamily[] }) {
             </div>
             {inCity.length > matches.length ? (
               <div className="rail-foot">
-                {NUMBER.format(inCity.length - matches.length)} familias más: búscalas por nombre.
+                {NUMBER.format(inCity.length - matches.length)} familias más, accesibles desde el
+                buscador.
               </div>
             ) : null}
           </div>
@@ -624,7 +625,7 @@ export function CityPlacesExplorer({ families }: { families: PlaceFamily[] }) {
             <div className="loading-note" role="status" aria-live="polite">
               <span className="loading-spin" aria-hidden="true" />
               <div>
-                <b>Leyendo los lugares…</b>
+                <b>Cargando los lugares…</b>
                 <span>Se dibujan en el mapa en cuanto lleguen.</span>
               </div>
             </div>
@@ -675,22 +676,21 @@ export function CityPlacesExplorer({ families }: { families: PlaceFamily[] }) {
                   )}{' '}
                   {failed ? null : truncated ? (
                     <>
-                      El mapa dibuja {NUMBER.format(places.length)} de {NUMBER.format(total)}, los
-                      de mayor confianza: dibujarlos todos deja una mancha, no un mapa. Elegí una
-                      familia para verla completa, descargá el CSV, que trae los{' '}
-                      {NUMBER.format(total)}, o{' '}
+                      El mapa dibuja los {NUMBER.format(places.length)} de mayor confianza de un
+                      total de {NUMBER.format(total)}: con todos, los puntos se superponen. Una
+                      familia sola se dibuja completa, y el CSV trae los {NUMBER.format(total)}.{' '}
                       <button
                         type="button"
                         className="callout-link"
                         onClick={() => setShowAll(true)}
                       >
-                        dibujá los {NUMBER.format(total)} de una vez
+                        Dibujar los {NUMBER.format(total)}
                       </button>
                       .
                     </>
                   ) : (
                     <>
-                      Se dibujan los {NUMBER.format(places.length)}, y la tabla los lista enteros.
+                      El mapa dibuja los {NUMBER.format(places.length)} y la tabla los lista todos.
                     </>
                   )}{' '}
                   La marca de actividad regulada señala qué debe verificarse con su regulador
@@ -954,7 +954,7 @@ function PlacesTable({ places, total }: { places: Place[]; total: number }) {
                 <td>{place.zone ?? '—'}</td>
                 <td className="cell-tight">{place.city}</td>
                 <td className="num">
-                  {place.confidence === null ? '—' : `${(place.confidence * 100).toFixed(0)}%`}
+                  {place.confidence === null ? '—' : `${(place.confidence * 100).toFixed(0)} %`}
                   {isLowConfidence(place) ? (
                     <span className="place-flag-low" title={LOW_CONFIDENCE_NOTE}>
                       Confianza baja

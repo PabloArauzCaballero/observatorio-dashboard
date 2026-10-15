@@ -49,8 +49,9 @@ const label = (value: string | null): string => {
 };
 
 /** Quién publica el parque automotor y de dónde sale su registro. */
-const FLEET_SOURCE = 'Instituto Nacional de Estadística, con datos del RUAT';
-const GNV_SOURCE = 'Instituto Nacional de Estadística (cuadros EEC-GNV)';
+const FLEET_SOURCE =
+  'Instituto Nacional de Estadística, con datos del Registro Único para la Administración Tributaria Municipal (RUAT)';
+const GNV_SOURCE = 'Instituto Nacional de Estadística (estadísticas de gas natural vehicular)';
 
 /** Los servicios del registro, en el orden en que se leen: el total y sus tres partes. */
 const SERVICES: ReadonlyArray<{ id: FleetPoint['service']; label: string }> = [
@@ -103,7 +104,7 @@ function Panorama({ board }: { board: RoadTransportBoard }) {
       shown: `+${pct(summary.growthPercent)}`,
       value: summary.growthPercent,
       unit: '%',
-      hint: `base: ${count(summary.firstFleet)}`,
+      hint: `frente a ${count(summary.firstFleet)} vehículos`,
     },
     {
       label: 'Servicio público',
@@ -113,14 +114,14 @@ function Panorama({ board }: { board: RoadTransportBoard }) {
       hint: 'todos los tipos',
     },
     {
-      label: 'Bus + micro + minibús público',
+      label: 'Buses, microbuses y minibuses públicos',
       shown: count(summary.publicPassengerFleet),
       value: summary.publicPassengerFleet,
       unit: 'vehículos',
       hint: `detalle ${summary.latestYear}`,
     },
     {
-      label: 'Conversiones GNV',
+      label: 'Conversiones a GNV',
       shown: count(summary.gnvConversions),
       value: summary.gnvConversions,
       unit: 'operaciones',
@@ -139,7 +140,11 @@ function Panorama({ board }: { board: RoadTransportBoard }) {
       id="parque-automotor"
       className="transp"
       title={`Parque automotor nacional, ${span(summary.firstYear, summary.latestYear)} (vehículos registrados)`}
-      lede="Stock registrado al cierre de cada gestión; el último año es preliminar."
+      lede={
+        summary.latestFleet !== null && summary.firstFleet !== null
+          ? `El parque registrado sumó ${count(summary.latestFleet)} vehículos en ${summary.latestYear}, frente a ${count(summary.firstFleet)} en ${summary.firstYear}. Cifras al cierre de cada gestión; la del último año es preliminar.`
+          : 'Vehículos registrados al cierre de cada gestión. La cifra del último año es preliminar.'
+      }
       source={FLEET_SOURCE}
       data={{
         etiqueta: 'Cifras clave',
@@ -227,7 +232,7 @@ function Departments({ fleet }: { fleet: FleetPoint[] }) {
       id="parque-por-departamento"
       className="transp"
       title={`Parque automotor por departamento y servicio, ${year} (vehículos)`}
-      lede="Total, particular, público y oficial para cada gestión publicada."
+      lede="Vehículos registrados en cada departamento por tipo de servicio (particular, público y oficial) en la gestión elegida."
       source={FLEET_SOURCE}
       data={() => ({
         unidad: 'vehículos',
@@ -329,7 +334,7 @@ function Classes({ fleet }: { fleet: FleetPoint[] }) {
         id="parque-por-clase"
         className="transp"
         title={`${label(vehicleClass)}, servicio ${label(service).toLowerCase()}, por gestión (vehículos)`}
-        lede="Elige el servicio y la clase de vehículo: automóvil, bus, microbús, minibús, camión, tractocamión, moto y más."
+        lede="Evolución anual del parque de una clase de vehículo —automóvil, bus, microbús, minibús, camión, tractocamión, moto y otras— en un tipo de servicio."
         source={FLEET_SOURCE}
       >
         <div className="chips">
@@ -481,7 +486,7 @@ function CapacityGnv({ board }: { board: RoadTransportBoard }) {
         id="parque-capacidad"
         className="transp"
         title="Parque automotor por servicio, clase y capacidad de carga, 2025 (vehículos)"
-        lede="Bandas de capacidad en toneladas."
+        lede="Vehículos de cada clase según su capacidad de carga, en bandas de toneladas."
         source={FLEET_SOURCE}
         data={() => ({
           unidad: 'vehículos',
@@ -569,8 +574,8 @@ function CapacityGnv({ board }: { board: RoadTransportBoard }) {
       <Panel
         id="actividad-gnv"
         className="transp"
-        title="Conversiones a GNV y recalificación de cilindros por año (operaciones)"
-        lede="Total nacional. El detalle trimestral, departamental y por clase está en la descarga de «Fuentes»."
+        title="Conversiones a gas natural vehicular (GNV) y recalificación de cilindros por año (operaciones)"
+        lede="Total nacional por año. El detalle trimestral, departamental y por clase está en la descarga de la pestaña «Fuentes del parque»."
         source={GNV_SOURCE}
       >
         <div className="grid-pair">
@@ -604,7 +609,7 @@ function Sources({ board }: { board: RoadTransportBoard }) {
       id="fuentes-transporte-terrestre"
       className="transp"
       title="Fuentes, cobertura y límites del transporte terrestre (cantidad de fuentes)"
-      lede="Cada fila conserva editor, enlace y SHA-256; no se completan vacíos con estimaciones."
+      lede="Cada fila indica el editor, el enlace y la huella digital (SHA-256) del archivo original. Los vacíos no se completan con estimaciones."
       meta={`${board.sources.length} fuentes`}
       source="Instituto Nacional de Estadística, Autoridad de Regulación y Fiscalización de Telecomunicaciones y Transportes (ATT) y las demás fuentes de la tabla"
       data={{
@@ -645,11 +650,10 @@ function Sources({ board }: { board: RoadTransportBoard }) {
         </table>
       </div>
       <div className="callout">
-        Cobertura pendiente: modelo/año, cilindrada y municipio. Los libros oficiales recuperados
-        para esos cuadros llegaron vacíos; quedan identificados para incorporarlos cuando el editor
-        repare la descarga.
+        Cobertura pendiente: modelo y año, cilindrada y municipio. Los archivos oficiales de esos
+        cuadros se publicaron vacíos; se incorporarán cuando el editor corrija la descarga.
       </div>
-      <Download dataset="transporte-terrestre" label="Descargar todo el dato terrestre" />
+      <Download dataset="transporte-terrestre" label="Descargar todos los datos del transporte terrestre" />
     </Panel>
   );
 }

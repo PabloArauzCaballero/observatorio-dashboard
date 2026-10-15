@@ -182,9 +182,9 @@ function buildConclusions(
   if (paved) {
     conclusions.push({
       key: 'pavimento',
-      claim: 'De la red mapeada, esta parte está pavimentada',
+      claim: 'Parte pavimentada de la red trazada en el mapa',
       figure: `${pavedShare.toFixed(1).replace('.', ',')} %`,
-      detail: `${paved.km.toLocaleString('es-BO')} km de ${totalKm.toLocaleString('es-BO')} km trazados por OpenStreetMap: vías troncales, primarias, secundarias y terciarias, y toda vía con código de ruta F o D.`,
+      detail: `${paved.km.toLocaleString('es-BO')} km de ${totalKm.toLocaleString('es-BO')} km trazados en OpenStreetMap: vías troncales, primarias, secundarias y terciarias, y toda vía con código de ruta F o D.`,
       tone: 'neutral',
     });
   }
@@ -192,9 +192,9 @@ function buildConclusions(
   if (first) {
     conclusions.push({
       key: 'concentracion',
-      claim: 'El departamento con más red mapeada es',
+      claim: 'Departamento con más kilómetros de red en el mapa',
       figure: first.name,
-      detail: `${first.totalKm.toLocaleString('es-BO')} km, sobre ${totalKm.toLocaleString('es-BO')} km del país.`,
+      detail: `${first.totalKm.toLocaleString('es-BO')} km de un total nacional de ${totalKm.toLocaleString('es-BO')} km.`,
       tone: 'neutral',
     });
   }
@@ -214,9 +214,9 @@ function buildConclusions(
       key: 'sin_referencia',
       claim: 'Vías sin código de ruta F-n ni Dn en el mapa',
       figure: `${km.toLocaleString('es-BO')} km`,
-      detail: `Secundarias y terciarias que OpenStreetMap traza sin su código oficial; ahí está la mayor parte de la Red Departamental${
+      detail: `Vías secundarias y terciarias que OpenStreetMap traza sin su código oficial. Ahí está la mayor parte de la Red Departamental${
         coded.length ? `, que en el mapa sólo lleva código en ${coded.join(' y ')}` : ''
-      }. Se muestran igual, en gris.`,
+      }. El mapa las dibuja en gris.`,
       tone: 'adverse',
     });
   }
@@ -225,7 +225,7 @@ function buildConclusions(
       key: 'ine',
       claim: `Longitud oficial de caminos según el INE (${asOfPoint.period}${asOfPoint.preliminary ? ', preliminar' : ''})`,
       figure: `${asOfPoint.lengthKm.toLocaleString('es-BO')} km`,
-      detail: 'Red Fundamental y Red Departamental; no incluye la red municipal. Fuente: ABC y los SEDECA, vía el INE.',
+      detail: 'Red Fundamental y Red Departamental; no incluye la red municipal. Fuente: Administradora Boliviana de Carreteras (ABC) y Servicios Departamentales de Caminos (SEDECA), a través del INE.',
       tone: 'neutral',
     });
   }

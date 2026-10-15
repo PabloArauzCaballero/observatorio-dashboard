@@ -128,11 +128,11 @@ type SortKey =
 const SORT_LABEL: Record<SortKey, string> = {
   route: 'Ruta',
   network: 'Red',
-  PAVIMENTADA: 'Pavim. km',
-  RIPIO: 'Ripio km',
-  TIERRA: 'Tierra km',
-  SIN_DATO: 'Sin dato km',
-  totalKm: 'Total km',
+  PAVIMENTADA: 'Pavim. (km)',
+  RIPIO: 'Ripio (km)',
+  TIERRA: 'Tierra (km)',
+  SIN_DATO: 'Sin dato (km)',
+  totalKm: 'Total (km)',
   pavedShare: '% pavim.',
 };
 
@@ -495,7 +495,7 @@ export function RoadsExplorer({ board }: { board: RoadBoard }) {
               : official.networks
                   .map((one) => `Red ${NETWORK_SHORT[one as RoadSection['network']]}`)
                   .join(' y ')
-          } · ABC y SEDECA vía el INE`
+          } · ABC y SEDECA, a través del INE`
         : 'El INE no cuenta las vías sin código de ruta',
     },
   ];
@@ -506,7 +506,7 @@ export function RoadsExplorer({ board }: { board: RoadBoard }) {
         id="red-vial"
         className="transp"
         title="Red vial de Bolivia: km trazados y longitud oficial (km)"
-        lede="Las vías troncales, primarias, secundarias y terciarias que OpenStreetMap traza dentro del país, y toda vía menor con código de ruta F o D, cortadas por departamento y agrupadas en tramos que comparten ruta, rodadura y estado."
+        lede="Vías troncales, primarias, secundarias y terciarias trazadas en OpenStreetMap dentro del país, más toda vía menor con código de ruta F o D, divididas por departamento y agrupadas en tramos que comparten ruta, rodadura y estado."
         source="OpenStreetMap contributors (geometría) e Instituto Nacional de Estadística, con datos de la ABC y los SEDECA (longitud oficial)"
         data={() => ({
           etiqueta: 'Cifras de la selección',
@@ -524,15 +524,15 @@ export function RoadsExplorer({ board }: { board: RoadBoard }) {
           ))}
         </div>
         <p className="panel-note">
-          El Sistema de Información Vial y la Transitabilidad de la ABC no respondieron al construir
-          este corpus, así que la geometría viene de OpenStreetMap y el kilometraje oficial, por
-          separado, del INE.
+          Los sistemas de información vial y de transitabilidad de la Administradora Boliviana de
+          Carreteras (ABC) no estaban disponibles cuando se recopilaron estos datos. Por eso la
+          geometría proviene de OpenStreetMap y el kilometraje oficial, por separado, del INE.
         </p>
       </Panel>
 
       <DerivedReading
-        title="Qué dice esta red"
-        note="Cada frase sale de los tramos y de la serie del INE de este capítulo. Dice cuánto hay y dónde se concentra; no dice el estado de transitabilidad del día."
+        title="Lectura de la red vial"
+        note="Cada conclusión se calcula a partir de los tramos trazados y de la serie del INE. Indica cuánta red hay y dónde se concentra; no informa del estado de transitabilidad del día."
         conclusions={board.conclusions}
         icons={CONCLUSION_ICON}
         defaultOpen={false}
@@ -541,7 +541,7 @@ export function RoadsExplorer({ board }: { board: RoadBoard }) {
       <div className="workspace">
         <aside className="rail">
           <FilterHint>
-            La cifra de cada opción es lo que queda con los demás filtros puestos.
+            La cifra de cada opción indica los km que quedan con los demás filtros aplicados.
           </FilterHint>
 
           <div className="rail-sec">
@@ -682,7 +682,7 @@ export function RoadsExplorer({ board }: { board: RoadBoard }) {
             id="mapa-red-vial"
             className="transp"
             title={`Mapa de la red vial por ${colorBy === 'red' ? 'tipo de red' : 'rodadura'}, ${where}${liveRoute ? `, ruta ${liveRoute}` : ''} (km trazados)`}
-            lede="La Red Fundamental va en trazo grueso, la Departamental en medio y las vías sin código de ruta asignada en fino, debajo. Cada escudo es el número de una ruta."
+            lede="La Red Fundamental se dibuja en trazo grueso, la Departamental en trazo medio y las vías sin código de ruta en trazo fino, debajo. Cada escudo indica el número de una ruta."
             source="OpenStreetMap contributors (ODbL)"
           >
             <div className="chips roads-map-tools">
@@ -790,7 +790,7 @@ export function RoadsExplorer({ board }: { board: RoadBoard }) {
           id="longitud-oficial-por-rodadura"
           className="transp"
           title={`Longitud oficial de caminos por rodadura, ${annualWhere}, 2000-${board.asOfPeriod ?? '—'} (km)`}
-          lede="Kilómetros de la Red Fundamental y Departamental juntas. Sigue al filtro de departamento cuando se elige uno solo. No es la misma cifra que el mapa de arriba: ésta es el inventario oficial y aquélla, lo que OpenStreetMap ha trazado."
+          lede="Kilómetros de la Red Fundamental y la Departamental en conjunto; con un solo departamento elegido, la serie es la de ese departamento. No coincide con la cifra del mapa: esta es el inventario oficial y aquella, lo que OpenStreetMap ha trazado."
           source="Instituto Nacional de Estadística, con datos de la ABC y los SEDECA"
         >
           <div className="grid-pair">
@@ -868,7 +868,7 @@ function RouteSections({ route, sections }: { route: string; sections: readonly 
       id="tramos-de-la-ruta"
       className="transp"
       title={`Tramos de la ruta ${route} (km)`}
-      lede="Es el grano más fino del dato: un tramo es el pedazo de la ruta que comparte departamento, rodadura y estado. Se ve dónde cambia la rodadura o el departamento y cuánto pesa cada pedazo."
+      lede="Un tramo es la parte de la ruta que comparte departamento, rodadura y estado: la unidad más fina del dato. La lista muestra dónde cambia la rodadura o el departamento y cuánto mide cada parte."
       meta={`${number(mine.length)} ${mine.length === 1 ? 'tramo' : 'tramos'} · ${number(total, 1)} km`}
       source="OpenStreetMap contributors (ODbL)"
       data={() => ({
@@ -1006,7 +1006,7 @@ function OfficialComparison({ board }: { board: RoadBoard }) {
       id="trazada-frente-a-oficial"
       className="transp"
       title={`Red vial trazada frente a la oficial por departamento (km, INE ${board.asOfPeriod ?? '—'} y OpenStreetMap)`}
-      lede="«Oficial» es el inventario de la ABC y los SEDECA que publica el INE; «con código», lo que OpenStreetMap traza con su número de ruta F o D. La columna «sin código» son secundarias y terciarias trazadas sin número: ahí está la mayor parte de la Red Departamental que el mapa no nombra, y también caminos municipales que el INE no cuenta."
+      lede="«Oficial» es el inventario de la ABC y los SEDECA que publica el INE; «con código», lo que OpenStreetMap traza con su número de ruta F o D. La columna «sin código» reúne vías secundarias y terciarias trazadas sin número: ahí está la mayor parte de la Red Departamental que el mapa no identifica, además de caminos municipales que el INE no contabiliza."
       source="Instituto Nacional de Estadística, con datos de la ABC y los SEDECA (oficial), y OpenStreetMap contributors (trazado)"
       data={{
         unidad: 'km',
@@ -1125,7 +1125,7 @@ function RoutesTable({
       id="km-por-ruta"
       className="transp"
       title={`Km por ruta y rodadura, ${where} (km)`}
-      lede="Cada cifra es la parte de la ruta que cae en el recorte elegido, no la ruta entera. Las vías sin ruta F-n ni Dn van en una fila por departamento. Toca una ruta para aislarla en el mapa; en la tabla, un encabezado ordena."
+      lede="Cada cifra es la parte de la ruta dentro de la selección, no la ruta entera. Las vías sin ruta F-n ni Dn se agrupan en una fila por departamento."
       meta={`${number(rows.length)} ${rows.length === 1 ? 'fila' : 'filas'} · ${number(totalKm)} km`}
       source="OpenStreetMap contributors (ODbL)"
       data={() => ({
@@ -1156,7 +1156,7 @@ function RoutesTable({
       })}
     >
       {rows.length === 0 ? (
-        <div className="callout">Ninguna ruta coincide con el recorte y la búsqueda.</div>
+        <div className="callout">Ninguna ruta coincide con los filtros y la búsqueda.</div>
       ) : (
         <ViewToggle
           chart={
@@ -1175,6 +1175,7 @@ function RoutesTable({
                 items={[{ color: seriesTone(0), label: `Km por ruta, ${where} (km)` }]}
               />
               <TopNote shown={longest.length} total={rows.length} noun="rutas" />
+              <p className="panel-note">Al seleccionar una ruta, se aísla en el mapa.</p>
             </>
           }
           table={

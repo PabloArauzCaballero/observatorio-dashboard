@@ -378,7 +378,7 @@ export function StreetDataExplorer({
         id="atlas-de-calles"
         className="transp roads-routes"
         title={`Atlas de calles y vías con nombre, ${where} (registros y km)`}
-        lede={`Reúne el callejero urbano y las vías con nombre de la red nacional. Cada registro suma los tramos con el mismo nombre dentro de una ciudad o del recorte nacional. OpenStreetMap no da nombre a ${number(unnamedKm)} km de la red nacional seleccionada; se dibujan, pero no pueden entrar en este catálogo.${urbanIndexState === 'failed' ? ' No se pudieron leer las calles urbanas; el catálogo y la descarga contienen solo la red nacional.' : ''}`}
+        lede={`El catálogo reúne el callejero urbano y las vías con nombre de la red nacional; cada registro suma los tramos de igual nombre dentro de una ciudad o del recorte nacional. OpenStreetMap no da nombre a ${number(unnamedKm)} km de la red nacional seleccionada: se dibujan en el mapa, pero quedan fuera del catálogo.${urbanIndexState === 'failed' ? ' No se pudieron leer las calles urbanas; el catálogo y la descarga contienen solo la red nacional.' : ''}`}
         meta={`${number(summary.records)} registros · ${number(summary.totalKm)} km`}
         source={SOURCE}
         data={atlas}
@@ -506,7 +506,7 @@ export function StreetDataExplorer({
           <div className="stat">
             <span className="stat-label">Tramos o vías</span>
             <span className="stat-value">{number(summary.ways)}</span>
-            <span className="stat-hint">piezas originales agrupadas por nombre</span>
+            <span className="stat-hint">tramos de OpenStreetMap agrupados por nombre</span>
           </div>
           <div className="stat">
             <span className="stat-label">Composición</span>
@@ -532,8 +532,8 @@ export function StreetDataExplorer({
 
         <p className="panel-note street-method-note">
           Los kilómetros son longitudes trazadas, no una certificación municipal. «Resto sin
-          desglose» es la diferencia entre la longitud total y el pavimento identificado; no debe
-          leerse automáticamente como tierra.
+          desglose» es la diferencia entre la longitud total y el pavimento identificado; no
+          equivale a camino de tierra.
         </p>
 
         <Pager
@@ -643,52 +643,52 @@ export function StreetDataExplorer({
       </Panel>
 
       <details className="street-insights" open>
-        <summary>Ver distribuciones y diversidad del callejero</summary>
+        <summary>Ver distribuciones del callejero</summary>
         <p className="panel-sub">
           Las barras se recalculan con todos los filtros, incluida la búsqueda general. La parte sin
           pavimento registrado mezcla superficie no pavimentada y superficie no informada: el índice
-          disponible no permite separarlas honestamente.
+          disponible no permite separarlas.
         </p>
         <div className="grid-two street-breakdowns">
           <BreakdownPanel
             id="calles-tipos-de-via"
             title="Tipos de vía más frecuentes"
-            note="Los diez prefijos más frecuentes."
+            note="Los diez tipos de vía más frecuentes, según el prefijo del nombre (avenida, calle, pasaje…)."
             data={typesData}
             unit="registros"
           />
           <BreakdownPanel
             id="calles-ciudades"
             title="Ciudades con más calles registradas"
-            note="Las diez ciudades con más nombres registrados."
+            note="Las diez ciudades con más nombres de calle registrados."
             data={citiesData}
             unit="registros"
           />
           <BreakdownPanel
             id="calles-departamentos"
-            title="Longitud por departamento"
-            note="Longitud acumulada por cobertura departamental."
+            title="Longitud de calles y vías por departamento"
+            note="Kilómetros acumulados en cada departamento por las calles y vías del recorte."
             data={departmentsData}
             unit="km"
           />
           <BreakdownPanel
             id="calles-pavimento"
-            title="Km según el registro de pavimento"
-            note="Cuántos kilómetros tienen cobertura completa, parcial o nula."
+            title="Longitud según el registro de pavimento"
+            note="Kilómetros de calles con pavimento registrado en todo su largo, en parte o en ningún tramo."
             data={pavementData}
             unit="km"
           />
           <BreakdownPanel
             id="calles-escala"
-            title="Calles según su escala"
-            note="Distribución por longitud acumulada de cada nombre."
+            title="Calles según su longitud acumulada"
+            note="Cada nombre de calle, clasificado por la suma de sus tramos."
             data={lengthData}
             unit="registros"
           />
           <BreakdownPanel
             id="calles-origen"
-            title="Km según el origen dentro del mapa"
-            note="Callejero urbano frente a vías nombradas de la red nacional."
+            title="Longitud según el origen: callejero urbano o red nacional"
+            note="Kilómetros del callejero urbano frente a los de las vías con nombre de la red nacional."
             data={scopeData}
             unit="km"
           />

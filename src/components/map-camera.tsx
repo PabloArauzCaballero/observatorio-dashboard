@@ -398,7 +398,7 @@ export function MapTools({ camera, homeLabel }: { camera: MapCamera; homeLabel: 
           onClick={() => camera.zoomBy(1.6)}
           disabled={camera.atClosest}
           aria-label="Acercar el mapa"
-          title={camera.atClosest ? 'No hay más detalle que este' : 'Acercar (tecla +)'}
+          title={camera.atClosest ? 'Acercamiento máximo' : 'Acercar (tecla +)'}
         >
           +
         </button>
