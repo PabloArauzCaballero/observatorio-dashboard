@@ -128,7 +128,17 @@ const share = (value: number): string => `${number(value, 1)} %`;
 const megatonnes = (value: number): string => `${number(value, 1)} Mt`;
 const tick = (value: number): string => number(value, 0);
 
-export function EnvironmentExplorer({ board: entire }: { board: EnvironmentBoard }) {
+/**
+ * `embedded`: el capítulo va dentro de otra página («Clima y ambiente») que ya
+ * abre con su cabecera de sección; ahí no repite la suya.
+ */
+export function EnvironmentExplorer({
+  board: entire,
+  embedded = false,
+}: {
+  board: EnvironmentBoard;
+  embedded?: boolean;
+}) {
   /* El «desde» de la barra de filtros de encima; sin barra, el tablero entero. */
   const board = useSinceYear(entire);
   const land = lines(board, ['AG.LND.FRST.ZS', 'AG.LND.AGRI.ZS', 'AG.LND.ARBL.ZS']);
@@ -167,11 +177,13 @@ export function EnvironmentExplorer({ board: entire }: { board: EnvironmentBoard
 
   return (
     <div className="stack guest-board">
-      <TabHeader
-        id="ambiente"
-        title="Medio ambiente"
-        lede={`Cobertura de bosque, emisiones, calidad del aire y extracción de agua. Todas las cifras son del Banco Mundial, con una definición común para Bolivia y sus vecinos. El dato más reciente es de ${board.asOfYear ?? '—'}; los inventarios de emisiones y de bosque cierran en años distintos, por lo que cada panel indica el suyo.`}
-      />
+      {embedded ? null : (
+        <TabHeader
+          id="ambiente"
+          title="Medio ambiente"
+          lede={`Cobertura de bosque, emisiones, calidad del aire y extracción de agua. Todas las cifras son del Banco Mundial, con una definición común para Bolivia y sus vecinos. El dato más reciente es de ${board.asOfYear ?? '—'}; los inventarios de emisiones y de bosque cierran en años distintos, por lo que cada panel indica el suyo.`}
+        />
+      )}
       <DerivedReading
         title="Qué dicen estos datos"
         note="Cada frase se calcula con las series de este capítulo y se actualiza con cada carga. Indica el nivel y la referencia con que se compara; no explica causas ni anticipa tendencias."

@@ -167,7 +167,18 @@ function commodityLines(
   return { data, series };
 }
 
-export function ResourcesExplorer({ board: entire }: { board: ResourceBoard }) {
+export function ResourcesExplorer({
+  board: entire,
+  embedded = false,
+}: {
+  board: ResourceBoard;
+  /**
+   * Dentro de la página «Recursos naturales», debajo del mapa aduanero: la
+   * cabecera de sección ya la pone la página, así que aquí va un encabezado de
+   * grupo y no una segunda cabecera de pestaña con el mismo título.
+   */
+  embedded?: boolean;
+}) {
   /* El «desde» de la barra de filtros de encima; sin barra, el tablero entero. */
   const board = useSinceYear(entire);
   const rents = lines(board, [
@@ -216,11 +227,20 @@ export function ResourcesExplorer({ board: entire }: { board: ResourceBoard }) {
 
   return (
     <div className="stack guest-board">
-      <TabHeader
-        id="recursos"
-        title="Recursos naturales"
-        lede={`Qué exporta el país, qué renta deja el subsuelo, cuánto patrimonio natural se consume al extraerlo y en qué se convierte. Dos fuentes: la declaración aduanera ante Naciones Unidas, con el detalle por producto —incluido el litio—, y el Banco Mundial, con las rentas y las cuentas ajustadas bajo una misma definición para Bolivia y sus vecinos. El dato más reciente es de ${board.asOfYear ?? '—'}. Las aduanas cierran con un año de rezago y las cuentas ajustadas con dos o tres, por lo que cada panel indica su último año.`}
-      />
+      {embedded ? (
+        <header className="page-intro">
+          <h3 className="page-intro-title">Renta, patrimonio y canasta exportadora</h3>
+          <p className="page-intro-lede">
+            {`Cuánta renta deja el subsuelo, cuánto patrimonio natural se consume al extraerlo y en qué se convierte, con Bolivia frente a sus vecinos. Fuentes: el Banco Mundial, con las rentas y las cuentas ajustadas bajo una misma definición para todos los países, y la declaración aduanera de Bolivia ante Naciones Unidas, con la serie larga por producto. El dato más reciente es de ${board.asOfYear ?? '—'}; las cuentas ajustadas llegan con dos o tres años de rezago.`}
+          </p>
+        </header>
+      ) : (
+        <TabHeader
+          id="recursos"
+          title="Recursos naturales"
+          lede={`Qué exporta el país, qué renta deja el subsuelo, cuánto patrimonio natural se consume al extraerlo y en qué se convierte. Dos fuentes: la declaración aduanera ante Naciones Unidas, con el detalle por producto —incluido el litio—, y el Banco Mundial, con las rentas y las cuentas ajustadas bajo una misma definición para Bolivia y sus vecinos. El dato más reciente es de ${board.asOfYear ?? '—'}. Las aduanas cierran con un año de rezago y las cuentas ajustadas con dos o tres, por lo que cada panel indica su último año.`}
+        />
+      )}
       <DerivedReading
         title="Qué dicen estos datos"
         note="Cada frase se calcula a partir de las series de esta sección y se actualiza con cada carga. Indica el nivel y la referencia de comparación; no atribuye causas ni hace proyecciones."
