@@ -69,6 +69,11 @@ nueva se añade ahí. La cabecera del sitio es `Masthead` y el pie, `SiteFooter`
   dentro de una figura (título del panel, bajada, ejes, leyenda, fuente). Una cifra nunca va en
   serif. Escala de ocho pasos: 12, 13, 15, 17, 20, 26, 34 y 44 px (`--text-xs … --text-3xl`) más
   `--text-lede` (19 px, la entradilla). Ningún `font-size` literal.
+- **Cifras tabulares.** Libre Franklin no trae `tnum` (ni la de fontsource ni la de Google
+  Fonts): `tabular-nums` no hacía nada y las columnas se descuadraban. Los woff2 de
+  `public/fonts` van parcheados con `scripts/fuentes/cifras-tabulares.py` (todas las cifras con el
+  avance del 0 en todo el eje wght, centradas; se quita HVAR). Si se actualiza la fuente, volver a
+  correrlo sobre los dos archivos o las tablas vuelven a bailar.
 - **Versalitas solo** en el antetítulo de sección, el rótulo del carril («FILTROS») y el
   descriptor de la marca (`--kicker-size`, `--kicker-track`). La barra de secciones va en caja baja.
 - La capa «Línea editorial» al final de `globals.css` manda: sin cajas (filete arriba y aire), un
