@@ -165,21 +165,21 @@ export const ACTIVITY_MEASURES: readonly ActivityMeasure[] = [
     label: 'Peso en la economía',
     unit: '% del producto',
     decimals: 1,
-    what: 'Qué parte del producto del lugar aporta la actividad. Dice la estructura: de qué vive, no cuánto produce.',
+    what: 'Parte del producto del lugar que aporta la actividad. Describe la estructura productiva, no el volumen de producción.',
   },
   {
     slug: 'GROWTH',
     label: 'Crecimiento anual',
     unit: '% anual',
     decimals: 1,
-    what: 'La variación anual del producto de la actividad a precios constantes, tal como el INE la publica.',
+    what: 'Variación anual del producto de la actividad a precios constantes, tal como la publica el INE.',
   },
   {
     slug: 'VALUE',
     label: 'Tamaño real',
     unit: 'miles de Bs de 1990',
     decimals: 0,
-    what: 'El producto de la actividad con los precios de 1990 congelados, que es la única forma de comparar un año con otro.',
+    what: 'Producto de la actividad a precios de 1990. Permite comparar un año con otro sin el efecto de la inflación.',
   },
 ];
 

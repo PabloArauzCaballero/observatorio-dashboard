@@ -138,7 +138,7 @@ export function WorldTradeMap({
           }`,
         }))),
     { color: NONE, label: absentKey },
-    { color: 'var(--panel-tint)', label: 'Bolivia (el origen)' },
+    { color: 'var(--panel-tint)', label: 'Bolivia (origen)' },
   ];
 
   const handlers = (row: MapTrade | undefined, name: string) => {
@@ -198,7 +198,7 @@ export function WorldTradeMap({
           viewBox={`0 0 ${WORLD_BOX.width} ${WORLD_BOX.height}`}
           className="map-svg"
           role="group"
-          aria-label={`Mapa del mundo: ${label}. Toca un país para filtrarlo y ver su ficha.`}
+          aria-label={`Mapa del mundo: ${label}. Al seleccionar un país se añade al filtro y se abre su ficha.`}
         >
           {WORLD_SHAPES.map((shape) => {
             const row = byIso.get(shape.iso3);

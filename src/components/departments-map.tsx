@@ -150,7 +150,7 @@ export function DepartmentsMap({
           label: `${short(low + span * index, decimals)} a ${short(low + span * (index + 1), decimals)} ${unit}`,
         }))
       : [{ color: STEPS[2].fill, label: `${short(high, decimals)} ${unit}` }];
-  if (values.length < readings.length) key.push({ color: NONE.fill, label: 'Sin lectura' });
+  if (values.length < readings.length) key.push({ color: NONE.fill, label: 'Sin dato' });
 
   return (
     <div className="choro-map">
@@ -165,12 +165,12 @@ export function DepartmentsMap({
           viewBox={`0 0 ${MAP_BOX.width} ${MAP_BOX.height}`}
           className="map-svg"
           role="group"
-          aria-label={`Mapa de Bolivia: ${label} por departamento. Toca un departamento para abrir su vista completa.`}
+          aria-label={`Mapa de Bolivia: ${label} por departamento. Al seleccionar un departamento se abre su detalle.`}
         >
           {SHAPES.map((shape) => {
             const value = byCode.get(shape.code) ?? null;
             const step = value === null ? NONE : stepOf(value);
-            const said = value === null ? 'sin lectura' : `${number(value, decimals)} ${unit}`;
+            const said = value === null ? 'sin dato' : `${number(value, decimals)} ${unit}`;
             const on = shape.code === chosen;
             return (
               <g

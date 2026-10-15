@@ -139,7 +139,7 @@ export function AccountsDebt({ accounts }: { accounts: AccountsPayload }) {
     ...(internalTotal && holder
       ? [
           [
-            'La tiene el Banco Central',
+            'En poder del Banco Central',
             (holder[1] / internalTotal[1]) * 100,
             '% de la deuda interna',
             holder[0].slice(0, 7),
@@ -153,16 +153,16 @@ export function AccountsDebt({ accounts }: { accounts: AccountsPayload }) {
       <header className="page-intro">
         <h3 className="page-intro-title">Cuánto debe el Tesoro y a quién</h3>
         <p className="page-intro-lede">
-          La deuda del Tesoro General de la Nación, mes a mes: afuera, por acreedor; adentro, por
-          quién tiene los bonos. Es la deuda del gobierno central, sin la de gobernaciones,
-          municipios ni empresas públicas, que es adicional.
+          La deuda del Tesoro General de la Nación (TGN), mes a mes: la externa, por acreedor; la
+          interna, por tenedor de los bonos. Corresponde al gobierno central y excluye la de
+          gobernaciones, municipios y empresas públicas, que se suma aparte.
         </p>
       </header>
 
       <Panel
         id="deuda-saldos"
         title="Saldo de la deuda del Tesoro (millones de USD y de Bs)"
-        lede="El último mes publicado."
+        lede="Saldo al último mes publicado. La deuda externa se informa en USD y la interna, en Bs."
         source={SOURCE.debt}
         data={{
           columnas: ['Cifra', 'Valor', 'Unidad', 'Saldo al mes'],
@@ -173,7 +173,7 @@ export function AccountsDebt({ accounts }: { accounts: AccountsPayload }) {
           {externalTotal ? (
             <Tile
               label="Deuda externa"
-              value={`US$ ${number(externalTotal[1], 0)} millones`}
+              value={`USD ${number(externalTotal[1], 0)} millones`}
               hint={`Saldo al ${externalTotal[0].slice(0, 7)}`}
             />
           ) : null}
@@ -186,7 +186,7 @@ export function AccountsDebt({ accounts }: { accounts: AccountsPayload }) {
           ) : null}
           {internalTotal && holder ? (
             <Tile
-              label="La tiene el Banco Central"
+              label="En poder del Banco Central"
               value={percent((holder[1] / internalTotal[1]) * 100, 0)}
               hint="de la deuda interna del Tesoro"
             />
@@ -198,7 +198,7 @@ export function AccountsDebt({ accounts }: { accounts: AccountsPayload }) {
         <Panel
           id="deuda-externa-acreedor"
           title="Deuda externa, por acreedor (millones de USD)"
-          lede="Saldo a fin de cada mes. «Bonos soberanos» es la deuda con inversionistas privados; el BID, la CAF y el Banco Mundial son organismos multilaterales."
+          lede="Saldo a fin de cada mes. «Bonos soberanos» es la deuda con inversionistas privados; el Banco Interamericano de Desarrollo (BID), el Banco de Desarrollo de América Latina (CAF) y el Banco Mundial son organismos multilaterales."
           source={SOURCE.debt}
         >
           <StackedYearBars
@@ -207,7 +207,7 @@ export function AccountsDebt({ accounts }: { accounts: AccountsPayload }) {
               ...EXTERNAL.map((part) => ({ key: part.key, label: part.label, tone: part.tone })),
               { key: 'rest', label: 'Otros acreedores', tone: 'var(--series-rest)' },
             ]}
-            format={(value) => `US$ ${number(value, 0)} mill.`}
+            format={(value) => `USD ${number(value, 0)} millones`}
             tick={(value) => number(value, 0)}
             unit="millones de USD"
           />
@@ -215,7 +215,7 @@ export function AccountsDebt({ accounts }: { accounts: AccountsPayload }) {
         <Panel
           id="deuda-interna-tenedor"
           title="Deuda interna, por tenedor (millones de Bs)"
-          lede="Saldo a fin de cada mes. «Banco Central» es lo que el Tesoro le debe a la institución que emite el dinero."
+          lede="Saldo a fin de cada mes. «Banco Central» es la deuda del Tesoro con el BCB, emisor de la moneda nacional."
           source={SOURCE.debt}
         >
           <StackedYearBars
@@ -234,8 +234,8 @@ export function AccountsDebt({ accounts }: { accounts: AccountsPayload }) {
       <div className="grid-two">
         <Panel
           id="deuda-intereses"
-          title={`Cuánto cuestan los intereses (${interestUnit})`}
-          lede="Lo que el sector público paga cada año en intereses de la deuda externa e interna, en bolivianos o como parte de lo que se recauda en impuestos."
+          title={`Intereses de la deuda pública (${interestUnit})`}
+          lede="Intereses que el sector público no financiero paga cada año por su deuda externa e interna, en millones de Bs o como porcentaje de la recaudación tributaria. Solo años cerrados."
           source={SOURCE.ministry}
         >
           <div className="slicer-row">
@@ -264,8 +264,8 @@ export function AccountsDebt({ accounts }: { accounts: AccountsPayload }) {
         </Panel>
         <Panel
           id="deuda-subvencion-combustibles"
-          title="Cuánto cuesta sostener el precio de los combustibles (% del PIB)"
-          lede="La explícita es lo que el Estado paga por vender el combustible más barato de lo que cuesta; la implícita suma lo que no se cobra —contaminación, clima, congestión— y debería."
+          title="Subvención a los combustibles (% del PIB)"
+          lede="La subvención explícita es lo que el Estado cubre al vender combustible por debajo de su costo. La implícita añade los costos que el precio no cobra —contaminación, clima, congestión—, según el método del FMI."
           source={SOURCE.imf}
         >
           <div className="slicer-row">

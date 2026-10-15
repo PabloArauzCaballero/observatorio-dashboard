@@ -119,14 +119,14 @@ function conclude(board: Omit<DepartmentBoard, 'conclusions'>): FxConclusion[] {
     const threeBiggest = ranked.slice(0, 3).reduce((sum, row) => sum + row.share.value, 0);
     out.push({
       key: 'concentracion',
-      claim: `${top.department.name} es la economía más grande del país y tres departamentos hacen casi todo el producto`,
+      claim: `${top.department.name} es la mayor economía departamental; los tres departamentos más grandes suman esta parte del PIB`,
       figure: percent(threeBiggest),
       detail: `Suma de ${ranked
         .slice(0, 3)
         .map((row) => row.department.name)
         .join(
           ', ',
-        )} en ${top.share.year}. ${top.department.name} sola aporta el ${percent(top.share.value)}, frente al ${percent(second.share.value)} de ${second.department.name}.`,
+        )} en ${top.share.year}. ${top.department.name} aporta por sí sola el ${percent(top.share.value)}, frente al ${percent(second.share.value)} de ${second.department.name}.`,
       tone: 'neutral',
     });
   }
@@ -160,7 +160,7 @@ function conclude(board: Omit<DepartmentBoard, 'conclusions'>): FxConclusion[] {
       key: 'ganador',
       claim: `${winner.department.name} es el departamento que más creció en la última década`,
       figure: percent(winner.change),
-      detail: `Producto a precios constantes de 1990 entre ${winner.from} y ${winner.to}, según el INE.`,
+      detail: `Variación acumulada del PIB a precios constantes de 1990 entre ${winner.from} y ${winner.to}, según el INE.`,
       tone: 'favourable',
     });
   }
@@ -168,9 +168,9 @@ function conclude(board: Omit<DepartmentBoard, 'conclusions'>): FxConclusion[] {
   if (loser && loser.change < 0) {
     out.push({
       key: 'perdedor',
-      claim: `${loser.department.name} es el único gran perdedor del periodo: su economía es hoy más chica que hace diez años`,
+      claim: `${loser.department.name} registra la mayor contracción: su PIB real es menor que al inicio del periodo`,
       figure: percent(loser.change),
-      detail: `Producto a precios constantes de 1990 entre ${loser.from} y ${loser.to}. Una caída así en una cifra departamental no aparece en el dato nacional, que la promedia con el resto.`,
+      detail: `Variación acumulada del PIB a precios constantes de 1990 entre ${loser.from} y ${loser.to}. El dato nacional promedia esta caída con la evolución del resto de los departamentos.`,
       tone: 'adverse',
     });
   }
@@ -221,7 +221,7 @@ function conclude(board: Omit<DepartmentBoard, 'conclusions'>): FxConclusion[] {
   if (country && country.change < 0) {
     out.push({
       key: 'hundida',
-      claim: `${country.name} es la actividad que más se ha encogido en Bolivia en una década`,
+      claim: `${country.name} es la actividad que más se contrajo en Bolivia en la última década`,
       figure: percent(country.change),
       detail: `Valor agregado a precios constantes de 1990 entre ${country.from} y ${country.to}, sumando las ramas que el cuadro nacional publica de esa actividad.`,
       tone: 'adverse',
@@ -233,9 +233,9 @@ function conclude(board: Omit<DepartmentBoard, 'conclusions'>): FxConclusion[] {
   if (leader && total > 0) {
     out.push({
       key: 'exportador',
-      claim: `${leader.department.name} encabeza lo que el país vende afuera`,
+      claim: `${leader.department.name} es el primer departamento exportador del país`,
       figure: percent((leader.value.value / total) * 100),
-      detail: `De los ${say(total, 0)} millones de dólares que los nueve departamentos declararon en ${leader.value.year}, ${leader.department.name} puso ${say(leader.value.value, 0)}.`,
+      detail: `De los USD ${say(total, 0)} millones que exportaron los nueve departamentos en ${leader.value.year}, ${leader.department.name} aportó USD ${say(leader.value.value, 0)} millones.`,
       tone: 'neutral',
     });
   }

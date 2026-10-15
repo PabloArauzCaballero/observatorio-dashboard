@@ -185,7 +185,7 @@ export function TradeRail({
             : 'sin filtro'}
         </span>
       </div>
-      <FilterHint>Recortan todos los gráficos a la vez.</FilterHint>
+      <FilterHint>Se aplican a todos los gráficos a la vez.</FilterHint>
 
       <div className="rail-sec">
         <div className="rail-head">
@@ -242,7 +242,7 @@ export function TradeRail({
         <div className="rail-field">
           <input
             type="range"
-            aria-label={`Desde qué año: ${from}`}
+            aria-label={`Año inicial: ${from}`}
             min={bounds.first}
             max={to}
             value={from}
@@ -252,7 +252,7 @@ export function TradeRail({
         <div className="rail-field rail-field-next">
           <input
             type="range"
-            aria-label={`Hasta qué año: ${to}`}
+            aria-label={`Año final: ${to}`}
             min={from}
             max={bounds.last}
             value={to}
@@ -298,7 +298,7 @@ export function TradeRail({
             icon="cajas"
           />
         ) : search.trim().length >= 2 ? (
-          <p className="rail-hint">Sin partidas con ese nombre o código.</p>
+          <p className="rail-hint">No hay partidas con ese nombre o código.</p>
         ) : null}
       </div>
 

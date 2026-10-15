@@ -61,7 +61,7 @@ export function AccountsNorms() {
     );
   }, [group, confirmation, search]);
 
-  const NORM_SOURCE = `leyes y decretos de Bolivia, verificados el ${NORMS_AS_OF}`;
+  const NORM_SOURCE = `Leyes y decretos de Bolivia, verificados el ${NORMS_AS_OF}`;
 
   return (
     <>
@@ -80,11 +80,11 @@ export function AccountsNorms() {
       <div className="grid-two">
         <Panel
           id="normas-aranceles"
-          title="Aranceles: cinco puntos menos en cada tramo (% del valor)"
-          lede="Desde el 6 de julio de 2026 y hasta fines de 2027, cada alícuota del gravamen arancelario bajó cinco puntos (DS 5646). La escala llega ahora a 35 %."
-          source="prensa y un agregador normativo; el texto del decreto no se pudo bajar de la Gaceta Oficial"
+          title="Gravamen arancelario antes y después del DS 5646 (% del valor CIF)"
+          lede="Cada alícuota del gravamen arancelario bajó cinco puntos el 6 de julio de 2026, una rebaja que rige hasta fines de 2027 según el Decreto Supremo (DS) 5646. El tramo más alto pasó de 40 % a 35 %."
+          source="Decreto Supremo 5646, según prensa y un agregador normativo (el texto no se pudo obtener de la Gaceta Oficial)"
           data={{
-            unidad: '% del valor',
+            unidad: '% del valor CIF',
             columnas: ['Arancel antes (%)', 'Arancel ahora (%)'],
             filas: TARIFF_SHIFT.map((step) => [step.before, step.now]),
           }}
@@ -112,11 +112,11 @@ export function AccountsNorms() {
         </Panel>
         <Panel
           id="normas-reparto"
-          title="A dónde va lo que se recauda (% de lo que se reparte)"
-          lede="De los impuestos nacionales que se reparten, tres cuartas partes se quedan en el Tesoro, una quinta va a los municipios y una veinteava a las universidades. Las gobernaciones reclaman un 15 % directo en la agenda de descentralización."
+          title="Reparto de la coparticipación tributaria (% de lo coparticipado)"
+          lede="De los impuestos nacionales coparticipables, el 75 % queda en el Tesoro General de la Nación, el 20 % va a los municipios y el 5 % a las universidades. Las gobernaciones reclaman un 15 % directo en la agenda de descentralización."
           source="Ley 031, coparticipación tributaria"
           data={{
-            unidad: '% de lo que se reparte',
+            unidad: '% de lo coparticipado',
             columnas: ['Destino', 'Parte (%)', 'Norma'],
             filas: SHARES.map((share) => [share.label, share.value, 'Ley 031, coparticipación']),
             nota: 'El IDH y las regalías se reparten aparte; los porcentajes vigentes de ese reparto no se pudieron confirmar.',
@@ -141,7 +141,7 @@ export function AccountsNorms() {
       <Panel
         id="normas-tabla"
         title={`Cada impuesto, con su norma (${shown.length} de ${NORMS.length} normas)`}
-        lede="Filtrá por tipo de impuesto o por cómo se confirmó, o buscá por nombre."
+        lede="Alícuota, base, norma, recaudador y destino de cada impuesto y tasa, con el grado de confirmación de cada fila."
         source={NORM_SOURCE}
         data={() => ({
           unidad: 'normas',
@@ -180,7 +180,7 @@ export function AccountsNorms() {
             base={new Set<string>()}
           />
           <ChipPicker
-            label="Cómo se confirmó"
+            label="Confirmación"
             options={CONFIRMATIONS}
             value={confirmation}
             onChange={setConfirmation}

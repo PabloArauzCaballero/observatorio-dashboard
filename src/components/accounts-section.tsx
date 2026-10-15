@@ -67,9 +67,9 @@ function Loaded({
   if (accounts.series.length === 0) {
     return (
       <div className="callout">
-        Todavía no hay cuentas públicas cargadas en esta base. El núcleo las siembra al arrancar:
-        recaudación por impuesto, ingresos y gastos del Estado, deuda y subvenciones. «Qué dicen las
-        normas» no depende de ellas.
+        Las cuentas públicas no están disponibles por ahora: recaudación por impuesto, ingresos y
+        gastos del Estado, deuda y subvenciones. La página «Qué dicen las normas» no depende de
+        estos datos.
       </div>
     );
   }

@@ -205,7 +205,7 @@ export const NORMS: readonly TaxNorm[] = [
     id: 'regalia-minera',
     group: 'hidrocarburos',
     name: 'Regalía minera',
-    rate: 'Oro 7 % si el precio pasa de US$ 700 por onza; resto de minerales de 1 % a 7 %; otros 2,5 %',
+    rate: 'Oro 7 % si el precio pasa de USD 700 por onza; resto de minerales de 1 % a 7 %; otros 2,5 %',
     base: 'Valor bruto de venta. En el mercado interno se paga el 60 % de la alícuota.',
     norm: 'Ley 535, arts. 227 y 229',
     collector: 'Autoridad minera → 85 % gobernación productora, 15 % municipios productores',

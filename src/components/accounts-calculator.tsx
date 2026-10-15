@@ -22,15 +22,15 @@ import { number, percent } from '@/lib/public-accounts-board';
 type Mode = 'venta' | 'importacion' | 'sueldo';
 
 const MODES = [
-  { key: 'venta', label: 'Algo que se compra en el país', hint: 'IVA e IT sobre el precio final' },
+  { key: 'venta', label: 'Compra en el país', hint: 'IVA e IT sobre el precio final' },
   {
     key: 'importacion',
-    label: 'Algo que se importa',
+    label: 'Importación',
     hint: 'Arancel e IVA de importación en la frontera',
   },
   {
     key: 'sueldo',
-    label: 'Un sueldo',
+    label: 'Sueldo',
     hint: 'Aportes a pensiones y salud, del trabajador y del empleador',
   },
 ] as const;
@@ -88,13 +88,13 @@ export function AccountsCalculator() {
   return (
     <Panel
       id="cuentas-calculadora"
-      title="¿Cuánto de esto es impuesto? (Bs)"
-      lede="Cambiá el monto y lo que se aplica; las cuentas usan las alícuotas de la tabla de abajo. Son una ilustración de lo que dice la norma sobre un caso simple, no la declaración de nadie: no incluyen el IUE de la empresa, el ICE ni los créditos fiscales de cada contribuyente."
-      source="cálculo del Observatorio con las alícuotas de «Cada impuesto, con su norma» (leyes y decretos de Bolivia)"
+      title="Impuestos y aportes sobre un precio, una importación o un sueldo (Bs)"
+      lede="Parte de un precio final, del costo de una importación o de un sueldo que corresponde a impuestos y aportes, con las alícuotas vigentes de la tabla «Cada impuesto, con su norma». Ilustra lo que dice la norma para un caso simple y no sustituye la liquidación de un contribuyente: excluye el Impuesto sobre las Utilidades de las Empresas (IUE), el Impuesto a los Consumos Específicos (ICE) y los créditos fiscales de cada caso."
+      source="Leyes y decretos de Bolivia; cálculo de DatosBolivia.com"
     >
       <div className="slicer-row">
         <ChipPicker
-          label="Qué querés calcular"
+          label="Caso"
           options={MODES}
           value={mode}
           onChange={(next) => {

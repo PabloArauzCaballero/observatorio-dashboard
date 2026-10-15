@@ -157,15 +157,15 @@ export function grainFor(query: TradeQuery, by: Dimension): GrainChoice {
   if (EXPORT_ONLY.includes(by)) {
     return {
       unavailable:
-        'Esa clasificación es de las exportaciones; las importaciones se clasifican por uso económico.',
+        'Esa clasificación corresponde a las exportaciones; las importaciones se clasifican por uso económico.',
     };
   }
   const need = needs(query, by);
   if (need.monthly && need.detail) {
     return {
       unavailable:
-        'Las importaciones por país o por partida se publican aquí por año y sin departamento: ' +
-        'quita el filtro de departamento o de meses —o el de país o partida— para ver esta vista.',
+        'Las importaciones por país o por partida se publican por año y sin departamento. ' +
+        'Esta vista requiere quitar el filtro de departamento o de meses, o bien el de país o partida.',
     };
   }
   return { grain: need.monthly ? 'M_MONTHLY' : 'M_DETAIL' };
