@@ -64,7 +64,7 @@ function gapReversion(result: FxEconometrics): FxConclusion | null {
   return {
     key: 'brecha-vida-media',
     claim: closes
-      ? 'Desde que el oficial se mueve, la brecha se cierra sola'
+      ? 'Desde que el oficial se mueve, la brecha tiende a cerrarse'
       : 'Desde que el oficial se mueve, la brecha no muestra reversión clara',
     figure: moving.halfLifeDays !== null ? `${say(moving.halfLifeDays, 1)} días` : 'sin vida media',
     detail:
@@ -173,8 +173,8 @@ function breaks(result: FxEconometrics): FxConclusion | null {
     key: 'quiebre',
     claim: found
       ? atPeak
-        ? 'El quiebre de la serie está donde la brecha tocó techo, no donde el oficial se soltó'
-        : 'El quiebre de la serie no está donde el oficial se soltó'
+        ? 'El quiebre de la serie coincide con el máximo de la brecha, no con el inicio del oficial móvil'
+        : 'El quiebre de la serie no coincide con el inicio del oficial móvil'
       : 'La búsqueda de quiebres no encuentra uno concluyente en la media de los retornos',
     figure: longDate(search.date),
     detail:
@@ -183,7 +183,7 @@ function breaks(result: FxEconometrics): FxConclusion | null {
       `(críticos de Andrews al 10 %, 5 % y 1 %: ${say(search.critical.p10, 2)}, ` +
       `${say(search.critical.p5, 2)} y ${say(search.critical.p1, 2)}, así que ${level(search.rejects)}).` +
       (peak && atPeak
-        ? ` La brecha había tocado su máximo de ${signed(peak.gapPercent)} % el ${longDate(peak.date)}.`
+        ? ` La brecha había alcanzado su máximo de ${signed(peak.gapPercent)} % el ${longDate(peak.date)}.`
         : '') +
       (known
         ? ` En la fecha en que el oficial empezó a moverse, el ${longDate(known.date)}, la media de ` +
@@ -205,8 +205,8 @@ function volatility(result: FxEconometrics): FxConclusion | null {
   return {
     key: 'garch',
     claim: clustered
-      ? 'La volatilidad viene en rachas: un día agitado anuncia otro'
-      : 'La volatilidad no muestra rachas: los días agitados llegan sueltos',
+      ? 'La volatilidad se agrupa en rachas: una jornada agitada tiende a seguir a otra'
+      : 'La volatilidad no se agrupa en rachas: las jornadas agitadas llegan aisladas',
     figure: `${say(g.currentVolAnnual, 0)} % hoy`,
     detail:
       `GARCH(1,1) por máxima verosimilitud sobre ${say(g.n, 0)} variaciones diarias del paralelo: ` +
@@ -220,7 +220,7 @@ function volatility(result: FxEconometrics): FxConclusion | null {
       `. La volatilidad condicional de la última jornada es ${say(g.currentVolAnnual, 1)} % anualizada; ` +
       `la lectura sin modelo (RiskMetrics, λ = 0,94) da ${say(g.ewmaVolAnnual, 1)} %. A ese ritmo, ` +
       `una desviación típica a treinta días son ${say(g.currentVolAnnual / Math.sqrt(12), 1)} % del ` +
-      `precio, que es el orden de lo que se juega quien deja una posición sin cubrir un mes.` +
+      `precio, el orden del riesgo de una posición sin cobertura durante un mes.` +
       (arch ? ` ARCH-LM con ${arch.lags} rezagos: ${pValue(arch.pValue)}` : '') +
       (squares
         ? `; Ljung–Box sobre los cuadrados: Q = ${say(squares.statistic, 1)} (${pValue(squares.pValue)}).`
@@ -248,10 +248,10 @@ function prices(result: FxEconometrics): FxConclusion | null {
       `punto de depreciación.` +
       (positive
         ? ''
-        : ` El signo ${horizon.value < 0 ? 'negativo' : 'nulo'} tiene explicación en la propia serie: ` +
-          `la brecha se cerró —el paralelo bajó— mientras la inflación subía, así que en este ` +
-          `tramo el paralelo no fue lo que empujó los precios.`) +
-      ` La muestra es corta y la UFV incorpora el IPC con un mes de rezago; el error estándar dice cuánto.`,
+        : ` El signo ${horizon.value < 0 ? 'negativo' : 'nulo'} es coherente con la propia serie: ` +
+          `la brecha se cerró —el paralelo bajó— mientras la inflación subía, de modo que en este ` +
+          `tramo el paralelo no acompañó el alza de precios.`) +
+      ` La muestra es corta y la UFV incorpora el índice de precios al consumidor (IPC) con un mes de rezago; el error estándar mide esa incertidumbre.`,
     tone: 'neutral',
   };
 }

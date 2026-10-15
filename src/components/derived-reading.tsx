@@ -41,7 +41,7 @@ export function DerivedReading({
   defaultOpen = false,
   unit = 'lectura',
   id,
-  source = 'series de este capítulo, recalculadas con cada carga',
+  source = 'Series de esta sección; cálculo de DatosBolivia.com, actualizado con cada carga',
 }: {
   title: string;
   /** What the sentences are and are not, said once above them. */
@@ -116,7 +116,7 @@ export function DerivedReading({
         <Icon name="sigma" size={17} />
         <h2>{title}</h2>
         <span className="tile-hint">
-          {open ? 'derivado, no redactado' : `${conclusions.length} ${plural}`}
+          {open ? 'derivado de las series' : `${conclusions.length} ${plural}`}
         </span>
         <button
           type="button"

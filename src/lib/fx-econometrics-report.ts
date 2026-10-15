@@ -112,7 +112,7 @@ export function methodNotes(result: FxEconometrics): Array<{ title: string; text
     title: 'Ventanas',
     text:
       'Ninguna prueba cruza el cambio de régimen salvo la que lo mide: las que hablan de la ' +
-      'relación oficial–paralelo usan solo el tramo en que el oficial se mueve' +
+      'relación entre oficial y paralelo usan solo el tramo en que el oficial se mueve' +
       (result.moving
         ? `, desde el ${longDate(result.moving.from)} (${number(result.moving.n, 0)} jornadas).`
         : '; en esta muestra ese tramo todavía no alcanza las cuarenta jornadas y esas pruebas no se corren.'),
@@ -133,8 +133,8 @@ export function methodNotes(result: FxEconometrics): Array<{ title: string; text
       title: g.integrated ? 'GARCH integrado' : 'GARCH',
       text: g.integrated
         ? `La persistencia estimada es ${number(g.persistence, 3)}, en el borde de la unidad: la ` +
-          'muestra junta un tramo con el oficial fijo y otro en movimiento, y la verosimilitud ' +
-          'prefiere recordar cada choque para siempre. La volatilidad condicional de la última ' +
+          'muestra junta un tramo con el oficial fijo y otro de cotización móvil, y la verosimilitud ' +
+          'favorece una persistencia total de cada choque. La volatilidad condicional de la última ' +
           `jornada (${number(g.currentVolAnnual, 1)} % anualizada) sigue siendo válida; el nivel de ` +
           'largo plazo no lo es y se retiene. Como control sin modelo va la lectura RiskMetrics ' +
           `(λ = 0,94): ${number(g.ewmaVolAnnual, 1)} %.`
@@ -155,7 +155,7 @@ export function methodNotes(result: FxEconometrics): Array<{ title: string; text
         `${number(horizon.standardError)}. No es un error de cálculo: en la muestra ` +
         `(${result.passThrough.from} a ${result.passThrough.to}) la brecha se cerró —el paralelo ` +
         'bajó— mientras la inflación de la UFV subía. El regresor no se cambia al oficial porque ' +
-        'el oficial estuvo fijo la mayor parte de la muestra y no tiene varianza con que explicar nada.',
+        'el oficial estuvo fijo la mayor parte de la muestra y no tiene varianza que permita explicar la inflación.',
     });
   }
 
@@ -167,11 +167,11 @@ export function methodNotes(result: FxEconometrics): Array<{ title: string; text
       text:
         `El mayor F de Quandt–Andrews cae el ${longDate(search.date)} (sup F = ${number(search.supF)}).` +
         (peak
-          ? ` La brecha tocó su máximo de ${signed(peak.gapPercent)} % el ${longDate(peak.date)}.`
+          ? ` La brecha alcanzó su máximo de ${signed(peak.gapPercent)} % el ${longDate(peak.date)}.`
           : '') +
         (result.moving ? ` El oficial empezó a moverse el ${longDate(result.moving.from)}.` : '') +
         ' La fecha se da aquí y no se marca sobre un gráfico de la serie: la marca vertical del ' +
-        'tablero significa «cambio de método» y ponerla ahí diría algo que no pasó.',
+        'tablero significa «cambio de método» y ponerla ahí sugeriría un cambio que no ocurrió.',
     });
   }
 
@@ -219,7 +219,7 @@ export function econometricsReport(
 ): Uint8Array<ArrayBuffer> {
   const conclusions: FxConclusion[] = econometricConclusions(result);
   const rows = tabulate(result);
-  const author = options.author ?? 'Observatorio Económico';
+  const author = options.author ?? 'DatosBolivia.com';
   const issued = new Intl.DateTimeFormat('es-BO', {
     day: '2-digit',
     month: 'long',
@@ -229,7 +229,7 @@ export function econometricsReport(
   const asOf = result.asOf ? longDate(result.asOf) : 'sin fecha';
 
   const sheet = new Sheet({
-    title: 'Análisis econométrico del tipo de cambio — Observatorio Económico',
+    title: 'Análisis econométrico del tipo de cambio — DatosBolivia.com',
     author,
     subject: `Pruebas formales sobre el dólar en Bolivia, último dato del ${asOf}`,
   });
@@ -241,14 +241,14 @@ export function econometricsReport(
   sheet.decorate((page, index, count) => {
     const centre = { x: page.width / 2 - 195, y: page.height / 2 - 120 };
     page.text(
-      'OBSERVATORIO',
+      'DATOS',
       centre.x,
       centre.y + 60,
       { font: 'serif-bold', size: 58, color: INK.official, tracking: 3 },
       { rotate: 28, opacity: true },
     );
     page.text(
-      'ECONÓMICO',
+      'BOLIVIA',
       centre.x + 30,
       centre.y - 6,
       { font: 'serif-bold', size: 58, color: INK.official, tracking: 3 },
@@ -258,8 +258,8 @@ export function econometricsReport(
     const base = page.margin.bottom - 22;
     page.line(page.left, base + 11, page.right, base + 11, INK.rule, 0.6);
     const foot: TextStyle = { font: 'sans', size: 6.5, color: INK.faint, tracking: 0.5 };
-    page.text('OBSERVATORIO ECONÓMICO · TIPO DE CAMBIO', page.left, base, foot);
-    page.text('Observatorio Económico', page.width / 2, base, {
+    page.text('DATOSBOLIVIA.COM · TIPO DE CAMBIO', page.left, base, foot);
+    page.text('DatosBolivia.com', page.width / 2, base, {
       font: 'serif-bold',
       size: 8.5,
       color: INK.official,
@@ -275,7 +275,7 @@ export function econometricsReport(
   /* Cabecera ----------------------------------------------------------- */
 
   const top = sheet.y;
-  sheet.text('OBSERVATORIO ECONÓMICO', sheet.left, top - 13, STYLE.brand);
+  sheet.text('DATOSBOLIVIA.COM', sheet.left, top - 13, STYLE.brand);
   sheet.text('PRUEBAS ECONOMÉTRICAS DEL TIPO DE CAMBIO', sheet.left, top - 23, STYLE.brandSmall);
   sheet.text(`Emitido el ${issued}`, sheet.right, top - 12, STYLE.issued);
   sheet.text(`Último dato: ${asOf}`, sheet.right, top - 22, STYLE.issued);
@@ -288,7 +288,7 @@ export function econometricsReport(
     result.full ? `${longDate(result.full.from)} – ${longDate(result.full.to)}` : null,
     result.full ? `${number(result.full.n, 0)} jornadas del paralelo` : null,
     result.moving ? `${number(result.moving.n, 0)} con el oficial en movimiento` : null,
-    'BOB por USD',
+    'Bs por USD',
   ].filter((entry): entry is string => entry !== null);
   sheet.paragraph(facts.join('   ·   '), STYLE.subtitle, { after: 8 });
 
@@ -296,9 +296,9 @@ export function econometricsReport(
   const ledeTop = sheet.y;
   sheet.paragraph(
     'Las preguntas que la lectura del capítulo deja abiertas, sometidas a prueba: si el ' +
-      'paralelo revierte o acumula, si la brecha se cierra sola y a qué velocidad, si el oficial ' +
-      'sigue al mercado o lo lidera, dónde se quiebra la serie, si la volatilidad viene en rachas ' +
-      'y cuánto de una depreciación llega a los precios.',
+      'paralelo revierte o acumula, si la brecha tiende a cerrarse y a qué velocidad, si el oficial ' +
+      'sigue al mercado o lo lidera, dónde se quiebra la serie, si la volatilidad se agrupa en ' +
+      'rachas y cuánto de una depreciación llega a los precios.',
     STYLE.lede,
     { x: sheet.left + 10 },
   );
@@ -322,9 +322,9 @@ export function econometricsReport(
 
   heading('Qué dicen las pruebas');
   sheet.paragraph(
-    'Cada frase sale de una prueba con nombre, un estadístico y un valor crítico, y todos están ' +
-      'en las tablas de abajo. Se dice qué se rechaza y a qué nivel; no se dice por qué pasó ni qué ' +
-      'va a pasar.',
+    'Cada frase se deriva de una prueba con nombre, un estadístico y un valor crítico, todos ' +
+      'recogidos en las tablas de abajo. Se indica qué se rechaza y a qué nivel; no se atribuyen ' +
+      'causas ni se anticipan movimientos.',
     STYLE.note,
     { after: 4 },
   );
@@ -373,7 +373,7 @@ export function econometricsReport(
     heading('Cada régimen con su estadística');
     sheet.paragraph(
       'Los momentos de las variaciones diarias, calculados dentro de cada tramo y nunca a través ' +
-        'del cambio: un promedio que cruza la fecha en que el oficial se soltó describe un mercado ' +
+        'del cambio: un promedio que cruza la fecha en que el oficial empezó a moverse describe un mercado ' +
         'que no existió.',
       STYLE.note,
       { after: 2 },
@@ -406,9 +406,9 @@ export function econometricsReport(
   sheet.space(6);
   sheet.rule(INK.rule, 0.6, 0, 3);
   sheet.paragraph(
-    'Dato: series diarias del Observatorio Económico —oficial publicado, paralelo como punto ' +
-      'medio de compra y venta, UFV del Banco Central de Bolivia y la brecha que calcula el ' +
-      `núcleo—. Cálculos: ${author}, sobre las mismas series que el capítulo del tipo de cambio ` +
+    'Datos: series diarias recopiladas por DatosBolivia.com —oficial publicado, paralelo como ' +
+      'punto medio de compra y venta, UFV del Banco Central de Bolivia y la brecha calculada ' +
+      `entre ambos—. Cálculos: ${author}, sobre las mismas series que el capítulo del tipo de cambio ` +
       'muestra en pantalla; el CSV de esas series se descarga en /api/export?dataset=series.',
     { ...STYLE.note, size: 7, leading: 9.5 },
   );

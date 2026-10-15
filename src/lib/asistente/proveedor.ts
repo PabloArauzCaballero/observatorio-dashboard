@@ -85,7 +85,7 @@ async function intentar(e: Eslabon, mensajes: Mensaje[], maxTokens: number, temp
       headers: {
         authorization: `Bearer ${e.clave}`,
         'content-type': 'application/json',
-        'x-title': 'Observatorio Economico de Bolivia',
+        'x-title': 'DatosBolivia.com',
       },
       body: JSON.stringify({ model: e.modelo, messages: mensajes, max_tokens: maxTokens, temperature: temperatura, ...e.extra }),
       signal: AbortSignal.timeout(plazoMs),
@@ -106,7 +106,7 @@ async function intentar(e: Eslabon, mensajes: Mensaje[], maxTokens: number, temp
     const detalle = await respuesta.text().catch(() => '');
     const publico =
       status === 429
-        ? new ProveedorError('El proveedor de IA está limitando las consultas (HTTP 429). Probá en un minuto.', 503)
+        ? new ProveedorError('El proveedor de IA está limitando las consultas (HTTP 429). Intentar de nuevo en un minuto.', 503)
         : status === 402
           ? new ProveedorError('La cuenta del proveedor de IA se quedó sin crédito (HTTP 402).', 503)
           : status === 401 || status === 403

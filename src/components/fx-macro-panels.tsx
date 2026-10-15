@@ -85,10 +85,10 @@ export function FxConclusions({ conclusions }: { conclusions: readonly FxConclus
   return (
     <Panel
       id="lecturas-del-dolar"
-      title="Qué dicen los datos del tipo de cambio (lecturas derivadas)"
+      title="Lecturas del tipo de cambio (derivadas de las series de esta sección)"
       lede={
         open
-          ? 'Cada frase sale de las series de esta misma sección y se recalcula con cada carga. Dice qué nivel hay, contra qué referencia y bajo qué régimen, y qué vale esa cifra en bolivianos para quien tiene que decidir algo con ella; no dice por qué pasó ni qué va a pasar.'
+          ? 'Cada frase se deriva de las series de esta sección y se recalcula con cada carga. Indica el nivel, la referencia con que se compara, el régimen vigente y lo que la cifra representa en bolivianos; no atribuye causas ni anticipa movimientos.'
           : 'Frases derivadas de las mismas series que se dibujan más abajo, cada una con la cifra que la sostiene.'
       }
       meta={
@@ -97,14 +97,14 @@ export function FxConclusions({ conclusions }: { conclusions: readonly FxConclus
           className="menu-btn"
           onClick={() => setOpen(!open)}
           aria-expanded={open}
-          title={open ? 'Plegar la lectura de los datos' : 'Ver qué dicen estos datos'}
+          title={open ? 'Plegar las lecturas' : 'Desplegar las lecturas'}
         >
           {open
             ? 'Plegar'
             : `Ver ${conclusions.length} lectura${conclusions.length === 1 ? '' : 's'}`}
         </button>
       }
-      source="Banco Central de Bolivia, mercados P2P en bolivianos y cálculo del Observatorio sobre las series de esta sección"
+      source="Banco Central de Bolivia y mercados P2P en bolivianos; cálculo de DatosBolivia.com sobre las series de esta sección"
       data={{
         columnas: ['Lectura', 'Cifra', 'Detalle'],
         filas: conclusions.map((conclusion) => [
@@ -299,7 +299,7 @@ export function FxMacroPanels({
     })),
   }));
 
-  const realLede = `Lo que la inflación le quitó al dólar: el paralelo deflactado por la UFV, con su nivel de ${sayShort(snapshot.real?.base)} = 100.`;
+  const realLede = `Poder de compra del dólar paralelo: la cotización deflactada por la Unidad de Fomento de Vivienda (UFV), con base ${sayShort(snapshot.real?.base)} = 100.`;
   const tokenChart = tokenRows.length >= TOKEN_CHART_MINIMUM;
 
   return (
@@ -330,7 +330,7 @@ export function FxMacroPanels({
           id="dolar-paralelo-real"
           title="Dólar paralelo descontada la inflación (índice, base 100)"
           lede={realLede}
-          source="Mercados P2P en bolivianos (paralelo), UFV del Banco Central de Bolivia y cálculo del Observatorio"
+          source="Mercados P2P en bolivianos (paralelo) y UFV del Banco Central de Bolivia; cálculo de DatosBolivia.com"
         >
           {realRows.length > 1 && realCandles ? (
             <LevelCandles
@@ -356,17 +356,17 @@ export function FxMacroPanels({
             </>
           ) : (
             <div className="callout">
-              Hace falta que el tipo de cambio y la UFV coincidan en al menos dos jornadas.
+              Datos insuficientes: el índice requiere al menos dos jornadas con tipo de cambio y UFV.
             </div>
           )}
           <details className="panel-note">
             <summary>Cómo leer este panel</summary>
             <p>
-              Más abajo, «Dólar oficial y paralelo (Bs por USD)» dibuja el mismo dólar en bolivianos
-              corrientes; esta línea lo dibuja en poder de compra, que es lo único que el nivel
-              nominal no puede decir. Por encima de 100 el dólar se encareció de verdad; por debajo,
-              su subida no alcanzó a los precios y hoy cuesta menos que al empezar. La franja
-              sombreada es el tramo en que el oficial estuvo fijo.
+              El panel «Dólar oficial y paralelo (Bs por USD)», más abajo, muestra el mismo dólar en
+              bolivianos corrientes; esta línea lo expresa en poder de compra, algo que el nivel
+              nominal no indica. Por encima de 100, el dólar se encareció en términos reales; por
+              debajo, subió menos que los precios y hoy cuesta menos, en términos reales, que al
+              inicio. La franja sombreada marca el tramo en que el oficial estuvo fijo.
             </p>
           </details>
         </Panel>
@@ -374,8 +374,8 @@ export function FxMacroPanels({
         <Panel
           id="dolar-por-ficha"
           title="Precio del dólar por ficha estable (Bs por USD)"
-          lede="El punto medio en bolivianos por dólar de cada ficha estable, la vía por la que se compran dólares cuando el mercado formal no los da."
-          source="Mercados P2P en bolivianos, lecturas por ficha del Observatorio"
+          lede="Punto medio de la cotización de cada ficha estable, la vía por la que se compran dólares cuando el sistema financiero no los vende."
+          source="Mercados P2P en bolivianos; lecturas por ficha recopiladas por DatosBolivia.com"
           data={() =>
             tokenChart
               ? undefined
@@ -448,8 +448,8 @@ export function FxMacroPanels({
           <details className="panel-note">
             <summary>Cómo leer este panel</summary>
             <p>
-              Las fichas están ancladas al mismo dólar, de modo que la diferencia entre ellas es el
-              costo del riel y no otro precio.
+              Las fichas están ancladas al mismo dólar: la diferencia entre ellas refleja el costo
+              de cada vía de compra, no un precio distinto.
               {labelledFrom ? (
                 <>
                   {' '}
@@ -490,8 +490,8 @@ export function StablecoinTable({ readings }: { readings: readonly StablecoinRea
   if (!readings.length) {
     return (
       <div className="callout">
-        Todavía no hay lecturas por ficha. La serie por moneda empieza cuando el recolector nuevo
-        publica su primera jornada; antes de eso la fuente no distinguía el instrumento.
+        Aún no hay lecturas por ficha. La serie empieza con la primera jornada que registra el
+        instrumento; antes, la fuente no lo distinguía.
       </div>
     );
   }
@@ -512,7 +512,7 @@ export function StablecoinTable({ readings }: { readings: readonly StablecoinRea
               ? ` · ida y vuelta ${number(reading.spreadPercent)} %`
               : ''}
             {reading.premiumAskPercent !== null
-              ? ` · comprar aquí cuesta ${signed(reading.premiumAskPercent)} %`
+              ? ` · costo de compra ${signed(reading.premiumAskPercent)} % sobre el punto medio`
               : ''}
             {` · ${reading.venues} plaza${reading.venues === 1 ? '' : 's'}`}
           </span>

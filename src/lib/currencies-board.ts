@@ -69,7 +69,7 @@ export const DOLLAR = 'USD';
 
 export const REGIONS: ReadonlyArray<{ key: Region; label: string; hint: string }> = [
   { key: 'ASIA', label: 'Asia', hint: 'China, Japón, Corea del Sur, India, Hong Kong y Emiratos.' },
-  { key: 'NEIGHBOURS', label: 'Región', hint: 'Los vecinos de Bolivia, Colombia y México.' },
+  { key: 'NEIGHBOURS', label: 'América Latina', hint: 'Los países vecinos de Bolivia, Colombia y México.' },
   { key: 'WORLD', label: 'Mundo', hint: 'Euro, libra, franco, y los dólares canadiense y australiano.' },
 ];
 

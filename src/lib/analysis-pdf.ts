@@ -640,15 +640,15 @@ function buildDocument(report: AnalysisReport): string {
 <html lang="es">
 <head>
 <meta charset="utf-8">
-<title>${escapeHtml(`${report.title} — Observatorio Económico`)}</title>
+<title>${escapeHtml(`${report.title} — DatosBolivia.com`)}</title>
 <style>${PRINT_CSS}</style>
 </head>
 <body>
-  <div class="watermark"><span>Observatorio\nEconómico</span></div>
+  <div class="watermark"><span>Datos\nBolivia</span></div>
 
   <div class="sheet">
     <div class="masthead">
-      <div class="brand">Observatorio Económico<small>Análisis de series macroeconómicas</small></div>
+      <div class="brand">DatosBolivia.com<small>Análisis de series macroeconómicas</small></div>
       <div class="issued">
         Emitido el ${escapeHtml(issued)}<br>
         <code>${escapeHtml(report.code)}</code>
@@ -681,8 +681,8 @@ function buildDocument(report: AnalysisReport): string {
       <b>Dato:</b> ${escapeHtml(report.publisher ?? 'fuente citada')}${
         report.sourceUrl ? ` · ${escapeHtml(report.sourceUrl)}` : ''
       }.<br>
-      <b>Cálculos:</b> el Observatorio Económico, sobre las ${report.stats.n} observaciones del
-      período ${escapeHtml(report.span)} tal como estaban filtradas en pantalla. La media recortada
+      <b>Cálculos:</b> DatosBolivia.com, sobre las ${report.stats.n} observaciones del
+      periodo ${escapeHtml(report.span)} tal como estaban filtradas en pantalla. La media recortada
       quita el 10 % de cada cola; los atípicos son los que caen fuera de los bigotes de Tukey
       (1,5 × RIC); la curtosis se reporta en exceso, de modo que cero es la normal.<br>
       <b>Definición:</b> redactada por ${escapeHtml(report.definitionAuthor)} a partir del
@@ -693,8 +693,8 @@ function buildDocument(report: AnalysisReport): string {
   </div>
 
   <div class="footer">
-    <span>Observatorio Económico · ${escapeHtml(report.code)}</span>
-    <b>Observatorio Económico</b>
+    <span>DatosBolivia.com · ${escapeHtml(report.code)}</span>
+    <b>DatosBolivia.com</b>
     <span>${escapeHtml(issued)}</span>
   </div>
 </body>

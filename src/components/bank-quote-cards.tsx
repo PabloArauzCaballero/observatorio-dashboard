@@ -87,17 +87,17 @@ function BankCard({ bank }: { bank: BankProduct }) {
       <span className="quote-change quote-change-flat">
         {state(bank)}
         {bank.quote
-          ? ` · ${bank.quote.basis === 'OFFICIAL_FEED' ? 'publicado por el banco' : 'anotado de su app'} el ${sayShort(bank.quote.date)}`
+          ? ` · ${bank.quote.basis === 'OFFICIAL_FEED' ? 'publicado por el banco' : 'anotado de su aplicación'} el ${sayShort(bank.quote.date)}`
           : ''}
       </span>
       {bank.quote ? (
         <dl className="quote-sides">
           <div>
-            <dt>Pagas</dt>
+            <dt>El cliente paga</dt>
             <dd>{price(bank.quote.clientBuys)}</dd>
           </div>
           <div>
-            <dt>Recibes</dt>
+            <dt>El cliente recibe</dt>
             <dd>{price(bank.quote.clientSells)}</dd>
           </div>
         </dl>
@@ -123,7 +123,7 @@ function OtherBanks({ banks, span }: { banks: readonly BankProduct[]; span: numb
       <div className={styles.othersHead}>
         <span className={styles.othersTitle}>Sin precio público</span>
         <span className={styles.othersHint}>
-          no la publican: se ve al operar, en su aplicación o su sitio
+          el precio solo se ve al operar, en la aplicación o el sitio del banco
         </span>
       </div>
       <ul className={styles.list}>
@@ -178,11 +178,11 @@ export function BankQuoteCards() {
       title="Bancos con dólar digital (Bs por ficha)"
       lede={
         priced.length
-          ? 'Cuánto cuesta y cuánto paga cada banco que publica su precio; los demás se listan con desde cuándo lo ofrecen.'
-          : 'Los bancos que ofrecen dólar digital y desde cuándo lo hacen.'
+          ? 'Precio de compra y de venta de cada banco que publica su cotización; los demás figuran con la fecha desde la que ofrecen el servicio.'
+          : 'Bancos que ofrecen dólar digital y fecha desde la que lo hacen.'
       }
       meta={board.latestRead ? `última lectura: ${sayLong(board.latestRead)}` : undefined}
-      source="el archivo público de cotizaciones de BISA y la cinta de cotizaciones de la portada del BCP (historia del BCP: copias en web.archive.org); para los demás bancos, sus páginas y comunicados (cada fila dice cuál)"
+      source="Banco BISA (archivo público de cotizaciones) y Banco de Crédito de Bolivia (BCP; cotizaciones de su portada, con la historia en copias de web.archive.org); para los demás bancos, sus páginas y comunicados, enlazados en cada fila"
       data={{
         unidad: 'Bs por ficha',
         columnas: [

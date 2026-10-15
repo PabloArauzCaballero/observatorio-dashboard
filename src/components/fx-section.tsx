@@ -91,22 +91,24 @@ export async function FxSection() {
       <details className="panel-note">
         <summary>Qué muestra esta sección</summary>
         <p>
-          Bolivia tiene dos precios para el dólar: el oficial, que administra el Banco Central, y el
-          paralelo del mercado. La distancia entre ellos es la <strong>brecha cambiaria</strong>, y
-          mide la escasez de divisas. Cuando la brecha se cierra la pregunta no desaparece, cambia
-          de sitio: pasa a ser <strong>si el dólar está caro o barato de verdad</strong> una vez
-          descontada la inflación, que es algo que el precio nominal no puede contestar. Las dos
-          cifras están abajo, en la lectura.
+          Bolivia tiene dos precios para el dólar: el oficial, que administra el Banco Central de
+          Bolivia (BCB), y el paralelo, que se forma en los mercados P2P de fichas estables. La
+          distancia entre ambos es la <strong>brecha cambiaria</strong> y mide la escasez de
+          divisas. Cuando la brecha se cierra, la cuestión pasa a ser{' '}
+          <strong>si el dólar está caro o barato en términos reales</strong>, una vez descontada la
+          inflación; el precio nominal no lo responde. Las dos cifras figuran en la lectura de abajo.
         </p>
         <ul>
           <li>
-            <b>Nivel real, no nominal:</b> deflactado por la UFV, que se publica a diario.
+            <b>Nivel real, no nominal:</b> deflactado por la Unidad de Fomento de Vivienda (UFV),
+            que el BCB publica a diario.
           </li>
           <li>
-            <b>Separado por régimen:</b> un tramo fijo y uno en movimiento no se promedian.
+            <b>Separado por régimen:</b> un tramo de tipo fijo y uno de cotización móvil no se
+            promedian.
           </li>
           <li>
-            <b>Todo recalcula:</b> con los filtros de esta sección.
+            <b>Filtros comunes:</b> todas las cifras se recalculan con los filtros de esta sección.
           </li>
         </ul>
       </details>
@@ -121,7 +123,7 @@ export async function FxSection() {
         official={asObservations(official)}
         readingCount={observatory.readingCount}
       />
-      <Suspense fallback={<div className="callout">Cargando las otras monedas…</div>}>
+      <Suspense fallback={<div className="callout">Cargando las cotizaciones de otras monedas…</div>}>
         <CurrenciesSection />
       </Suspense>
       <BankAssetsTable />
