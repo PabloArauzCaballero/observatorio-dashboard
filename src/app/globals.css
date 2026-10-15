@@ -11215,3 +11215,110 @@ a {
 .figures > .figure {
   flex: 1 1 11rem;
 }
+
+/* === Clima y ambiente === */
+
+/* La línea de «cómo leer» bajo cada figura: chica, en Franklin, sin caja. */
+.clima-howto {
+  margin: var(--s1) 0 0;
+  max-width: 72ch;
+  font-family: var(--sans);
+  font-size: var(--text-sm);
+  line-height: 1.45;
+  color: var(--ink-soft);
+}
+
+.clima-howto b {
+  color: var(--ink);
+  font-weight: 600;
+}
+
+/* Cada bloque de la página abre con su encabezado, separado del anterior por aire. */
+.clima-block-head {
+  margin-top: var(--s3);
+}
+
+/* Desde y hasta, lado a lado en el carril. */
+.clima-years {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.clima-years .rail-field + .rail-field {
+  padding-left: 0;
+}
+
+/* El selector propio de un panel (el departamento en detalle), en una fila. */
+.clima-inline {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s2);
+  margin-bottom: var(--s1);
+}
+
+.clima-inline-field {
+  display: flex;
+  align-items: center;
+  gap: var(--s1);
+  font-family: var(--sans);
+  font-size: var(--text-sm);
+  color: var(--ink-soft);
+}
+
+.clima-inline-field select {
+  font: inherit;
+  min-height: var(--control-h-md);
+  padding: 0.3rem 0.6rem;
+  border: 1px solid var(--rule-strong);
+  border-radius: var(--radius-sm);
+  background: var(--field);
+  color: var(--ink);
+}
+
+/* Las rayas: un nombre y una barra por departamento, y el eje de años debajo. */
+.clima-stripes {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.clima-stripes-row {
+  display: grid;
+  grid-template-columns: minmax(5.5rem, 8rem) minmax(0, 1fr);
+  align-items: center;
+  gap: var(--s1);
+}
+
+.clima-stripes-name {
+  font-family: var(--sans);
+  font-size: var(--text-sm);
+  color: var(--ink);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.clima-stripes-bar {
+  display: block;
+  width: 100%;
+  height: 26px;
+}
+
+.clima-stripes-axis {
+  margin-bottom: var(--s1);
+}
+
+.clima-stripes-years {
+  display: flex;
+  justify-content: space-between;
+  font-family: var(--sans);
+  font-size: var(--text-xs);
+  color: var(--ink-soft);
+  font-variant-numeric: tabular-nums;
+}
+
+@media (max-width: 640px) {
+  .clima-stripes-row {
+    grid-template-columns: minmax(4.5rem, 6rem) minmax(0, 1fr);
+  }
+}
