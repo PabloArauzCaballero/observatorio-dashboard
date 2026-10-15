@@ -1,6 +1,7 @@
 import 'server-only';
 import { pool } from './db';
 import { PAGE, familyLabel, isOpaqueTitle, tidyName, workbookTitle } from './bcb-board';
+import { BCB_TITLES } from './bcb-titles';
 import type { BcbCatalogPage, BcbFacet, BcbSeriesData, BcbSeriesInfo } from './bcb-board';
 
 /**
@@ -27,12 +28,25 @@ interface CatalogRow {
   point_count: number;
 }
 
+/**
+ * El título de un informe: el que el cuadro dice en sus primeras filas, si el nombre del archivo
+ * no dice nada («01 02», «03A»), y si no el del archivo.
+ *
+ * Los cuadros numerados del boletín se publican como `01_02.xlsx`: en el riel se leían «01 02 · 02»,
+ * que parece una fecha y no dice de qué trata. `bcb-titles.ts` guarda el título leído de cada uno.
+ */
+function titleOf(url: string | null, workbook: string): string {
+  const known = BCB_TITLES[workbook];
+  if (!known) return workbookTitle(url, workbook);
+  return known.cuadro ? `${known.title} (cuadro ${known.cuadro})` : known.title;
+}
+
 const toInfo = (row: CatalogRow): BcbSeriesInfo => ({
   code: row.indicator_code,
   name: tidyName(row.name),
   family: row.family,
   workbook: row.workbook,
-  workbookTitle: workbookTitle(row.source_url, row.workbook),
+  workbookTitle: titleOf(row.source_url, row.workbook),
   sheet: row.sheet,
   unit: row.unit,
   frequency: row.frequency,
@@ -151,6 +165,7 @@ export async function searchBcb(query: BcbQuery): Promise<BcbCatalogPage> {
         query,
         'workbook',
         (key, url, first) => {
+          if (BCB_TITLES[key]) return titleOf(url, key);
           const title = workbookTitle(url, key);
           return isOpaqueTitle(title) && first.toLowerCase() !== title.toLowerCase()
             ? `${title} · ${first}`
