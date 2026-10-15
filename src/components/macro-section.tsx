@@ -4,7 +4,7 @@ import { AccountsSection } from './accounts-section';
 import { BcbSection } from './bcb-section';
 import { DepartmentsSection } from './departments-section';
 import { EnergySection } from './energy-section';
-import { EnvironmentSection } from './environment-section';
+import { ClimatePage } from './climate-page';
 import dynamic from 'next/dynamic';
 import { ExogenousComparatives } from './exogenous-comparatives';
 import { ExogenousSection } from './exogenous-section';
@@ -14,7 +14,7 @@ import { InstitutionsExplorer } from './institutions-explorer';
 import { MacroExplorer } from './macro-explorer';
 import { OnOpenNotice, useOnOpen } from './on-open';
 import { PanelSection } from './panel-section';
-import { ResourcesSection } from './resources-section';
+import { ResourcesPage } from './resources-page';
 import { SubSections } from './site-layout';
 import { SubTabs } from './tabs';
 import { TradeRecordsSection } from './trade-records-section';
@@ -73,8 +73,10 @@ export function MacroSection() {
           'Variables exógenas',
           'Series del BCB',
           'Comercio exterior',
+          'Recursos naturales',
+          'Clima y ambiente',
         ]}
-        icons={['linea', 'capas', 'globo', 'monedas', 'banco', 'globo']}
+        icons={['linea', 'capas', 'globo', 'monedas', 'banco', 'globo', 'gema', 'clima']}
       >
         <MeasuresPanel />
         <PanelSection
@@ -84,6 +86,8 @@ export function MacroSection() {
         <ExogenousPage />
         <BcbSection />
         <TradePage />
+        <ResourcesPage />
+        <ClimatePage />
       </SubSections>
     </>
   );
@@ -170,8 +174,6 @@ function MeasuresPanel() {
          */
         { label: 'Cuentas públicas', icon: 'balanza', panel: <AccountsSection /> },
         { label: 'Energía', icon: 'rayo', panel: <EnergySection /> },
-        { label: 'Recursos naturales', icon: 'gema', panel: <ResourcesSection /> },
-        { label: 'Medio ambiente', icon: 'hoja', panel: <EnvironmentSection /> },
       ]}
     />
   );

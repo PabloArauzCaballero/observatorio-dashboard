@@ -44,7 +44,7 @@ export const GUIA: readonly EntradaGuia[] = [
   },
   {
     pestana: 'Macroeconomía',
-    que: 'Seis páginas: «Series de Bolivia» (indicadores anuales por rubro, con los rubros invitados «Departamentos», «Cuentas públicas» —qué cobra, gasta y debe el Estado, qué dicen las normas de cada impuesto y cuánto de un precio es impuesto—, «Energía», «Recursos naturales» y «Medio ambiente»), «Indicadores sociales» (el catálogo del Banco Mundial para Bolivia, con el invitado «Instituciones»), «Bolivia ante el mundo», «Variables exógenas» (con tres pestañas arriba: «Precios por producto», «Comparativos» y «Demanda externa y clima», series de fuentes externas con licencia y disponibilidad verificables, con su historia y descarga), «Series del BCB» y «Comercio exterior» (con una pestaña por fuente: «Resumen: Comtrade e INE», con socios, productos, departamentos y principales exportadoras, y «Detalle aduanero (INE)»).',
+    que: 'Ocho páginas: «Series de Bolivia» (indicadores anuales por rubro, con los rubros invitados «Departamentos», «Cuentas públicas» —qué cobra, gasta y debe el Estado, qué dicen las normas de cada impuesto y cuánto de un precio es impuesto—, y «Energía»), «Indicadores sociales» (el catálogo del Banco Mundial para Bolivia, con el invitado «Instituciones»), «Bolivia ante el mundo», «Variables exógenas» (con tres pestañas arriba: «Precios por producto», «Comparativos» y «Demanda externa y clima», series de fuentes externas con licencia y disponibilidad verificables, con su historia y descarga), «Series del BCB» y «Comercio exterior» (con una pestaña por fuente: «Resumen: Comtrade e INE», con socios, productos, departamentos y principales exportadoras, y «Detalle aduanero (INE)»), «Recursos naturales» (mapa del mundo con a dónde van los minerales, el gas, el litio y los boratos y cuánto crece cada destino, con filtros de recurso, años, valor o peso, departamento y país, según la base aduanera del INE; debajo, la renta natural del Banco Mundial) y «Clima y ambiente» (temperatura, lluvia y calor extremo por departamento desde ERA5 y NASA POWER, calidad del aire de las capitales con CAMS, focos de calor de NASA FIRMS, pérdida de bosque de Global Forest Watch, El Niño (ONI de la NOAA) y los indicadores ambientales del Banco Mundial).',
     como: 'Se elige la página arriba y después el rubro, el indicador o el filtro. El control «Desde» recorta los años. Los exploradores que ofrecen «Descargar análisis (PDF)» incluyen distribución y atípicos; las descargas disponibles se indican en cada tabla. En «Variables exógenas», «Precios por producto» es el explorador de precios, «Comparativos» pone dos precios frente a frente —el de Bolivia contra su referencia mundial, lo exportado contra su cotización— con su cambio y su correlación, y «Demanda externa y clima» muestra el crecimiento de los socios y el índice ONI.',
   },
   {
@@ -163,8 +163,8 @@ export const RUTA_DE_PAQUETE: Record<string, string> = {
   POLITICA:
     '«Macroeconomía» › «Indicadores sociales» › «Instituciones», y «Prensa» filtrando el tema «Política y Estado»',
   ENERGIA: '«Macroeconomía» › «Series de Bolivia» › rubro «Energía»',
-  RECURSOS: '«Macroeconomía» › «Series de Bolivia» › rubro «Recursos naturales»',
-  AMBIENTE: '«Macroeconomía» › «Series de Bolivia» › rubro «Medio ambiente»',
+  RECURSOS: '«Macroeconomía» › «Recursos naturales»',
+  AMBIENTE: '«Macroeconomía» › «Clima y ambiente»',
   EXOGENAS: '«Macroeconomía» › «Variables exógenas»',
   MUNDO: '«Macroeconomía» › «Bolivia ante el mundo»',
   COMERCIO: '«Macroeconomía» › «Comercio exterior»',

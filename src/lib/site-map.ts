@@ -63,6 +63,8 @@ export const SITE: readonly SiteSection[] = [
       'Variables exógenas',
       'Series del BCB',
       'Comercio exterior',
+      'Recursos naturales',
+      'Clima y ambiente',
     ),
   },
   {
@@ -107,6 +109,9 @@ const PAGINAS_FUSIONADAS: Readonly<Record<string, Readonly<Record<string, string
     'demanda-externa-y-clima': 'Variables exógenas',
     'factores-externos': 'Variables exógenas',
     'detalle-aduanero-ine': 'Comercio exterior',
+    'medio-ambiente': 'Clima y ambiente',
+    ambiente: 'Clima y ambiente',
+    recursos: 'Recursos naturales',
   },
   transporte: {
     /* Diez páginas pasaron a cuatro: los enlaces viejos llegan a la que las absorbió. */

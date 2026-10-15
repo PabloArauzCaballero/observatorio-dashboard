@@ -101,10 +101,10 @@ const valueOf = (item: { usd: number; kg: number }, measure: Measure): number =>
 
 const unitOf = (measure: Measure): { short: string; long: string } =>
   measure === 'usd'
-    ? { short: 'MM USD', long: 'millones de USD' }
+    ? { short: 'millones de USD', long: 'millones de USD' }
     : { short: 't', long: 'toneladas' };
 
-/** Más decimales donde la cifra es chica: un destino de 0,004 MM USD no es «0». */
+/** Más decimales donde la cifra es chica: un destino de 0,004 millones de USD no es «0». */
 const smart = (value: number): string =>
   say(value, Math.abs(value) >= 100 ? 0 : Math.abs(value) >= 1 ? 1 : 3);
 
@@ -621,7 +621,7 @@ function CustomsResources({ catalogue }: { catalogue: TradeCodes }) {
   const headlines = [
     {
       label: `Valor ${stretch}${year}`,
-      value: nowViews ? `${say(totalUsd, totalUsd >= 100 ? 0 : 1)} MM USD` : '—',
+      value: nowViews ? `${say(totalUsd, totalUsd >= 100 ? 0 : 1)} millones de USD` : '—',
       hint: 'Valor FOB declarado en aduana',
     },
     {
