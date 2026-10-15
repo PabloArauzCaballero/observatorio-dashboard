@@ -60,7 +60,7 @@ export const MOTION = { duration: 900, easing: 'ease-out' } as const;
  */
 export const AXIS = {
   stroke: 'var(--axis-ink)',
-  fontSize: 11,
+  fontSize: 12,
   tickLine: false,
   axisLine: false,
 } as const;
@@ -155,7 +155,10 @@ function RowTick({
   /** Recharts mide el ancho del eje por esta clase: sin ella la columna de rótulos mide 0. */
   className?: string;
 }) {
-  const lines = max < ROW_LABEL_MAX ? wrapLabel(String(payload?.value ?? ''), max) : [clipLabel(payload?.value)];
+  const lines =
+    max < ROW_LABEL_MAX
+      ? wrapLabel(String(payload?.value ?? ''), max)
+      : [clipLabel(payload?.value)];
   return (
     <text
       x={x}
@@ -746,7 +749,7 @@ export function RateChart({
           />
           <Tooltip content={renderTooltip} cursor={{ stroke: 'var(--rule)', strokeWidth: 1 }} />
           <Area
-            type="monotone"
+            type="linear"
             dataKey="official"
             name="Oficial"
             stroke="var(--official)"
@@ -758,7 +761,7 @@ export function RateChart({
             animationEasing={MOTION.easing}
           />
           <Line
-            type="monotone"
+            type="linear"
             dataKey="parallelBuy"
             name="Paralelo compra"
             stroke="var(--parallel)"
@@ -769,7 +772,7 @@ export function RateChart({
             animationEasing={MOTION.easing}
           />
           <Line
-            type="monotone"
+            type="linear"
             dataKey="parallelSell"
             name="Paralelo venta"
             stroke="var(--parallel)"
@@ -850,7 +853,7 @@ export function GapChart({ data, tall }: { data: GapChartPoint[]; tall?: boolean
            */}
           <ReferenceLine y={0} stroke="var(--axis-rule)" strokeWidth={1} />
           <Area
-            type="monotone"
+            type="linear"
             dataKey="gapPercent"
             name="Brecha"
             stroke="var(--gap)"
@@ -904,12 +907,12 @@ export function SpreadChart({ data }: { data: SpreadPoint[] }) {
         <YAxis width={54} tickFormatter={(value) => number(value, 2)} {...AXIS} />
         <Tooltip content={renderTooltip} cursor={{ stroke: 'var(--rule)', strokeWidth: 1 }} />
         <Area
-          type="monotone"
+          type="linear"
           dataKey="spread"
           name="Dispersión"
           stroke="var(--parallel)"
           fill="url(#fillSpread)"
-          strokeWidth={1.8}
+          strokeWidth={2}
           dot={false}
           animationDuration={MOTION.duration}
           animationEasing={MOTION.easing}
@@ -977,6 +980,15 @@ export function MacroChart({
         : `${number(value / 1_000_000, 0)} M`
       : number(value, 1);
 
+  /*
+   * En el eje, los decimales son los del paso y no uno fijo: con un paso de 1.000 se
+   * leía «4.000,0 · 5.000,0», y con uno de 1 «1,0 · 2,0». El emergente conserva el decimal.
+   */
+  const axisTick = (value: number): string =>
+    unit === 'USD' || Math.abs(value) >= 1_000_000
+      ? compact(value)
+      : number(value, axisDecimals(domain, 1));
+
   const renderTooltip = ({ active, payload, label }: TooltipRender) => {
     if (!active || !payload?.length || typeof label !== 'string') return null;
     const point = payload[0]?.payload as MacroSeriesPoint | undefined;
@@ -1011,7 +1023,7 @@ export function MacroChart({
               domain={domain}
               tickCount={tickCountOf(domain)}
               width={54}
-              tickFormatter={compact}
+              tickFormatter={axisTick}
               {...AXIS}
             />
             <Tooltip content={renderTooltip} cursor={{ stroke: 'var(--rule)', strokeWidth: 1 }} />
@@ -1019,10 +1031,10 @@ export function MacroChart({
               <ReferenceLine y={0} stroke="var(--axis-rule)" strokeWidth={1} />
             ) : null}
             <Line
-              type="monotone"
+              type="linear"
               dataKey="value"
               stroke={tone}
-              strokeWidth={1.9}
+              strokeWidth={2}
               dot={false}
               animationDuration={MOTION.duration}
               animationEasing={MOTION.easing}
@@ -1052,7 +1064,7 @@ export function Sparkline({ data, tone }: { data: number[]; tone: string }) {
         <ComposedChart data={points} margin={{ top: 2, right: 0, bottom: 0, left: 0 }}>
           <YAxis domain={fittedDomain(data)} hide />
           <Line
-            type="monotone"
+            type="linear"
             dataKey="value"
             stroke={tone}
             strokeWidth={1.6}
@@ -1221,7 +1233,7 @@ export function SeriesChart({
                 label={{
                   value: 'cambio de método',
                   position: boundaryLate ? 'insideTopRight' : 'insideTopLeft',
-                  fontSize: 10,
+                  fontSize: 11,
                   fill: 'var(--axis-ink)',
                 }}
               />
@@ -1273,10 +1285,10 @@ export function SeriesChart({
               </Bar>
             ) : kind === 'area' ? (
               <Area
-                type="monotone"
+                type="linear"
                 dataKey="value"
                 stroke={tone}
-                strokeWidth={1.9}
+                strokeWidth={2}
                 fill={`url(#${gradientId})`}
                 dot={false}
                 animationDuration={MOTION.duration}
@@ -1284,10 +1296,10 @@ export function SeriesChart({
               />
             ) : (
               <Line
-                type="monotone"
+                type="linear"
                 dataKey="value"
                 stroke={tone}
-                strokeWidth={1.9}
+                strokeWidth={2}
                 dot={false}
                 animationDuration={MOTION.duration}
                 animationEasing={MOTION.easing}
@@ -2324,7 +2336,10 @@ export function DivergingBars({
 
   return (
     <div className="chart-stack">
-      <div className="chart-frame chart-frame-rows" style={{ height: Math.max(120, rows.length * 34 + 44) }}>
+      <div
+        className="chart-frame chart-frame-rows"
+        style={{ height: Math.max(120, rows.length * 34 + 44) }}
+      >
         <ResponsiveContainer width="100%" height="100%" onResize={labelMax.onResize}>
           <BarChart
             data={rows}
@@ -3082,7 +3097,7 @@ export function WorldLines({
             {series.map((one, index) => (
               <Line
                 key={one.key}
-                type="monotone"
+                type="linear"
                 dataKey={one.key}
                 name={one.label}
                 stroke={one.tone}
@@ -3281,9 +3296,7 @@ export function DatedLines({
   const axisWidth = domain
     ? Math.max(
         54,
-        Math.ceil(
-          Math.max(...domain.map((edge) => number(edge, axisDigits).length)) * 6.8 + 12,
-        ),
+        Math.ceil(Math.max(...domain.map((edge) => number(edge, axisDigits).length)) * 6.8 + 12),
       )
     : 54;
 
@@ -3339,7 +3352,7 @@ export function DatedLines({
                 label={{
                   value: band.label,
                   position: band.align === 'right' ? 'insideTopRight' : 'insideTopLeft',
-                  fontSize: 10,
+                  fontSize: 11,
                   fill: 'var(--axis-ink)',
                 }}
               />
@@ -3354,7 +3367,7 @@ export function DatedLines({
                       label: {
                         value: referenceLabel,
                         position: 'insideBottomRight',
-                        fontSize: 10,
+                        fontSize: 11,
                         fill: 'var(--axis-ink)',
                       },
                     }
@@ -3364,7 +3377,7 @@ export function DatedLines({
             {series.map((one, index) => (
               <Line
                 key={one.key}
-                type="monotone"
+                type="linear"
                 dataKey={one.key}
                 name={one.label}
                 stroke={one.tone}
@@ -3491,11 +3504,11 @@ export function RankLines({
             {lines.map((line, index) => (
               <Line
                 key={line.key}
-                type="monotone"
+                type="linear"
                 dataKey={line.key}
                 name={line.label}
                 stroke={line.tone}
-                strokeWidth={2.2}
+                strokeWidth={2}
                 dot={{ r: 3, strokeWidth: 0, fill: line.tone }}
                 activeDot={{ r: 5, strokeWidth: 0, fill: line.tone }}
                 connectNulls={false}
@@ -3636,7 +3649,7 @@ export function YearStackBars({
                 x={mark.year}
                 stroke="var(--rule)"
                 strokeDasharray="3 3"
-                label={{ value: '◆', position: 'top', fill: 'var(--ink-faint)', fontSize: 10 }}
+                label={{ value: '◆', position: 'top', fill: 'var(--ink-faint)', fontSize: 11 }}
               />
             ))}
             {keys.map((key, index) => (

@@ -6,22 +6,34 @@ import './globals.css';
 import './automotive.css';
 
 /*
- * Dos familias y nada más, alojadas en el propio repositorio: el build no
- * depende de una red externa y el lector no abre una conexión a un tercero para
- * ver una cifra. Newsreader solo para los títulos de pestaña y de panel; Public
- * Sans para todo lo demás. Son variables en el eje del peso, así que cada una es
- * un único archivo.
+ * Dos familias y nada más, las del New York Times en versión libre, alojadas en
+ * el propio repositorio: el build no depende de una red externa y el lector no
+ * abre una conexión a un tercero para ver una cifra.
+ *
+ * - Gelasio: la Georgia libre, con sus mismas métricas. Georgia es la sustituta
+ *   que el propio NYT declara para Cheltenham e Imperial, y es la serif que pide
+ *   el manual de identidad. Voz del texto: títulos de sección y entradillas.
+ * - Libre Franklin: la Franklin Gothic libre, la letra de los gráficos, la
+ *   navegación y las cifras del NYT. Voz de los datos: todo lo demás.
+ *
+ * Variables en el eje del peso, con su cursiva: dos archivos por familia.
  */
-const newsreader = localFont({
-  src: '../../public/fonts/Newsreader-Variable.woff2',
-  variable: '--font-newsreader',
-  weight: '200 800',
+const gelasio = localFont({
+  src: [
+    { path: '../../public/fonts/Gelasio-Variable.woff2', style: 'normal' },
+    { path: '../../public/fonts/Gelasio-Italic-Variable.woff2', style: 'italic' },
+  ],
+  variable: '--font-gelasio',
+  weight: '400 700',
   display: 'swap',
 });
 
-const publicSans = localFont({
-  src: '../../public/fonts/PublicSans-Variable.woff2',
-  variable: '--font-public-sans',
+const libreFranklin = localFont({
+  src: [
+    { path: '../../public/fonts/LibreFranklin-Variable.woff2', style: 'normal' },
+    { path: '../../public/fonts/LibreFranklin-Italic-Variable.woff2', style: 'italic' },
+  ],
+  variable: '--font-libre-franklin',
   weight: '100 900',
   display: 'swap',
 });
@@ -54,7 +66,7 @@ export const metadata: Metadata = {
 
 export const viewport: Viewport = {
   themeColor: [
-    { media: '(prefers-color-scheme: light)', color: '#f7f4ed' },
+    { media: '(prefers-color-scheme: light)', color: '#fffefb' },
     { media: '(prefers-color-scheme: dark)', color: '#0e1011' },
   ],
 };
@@ -64,7 +76,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     // El tablero público pone `data-theme` en <html> antes de hidratar (ver `THEME_BOOT`).
     <html
       lang="es-BO"
-      className={`${newsreader.variable} ${publicSans.variable}`}
+      className={`${gelasio.variable} ${libreFranklin.variable}`}
       suppressHydrationWarning
     >
       <body>

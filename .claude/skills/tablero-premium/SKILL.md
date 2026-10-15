@@ -62,17 +62,27 @@ nueva se añade ahí. La cabecera del sitio es `Masthead` y el pie, `SiteFooter`
 
 ## Tokens (solo estos; ningún literal suelto)
 
-- Tipografía: Newsreader (marca, títulos, entradillas, páginas del índice), Public Sans
-  (interfaz y datos). Escala 1,2 sobre 16 px: `--text-xs … --text-3xl`. Cifras de héroe
-  proporcionales; `tabular-nums` solo en tablas y ejes.
-- **MAYÚSCULAS espaciadas solo** en el antetítulo de sección, la franja de secciones y el
-  descriptor de la marca (`--kicker-size`, `--kicker-track`). Ningún otro rótulo.
+- Tipografía del NYT en versión libre (pedido del usuario, 15-oct-2026; no volver a cambiarla):
+  **Gelasio** (la Georgia libre, `--serif`) SOLO para el título de sección, el título de página,
+  los encabezados de grupo, las entradillas y la prosa de análisis; **Libre Franklin**
+  (`--sans`) para todo lo demás: navegación, filtros, botones, cifras, tablas y TODO lo que vive
+  dentro de una figura (título del panel, bajada, ejes, leyenda, fuente). Una cifra nunca va en
+  serif. Escala de ocho pasos: 12, 13, 15, 17, 20, 26, 34 y 44 px (`--text-xs … --text-3xl`) más
+  `--text-lede` (19 px, la entradilla). Ningún `font-size` literal.
+- **Versalitas solo** en el antetítulo de sección, el rótulo del carril («FILTROS») y el
+  descriptor de la marca (`--kicker-size`, `--kicker-track`). La barra de secciones va en caja baja.
+- La capa «Línea editorial» al final de `globals.css` manda: sin cajas (filete arriba y aire), un
+  solo aspecto para pastillas, botones, menús y campos (`--rule-strong`, radio 2 px, 13 px; lo
+  elegido en tinta llena), carril de filtros abierto por tinta de 2 px y sin marco, tablas sin
+  marco con encabezado en tinta. Lo nuevo usa esas clases; no se inventa otro control.
 - Espaciado `--s0 … --s6`. Radios de periódico: `--radius-sm` 2, `--radius-md` 3,
   `--radius-lg` 4 (`--radius-pill` solo para puntos y avatares).
-- Superficies: `--paper`/`--panel` marfil (los paneles no son tarjetas), `--field` papel
-  blanco (campos, menús, tooltip), `--panel-tint` arena clara.
-- Una sola sombra, solo para capas flotantes (menús, popovers). Los paneles se separan
-  por filete de tinta arriba, no por tarjetas.
+- Superficies: `--paper`/`--panel` papel #fffefb (los paneles no son tarjetas), `--field`
+  blanco (campos, menús, tooltip), `--panel-tint` marfil #f7f4ed (notas de contexto, fila elegida).
+- Una sola sombra, solo para capas flotantes (menús, popovers). Los paneles se separan por un
+  filete claro arriba; la tinta abre una página (`.sub-title`) y el carril de filtros.
+- Gráficos: líneas rectas (`type="linear"`), nunca curvas suavizadas: una curva inventa valores
+  entre dos años. Ejes en Franklin de 12 px con los decimales del paso (`axisDecimals`).
 - Un solo acento de interfaz: **`--accent`** (oro profundo #806337, 5,1:1): página abierta,
   foco, enlaces, selección. `--gold` (#aa884d, 3,0:1) es solo filete, monograma y adorno,
   **nunca texto**. `--series-*` es solo para datos. Los colores de estado son solo estado.
