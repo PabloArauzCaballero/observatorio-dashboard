@@ -35,7 +35,7 @@ export function factorPageMetadata(
   const dimensions = ['unit', 'frequency', 'measureType', 'geography'] as const;
   if (series.some((entry) => dimensions.some((key) => entry[key] !== first[key]))) {
     throw new FactorHistoryCompatibilityError(
-      'El histórico contiene cambios de unidad, frecuencia, tipo de medida o geografía. Reduce el rango para consultar un tramo compatible; no se mezclaron las observaciones.',
+      'El histórico contiene cambios de unidad, frecuencia, tipo de medida o geografía. Un rango más corto permite consultar un tramo compatible; no se mezclaron las observaciones.',
     );
   }
   return series[exportAll ? series.length - 1 : Math.min(pageSize, series.length) - 1];

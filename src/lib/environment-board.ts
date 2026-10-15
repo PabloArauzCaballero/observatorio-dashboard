@@ -73,7 +73,7 @@ export const ENVIRONMENT_INDICATORS: readonly EnvironmentIndicator[] = [
     unit: 'km²',
     group: 'BOSQUE',
     decimals: 0,
-    what: 'La misma superficie en kilómetros cuadrados, que es donde se ve el tamaño de lo perdido.',
+    what: 'La misma superficie en kilómetros cuadrados, que muestra la magnitud de la pérdida.',
   },
   {
     code: 'AG.LND.AGRI.ZS',
@@ -81,7 +81,7 @@ export const ENVIRONMENT_INDICATORS: readonly EnvironmentIndicator[] = [
     unit: '% del territorio',
     group: 'BOSQUE',
     decimals: 2,
-    what: 'Cultivos y pastos. Su avance es, casi siempre, el retroceso del bosque.',
+    what: 'Cultivos y pastos. Su avance coincide casi siempre con el retroceso del bosque.',
   },
   {
     code: 'AG.LND.ARBL.ZS',
@@ -105,7 +105,7 @@ export const ENVIRONMENT_INDICATORS: readonly EnvironmentIndicator[] = [
     unit: 'Mt de CO₂ equivalente',
     group: 'EMISIONES',
     decimals: 1,
-    what: 'Todos los gases, SIN contar el cambio de uso del suelo. Es la cifra que suelen citar los informes.',
+    what: 'Todos los gases, sin contar el cambio de uso del suelo. Es la cifra que suelen citar los informes.',
   },
   {
     code: 'EN.GHG.ALL.LU.MT.CE.AR5',
@@ -113,7 +113,7 @@ export const ENVIRONMENT_INDICATORS: readonly EnvironmentIndicator[] = [
     unit: 'Mt de CO₂ equivalente',
     group: 'EMISIONES',
     decimals: 1,
-    what: 'Lo mismo CONTANDO la deforestación y el cambio de uso del suelo. En Bolivia casi duplica la anterior.',
+    what: 'La misma medida, incluidos la deforestación y el cambio de uso del suelo. En Bolivia casi duplica la anterior.',
   },
   {
     code: 'EN.GHG.CO2.LU.DF.MT.CE.AR5',
@@ -121,7 +121,7 @@ export const ENVIRONMENT_INDICATORS: readonly EnvironmentIndicator[] = [
     unit: 'Mt de CO₂ equivalente',
     group: 'EMISIONES',
     decimals: 1,
-    what: 'Lo que emite el bosque tumbado: el carbono que tenía guardado y suelta al arder o al pudrirse.',
+    what: 'Emisiones del bosque talado: el carbono almacenado que se libera al quemarse o descomponerse.',
   },
   {
     code: 'EN.GHG.ALL.PC.CE.AR5',
@@ -150,10 +150,10 @@ export const ENVIRONMENT_INDICATORS: readonly EnvironmentIndicator[] = [
   {
     code: 'EN.GHG.CO2.RT.GDP.KD',
     label: 'Intensidad de carbono',
-    unit: 'kg de CO₂ por US$ de 2015',
+    unit: 'kg de CO₂ por USD de 2015',
     group: 'EMISIONES',
     decimals: 3,
-    what: 'Cuánto CO₂ cuesta producir un dólar. Baja cuando la economía se vuelve más limpia o cambia de sectores.',
+    what: 'CO₂ emitido por cada dólar de PIB. Baja cuando la producción se vuelve más limpia o cuando la economía cambia de sectores.',
   },
   {
     code: 'EN.GHG.TOT.ZG.AR5',
@@ -177,7 +177,7 @@ export const ENVIRONMENT_INDICATORS: readonly EnvironmentIndicator[] = [
     unit: '% de la población',
     group: 'AIRE',
     decimals: 1,
-    what: 'Qué parte del país respira un aire con más partículas de las que la OMS considera seguras.',
+    what: 'Parte de la población expuesta a más partículas de las que la OMS considera seguras.',
   },
   {
     code: 'NY.ADJ.DPEM.GN.ZS',
@@ -185,7 +185,7 @@ export const ENVIRONMENT_INDICATORS: readonly EnvironmentIndicator[] = [
     unit: '% del INB',
     group: 'AIRE',
     decimals: 3,
-    what: 'Lo que el Banco Mundial estima que cuesta en vidas y salud el aire con partículas, como parte del ingreso.',
+    what: 'Costo en vidas y salud de la contaminación por partículas, estimado por el Banco Mundial como porcentaje del ingreso nacional bruto (INB).',
   },
   {
     code: 'NY.ADJ.DCO2.GN.ZS',
@@ -193,7 +193,7 @@ export const ENVIRONMENT_INDICATORS: readonly EnvironmentIndicator[] = [
     unit: '% del INB',
     group: 'AIRE',
     decimals: 3,
-    what: 'Lo mismo para el dióxido de carbono emitido, valorado a un precio social del carbono.',
+    what: 'La misma estimación para el dióxido de carbono emitido, valorado a un precio social del carbono.',
   },
   {
     code: 'ER.H2O.FWST.ZS',
@@ -201,7 +201,7 @@ export const ENVIRONMENT_INDICATORS: readonly EnvironmentIndicator[] = [
     unit: '% del agua disponible',
     group: 'AGUA',
     decimals: 2,
-    what: 'Extracción sobre agua dulce disponible. Ojo: es una cuenta nacional, y en Bolivia el agua está en la Amazonía mientras la extracción está en el altiplano y el valle.',
+    what: 'Extracción sobre agua dulce disponible. Es un promedio nacional: en Bolivia el agua está en la Amazonía y la extracción se concentra en el altiplano y los valles.',
   },
   {
     code: 'ER.H2O.FWTL.ZS',
@@ -209,7 +209,7 @@ export const ENVIRONMENT_INDICATORS: readonly EnvironmentIndicator[] = [
     unit: '% de los recursos internos',
     group: 'AGUA',
     decimals: 2,
-    what: 'Toda el agua que se saca en el año, contra la que el ciclo repone dentro del país.',
+    what: 'Agua extraída en el año frente a la que el ciclo hidrológico repone dentro del país.',
   },
   {
     code: 'ER.H2O.FWAG.ZS',
@@ -225,12 +225,12 @@ export const ENVIRONMENT_INDICATORS: readonly EnvironmentIndicator[] = [
     unit: 'm³ al año',
     group: 'AGUA',
     decimals: 0,
-    what: 'Lo que el ciclo del agua repone cada año, repartido entre la población. Cae sola cuando la población crece.',
+    what: 'Agua que el ciclo hidrológico repone cada año, dividida entre la población. Baja cuando la población crece.',
   },
   {
     code: 'ER.GDP.FWTL.M3.KD',
     label: 'Productividad del agua',
-    unit: 'US$ de 2015 por m³',
+    unit: 'USD de 2015 por m³',
     group: 'AGUA',
     decimals: 2,
     what: 'Cuánto PIB se produce con cada metro cúbico extraído.',
@@ -241,7 +241,7 @@ export const ENVIRONMENT_INDICATORS: readonly EnvironmentIndicator[] = [
     unit: '% del territorio',
     group: 'PROTECCION',
     decimals: 1,
-    what: 'Territorio bajo alguna figura de protección. Es una cifra de papel: dice qué está declarado, no qué se vigila.',
+    what: 'Territorio bajo alguna figura de protección. Mide la superficie declarada, no la vigilada.',
   },
   {
     code: 'EN.MAM.THRD.NO',
@@ -249,7 +249,7 @@ export const ENVIRONMENT_INDICATORS: readonly EnvironmentIndicator[] = [
     unit: 'especies',
     group: 'PROTECCION',
     decimals: 0,
-    what: 'Especies en la lista roja de la UICN con presencia en el país.',
+    what: 'Especies con presencia en el país incluidas en la Lista Roja de la UICN.',
   },
   {
     code: 'EN.BIR.THRD.NO',
@@ -374,7 +374,7 @@ function forestConclusion(series: EnvironmentBoard['series']): FxConclusion | nu
     figure: `${say(share.value, 1)} % del territorio`,
     detail:
       `En ${share.year} el bosque cubría ${say(share.value, 1)} % del país, contra ` +
-      `${say(shareStart.value, 1)} % en ${shareStart.year}: ${say(lostPoints, 1)} puntos menos` +
+      `${say(shareStart.value, 1)} % en ${shareStart.year}: ${say(lostPoints, 1)} puntos porcentuales menos` +
       (lostKm !== null && areaStart && areaStart.value > 0
         ? `, que son ${say(lostKm, 0)} km² —${say((lostKm / areaStart.value) * 100, 1)} % del bosque ` +
           `que había en ${areaStart.year}—`
@@ -418,8 +418,8 @@ function landUseConclusion(series: EnvironmentBoard['series']): FxConclusion | n
     key: 'suelo',
     claim:
       times >= 1.8
-        ? 'Contando la deforestación, Bolivia emite el doble de lo que dice su cifra más citada'
-        : 'La cifra de emisiones que más circula deja fuera la mayor fuente boliviana',
+        ? `Con la deforestación, las emisiones de Bolivia multiplican por ${say(times, 1)} su cifra más citada`
+        : 'La cifra de emisiones más citada deja fuera la mayor fuente de Bolivia',
     figure: `×${say(times, 2)}`,
     detail:
       `En ${shared.year} las emisiones con uso del suelo fueron ${say(shared.value, 1)} Mt de CO₂ ` +
@@ -483,7 +483,7 @@ function airConclusion(series: EnvironmentBoard['series']): FxConclusion | null 
     key: 'aire',
     claim:
       times > 1
-        ? 'El aire que se respira tiene varias veces las partículas que la OMS considera seguras'
+        ? `La exposición a partículas finas es ${say(times, 1)} veces la guía de la OMS`
         : 'La exposición media a partículas está dentro de la guía de la OMS',
     figure: `${say(pm.value, 1)} µg/m³`,
     detail:
@@ -527,7 +527,7 @@ function waterConclusion(board: Pick<EnvironmentBoard, 'series' | 'latest'>): Fx
   const below = stress ? across.filter(([, reading]) => reading.value < stress.value).length : null;
   return {
     key: 'agua',
-    claim: 'En la cuenta nacional sobra agua; la cuenta nacional no es donde falta',
+    claim: 'El promedio nacional de agua oculta la escasez local',
     figure: stress ? `${say(stress.value, 2)} % de estrés` : `${say(base.value, 2)} % extraído`,
     detail:
       (stress
@@ -538,15 +538,15 @@ function waterConclusion(board: Pick<EnvironmentBoard, 'series' | 'latest'>): Fx
           ? `, la más baja de los ${across.length + 1} países del tablero`
           : `, y sólo ${below} de los ${across.length} vecinos del panel tienen una cifra menor`
         : '') +
-      `. Esa cifra engaña: el indicador reparte sobre un recurso renovable que está casi todo en ` +
-      `la cuenca amazónica mientras la extracción está en el altiplano y en el valle.` +
+      `. El promedio nacional oculta la escasez local: el recurso renovable está casi todo en ` +
+      `la cuenca amazónica y la extracción se concentra en el altiplano y los valles.` +
       (agriculture
         ? ` De toda el agua extraída, ${say(agriculture.value, 1)} % va al riego (${agriculture.year}).`
         : '') +
       (perCapita && perCapitaStart
         ? ` El agua renovable por habitante pasó de ${say(perCapitaStart.value, 0)} m³ en ` +
-          `${perCapitaStart.year} a ${say(perCapita.value, 0)} en ${perCapita.year}, que es lo que ` +
-          `hace la población al crecer sobre un caudal fijo.`
+          `${perCapitaStart.year} a ${say(perCapita.value, 0)} en ${perCapita.year}, por el ` +
+          `crecimiento de la población sobre un caudal fijo.`
         : ''),
     tone: 'neutral',
   };
@@ -572,10 +572,9 @@ function protectionConclusion(series: EnvironmentBoard['series']): FxConclusion 
     figure: `${say(land.value, 1)} % del territorio`,
     detail:
       `${say(land.value, 1)} % del territorio tenía alguna figura de protección en ${land.year}. ` +
-      `Es lo declarado, no lo vigilado: el indicador cuenta superficie con figura legal y no dice ` +
-      `nada sobre su control.` +
+      `El indicador mide la superficie con figura legal, no su control efectivo.` +
       (threatened > 0
-        ? ` En la lista roja de la UICN aparecen ${say(threatened, 0)} especies amenazadas con ` +
+        ? ` En la Lista Roja de la UICN aparecen ${say(threatened, 0)} especies amenazadas con ` +
           `presencia en el país` +
           (mammals ? `: ${say(mammals.value, 0)} mamíferos` : '') +
           (birds ? `, ${say(birds.value, 0)} aves` : '') +
@@ -607,7 +606,7 @@ function farmlandConclusion(series: EnvironmentBoard['series']): FxConclusion | 
     figure: `${say(farmland.value, 1)} % del territorio`,
     detail:
       `La tierra agrícola era ${say(farmland.value, 1)} % del territorio en ${farmland.year}, contra ` +
-      `${say(farmlandStart.value, 1)} % en ${farmlandStart.year}: ${say(gained, 1)} puntos más en ` +
+      `${say(farmlandStart.value, 1)} % en ${farmlandStart.year}: ${say(gained, 1)} puntos porcentuales más en ` +
       `${farmland.year - farmlandStart.year} años.` +
       (arable
         ? ` La parte que se ara —sin pastos— es ${say(arable.value, 1)} % del territorio.`

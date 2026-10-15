@@ -685,7 +685,7 @@ function buildDocument(report: AnalysisReport): string {
       período ${escapeHtml(report.span)} tal como estaban filtradas en pantalla. La media recortada
       quita el 10 % de cada cola; los atípicos son los que caen fuera de los bigotes de Tukey
       (1,5 × RIC); la curtosis se reporta en exceso, de modo que cero es la normal.<br>
-      <b>Definición:</b> redactada por el ${escapeHtml(report.definitionAuthor)} a partir del
+      <b>Definición:</b> redactada por ${escapeHtml(report.definitionAuthor)} a partir del
       concepto estándar. No es la del publicador.<br>
       <b>Reproducibilidad:</b> el CSV y el JSON de esta misma selección se descargan desde el
       tablero, en el panel de macroeconomía.

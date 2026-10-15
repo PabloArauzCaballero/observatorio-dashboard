@@ -144,12 +144,12 @@ test.describe('sitio público · revisión visual y de accesibilidad', () => {
     await page.evaluate(() => {
       (window as unknown as { __marca: string }).__marca = 'sin-recarga';
     });
-    await page.locator('nav.site-index .site-page', { hasText: 'Social Info' }).click();
-    await expect(page.locator('[data-site-id="macroeconomia--social-info"]')).toBeVisible({
+    await page.locator('nav.site-index .site-page', { hasText: 'Indicadores sociales' }).click();
+    await expect(page.locator('[data-site-id="macroeconomia--indicadores-sociales"]')).toBeVisible({
       timeout: 60_000,
     });
     await expect(page.locator('[data-site-id="macroeconomia--series-de-bolivia"]')).toHaveCount(0);
-    await expect(page).toHaveURL(/pagina=social-info/);
+    await expect(page).toHaveURL(/pagina=indicadores-sociales/);
     expect(await page.evaluate(() => (window as unknown as { __marca?: string }).__marca)).toBe(
       'sin-recarga',
     );

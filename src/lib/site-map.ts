@@ -45,7 +45,7 @@ export const SITE: readonly SiteSection[] = [
     icon: 'globo',
     pages: paginas(
       'Series de Bolivia',
-      'Social Info',
+      'Indicadores sociales',
       'Bolivia ante el mundo',
       'Variables exógenas',
       'Series del BCB',
@@ -90,6 +90,7 @@ export const SITE: readonly SiteSection[] = [
 /** Páginas que dejaron de existir como entrada propia y dónde viven ahora, por sección. */
 const PAGINAS_FUSIONADAS: Readonly<Record<string, Readonly<Record<string, string>>>> = {
   macroeconomia: {
+    'social-info': 'Indicadores sociales',
     'demanda-externa-y-clima': 'Variables exógenas',
     'factores-externos': 'Variables exógenas',
     'detalle-aduanero-ine': 'Comercio exterior',

@@ -56,7 +56,7 @@ const MINIMUM_MONTHS = 24;
 const MINIMUM_KG = 100_000;
 
 const NOTE =
-  'Valor CIF en frontera menos valor FOB, por tonelada de peso bruto importada (base aduanera del INE). Incluye flete y seguro hasta la frontera, no sólo el tramo marítimo, y cambia con lo que se importa: es un valor unitario, no una tarifa. No se dibujan los meses de menos de 100 toneladas importadas: sobre un peso así el cociente es ruido.';
+  'Valor CIF en frontera menos valor FOB, por tonelada de peso bruto importada (base aduanera del INE). Incluye flete y seguro hasta la frontera, no sólo el tramo marítimo, y cambia con lo que se importa: es un valor unitario, no una tarifa. No se dibujan los meses con menos de 100 toneladas importadas: con un peso tan bajo, el cociente no es representativo.';
 
 const seriesOf = (
   code: string,
@@ -74,7 +74,7 @@ const seriesOf = (
   unit: 'US$/tonelada',
   kind: 'PRICE',
   frequency: 'MONTHLY',
-  publisher: 'INSTITUTO NACIONAL DE ESTADÍSTICA (ADUANA)',
+  publisher: 'Instituto Nacional de Estadística (INE), base aduanera',
   note: NOTE,
   sourceUrl: 'https://www.ine.gob.bo/index.php/estadisticas-economicas/comercio-exterior/importaciones-bases-de-datos/',
   points,

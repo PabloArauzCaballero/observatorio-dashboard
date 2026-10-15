@@ -43,14 +43,14 @@ export function PanelSection({ guests }: { guests?: readonly GuestRubro[] }) {
   if (failed) {
     return (
       <div className="callout">
-        No se pudo leer Social Info. El resto del capítulo sigue al día.
+        No se pudieron leer los indicadores sociales. El resto del capítulo sigue al día.
       </div>
     );
   }
 
   // Un aviso y no una retícula vacía: mil quinientas series tardan lo suyo en
   // llegar, y una pantalla en blanco durante ese rato se lee como un fallo.
-  if (!bundle) return <div className="callout">Cargando Social Info…</div>;
+  if (!bundle) return <div className="callout">Cargando los indicadores sociales…</div>;
 
   /* `exactOptionalPropertyTypes`: una lista ausente se omite, no se pasa vacía. */
   return <MacroExplorer bundle={bundle} corpus="catalogo" {...(guests ? { guests } : {})} />;
