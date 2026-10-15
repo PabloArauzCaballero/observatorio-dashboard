@@ -286,8 +286,8 @@ export function BcbSection() {
   if (!page.families.length && !page.results.length && !family && !workbook && !text) {
     return (
       <div className="callout">
-        Todavía no hay estadísticas del Banco Central cargadas. La pestaña se llena sola cuando el
-        núcleo del observatorio tenga sembrado el catálogo «bcb-statistics» (migración 0091).
+        Las estadísticas del Banco Central aún no están disponibles. La página se completará
+        cuando se cargue su catálogo.
       </div>
     );
   }
@@ -353,8 +353,9 @@ export function BcbSection() {
         <details className="panel-note">
           <summary>Cómo leerlo</summary>
           <p>
-            Entrá por el informe y la hoja en el riel de la izquierda; los filtros se recortan entre
-            sí. Cada serie guarda el cuaderno, la hoja y la celda de la que salió.
+            La consulta empieza por el informe y la hoja, en el panel de filtros; cada filtro
+            recorta las opciones de los demás. Cada serie conserva el cuaderno, la hoja y la celda
+            de origen.
           </p>
         </details>
         <div className="chips" role="tablist" aria-label="Familia">
@@ -415,7 +416,7 @@ export function BcbSection() {
             </span>
           </div>
           <p className="rail-hint-top">
-            Elegí una opción por filtro. Volvé a tocarla para quitarla. Cada filtro recorta los de abajo.
+            Una opción por filtro; al seleccionarla de nuevo, se quita. Cada filtro recorta los de abajo.
           </p>
 
           <div className="rail-sec">
@@ -523,7 +524,7 @@ export function BcbSection() {
           {loading && !shown.length ? <div className="callout">Buscando…</div> : null}
           {!loading && !shown.length ? (
             <div className="callout">
-              Ninguna serie coincide con el recorte. Quitá un filtro de la izquierda.
+              No hay series para estos filtros. Quitar un filtro amplía la búsqueda.
             </div>
           ) : null}
 
@@ -532,7 +533,7 @@ export function BcbSection() {
               <div className="list-bar-text">
                 <h3>Series elegidas</h3>
                 <span className="tile-hint">
-                  {selected.length} de hasta {MAX_SELECTED}; cada gráfico se baja desde su menú
+                  {selected.length} de hasta {MAX_SELECTED}; cada gráfico se descarga desde su menú
                 </span>
               </div>
               <div className="download">
@@ -582,7 +583,7 @@ export function BcbSection() {
                   {...floor(group)}
                 />
                 <details className="panel-note">
-                  <summary>De dónde salió</summary>
+                  <summary>Procedencia</summary>
                   <p>
                     {provenance(group).map((entry, index) => (
                       <span key={entry.key}>
@@ -606,12 +607,12 @@ export function BcbSection() {
 
           <Panel
             id="bcb-series"
-            title={`Series de este recorte (${page.total.toLocaleString('es-BO')} series)`}
-            lede={`Elegí hasta ${MAX_SELECTED} para dibujarlas juntas. Las de distinta unidad van en gráficos separados.`}
+            title={`Series del BCB con estos filtros (${page.total.toLocaleString('es-BO')} series)`}
+            lede={`Hasta ${MAX_SELECTED} series se dibujan juntas; las de distinta unidad van en gráficos separados.`}
             meta={
               loading ? 'Actualizando…' : `${shown.length} de ${page.total.toLocaleString('es-BO')}`
             }
-            source="Banco Central de Bolivia (catálogo de cuadernos y hojas que recoge el Observatorio)"
+            source="Banco Central de Bolivia (BCB), catálogo de cuadernos y hojas"
             data={() => ({
               unidad: 'cada serie en su unidad; aquí solo el catálogo, sin los valores',
               columnas: [

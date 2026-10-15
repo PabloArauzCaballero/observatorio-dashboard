@@ -122,7 +122,7 @@ function Latest({ code, board }: { code: string; board: EnvironmentBoard }) {
 const SOURCE = 'Banco Mundial (Indicadores del Desarrollo Mundial)';
 const SOURCE_FOREST = `${SOURCE}, con el inventario de la FAO`;
 const SOURCE_GAS = `${SOURCE}, con el inventario EDGAR (métricas del quinto informe del IPCC)`;
-const SOURCE_PROTECTED = `${SOURCE}, con la lista roja de la UICN`;
+const SOURCE_PROTECTED = `${SOURCE}, con la Lista Roja de la UICN`;
 
 const share = (value: number): string => `${number(value, 1)} %`;
 const megatonnes = (value: number): string => `${number(value, 1)} Mt`;
@@ -170,11 +170,11 @@ export function EnvironmentExplorer({ board: entire }: { board: EnvironmentBoard
       <TabHeader
         id="ambiente"
         title="Medio ambiente"
-        lede={`El bosque que queda, lo que el país emite, el aire que respira y el agua que extrae. Todas las cifras son del Banco Mundial con la misma definición para Bolivia y para cada vecino. El dato más reciente es de ${board.asOfYear ?? '—'}: los inventarios de emisiones cierran antes que los de bosque, así que no todos los paneles terminan en el mismo año y cada uno lleva el suyo escrito.`}
+        lede={`Cobertura de bosque, emisiones, calidad del aire y extracción de agua. Todas las cifras son del Banco Mundial, con una definición común para Bolivia y sus vecinos. El dato más reciente es de ${board.asOfYear ?? '—'}; los inventarios de emisiones y de bosque cierran en años distintos, por lo que cada panel indica el suyo.`}
       />
       <DerivedReading
         title="Qué dicen estos datos"
-        note="Cada frase sale de las series de este capítulo y se recalcula con cada carga. Dice qué nivel hay y contra qué se compara; no dice por qué ni qué va a pasar."
+        note="Cada frase se calcula con las series de este capítulo y se actualiza con cada carga. Indica el nivel y la referencia con que se compara; no explica causas ni anticipa tendencias."
         conclusions={board.conclusions}
         icons={CONCLUSION_ICON}
       />
@@ -189,7 +189,7 @@ export function EnvironmentExplorer({ board: entire }: { board: EnvironmentBoard
         <Panel
           id="ambiente-bosque"
           title={ENVIRONMENT_GROUP_LABEL.BOSQUE}
-          lede="El bosque y el suelo: qué parte del país está cubierta de bosque y qué parte es tierra agrícola. Las dos líneas se mueven en espejo, que es lo que quiere decir frontera agrícola."
+          lede="Parte del territorio cubierta de bosque y parte dedicada a la agricultura. Las dos líneas se mueven en espejo: lo que gana la frontera agrícola lo pierde el bosque."
           source={SOURCE_FOREST}
         >
           <div className="stat-strip">
@@ -204,8 +204,8 @@ export function EnvironmentExplorer({ board: entire }: { board: EnvironmentBoard
         </Panel>
         <Panel
           id="ambiente-bosque-km2"
-          title="Bosque que queda (km²)"
-          lede="La misma superficie en kilómetros cuadrados, que es donde se ve el tamaño de lo perdido: el porcentaje baja despacio porque el territorio es grande."
+          title="Superficie de bosque (km²)"
+          lede="La misma superficie en kilómetros cuadrados, que muestra la magnitud de la pérdida: el porcentaje baja despacio porque el territorio es extenso."
           source={SOURCE_FOREST}
         >
           {forestArea.length > 1 ? (
@@ -214,8 +214,8 @@ export function EnvironmentExplorer({ board: entire }: { board: EnvironmentBoard
         </Panel>
         <Panel
           id="ambiente-bosque-vecinos"
-          title="Bosque, Bolivia contra sus vecinos (% del territorio)"
-          lede="La cobertura de cada país sobre el mismo eje. La línea gruesa es Bolivia; la pendiente importa más que el nivel, porque el nivel lo fija la geografía."
+          title="Bosque, Bolivia y sus vecinos (% del territorio)"
+          lede="La cobertura de cada país sobre el mismo eje. La línea gruesa es Bolivia. La pendiente dice más que el nivel, porque el nivel lo fija la geografía."
           source={SOURCE_FOREST}
         >
           {forestAcross.data.length > 1 ? (
@@ -231,7 +231,7 @@ export function EnvironmentExplorer({ board: entire }: { board: EnvironmentBoard
         <Panel
           id="ambiente-emisiones"
           title={ENVIRONMENT_GROUP_LABEL.EMISIONES}
-          lede="Lo que el país emite, en las dos medidas que existen: sin contar el cambio de uso del suelo y contándolo. Van juntas a propósito: dar solo la primera, que es la que suelen citar los informes, dice casi lo contrario de lo que pasa."
+          lede="Las emisiones del país en sus dos medidas: sin el cambio de uso del suelo y con él. Se presentan juntas porque la primera, la que suelen citar los informes, deja fuera la deforestación, la mayor fuente de emisiones de Bolivia."
           source={SOURCE_GAS}
         >
           <div className="stat-strip">
@@ -253,7 +253,7 @@ export function EnvironmentExplorer({ board: entire }: { board: EnvironmentBoard
         <Panel
           id="ambiente-emisiones-habitante"
           title="Emisiones por habitante, Bolivia y vecinos (t de CO₂ equivalente)"
-          lede="Sin contar el uso del suelo, que es la única forma de que la comparación entre países de tamaños distintos signifique algo."
+          lede="Toneladas por persona, sin el cambio de uso del suelo, para comparar países de tamaños distintos. La línea gruesa es Bolivia."
           source={SOURCE_GAS}
         >
           {perCapitaAcross.data.length > 1 ? (
@@ -268,7 +268,7 @@ export function EnvironmentExplorer({ board: entire }: { board: EnvironmentBoard
         <Panel
           id="ambiente-gases-agro"
           title="Gases del agro (Mt de CO₂ equivalente)"
-          lede="Metano del ganado y del arroz, y óxido nitroso de los fertilizantes y del manejo del suelo. Es la parte de las emisiones que crece con la frontera agrícola y no con la industria."
+          lede="Metano del ganado y del arroz, y óxido nitroso de los fertilizantes y del manejo del suelo. Es la parte de las emisiones que crece con la frontera agrícola, no con la industria."
           source={SOURCE_GAS}
         >
           {agro.data.length > 1 ? (
@@ -284,7 +284,7 @@ export function EnvironmentExplorer({ board: entire }: { board: EnvironmentBoard
         <Panel
           id="ambiente-aire"
           title={ENVIRONMENT_GROUP_LABEL.AIRE}
-          lede={`El aire que se respira, medido como exposición media de la población a partículas finas. La guía de la OMS desde 2021 es de ${WHO_PM25_GUIDELINE} µg/m³, y es contra ella —y no contra el propio pasado— como se lee esta serie.`}
+          lede={`Exposición media de la población a partículas finas, Bolivia y sus vecinos. La referencia es la guía de la Organización Mundial de la Salud (OMS) de 2021, de ${WHO_PM25_GUIDELINE} µg/m³, no la propia historia de la serie.`}
           source={SOURCE}
         >
           <div className="stat-strip">
@@ -303,14 +303,14 @@ export function EnvironmentExplorer({ board: entire }: { board: EnvironmentBoard
         </Panel>
         <Panel
           id="ambiente-intensidad-carbono"
-          title="Intensidad de carbono (kg de CO₂ por US$ de 2015)"
-          lede="Cuánto CO₂ cuesta producir un dólar. Baja cuando la economía se limpia y también cuando simplemente se mueve hacia servicios, así que no es por sí sola una buena noticia."
+          title="Intensidad de carbono (kg de CO₂ por USD de 2015)"
+          lede="CO₂ emitido por cada dólar de PIB. Baja cuando la producción se vuelve más limpia, pero también cuando la economía se desplaza hacia los servicios; un descenso no distingue entre ambas causas."
           source={SOURCE}
         >
           {intensity.length > 1 ? (
             <MacroChart
               data={intensity}
-              unit="kg/US$"
+              unit="kg/USD"
               tone="var(--series-3)"
               label="Intensidad de carbono"
             />
@@ -319,7 +319,7 @@ export function EnvironmentExplorer({ board: entire }: { board: EnvironmentBoard
         <Panel
           id="ambiente-agua"
           title={ENVIRONMENT_GROUP_LABEL.AGUA}
-          lede="El agua extraída y el agua disponible. La cifra nacional es engañosa y conviene decirlo en el mismo sitio donde se dibuja: el recurso renovable está casi todo en la cuenca amazónica y la extracción está en el altiplano y en el valle, así que un estrés hídrico nacional bajo convive con escasez local."
+          lede="El promedio nacional oculta la escasez local: el recurso renovable está casi todo en la cuenca amazónica y la extracción se concentra en el altiplano y los valles. Un estrés hídrico nacional bajo convive así con falta de agua en las zonas más pobladas."
           source={SOURCE}
         >
           <div className="stat-strip">
@@ -336,7 +336,7 @@ export function EnvironmentExplorer({ board: entire }: { board: EnvironmentBoard
         <Panel
           id="ambiente-proteccion"
           title={ENVIRONMENT_GROUP_LABEL.PROTECCION}
-          lede="Lo que está declarado protegido y lo que la lista roja de la UICN cuenta aparte. La primera cifra es de papel: dice qué tiene figura legal, no qué se vigila."
+          lede="Superficie declarada protegida y especies amenazadas según la Lista Roja de la Unión Internacional para la Conservación de la Naturaleza (UICN). La primera cifra mide la figura legal, no el control efectivo sobre el terreno."
           source={SOURCE_PROTECTED}
           data={() =>
             latestRows([
@@ -360,15 +360,15 @@ export function EnvironmentExplorer({ board: entire }: { board: EnvironmentBoard
 
       <p className="guest-note">
         El cuadro «Bolivia y sus vecinos» —el último dato de cada país en las series que distinguen
-        un territorio de otro— está ahora en la pestaña «Bolivia ante el mundo», junto a los de
+        un territorio de otro— se encuentra en la página «Bolivia ante el mundo», junto a los de
         energía y recursos naturales.
       </p>
       <p className="guest-note">
-        Series del Banco Mundial (Indicadores del Desarrollo Mundial), leídas del panel de treinta
-        economías que recoge el núcleo del observatorio. El bosque viene del inventario de la FAO,
-        las emisiones del inventario EDGAR bajo las métricas del quinto informe del IPCC, y las
-        especies amenazadas de la lista roja de la UICN. Las definiciones de cada serie están en
-        «Social Info».
+        Series del Banco Mundial (Indicadores del Desarrollo Mundial), tomadas del panel de treinta
+        economías que recopila DatosBolivia. El bosque procede del inventario de la FAO, las
+        emisiones del inventario EDGAR con las métricas del quinto informe del IPCC, y las especies
+        amenazadas de la Lista Roja de la UICN. Las definiciones de cada serie están en
+        «Indicadores sociales».
       </p>
     </div>
   );

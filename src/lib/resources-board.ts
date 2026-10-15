@@ -47,9 +47,9 @@ export type ResourceGroup = 'RENTA' | 'CANASTA' | 'AGOTAMIENTO' | 'TRANSFORMACIO
  */
 export const RESOURCE_GROUP_LABEL: Record<ResourceGroup, string> = {
   RENTA: 'Renta de cada recurso (% del PIB)',
-  CANASTA: 'Composición de lo exportado (% de las mercancías)',
+  CANASTA: 'Composición de las exportaciones (% de las mercancías)',
   AGOTAMIENTO: 'Ahorro ajustado y patrimonio consumido (% del INB)',
-  TRANSFORMACION: 'Manufactura, campo e inversión fija (% del PIB)',
+  TRANSFORMACION: 'Manufactura, agro e inversión fija (% del PIB)',
 };
 
 export interface ResourceIndicator {
@@ -68,7 +68,7 @@ export const RESOURCE_INDICATORS: readonly ResourceIndicator[] = [
     unit: '% del PIB',
     group: 'RENTA',
     decimals: 2,
-    what: 'Lo que los minerales metálicos —zinc, plata, oro, estaño, plomo— dejan por encima de su costo de extracción.',
+    what: 'Valor de los minerales metálicos —cinc, plata, oro, estaño, plomo— por encima de su costo de extracción.',
   },
   {
     code: 'NY.GDP.NGAS.RT.ZS',
@@ -92,7 +92,7 @@ export const RESOURCE_INDICATORS: readonly ResourceIndicator[] = [
     unit: '% del PIB',
     group: 'RENTA',
     decimals: 2,
-    what: 'Lo que deja la madera extraída por encima del valor de reposición del bosque.',
+    what: 'Valor de la madera extraída por encima del valor de reposición del bosque.',
   },
   {
     code: 'NY.GDP.COAL.RT.ZS',
@@ -100,15 +100,15 @@ export const RESOURCE_INDICATORS: readonly ResourceIndicator[] = [
     unit: '% del PIB',
     group: 'RENTA',
     decimals: 2,
-    what: 'Lo mismo para el carbón. En Bolivia es casi cero y sirve de contraste con los vecinos que sí lo extraen.',
+    what: 'Lo mismo para el carbón. En Bolivia es casi nula y sirve de contraste con los vecinos que sí lo extraen.',
   },
   {
     code: 'NY.GDP.TOTL.RT.ZS',
-    label: 'Renta de todos los recursos',
+    label: 'Renta total de recursos naturales',
     unit: '% del PIB',
     group: 'RENTA',
     decimals: 2,
-    what: 'Minerales, gas, petróleo, carbón y bosque sumados.',
+    what: 'Rentas de minerales, gas, petróleo, carbón y bosques sumadas.',
   },
   {
     code: 'TX.VAL.MMTL.ZS.UN',
@@ -116,7 +116,7 @@ export const RESOURCE_INDICATORS: readonly ResourceIndicator[] = [
     unit: '% de las mercancías exportadas',
     group: 'CANASTA',
     decimals: 1,
-    what: 'Peso de los minerales y metales en lo que el país vende afuera.',
+    what: 'Peso de los minerales y metales en las exportaciones de mercancías.',
   },
   {
     code: 'TX.VAL.FUEL.ZS.UN',
@@ -124,7 +124,7 @@ export const RESOURCE_INDICATORS: readonly ResourceIndicator[] = [
     unit: '% de las mercancías exportadas',
     group: 'CANASTA',
     decimals: 1,
-    what: 'Peso del gas y los derivados del petróleo en lo exportado.',
+    what: 'Peso del gas y los derivados del petróleo en las exportaciones de mercancías.',
   },
   {
     code: 'TX.VAL.FOOD.ZS.UN',
@@ -132,7 +132,7 @@ export const RESOURCE_INDICATORS: readonly ResourceIndicator[] = [
     unit: '% de las mercancías exportadas',
     group: 'CANASTA',
     decimals: 1,
-    what: 'Soya, quinua, azúcar, carne y lo demás que se come.',
+    what: 'Soya, quinua, azúcar, carne y demás alimentos.',
   },
   {
     code: 'TX.VAL.AGRI.ZS.UN',
@@ -140,7 +140,7 @@ export const RESOURCE_INDICATORS: readonly ResourceIndicator[] = [
     unit: '% de las mercancías exportadas',
     group: 'CANASTA',
     decimals: 1,
-    what: 'Madera, cueros y fibras: lo que sale del campo sin ser alimento.',
+    what: 'Madera, cueros y fibras: productos agropecuarios que no son alimentos.',
   },
   {
     code: 'TX.VAL.MANF.ZS.UN',
@@ -148,7 +148,7 @@ export const RESOURCE_INDICATORS: readonly ResourceIndicator[] = [
     unit: '% de las mercancías exportadas',
     group: 'CANASTA',
     decimals: 1,
-    what: 'Todo lo que salió de una fábrica. Es el complemento de lo primario: cuanto más suben los minerales, más baja esto.',
+    what: 'Bienes industriales. Se mueven en sentido contrario a los primarios: cuando sube el peso de los minerales, baja el de las manufacturas.',
   },
   {
     code: 'NY.ADJ.DRES.GN.ZS',
@@ -156,7 +156,7 @@ export const RESOURCE_INDICATORS: readonly ResourceIndicator[] = [
     unit: '% del INB',
     group: 'AGOTAMIENTO',
     decimals: 2,
-    what: 'Valor del patrimonio natural consumido en el año: lo que se extrajo y ya no está bajo tierra.',
+    what: 'Valor del patrimonio natural consumido en el año: los recursos extraídos que ya no están disponibles.',
   },
   {
     code: 'NY.ADJ.DMIN.GN.ZS',
@@ -188,7 +188,7 @@ export const RESOURCE_INDICATORS: readonly ResourceIndicator[] = [
     unit: '% del INB',
     group: 'AGOTAMIENTO',
     decimals: 2,
-    what: 'Ahorro bruto menos la depreciación del capital y el agotamiento del subsuelo, más el gasto en educación. Negativo quiere decir que el país consume su patrimonio.',
+    what: 'Ahorro bruto menos la depreciación del capital y el agotamiento de los recursos naturales, más el gasto en educación. Un valor negativo indica que el país consume su patrimonio.',
   },
   {
     code: 'NY.ADJ.AEDU.GN.ZS',
@@ -201,10 +201,10 @@ export const RESOURCE_INDICATORS: readonly ResourceIndicator[] = [
   {
     code: 'NY.ADJ.NNTY.PC.KD',
     label: 'Ingreso neto ajustado por habitante',
-    unit: 'US$ de 2015',
+    unit: 'USD de 2015',
     group: 'AGOTAMIENTO',
     decimals: 0,
-    what: 'El ingreso por persona una vez descontados la depreciación y el agotamiento: el PIB per cápita menos lo que costó producirlo en patrimonio.',
+    what: 'Ingreso por persona descontadas la depreciación del capital y el agotamiento de los recursos: el ingreso por habitante menos el costo de producirlo en patrimonio.',
   },
   {
     code: 'NV.IND.MANF.ZS',
@@ -212,7 +212,7 @@ export const RESOURCE_INDICATORS: readonly ResourceIndicator[] = [
     unit: '% del PIB',
     group: 'TRANSFORMACION',
     decimals: 1,
-    what: 'Valor agregado de las fábricas. Es la medida de cuánto se transforma dentro del país.',
+    what: 'Valor agregado de la industria manufacturera. Mide cuánto se transforma dentro del país.',
   },
   {
     code: 'NV.IND.TOTL.ZS',
@@ -220,7 +220,7 @@ export const RESOURCE_INDICATORS: readonly ResourceIndicator[] = [
     unit: '% del PIB',
     group: 'TRANSFORMACION',
     decimals: 1,
-    what: 'Manufactura, minería, electricidad y construcción juntas. Sube con el precio de los minerales aunque no se fabrique nada nuevo.',
+    what: 'Manufactura, minería, electricidad y construcción juntas. Sube con el precio de los minerales aunque la producción fabril no cambie.',
   },
   {
     code: 'NV.AGR.TOTL.ZS',
@@ -228,7 +228,7 @@ export const RESOURCE_INDICATORS: readonly ResourceIndicator[] = [
     unit: '% del PIB',
     group: 'TRANSFORMACION',
     decimals: 1,
-    what: 'El otro sector que vive de un recurso natural, para ponerlo en la misma escala.',
+    what: 'El otro sector basado en un recurso natural, en la misma escala.',
   },
   {
     code: 'NE.GDI.FTOT.ZS',
@@ -236,7 +236,7 @@ export const RESOURCE_INDICATORS: readonly ResourceIndicator[] = [
     unit: '% del PIB',
     group: 'TRANSFORMACION',
     decimals: 1,
-    what: 'Formación bruta de capital fijo: el destino que convierte una renta en algo que dura.',
+    what: 'Formación bruta de capital fijo: el uso de la renta que la convierte en capital duradero.',
   },
 ];
 
@@ -417,21 +417,21 @@ function relayConclusion(series: ResourceBoard['series']): FxConclusion | null {
     key: 'relevo',
     claim: mineralLeads
       ? atRecord
-        ? 'La renta minera es hoy la primera del subsuelo, y está en su máximo histórico'
-        : 'La renta minera es hoy la primera del subsuelo'
-      : 'El gas sigue dejando más que los minerales',
+        ? 'La renta minera supera a la del gas y está en su máximo histórico'
+        : 'La renta minera supera a la del gas'
+      : 'La renta del gas sigue por encima de la minera',
     figure: `${say(mineral.value, 2)} % del PIB`,
     detail:
-      `En ${mineral.year} los minerales dejaron ${say(mineral.value, 2)} % del PIB por encima de su ` +
-      `costo de extracción, y el gas ${say(gas.value, 2)} %.` +
+      `En ${mineral.year} la renta minera —el valor por encima del costo de extracción— fue ` +
+      `${say(mineral.value, 2)} % del PIB, y la del gas, ${say(gas.value, 2)} %.` +
       (atRecord
         ? ` Es la lectura minera más alta de la serie, que empieza en ${firstYear(series['NY.GDP.MINR.RT.ZS'])}.`
         : mineralPeak
           ? ` El máximo minero fue ${say(mineralPeak.value, 2)} % en ${mineralPeak.year}.`
           : '') +
       (gasPeak && gasPeak.year !== gas.year && gasPeak.value > 0
-        ? ` La del gas tocó ${say(gasPeak.value, 2)} % en ${gasPeak.year}: hoy es ` +
-          `${say((gas.value / gasPeak.value) * 100, 0)} % de aquello.`
+        ? ` La del gas alcanzó ${say(gasPeak.value, 2)} % en ${gasPeak.year}; la última lectura equivale ` +
+          `al ${say((gas.value / gasPeak.value) * 100, 0)} % de ese máximo.`
         : ''),
     tone: 'neutral',
   };
@@ -450,8 +450,8 @@ function basketConclusion(series: ResourceBoard['series']): FxConclusion | null 
     key: 'canasta',
     claim:
       extractive >= 50
-        ? 'Más de la mitad de lo que Bolivia vende afuera sale de un pozo o de una mina'
-        : 'La canasta exportadora ya no es mayoritariamente extractiva',
+        ? 'Minería e hidrocarburos suman más de la mitad de las exportaciones de mercancías'
+        : 'Minería e hidrocarburos suman menos de la mitad de las exportaciones de mercancías',
     figure: `${say(extractive)} % extractivo`,
     detail:
       `En ${minerals.year}, ${say(minerals.value)} % de las mercancías exportadas fueron minerales y ` +
@@ -460,8 +460,8 @@ function basketConclusion(series: ResourceBoard['series']): FxConclusion | null 
       (manufactures ? ` y las manufacturas ${say(manufactures.value)} %` : '') +
       `.` +
       (mineralsTrough && mineralsTrough.year !== minerals.year
-        ? ` El peso mineral tocó su piso en ${mineralsTrough.year}, con ${say(mineralsTrough.value)} %, ` +
-          `cuando el gas mandaba en la canasta.`
+        ? ` El peso de los minerales tocó su mínimo en ${mineralsTrough.year}, con ${say(mineralsTrough.value)} %, ` +
+          `cuando el gas dominaba la canasta.`
         : ''),
     tone: extractive >= 50 ? 'adverse' : 'neutral',
   };
@@ -486,12 +486,12 @@ function savingsConclusion(series: ResourceBoard['series']): FxConclusion | null
   return {
     key: 'ahorro',
     claim: negative
-      ? 'Descontado lo que se saca del subsuelo, el país desahorra'
-      : 'El ahorro del país sigue siendo positivo una vez descontado el subsuelo',
+      ? 'Descontado el agotamiento de los recursos naturales, el ahorro del país es negativo'
+      : 'Descontado el agotamiento de los recursos naturales, el ahorro del país sigue siendo positivo',
     figure: `${say(savings.value, 2)} % del INB`,
     detail:
       `El ahorro neto ajustado de ${savings.year} fue ${say(savings.value, 2)} % del ingreso nacional ` +
-      `bruto: el ahorro del año menos la depreciación del capital y ` +
+      `bruto (INB): el ahorro del año menos la depreciación del capital y ` +
       (depletion ? `el agotamiento de recursos (${say(depletion.value, 2)} %)` : 'el agotamiento') +
       (education ? `, más el gasto en educación (${say(education.value, 2)} %)` : '') +
       `.` +
@@ -499,7 +499,7 @@ function savingsConclusion(series: ResourceBoard['series']): FxConclusion | null
         ? ` Es el valor más bajo de la serie, que empieza en ${firstYear(series['NY.ADJ.SVNX.GN.ZS'])}.`
         : '') +
       (best && best.year !== savings.year
-        ? ` Su máximo fue ${say(best.value, 2)} % en ${best.year}, en pleno auge del gas.`
+        ? ` Su máximo fue ${say(best.value, 2)} % en ${best.year}.`
         : ''),
     tone: negative ? 'adverse' : 'favourable',
   };
@@ -525,8 +525,8 @@ function depletionConclusion(series: ResourceBoard['series']): FxConclusion | nu
   return {
     key: 'agotamiento',
     claim: mineralLeads
-      ? 'La mina agota más patrimonio que el pozo'
-      : 'El pozo agota más patrimonio que la mina',
+      ? 'La minería consume más patrimonio natural que los hidrocarburos'
+      : 'Los hidrocarburos consumen más patrimonio natural que la minería',
     figure: `${say(total.value, 2)} % del INB`,
     detail:
       `En ${total.year} el patrimonio natural consumido fue ${say(total.value, 2)} % del ingreso ` +
@@ -553,8 +553,8 @@ function transformationConclusion(series: ResourceBoard['series']): FxConclusion
   return {
     key: 'transformacion',
     claim: shrinking
-      ? 'La fábrica pesa menos en el PIB que cuando la renta era menor'
-      : 'La manufactura está en su punto más alto del PIB',
+      ? 'La manufactura pesa menos en el PIB que en su máximo histórico'
+      : 'La manufactura está en su máximo histórico como parte del PIB',
     figure: `${say(manufacturing.value)} % del PIB`,
     detail:
       `La manufactura fue ${say(manufacturing.value)} % del PIB en ${manufacturing.year}` +
@@ -564,7 +564,7 @@ function transformationConclusion(series: ResourceBoard['series']): FxConclusion
       (agriculture ? `; la agricultura, ${say(agriculture.value)} %` : '') +
       `.` +
       (investment
-        ? ` La inversión fija —el destino que convierte una renta en algo que dura— fue ` +
+        ? ` La inversión fija —el uso que convierte la renta en capital duradero— fue ` +
           `${say(investment.value)} % del PIB en ${investment.year}.`
         : ''),
     tone: shrinking ? 'adverse' : 'favourable',
@@ -587,19 +587,19 @@ function neighboursConclusion(board: Pick<ResourceBoard, 'series' | 'latest'>): 
     key: 'vecinos',
     claim:
       above === 0
-        ? 'Ningún vecino del panel depende tanto de su subsuelo como Bolivia'
-        : 'Bolivia está entre los vecinos que más dependen de su subsuelo',
+        ? 'Ningún vecino de la comparación depende tanto de sus recursos naturales como Bolivia'
+        : 'Bolivia está entre los vecinos que más dependen de sus recursos naturales',
     figure: `${say(own.value, 2)} % del PIB`,
     detail:
-      `La renta de todos los recursos fue ${say(own.value, 2)} % del PIB en ${own.year}; ` +
-      `${above} de los ${others.length} vecinos del panel tienen una mayor` +
+      `La renta total de recursos naturales fue ${say(own.value, 2)} % del PIB en ${own.year}; ` +
+      `${above} de los ${others.length} vecinos comparados tienen una mayor` +
       (others[0]
         ? `, ${placeLabel(others[0].place)} la más alta con ${say(others[0].value, 2)} %`
         : '') +
       `.` +
       (negatives.length
-        ? ` Con el ahorro neto ajustado en negativo aparecen ${negatives.length} de los ` +
-          `${Object.keys(savings).length} países del tablero: ` +
+        ? ` Tienen ahorro neto ajustado negativo ${negatives.length} de los ` +
+          `${Object.keys(savings).length} países comparados: ` +
           `${negatives.map(([place]) => placeLabel(place)).join(', ')}.`
         : ''),
     tone: 'neutral',
@@ -663,20 +663,20 @@ function lithiumConclusion(commodities: readonly CommodityExport[]): FxConclusio
     key: 'litio',
     claim:
       heaviest && heaviest.year === weight.year
-        ? 'El litio ya sale del país, y nunca salió tanto como el último año medido'
-        : 'El litio ya sale del país, por debajo de su propio máximo',
+        ? 'Bolivia exporta litio, y el último año medido es el de mayor volumen'
+        : 'Bolivia exporta litio, por debajo de su máximo en volumen',
     figure: `${say(tonnes, 0)} t`,
     detail:
       `En ${weight.year} Bolivia exportó ${say(tonnes, 0)} toneladas de carbonato de litio por ` +
-      `${say(value.value / 1_000_000, 1)} millones de dólares` +
-      (perTonne ? `, unos ${say(perTonne, 0)} dólares la tonelada` : '') +
+      `USD ${say(value.value / 1_000_000, 1)} millones` +
+      (perTonne ? `, unos USD ${say(perTonne, 0)} por tonelada` : '') +
       `.` +
       (firstWeight && firstWeight.year !== weight.year
         ? ` La primera declaración de la serie es de ${firstWeight.year}, con ` +
           `${say(firstWeight.value / 1_000, 0)} toneladas.`
         : '') +
-      ` Es una partida química (2836.91) y no mineral, que es la razón por la que no aparece en ` +
-      `ninguna cuenta de minería.`,
+      ` Es una partida química (2836.91) y no mineral, por lo que no aparece en las cuentas de ` +
+      `minería.`,
     tone: 'neutral',
   };
 }
@@ -702,9 +702,9 @@ function mineralMixConclusion(commodities: readonly CommodityExport[]): FxConclu
   return {
     key: 'productos',
     claim: `La primera partida minera del país es «${leader.label}»`,
-    figure: `${say(leader.value / 1_000_000, 0)} millones de US$`,
+    figure: `${say(leader.value / 1_000_000, 0)} millones de USD`,
     detail:
-      `En ${leader.year} esa partida sumó ${say(leader.value / 1_000_000, 0)} millones de dólares` +
+      `En ${leader.year} esa partida sumó USD ${say(leader.value / 1_000_000, 0)} millones` +
       (total > 0
         ? `, ${say((leader.value / total) * 100, 0)} % de las ${ranked.length} partidas mineras`
         : '') +

@@ -780,8 +780,8 @@ export function LagBars({
       </div>
       <ChartLegend
         items={[
-          { color: 'var(--up)', label: 'se parece (correlación positiva)' },
-          { color: 'var(--down)', label: 'se opone (correlación negativa)' },
+          { color: 'var(--up)', label: 'correlación positiva' },
+          { color: 'var(--down)', label: 'correlación negativa' },
           { color: 'var(--series-rest)', label: 'dentro de la banda de ruido' },
         ]}
       />

@@ -18,8 +18,8 @@ export function EnvironmentSection() {
   if (!Object.keys(payload.board.series).length) {
     return (
       <div className="callout">
-        Todavía no hay series ambientales leídas del panel del Banco Mundial. El capítulo se llena
-        solo cuando el núcleo las tenga cargadas.
+        Todavía no hay series ambientales del Banco Mundial cargadas. El capítulo se completará en
+        cuanto lleguen.
       </div>
     );
   }

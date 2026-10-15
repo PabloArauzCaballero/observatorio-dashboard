@@ -65,6 +65,7 @@ test('los enlaces a páginas fusionadas de Macroeconomía llegan a la página qu
     ['Demanda externa y clima', 'Variables exógenas'],
     ['Factores externos', 'Variables exógenas'],
     ['Detalle aduanero (INE)', 'Comercio exterior'],
+    ['Social Info', 'Indicadores sociales'],
   ]) {
     const destino = destinoDe('Macroeconomía', vieja);
     assert.equal(destino?.pagina, actual, vieja);

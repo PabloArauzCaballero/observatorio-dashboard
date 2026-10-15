@@ -116,8 +116,8 @@ function PartnerGrowth({ growth }: { growth: Loaded['growth'] }) {
   return (
     <Panel
       id="exogenas-socios-crecimiento"
-      title={`Crecimiento de los socios comerciales de Bolivia, ${data[0]?.year ?? ''}–${last} (% anual)`}
-      lede="Crecimiento real del PIB de seis de los principales socios comerciales de Bolivia. Cuando Brasil o China frenan, cae la demanda de gas, minerales y soya."
+      title={`Crecimiento del PIB de los socios comerciales de Bolivia, ${data[0]?.year ?? ''}–${last} (% anual)`}
+      lede="Crecimiento real del PIB de seis de los principales socios comerciales de Bolivia, un indicador de la demanda externa de su gas, sus minerales y su soya."
       source={publishers.join(', ') || 'Banco Mundial, Indicadores del Desarrollo Mundial'}
     >
       <WorldLines
@@ -150,10 +150,10 @@ function OceanicNino({ oni }: { oni: FactorHistoryResponse }) {
   return (
     <Panel
       id="exogenas-oni"
-      title="El Niño y La Niña: índice oceánico del Pacífico (°C de anomalía), mensual"
-      lede={`Temperatura del mar en el Pacífico central frente a lo normal. Desde +0,5 °C es El Niño (sequía en el altiplano, lluvias fuertes en el oriente); desde −0,5 °C, La Niña.${
-        state && last ? ` Último dato: ${number(last.value ?? 0)} °C, ${state}.` : ''
-      }`}
+      title="Índice Oceánico El Niño (ONI), mensual (anomalía en °C)"
+      lede={`${
+        state && last ? `Último dato: ${number(last.value ?? 0)} °C (${state}). ` : ''
+      }Anomalía de la temperatura del mar en el Pacífico central respecto a su promedio. Desde +0,5 °C se considera El Niño, asociado a sequía en el altiplano y lluvias intensas en el oriente; desde −0,5 °C, La Niña.`}
       source={oni.series.publisher || 'NOAA, Centro de Predicción del Clima'}
     >
       <DatedLines

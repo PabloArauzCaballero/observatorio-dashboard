@@ -314,7 +314,7 @@ export function MacroAnalysis({
   const key = point.indicatorCode.toLowerCase().replace(/[^a-z0-9]+/g, '-');
   const name = point.name ?? point.indicatorCode;
   /** Quién publica la serie, y que el resto lo calculó el observatorio. */
-  const source = `${point.publisher ?? 'la fuente citada'}; estadísticos calculados por el Observatorio`;
+  const source = `${point.publisher ?? 'la fuente citada'}; cálculo de DatosBolivia.com`;
   const sourceRaw = point.publisher ?? 'la fuente citada';
 
   /** Las medidas de la serie, que son lo que se ve en las casillas y lo que se baja. */
@@ -526,8 +526,8 @@ export function MacroAnalysis({
       <div className="analysis-pair">
         <Panel
           id={`analisis-${key}-densidad`}
-          title="Dónde se acumulan los años (años por intervalo)"
-          lede="Las barras cuentan años por intervalo; la curva es la densidad en la misma escala."
+          title="Distribución de los valores (años por intervalo)"
+          lede="Las barras cuentan los años de cada intervalo; la curva es la densidad, en la misma escala."
           source={source}
         >
           <div ref={densityBox}>
@@ -538,7 +538,7 @@ export function MacroAnalysis({
         <Panel
           id={`analisis-${key}-violin`}
           title={`Violín de la distribución (${unit})`}
-          lede="La misma distribución de pie, con su caja intercuartílica y los años atípicos."
+          lede="La misma distribución en vertical, con su caja intercuartílica y los años atípicos."
           source={source}
         >
           <div ref={violinBox}>
@@ -613,8 +613,8 @@ export function MacroAnalysis({
               declarar={angle === 'rezagos'}
             />
             <p className="chart-note">
-              Banda de ruido a ±{number(band, 3)}. Una barra que no la supera no distingue la serie
-              de un sorteo.
+              Banda de ruido a ±{number(band, 3)}. Una barra que no sale de la banda no se distingue
+              del ruido aleatorio.
             </p>
           </div>
           <div
@@ -721,7 +721,7 @@ export function MacroAnalysis({
             </p>
           ) : null}
           <p className="card-note-source">
-            <b>Definición:</b> redactada por el {DEFINITION_AUTHOR} a partir del concepto estándar.
+            <b>Definición:</b> redactada por {DEFINITION_AUTHOR} a partir del concepto estándar.
             No es la del publicador.
           </p>
         </div>
@@ -851,7 +851,7 @@ function kurtosisWord(value: number): string {
  */
 function narrate(stats: MacroStats, point: MacroPoint, unit: string): string {
   if (stats.n < 3) {
-    return `La selección deja ${stats.n} observación${stats.n === 1 ? '' : 'es'} de esta serie: no alcanzan para describir una distribución. Ampliá el período desde el filtro de período.`;
+    return `La selección deja ${stats.n} observación${stats.n === 1 ? '' : 'es'} de esta serie: no alcanzan para describir una distribución. Hace falta un período más amplio en el filtro «Desde».`;
   }
 
   const centre =

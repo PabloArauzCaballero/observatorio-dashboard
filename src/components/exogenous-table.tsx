@@ -37,7 +37,7 @@ export function sourcesOf(series: readonly ExogenousSeries[]): string {
   const names = [
     ...new Set(series.map((one) => one.publisher).filter((name): name is string => Boolean(name))),
   ];
-  if (names.length === 0) return 'Observatorio Económico de Bolivia (ver «Método»)';
+  if (names.length === 0) return 'sin publicador declarado (ver «Método»)';
   if (names.length <= 3) return names.join(', ');
   return `${names.slice(0, 3).join(', ')} y otras ${names.length - 3} fuentes`;
 }
@@ -111,7 +111,7 @@ function ChangeChart({ rows }: { rows: readonly ExogenousSeries[] }) {
           />
         </MacroViewChart>
       ) : (
-        <div className="callout">Ninguna lectura tiene esta comparación todavía.</div>
+        <div className="callout">Ninguna lectura tiene datos suficientes para esta comparación.</div>
       )}
     </>
   );

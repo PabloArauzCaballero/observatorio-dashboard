@@ -44,7 +44,7 @@ export const GUIA: readonly EntradaGuia[] = [
   },
   {
     pestana: 'Macroeconomía',
-    que: 'Seis páginas: «Series de Bolivia» (indicadores anuales por rubro, con los rubros invitados «Departamentos», «Cuentas públicas» —qué cobra, gasta y debe el Estado, qué dicen las normas de cada impuesto y cuánto de un precio es impuesto—, «Energía», «Recursos naturales» y «Medio ambiente»), «Social Info» (el catálogo del Banco Mundial para Bolivia, con el invitado «Instituciones»), «Bolivia ante el mundo», «Variables exógenas» (con dos pestañas arriba: «Precios por producto» y «Demanda externa y clima», series de fuentes externas con licencia y disponibilidad verificables, con su historia y descarga), «Series del BCB» y «Comercio exterior» (con una pestaña por fuente: «Resumen: Comtrade e INE», con socios, productos, departamentos y principales exportadoras, y «Detalle aduanero (INE)»).',
+    que: 'Seis páginas: «Series de Bolivia» (indicadores anuales por rubro, con los rubros invitados «Departamentos», «Cuentas públicas» —qué cobra, gasta y debe el Estado, qué dicen las normas de cada impuesto y cuánto de un precio es impuesto—, «Energía», «Recursos naturales» y «Medio ambiente»), «Indicadores sociales» (el catálogo del Banco Mundial para Bolivia, con el invitado «Instituciones»), «Bolivia ante el mundo», «Variables exógenas» (con dos pestañas arriba: «Precios por producto» y «Demanda externa y clima», series de fuentes externas con licencia y disponibilidad verificables, con su historia y descarga), «Series del BCB» y «Comercio exterior» (con una pestaña por fuente: «Resumen: Comtrade e INE», con socios, productos, departamentos y principales exportadoras, y «Detalle aduanero (INE)»).',
     como: 'Elegí la página arriba y después el rubro, indicador o filtro. El control «Desde» recorta los años. Los exploradores que ofrecen «Descargar análisis (PDF)» incluyen distribución y atípicos; las descargas disponibles se indican en cada tabla. En «Variables exógenas», «Precios por producto» es el explorador de precios y «Demanda externa y clima» muestra el crecimiento de los socios y el índice ONI.',
   },
   {
@@ -114,7 +114,7 @@ export const DESTINO_DE_PAQUETE: Record<string, Destino> = {
   MACRO: { pestana: 'Macroeconomía', pagina: 'Series de Bolivia' },
   DEPTO: { pestana: 'Macroeconomía', pagina: 'Series de Bolivia' },
   DEPTOS: { pestana: 'Macroeconomía', pagina: 'Series de Bolivia' },
-  POLITICA: { pestana: 'Macroeconomía', pagina: 'Social Info' },
+  POLITICA: { pestana: 'Macroeconomía', pagina: 'Indicadores sociales' },
   ENERGIA: { pestana: 'Macroeconomía', pagina: 'Series de Bolivia' },
   RECURSOS: { pestana: 'Macroeconomía', pagina: 'Series de Bolivia' },
   AMBIENTE: { pestana: 'Macroeconomía', pagina: 'Series de Bolivia' },
@@ -161,7 +161,7 @@ export const RUTA_DE_PAQUETE: Record<string, string> = {
   DEPTO: '«Macroeconomía» › «Series de Bolivia» › rubro «Departamentos»',
   DEPTOS: '«Macroeconomía» › «Series de Bolivia» › rubro «Departamentos»',
   POLITICA:
-    '«Macroeconomía» › «Social Info» › «Instituciones», y «Prensa» filtrando el tema «Política y Estado»',
+    '«Macroeconomía» › «Indicadores sociales» › «Instituciones», y «Prensa» filtrando el tema «Política y Estado»',
   ENERGIA: '«Macroeconomía» › «Series de Bolivia» › rubro «Energía»',
   RECURSOS: '«Macroeconomía» › «Series de Bolivia» › rubro «Recursos naturales»',
   AMBIENTE: '«Macroeconomía» › «Series de Bolivia» › rubro «Medio ambiente»',

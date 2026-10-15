@@ -52,7 +52,7 @@ export function ExogenousCompare({
   const outcome = useMemo(() => {
     const a = byCode.get(left);
     const b = byCode.get(right);
-    if (!a || !b || a.code === b.code) return { error: 'Elige dos lecturas distintas.' };
+    if (!a || !b || a.code === b.code) return { error: 'La comparación necesita dos lecturas distintas.' };
     const slice = (one: ExogenousSeries) => {
       const data = asFamilyData(one);
       return {
@@ -99,9 +99,9 @@ export function ExogenousCompare({
   return (
     <Panel
       id="exogenas-comparar"
-      title="Comparar dos lecturas, aunque tengan distinta frecuencia"
-      lede={`Mensual contra anual se promedia al año; no se interpola. Años ${from}–${to}, los del filtro de la izquierda.`}
-      source={a && b ? sourcesOf([a, b]) : 'Observatorio Económico de Bolivia (ver «Método»)'}
+      title="Comparación de dos lecturas (índice base 100 o unidad común)"
+      lede={`Si una lectura es mensual y la otra anual, la mensual se promedia por año, sin interpolar. Período: ${from}–${to}, según el filtro de años.`}
+      source={a && b ? sourcesOf([a, b]) : 'sin publicador declarado (ver «Método»)'}
       data={dataset}
     >
       <div style={{ display: 'grid', gap: 12 }}>

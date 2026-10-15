@@ -88,7 +88,7 @@ function observedValues(points: FactorObservation[]): Map<string, number | null>
   for (const point of points) {
     if (values.has(point.period)) {
       throw new FactorComparisonError(
-        'Hay más de una revisión para un período. Selecciona una fecha de corte antes de comparar.',
+        'Hay más de una revisión para un período. Antes de comparar hay que fijar una fecha de corte.',
       );
     }
     values.set(
@@ -132,7 +132,7 @@ export function compareFactorSeries(input: FactorComparisonInput): FactorCompari
     (!BASE_TYPES.has(leftSeries.measureType) || !BASE_TYPES.has(rightSeries.measureType))
   ) {
     throw new FactorComparisonError(
-      'La base 100 no está disponible para tasas o proporciones. Usa cambios absolutos con unidades compatibles.',
+      'La base 100 no está disponible para tasas o proporciones. Para ellas se comparan cambios absolutos con unidades compatibles.',
     );
   }
   if (
@@ -140,7 +140,7 @@ export function compareFactorSeries(input: FactorComparisonInput): FactorCompari
     [leftSeries, rightSeries].some((series) => series.transformationType === 'ANOMALY')
   ) {
     throw new FactorComparisonError(
-      'Las anomalías, como el ONI, se expresan respecto a una referencia y no admiten base 100. Compara niveles cuando las unidades sean compatibles.',
+      'Las anomalías, como el ONI, se expresan respecto a una referencia y no admiten base 100. Con unidades compatibles se pueden comparar niveles.',
     );
   }
   if (
@@ -228,7 +228,7 @@ export function compareFactorSeries(input: FactorComparisonInput): FactorCompari
     : 'No hay períodos para mostrar.';
   const shown = (value: number | null) =>
     value === null ? 'sin dato' : new Intl.NumberFormat('es-BO', { maximumFractionDigits: 4 }).format(value);
-  const baseline = `Base común real: ${basePeriod}; valores iniciales ${shown(leftBaseValue)} ${leftSeries.unit} y ${shown(rightBaseValue)} ${rightSeries.unit}. Los períodos anteriores a esa base se excluyen.`;
+  const baseline = `Base común: ${basePeriod}; valores iniciales ${shown(leftBaseValue)} ${leftSeries.unit} y ${shown(rightBaseValue)} ${rightSeries.unit}. Los períodos anteriores a esa base se excluyen.`;
   const description =
     mode === 'LEVEL'
       ? `Niveles originales en ${leftSeries.unit}. ${range}`

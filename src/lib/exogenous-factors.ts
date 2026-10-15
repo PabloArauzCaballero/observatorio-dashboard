@@ -331,7 +331,7 @@ export async function readFactorHistory(
   if (fallback) warnings.push(SNAPSHOT_NOTICE);
   if (legacy)
     warnings.push(
-      'La disponibilidad histórica usa la recepción documentada por el observatorio; la fecha original de publicación puede ser desconocida.',
+      'La disponibilidad histórica usa la fecha de recepción registrada por DatosBolivia; la fecha original de publicación puede ser desconocida.',
     );
   if (exportAll && points.length > 20000) throw new Error('EXPORT_LIMIT');
   const hasMore = !exportAll && points.length > query.pageSize;

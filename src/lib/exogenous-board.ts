@@ -51,12 +51,12 @@ export const GROUPS: ReadonlyArray<{
   {
     key: 'ENERGY',
     label: 'Energético',
-    lead: 'Crudo, gasolina, diésel, gas y GLP: lo que Bolivia vende por gasoducto y lo que compra para mover el país a un precio que fija el Estado.',
+    lead: 'Crudo, gasolina, diésel, gas natural y gas licuado de petróleo (GLP): el gas que Bolivia exporta por gasoducto y los combustibles que importa y vende en el país a un precio fijado por el Estado.',
   },
   {
     key: 'MINERALS',
     label: 'Minerales',
-    lead: 'Oro, plata, zinc, plomo, estaño, acero, litio y bismuto: más de la mitad de lo que Bolivia exporta sale de una mina.',
+    lead: 'Oro, plata, zinc, plomo, estaño, acero, litio y bismuto. La minería aporta más de la mitad de las exportaciones de Bolivia.',
   },
   {
     key: 'AGRICULTURE',
@@ -66,12 +66,12 @@ export const GROUPS: ReadonlyArray<{
   {
     key: 'LIVESTOCK',
     label: 'Ganadería',
-    lead: 'Carne de res, pollo, huevos, leche, queso y el alimento de la piscicultura, contra los vecinos que exportan lo mismo.',
+    lead: 'Carne de res, pollo, huevos, leche, queso y alimento para piscicultura, frente al precio de los países vecinos que exportan los mismos productos.',
   },
   {
     key: 'INDUSTRY',
     label: 'Industria',
-    lead: 'Resinas PET, PP y PE, fertilizantes, herbicidas y precursores químicos: los insumos que Bolivia importa para producir.',
+    lead: 'Resinas plásticas (PET, polipropileno y polietileno), fertilizantes, herbicidas y precursores químicos: insumos que Bolivia importa para su producción.',
   },
   {
     key: 'CONSTRUCTION',
@@ -81,7 +81,7 @@ export const GROUPS: ReadonlyArray<{
   {
     key: 'FREIGHT',
     label: 'Fletes',
-    lead: 'Lo que cuesta mover la carga: el contenedor y el flete aéreo por tonelada, el flete que Bolivia paga en su aduana y las tarifas del transporte pesado entre ciudades.',
+    lead: 'Costo de transportar carga: el contenedor y el flete aéreo por tonelada, el flete que Bolivia paga según su aduana y las tarifas del transporte pesado entre ciudades.',
   },
 ];
 
@@ -90,8 +90,8 @@ export const SCOPES: ReadonlyArray<{ key: ExogenousScope; label: string; hint: s
   { key: 'REGIONAL', label: 'Vecinos', hint: 'Argentina y Brasil, en dólares por tonelada.' },
   {
     key: 'US_PRODUCER_INDEX',
-    label: 'Índice EE. UU.',
-    hint: 'Índice de precios al productor: se mueve como el precio, no es el precio.',
+    label: 'Índice de EE. UU.',
+    hint: 'Índice de precios al productor de EE. UU.: sigue la evolución del precio, pero no es un precio.',
   },
   { key: 'BOLIVIA_MARKET', label: 'Bolivia, mercados', hint: 'Precio en bolivianos por ciudad.' },
   {
@@ -123,7 +123,7 @@ export const MISSING: Record<ExogenousGroup, readonly string[]> = {
     'No hay precio abierto del pescado de cultivo boliviano (pacú, tambaquí); se muestra el de su alimento, la harina de pescado, y el del pescado que el país importa.',
   ],
   INDUSTRY: [
-    'Nadie publica gratis el precio mensual del PET o del polipropileno por grado. Se muestran el índice de productor de EE. UU. y el precio por kilo que Bolivia pagó en su aduana.',
+    'No hay una fuente abierta del precio mensual del PET o del polipropileno por grado. Se muestran el índice de precios al productor de EE. UU. y el precio por kilo que Bolivia pagó según su aduana.',
     'Los precursores químicos controlados se leen por sus partidas de aduana: ácido sulfúrico, ácido clorhídrico y acetona.',
   ],
   CONSTRUCTION: [
@@ -131,7 +131,7 @@ export const MISSING: Record<ExogenousGroup, readonly string[]> = {
   ],
   FREIGHT: [
     'El índice de contenedores de Freightos (FBX) trae dos rutas hacia Sudamérica, pero sólo en el sentido de ida desde Europa (a Santos y Buenos Aires, y a San Antonio y el Callao). La vuelta, que es la del exportador boliviano, no se publica abierta, ni tampoco hacia Arica.',
-    'La historia abierta de Freightos es de trece semanas: el colector guarda cada semana desde que se instaló y el gráfico crece solo. Los índices de productor de EE. UU. dan la historia larga (desde 2000), pero son índices, no dólares.',
+    'Freightos publica en abierto solo las últimas trece semanas. DatosBolivia guarda cada semana desde que empezó a registrarlas, de modo que la serie se alarga con el tiempo. Los índices de precios al productor de EE. UU. cubren desde 2000, pero son índices, no precios en dólares.',
     'El flete implícito de aduana es el cociente entre el valor CIF y el FOB de lo que Bolivia importó, por tonelada. Incluye flete y seguro hasta la frontera, no sólo el tramo marítimo, y mezcla productos: es un valor unitario, no una tarifa.',
     'El flete entre ciudades de Bolivia no tiene serie oficial: el INE publica las toneladas transportadas, no lo que se cobra. Abajo se citan las tarifas que el transporte pesado y la prensa han dado, con su fuente y su fecha.',
   ],
@@ -155,7 +155,7 @@ export const UNSOURCED: Record<ExogenousGroup, ReadonlyArray<{ label: string; wh
     },
     {
       label: 'Hoja de coca',
-      why: 'No hay serie abierta: sólo el promedio anual del informe de monitoreo de cultivos de Naciones Unidas (UNODC), en PDF, que el observatorio no recoge.',
+      why: 'No hay serie abierta: sólo el promedio anual del informe de monitoreo de cultivos de Naciones Unidas (UNODC), en PDF, que DatosBolivia no recoge.',
     },
   ],
   LIVESTOCK: [],
