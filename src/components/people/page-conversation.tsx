@@ -151,7 +151,7 @@ export function ConversationPage() {
         <Panel
           id="personalidades-canal-palabras"
           title="Palabras más repetidas en el público de su canal (apariciones)"
-          lede="Sumadas entre los creadores con muestra suficiente en su canal. Sin el nombre de quien publica ni palabras vacías."
+          lede="Sumadas entre los creadores con muestra suficiente en su canal. Incluye apodos del creador y expresiones comunes («gaby», «soy», «tik tok»): no se filtran a mano."
           meta={`${num(channelRows.length)} personas`}
           source={SOURCE}
           updated={updated}
