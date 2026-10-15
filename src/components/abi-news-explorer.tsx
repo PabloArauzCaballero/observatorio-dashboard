@@ -24,7 +24,7 @@ export function AbiNewsExplorer({ initialIssuer = '' }: { initialIssuer?: string
   useEffect(() => {
     const controller = new AbortController(); setBusy(true); setError('');
     fetch(`/api/noticias-empresas?${query}`, { signal: controller.signal })
-      .then(async response => { if (!response.ok) throw new Error(response.status === 400 ? 'Revisa el periodo seleccionado.' : 'No se pudieron cargar las noticias.'); return response.json() as Promise<AbiNewsPage>; })
+      .then(async response => { if (!response.ok) throw new Error(response.status === 400 ? 'El periodo seleccionado no es válido.' : 'No se pudieron cargar las noticias.'); return response.json() as Promise<AbiNewsPage>; })
       .then(result => { setData(result); setBusy(false); })
       .catch((reason: unknown) => { if (!controller.signal.aborted) { setError(reason instanceof Error ? reason.message : 'No se pudo consultar ABI.'); setBusy(false); } });
     return () => controller.abort();
@@ -32,8 +32,8 @@ export function AbiNewsExplorer({ initialIssuer = '' }: { initialIssuer?: string
   const change = (setter: (value: string) => void, value: string) => { setter(value); setPage(1); };
   return <section className={styles.section} aria-label="Noticias ABI sobre emisores">
     <div className="briefcard"><div>
-      <h2>Noticias ABI sobre emisores de la BBV</h2>
-      <p>Cobertura de la Agencia Boliviana de Información. Cada noticia se relaciona con el emisor cuyo nombre aparece en el texto; puedes leer el fragmento que explica esa relación. Los datos y declaraciones se atribuyen a ABI.</p>
+      <h2>Noticias de ABI sobre emisores de la Bolsa Boliviana de Valores (BBV)</h2>
+      <p>Noticias de la Agencia Boliviana de Información (ABI) que nombran a emisores de valores. Cada noticia se vincula con el emisor cuyo nombre aparece en el texto, y cada tarjeta muestra el fragmento que justifica ese vínculo. Los datos y las declaraciones se atribuyen a ABI.</p>
       {data && <p className={styles.coverage}>{data.coverage.companyArticles.toLocaleString('es-BO')} noticias con menciones de emisores, entre {data.coverage.articles.toLocaleString('es-BO')} publicaciones consultadas · {data.coverage.earliestDay} a {data.coverage.latestDay}</p>}
       <p className={styles.coverage}>El archivo histórico se incorpora por tandas. Las cifras corresponden a las publicaciones ya consultadas.</p>
     </div></div>
@@ -53,7 +53,7 @@ export function AbiNewsExplorer({ initialIssuer = '' }: { initialIssuer?: string
     </form>
     <div className={styles.results} aria-live="polite">
       <span>{busy ? 'Consultando noticias…' : error || `${data?.total.toLocaleString('es-BO') ?? 0} noticias encontradas`}</span>
-      {!busy && !error && <span className={styles.exports}>Exportar selección: <a href={`/api/noticias-empresas?${query}&formato=csv`}>CSV</a> <a href={`/api/noticias-empresas?${query}&formato=json`}>JSON</a></span>}
+      {!busy && !error && <span className={styles.exports}>Descargar la selección: <a href={`/api/noticias-empresas?${query}&formato=csv`}>CSV</a> <a href={`/api/noticias-empresas?${query}&formato=json`}>JSON</a></span>}
     </div>
     {error && <button type="button" onClick={() => setRetry(n => n + 1)}>Volver a intentar</button>}
     {!busy && !error && data && <>
@@ -73,7 +73,7 @@ export function AbiNewsExplorer({ initialIssuer = '' }: { initialIssuer?: string
           <p className={styles.hash}>Huella de evidencia: {article.evidenceSha256}</p>
           {article.links.filter(l => l.kind === 'DOCUMENT').map(l => <p key={l.url}><a href={l.url} target="_blank" rel="noopener noreferrer">{l.text || 'Documento enlazado por ABI'}</a></p>)}
         </details>
-        <a className={styles.original} href={article.url} target="_blank" rel="noopener noreferrer">Leer noticia en ABI ↗</a>
+        <a className={styles.original} href={article.url} target="_blank" rel="noopener noreferrer">Leer la noticia en ABI ↗</a>
       </article>)}</div>
       {data.total > data.pageSize && <nav className="pager" aria-label="Páginas de noticias ABI">
         <button type="button" disabled={page <= 1} onClick={() => setPage(n => n - 1)}>Anterior</button>

@@ -56,7 +56,7 @@ export function RankList({
 }) {
   useDatosDeFigura(
     () => ({
-      etiqueta: 'Ránking',
+      etiqueta: 'Clasificación',
       unidad: unit,
       columnas: ['Puesto', 'Nombre', valueHeader],
       filas: items.map((item) => [item.place, item.name, celda(item.raw)]),

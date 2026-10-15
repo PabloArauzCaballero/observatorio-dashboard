@@ -42,7 +42,7 @@ export function ProfilesPage() {
               </button>
             }
           >
-            Prueba con otro nombre, otro sector o menos filtros.
+            Con otro nombre, otro sector o menos filtros, la lista se amplía.
           </Empty>
         )}
       </div>
@@ -93,7 +93,7 @@ function PeopleList({
   return (
     <>
       <p className={s.footnote} aria-live="polite">
-        {num(rows.length)} personas · flechas para recorrer la lista
+        {num(rows.length)} personas · la lista se recorre con las flechas del teclado
       </p>
       <div
         ref={box}

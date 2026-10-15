@@ -66,7 +66,9 @@ export function Profile({ row }: { row: PersonRow }) {
             )}
           </p>
           {row.ipsos ? (
-            <span className={s.badge}>Top 5 de impacto percibido 2025 · puesto {row.ipsos}</span>
+            <span className={s.badge}>
+              Entre las cinco figuras de mayor impacto percibido en 2025 · puesto {row.ipsos}
+            </span>
           ) : null}
         </div>
       </header>
@@ -79,7 +81,7 @@ export function Profile({ row }: { row: PersonRow }) {
             ? 'Cada fuente aporta hasta su peso en el índice; la pista rayada marca lo que no tiene dato.'
             : undefined
         }
-        source="Observatorio Económico de Bolivia con Wikipedia, cuentas verificadas y Merco Líderes 2025/26"
+        source="Wikipedia, cuentas verificadas en redes sociales y Merco Líderes 2025/26; cálculo de DatosBolivia.com"
         updated={updated}
         data={{
           columnas: ['Fuente', 'Dato', 'Percentil', 'Puntos aportados', 'Máximo posible'],
@@ -341,7 +343,7 @@ function TalkPanel({ row, detail: payload }: { row: PersonRow; detail: PersonDet
       id={`ficha-conversacion-${row.slug}`}
       title={`Qué se comenta de ${row.name} en YouTube (% de comentarios en español)`}
       lede="Reacciones a videos recientes que la nombran: miden a quienes comentan, no a toda Bolivia."
-      source="Comentarios públicos de YouTube, clasificados con pysentimiento/robertuito"
+      source="Comentarios públicos de YouTube; clasificación de DatosBolivia.com con el modelo abierto pysentimiento"
       updated={updated}
       data={
         talk?.sentiment
@@ -456,7 +458,7 @@ function OwnChannelBlock({ own }: { own: OwnChannel }) {
 
 function Sources({ detail: payload, failed }: { detail: PersonDetail | null; failed: boolean }) {
   if (failed) return <p className={s.footnote}>No se pudieron leer las fuentes de esta ficha.</p>;
-  if (!payload) return <p className={s.footnote}>Leyendo las fuentes de la ficha…</p>;
+  if (!payload) return <p className={s.footnote}>Cargando las fuentes de la ficha…</p>;
   return (
     <section aria-label="Fuentes de la ficha">
       <h4 className={s.subhead}>Fuentes de la ficha</h4>

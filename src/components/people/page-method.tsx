@@ -13,7 +13,7 @@ import { COMPONENT_LABEL, SOURCES, VERIFICATION, coverageBySector, num } from '.
 import { COMPONENT_TONE } from './page-perceived';
 import s from './people.module.css';
 
-const SOURCE = 'Observatorio Económico de Bolivia';
+const SOURCE = 'Listas públicas del padrón de personalidades; cálculo de DatosBolivia.com';
 
 /**
  * «Método y calidad»: cuánto confiar. Lo que antes era un desplegable de ocho párrafos son
@@ -27,7 +27,7 @@ export function MethodPage() {
 
   const funnel: ShareSlice[] = [
     { name: 'Fichas del padrón original', value: q.padron.fichasOriginales },
-    { name: 'En el ranking', value: q.padron.fichasEnElRanking },
+    { name: 'En la clasificación', value: q.padron.fichasEnElRanking },
     { name: 'Con atención medible', value: summary.method.measuredPeople },
     { name: 'Con audiencia verificada', value: q.conAudienciaVerificada },
     { name: 'Con sentimiento publicado', value: summary.conversation.peoplePublishable },
@@ -69,8 +69,8 @@ export function MethodPage() {
       <div className="grid-pair">
         <Panel
           id="personalidades-embudo"
-          title="Del padrón al ranking (cantidad de personas)"
-          lede="No es una selección de «los más importantes»: es un padrón de descubrimiento armado con listas públicas, y cada paso pierde a quien la fuente no registra."
+          title="Personas en cada paso, del padrón a la clasificación (cantidad de personas)"
+          lede="El padrón no selecciona a «los más importantes»: se construye con listas públicas, y en cada paso quedan fuera quienes la fuente no registra."
           source={SOURCE}
           updated={updated}
         >
@@ -89,8 +89,8 @@ export function MethodPage() {
 
         <Panel
           id="personalidades-fuentes"
-          title="De dónde sale el padrón (cantidad de fichas por fuente)"
-          lede="Las redes sociales (TikTok, Instagram y YouTube) constituyen la fuente principal del padrón de creadores y figuras públicas de Bolivia. Wikidata y Merco complementan con trayectoria y registro empresarial."
+          title="Fichas del padrón por fuente (cantidad de fichas)"
+          lede="Las redes sociales (TikTok, Instagram y YouTube) son la fuente principal del padrón de creadores y figuras públicas; Wikidata y Merco lo completan con trayectoria y registro empresarial."
           source={SOURCE}
           updated={updated}
         >
@@ -102,8 +102,8 @@ export function MethodPage() {
           />
           <ChartLegend
             items={[
-              { color: 'var(--official)', label: 'Redes sociales (fuente principal de impacto)' },
-              { color: 'var(--text-muted, #888)', label: 'Otras fuentes de validación' },
+              { color: 'var(--official)', label: 'Redes sociales (TikTok, Instagram y YouTube)' },
+              { color: 'var(--text-muted, #888)', label: 'Otras fuentes' },
             ]}
           />
         </Panel>
@@ -127,7 +127,7 @@ export function MethodPage() {
       <div className="grid-pair">
         <Panel
           id="personalidades-cuentas"
-          title="Cuentas halladas: cuáles suman y cuáles no (cantidad de cuentas)"
+          title="Cuentas halladas que suman y que no suman al índice (cantidad de cuentas)"
           lede="Una cuenta suma solo con identidad respaldada. Las que coinciden solo por nombre se muestran aparte."
           source={SOURCE}
           updated={updated}
@@ -148,7 +148,7 @@ export function MethodPage() {
 
         <Panel
           id="personalidades-indice"
-          title="Qué mide el índice (0 a 100) y qué no"
+          title="Composición del índice de atención (% del índice por fuente)"
           lede="Atención pública observable, no importancia, aprobación ni mérito."
           downloadable={false}
           source={SOURCE}
