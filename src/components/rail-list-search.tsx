@@ -120,7 +120,22 @@ function hasOwnSearch(section: Element): boolean {
 
 const tracked = new Set<HTMLElement>();
 
+/**
+ * ¿Ya hidrató React esta lista? React cuelga su fibra de cada nodo al hidratarlo.
+ *
+ * Una sección que llega por streaming (las monedas de «Tipo de cambio») está en el DOM
+ * antes de que React la hidrate. Si el campo se insertaba entonces, React encontraba un
+ * nodo que no había puesto, daba el error de hidratación #418 y tiraba el bloque entero
+ * para volver a pintarlo en el navegador. Ahora se espera a que la lista sea de React.
+ */
+const hydrated = (node: HTMLElement): boolean =>
+  Object.keys(node).some((key) => key.startsWith('__reactFiber$'));
+
+/** Hay listas esperando su hidratación: se vuelve a mirar en un momento (la hidratación no muta el DOM). */
+let pending = false;
+
 function scan(): void {
+  pending = false;
   for (const list of tracked) {
     if (!list.isConnected) {
       release(list);
@@ -136,6 +151,10 @@ function scan(): void {
       // Las opciones colgadas de la propia sección no tienen dónde llevar el campo: se envuelven en `.rail-list`.
       if (enhanced.has(list) || list === section || list.classList.contains('rail-tree')) continue;
       if (optionsOf(list).length < MIN_OPTIONS || hasOwnSearch(section)) continue;
+      if (!hydrated(list)) {
+        pending = true;
+        continue;
+      }
       const title = section.querySelector('.rail-head')?.textContent?.trim() ?? '';
       enhance(list, title);
       tracked.add(list);
@@ -146,15 +165,21 @@ function scan(): void {
 export function RailListSearch(): null {
   useEffect(() => {
     let frame = 0;
+    let retry = 0;
     const schedule = () => {
       cancelAnimationFrame(frame);
-      frame = requestAnimationFrame(scan);
+      frame = requestAnimationFrame(() => {
+        scan();
+        window.clearTimeout(retry);
+        if (pending) retry = window.setTimeout(schedule, 400);
+      });
     };
     schedule();
     const watcher = new MutationObserver(schedule);
     watcher.observe(document.body, { childList: true, subtree: true });
     return () => {
       cancelAnimationFrame(frame);
+      window.clearTimeout(retry);
       watcher.disconnect();
       for (const list of tracked) release(list);
       tracked.clear();
