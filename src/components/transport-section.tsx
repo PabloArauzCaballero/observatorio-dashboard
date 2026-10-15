@@ -12,10 +12,11 @@ import {
 } from './transport-prices-explorer';
 import { WaterwaysExplorer } from './waterways-explorer';
 import { TabHeader } from '@/components/ui/tab-header';
-import { RoadTransportSection } from './road-transport-section';
+import { ROAD_PAGES, RoadTransportPage } from './road-transport-explorer';
 import { FreightSection } from './freight-section';
 import { FaresSection } from './fares-section';
 import { AutomotiveStudyPage } from './automotive-study-page';
+import type { RoadTransportBoard } from '@/lib/road-transport-board';
 import type { RailBoard, WaterBoard } from '@/lib/transport-board';
 
 /**
@@ -49,21 +50,55 @@ export function TransportSection() {
   );
 }
 
+/**
+ * Parque y mercado: una sola fila de pestañas.
+ *
+ * El parque automotor (Panorama, Departamentos, Clases, Capacidad, Fuentes) tenía sus
+ * propias pestañas bajo la barra de página, y la página enseñaba dos filas apiladas. Ahora
+ * son siete pestañas de una barra: las del parque, y junto a ellas «Vehículos 0 km» y
+ * «Estudio automotor». El tablero del parque se lee una vez aquí y cada pestaña dibuja la
+ * suya; las otras dos no lo necesitan y no esperan por él.
+ */
 function ParqueYMercado() {
+  const { payload, failed } = useOnOpen<{ board: RoadTransportBoard }>('/api/transporte-terrestre');
+  const parque = (page: (typeof ROAD_PAGES)[number]['key']) => {
+    if (!payload) return <OnOpenNotice what="el parque automotor" failed={failed} />;
+    if (!payload.board.fleet.length) {
+      return (
+        <div className="callout">
+          Todavía no se cargó la fotografía histórica del transporte terrestre.
+        </div>
+      );
+    }
+    return <RoadTransportPage board={payload.board} page={page} />;
+  };
   return (
     <SubTabs
-      labels={['Automotor', 'Vehículos 0 km', 'Estudio automotor']}
-      icons={['camion', 'camion', 'barras']}
+      labels={[
+        'Panorama',
+        'Departamentos',
+        'Clases y micros',
+        'Capacidad y GNV',
+        'Vehículos 0 km',
+        'Estudio automotor',
+        'Fuentes del parque',
+      ]}
+      icons={['linea', 'mapa', 'camion', 'cajas', 'camion', 'barras', 'hoja']}
       enlace
       alias={{
+        automotor: 'Panorama',
         'competencia-automotriz': 'Estudio automotor',
         'precios-internacionales': 'Estudio automotor',
         'escenarios-automotores': 'Estudio automotor',
       }}
     >
-      <RoadTransportSection />
+      {parque('panorama')}
+      {parque('departamentos')}
+      {parque('clases')}
+      {parque('capacidad')}
       <VehiclePricesExplorer />
       <AutomotiveStudyPage />
+      {parque('fuentes')}
     </SubTabs>
   );
 }

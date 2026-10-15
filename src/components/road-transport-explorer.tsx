@@ -654,17 +654,36 @@ function Sources({ board }: { board: RoadTransportBoard }) {
   );
 }
 
-export function RoadTransportExplorer({ board }: { board: RoadTransportBoard }) {
-  return (
-    <SubTabs
-      labels={['Panorama', 'Departamentos', 'Clases y micros', 'Capacidad y GNV', 'Fuentes']}
-      icons={['linea', 'mapa', 'camion', 'cajas', 'hoja']}
-    >
-      <Panorama board={board} />
-      <Departments fleet={board.fleet} />
-      <Classes fleet={board.fleet} />
-      <CapacityGnv board={board} />
-      <Sources board={board} />
-    </SubTabs>
-  );
+/** Las cinco páginas del parque, con el rótulo y el icono que la barra de «Parque y mercado» les da. */
+export const ROAD_PAGES = [
+  { key: 'panorama', label: 'Panorama', icon: 'linea' },
+  { key: 'departamentos', label: 'Departamentos', icon: 'mapa' },
+  { key: 'clases', label: 'Clases y micros', icon: 'camion' },
+  { key: 'capacidad', label: 'Capacidad y GNV', icon: 'cajas' },
+  { key: 'fuentes', label: 'Fuentes del parque', icon: 'hoja' },
+] as const;
+
+export type RoadPage = (typeof ROAD_PAGES)[number]['key'];
+
+/**
+ * Una página del parque automotor.
+ *
+ * Antes eran cinco pestañas propias DEBAJO de la barra de página, y Automotor
+ * enseñaba dos filas de pestañas apiladas. Ahora son pestañas de la misma barra
+ * que «Vehículos 0 km» y «Estudio automotor»: una sola fila, y el tablero del
+ * parque se lee una vez en el padre y se reparte.
+ */
+export function RoadTransportPage({ board, page }: { board: RoadTransportBoard; page: RoadPage }) {
+  switch (page) {
+    case 'panorama':
+      return <Panorama board={board} />;
+    case 'departamentos':
+      return <Departments fleet={board.fleet} />;
+    case 'clases':
+      return <Classes fleet={board.fleet} />;
+    case 'capacidad':
+      return <CapacityGnv board={board} />;
+    default:
+      return <Sources board={board} />;
+  }
 }

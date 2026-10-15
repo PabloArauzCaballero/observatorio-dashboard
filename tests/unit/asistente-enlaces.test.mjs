@@ -63,8 +63,11 @@ test('el mapa del tablero nombra lo mismo que dibujan las secciones', () => {
     const esperados = SITE.find((s) => s.label === seccion).pages.map((p) => p.label);
     assert.deepEqual(rotulos, esperados, `las páginas de «${seccion}» coinciden con el mapa`);
   }
-  // La barra anidada de Automotor no es del primer nivel: sigue siendo `SubTabs`.
-  assert.match(leer('src/components/road-transport-explorer.tsx'), /<SubTabs/u);
+  // Automotor ya no apila una segunda fila: sus cinco páginas son pestañas de la barra de «Parque y mercado».
+  const transporte = leer('src/components/transport-section.tsx');
+  assert.match(transporte, /<SubTabs/u);
+  assert.match(transporte, /'Panorama',\s*'Departamentos',\s*'Clases y micros',\s*'Capacidad y GNV',\s*'Vehículos 0 km'/u);
+  assert.doesNotMatch(leer('src/components/road-transport-explorer.tsx'), /<SubTabs/u);
 });
 
 test('los enlaces no se repiten y siguen el orden del tablero', () => {

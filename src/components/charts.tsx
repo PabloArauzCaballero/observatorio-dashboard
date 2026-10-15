@@ -100,15 +100,16 @@ const clipLabel = (value: unknown, max = ROW_LABEL_MAX): string => {
 /**
  * El tono de una barra de ránking según cuánto pesa frente a la primera.
  *
- * Es un solo azul en dos pasos de la rampa secuencial (`--seq-400` a `--seq-600`),
- * mezclados entre sí y nunca con transparencia: la barra mayor es la más densa y
- * la menor la más ligera, así que el tono dice lo mismo que el largo y ninguna
- * barra se confunde con el fondo. En oscuro la rampa se ancla al revés («mucho»
- * es claro) y la mezcla sigue siendo coherente.
+ * La primera lleva EXACTAMENTE el azul de la serie (`--series-1`), el mismo que
+ * la leyenda dibuja en su cuadrito; las demás se aclaran hacia `--seq-300` en
+ * proporción a su largo, por mezcla y nunca con transparencia. Así la leyenda y
+ * la barra mayor coinciden, el tono dice lo mismo que el largo y ninguna barra
+ * se confunde con el fondo. En oscuro `--seq-300` es el paso que se apaga hacia
+ * el fondo, así que «menos» sigue siendo «menos».
  */
 const rankShade = (ratio: number): string => {
   const share = Math.round(Math.min(1, Math.max(0, ratio)) * 100);
-  return `color-mix(in srgb, var(--seq-600) ${share}%, var(--seq-400))`;
+  return `color-mix(in srgb, var(--series-1) ${share}%, var(--seq-300))`;
 };
 
 /** El azul «oficial» por defecto: el único tono que se gradúa; los demás van planos. */
