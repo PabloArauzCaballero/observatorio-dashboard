@@ -1356,7 +1356,7 @@ function EnsoBlock({
         <p className="page-intro-lede">
           El calentamiento o enfriamiento del océano Pacífico cambia la lluvia en Bolivia. Este es
           el índice de la NOAA (el mismo de «Variables exógenas») y lo que pasó con la lluvia en
-          cada fase desde 1951.
+          cada fase desde {Number(bundle.capitales.inicio.slice(0, 4)) + 1}.
         </p>
       </header>
       <div className="grid-pair">
@@ -1384,7 +1384,7 @@ function EnsoBlock({
         <Panel
           id="clima-nino-lluvia"
           title={`Lluvia de diciembre a marzo en años de ${phaseName}, frente a lo normal 1991–2020 (%)`}
-          lede={`Promedio de hasta ${count} épocas de lluvias con ${phaseName} desde 1951, en cada capital (ERA5). La fase se fija con el ONI de diciembre a febrero.`}
+          lede={`Promedio de hasta ${count} épocas de lluvias con ${phaseName} desde ${Number(bundle.capitales.inicio.slice(0, 4)) + 1}, en cada capital (ERA5). La fase se fija con el ONI de diciembre a febrero.`}
           source={`${bundle.capitales.fuente.nombre}; ${oniCredit}`}
           updated={sayDay(bundle.capitales.consultado)}
         >
