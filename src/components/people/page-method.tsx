@@ -103,7 +103,7 @@ export function MethodPage() {
           <ChartLegend
             items={[
               { color: 'var(--official)', label: 'Redes sociales (TikTok, Instagram y YouTube)' },
-              { color: 'var(--text-muted, #888)', label: 'Otras fuentes' },
+              { color: 'var(--series-rest)', label: 'Otras fuentes' },
             ]}
           />
         </Panel>

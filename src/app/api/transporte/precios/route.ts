@@ -8,7 +8,7 @@ export async function GET(request: NextRequest) {
   const dataset = request.nextUrl.searchParams.get('conjunto');
   const vehicleRead = dataset === 'vehiculos' ? await readVehiclePrices() : null;
   const rows = vehicleRead?.rows ?? (dataset === 'carburantes' ? fuels : dataset === 'pasajes' ? fares : null);
-  if (!rows) return NextResponse.json({ error: 'Elegí vehiculos, carburantes o pasajes.' }, { status: 400 });
+  if (!rows) return NextResponse.json({ error: 'El conjunto de datos debe ser «vehiculos», «carburantes» o «pasajes».' }, { status: 400 });
   const observedAt = dataset === 'vehiculos'
     ? vehicleRead?.rows.reduce((latest, row) => row.observedAt > latest ? row.observedAt : latest, '') ?? ''
     : '2026-10-03';

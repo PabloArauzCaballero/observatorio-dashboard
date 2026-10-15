@@ -220,7 +220,7 @@ export function ShareSquares({
                       <strong>{say(share, 1)} %</strong>
                     </div>
                     {point.pick && onPick ? (
-                      <div className="t-note">Tocá para filtrar por este.</div>
+                      <div className="t-note">Un clic filtra por este valor.</div>
                     ) : null}
                   </div>
                 );

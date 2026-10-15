@@ -985,7 +985,7 @@ export function PlacesMap({ places }: { places: Place[] }) {
     context.font = '20px ui-sans-serif, system-ui, sans-serif';
     context.fillStyle = 'rgba(255,255,255,0.85)';
     context.fillRect(0, height - 30, 330, 30);
-    context.fillStyle = '#333';
+    context.fillStyle = read('--ink', '#17191a');
     context.fillText('© OpenStreetMap contributors', 8, height - 9);
 
     return new Promise<Blob | null>((resolve) =>

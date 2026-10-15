@@ -92,7 +92,7 @@ test.describe('descargas de los paneles', () => {
       panel.getByRole('menuitem', { name: /^Datos\s*CSV/ }).click(),
     ]);
     expect(csv.suggestedFilename()).toMatch(
-      /^observatorio-cotizacion-dolar-\d{4}-\d{2}-\d{2}\.csv$/,
+      /^datosbolivia-cotizacion-dolar-\d{4}-\d{2}-\d{2}\.csv$/,
     );
     const stream = await csv.createReadStream();
     const chunks: Buffer[] = [];

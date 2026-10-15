@@ -8706,7 +8706,7 @@ button.download-btn {
 
   html,
   body {
-    background: #fff;
+    background: var(--field);
   }
 
   .shell {

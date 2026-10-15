@@ -5,9 +5,15 @@ description: Use al crear o rediseñar cualquier panel, gráfico, filtro o pesta
 
 # Tablero premium: un panel, una anatomía
 
-Dirección: **editorial financiero** (FT, The Economist, Bloomberg). Minimalista, mucho aire,
-un solo acento de interfaz, gráficos de trazo fino. El único gesto audaz es la cabecera de
-cada pestaña; todo lo demás queda callado.
+Dirección: **institucional, como un banco central, con la voz de la prensa económica seria**
+(NYT, FT). El producto se llama **DatosBolivia.com · Centro de Datos de Bolivia**
+(«Observatorio Económico» era el nombre en clave y no aparece en ningún texto visible).
+Identidad del manual de marca: tinta, oro envejecido y marfil; monograma DB
+(`src/components/brand/monogram.tsx`). Minimalista, filetes en vez de tarjetas, un solo
+acento de interfaz (oro profundo), gráficos de trazo fino.
+
+**Redacción: `docs/estilo/LIBRO-DE-ESTILO.md` manda.** Tercera persona impersonal, dato antes
+que adjetivo, sin jerga interna ni anglicismos, Bs/USD, coma decimal, siglas desarrolladas.
 
 Fundamentos que esta skill concreta: `dataviz` (color computable, formas, marcas),
 `frontend-design-system` (tokens en capas), `typography-systems`, `ui-visual-system`.
@@ -21,8 +27,11 @@ No sustituye al comprobador de paleta: lo exige.
    un panel hay que pasar `label` a las familias de líneas.
 3. **No se toca un color a ojo.** Cualquier cambio de `--series-*`, `--up`, `--down`,
    `--seq-*`, `--ord-*` o `--adv-*` pasa por `validate_palette.js` en claro
-   (`--surface "#ffffff"`) y en oscuro (`--surface "#151a21"`). Con `--pairs all` para
-   mapas y pequeños múltiplos: solo las tres primeras casillas la pasan.
+   (`--surface "#f7f4ed"`, el marfil) y en oscuro (`--surface "#0e1011"`, negro editorial).
+   Con `--pairs all` para mapas y pequeños múltiplos: solo las tres primeras casillas la
+   pasan. `analysis-pdf.ts` repite la paleta clara: se resincroniza con
+   `sync-palette.mjs` (lee `:root`), no a mano. La casilla 4 es petróleo, **no ámbar**:
+   lo que significa «vigilar/advertencia» usa `--warning`/`--serious`.
 4. **Filtros cruzados estilo PowerBI** en todo panel con varias dimensiones. Si el lector
    no puede recortar la vista, el panel no está terminado.
 5. **Dos series del mismo tipo y la misma ventana de fechas van en `grid-pair`.**
@@ -35,26 +44,38 @@ No sustituye al comprobador de paleta: lo exige.
 ## Anatomía de un panel
 
 ```
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━  (filete de tinta)
 Título con la magnitud y la unidad                     [Descargar ▾]
-Entradilla: una línea con lo que dicen los datos
-──────────────────────────────────────────────────────────────
+Entradilla en serif: el hallazgo, con cifra y fecha
 [ filtros del panel — una sola fila, encima del contenido ]
 [ gráfico, mapa o tabla ]
 ── Serie A  ── Serie B                                 (leyenda siempre)
-Fuente: … · actualizado 3-oct-2026                     (pie único)
+Fuente: BCB. Elaboración: DatosBolivia.com. Actualizado el 3-oct-2026.   (lo pone Panel)
 ```
+
+`source` lleva solo el publicador real; `Panel` (vía `src/lib/export/pie.ts`) añade
+«Elaboración: DatosBolivia.com» salvo que la fuente ya diga «cálculo de DatosBolivia.com».
+
+La cabecera de sección (`TabHeader`) lleva **antetítulo** en versalitas oro profundo
+(«ECONOMÍA · MERCADO CAMBIARIO»), que sale de la tabla `ANTETITULO` por `id`; una sección
+nueva se añade ahí. La cabecera del sitio es `Masthead` y el pie, `SiteFooter`.
 
 ## Tokens (solo estos; ningún literal suelto)
 
-- Tipografía: Newsreader (títulos de pestaña y de panel), Public Sans (todo lo demás).
-  Escala 1,2 sobre 16 px: `--text-xs … --text-3xl`. Cifras de héroe proporcionales;
-  `tabular-nums` solo en tablas y ejes. Sin monoespaciado en etiquetas de datos y sin
-  micro-etiquetas en MAYÚSCULAS: sans en minúscula de oración.
-- Espaciado `--s0 … --s6`. Radios `--radius-sm` 4, `--radius-md` 8, `--radius-pill`.
-- Una sola sombra, solo para capas flotantes (menús, popovers). Los paneles son
-  secciones separadas por línea fina, no tarjetas con sombra.
-- Un solo acento de interfaz (`--series-1`): pestaña activa, foco, enlaces, selección.
-  Los colores de estado son solo estado.
+- Tipografía: Newsreader (marca, títulos, entradillas, páginas del índice), Public Sans
+  (interfaz y datos). Escala 1,2 sobre 16 px: `--text-xs … --text-3xl`. Cifras de héroe
+  proporcionales; `tabular-nums` solo en tablas y ejes.
+- **MAYÚSCULAS espaciadas solo** en el antetítulo de sección, la franja de secciones y el
+  descriptor de la marca (`--kicker-size`, `--kicker-track`). Ningún otro rótulo.
+- Espaciado `--s0 … --s6`. Radios de periódico: `--radius-sm` 2, `--radius-md` 3,
+  `--radius-lg` 4 (`--radius-pill` solo para puntos y avatares).
+- Superficies: `--paper`/`--panel` marfil (los paneles no son tarjetas), `--field` papel
+  blanco (campos, menús, tooltip), `--panel-tint` arena clara.
+- Una sola sombra, solo para capas flotantes (menús, popovers). Los paneles se separan
+  por filete de tinta arriba, no por tarjetas.
+- Un solo acento de interfaz: **`--accent`** (oro profundo #806337, 5,1:1): página abierta,
+  foco, enlaces, selección. `--gold` (#aa884d, 3,0:1) es solo filete, monograma y adorno,
+  **nunca texto**. `--series-*` es solo para datos. Los colores de estado son solo estado.
 - Gráficos: retícula y ejes como línea fina sólida (nunca discontinua), líneas de 2 px,
   tooltip con el valor primero y la serie después, animación ≤ 400 ms y
   `prefers-reduced-motion` respetado.
@@ -70,6 +91,7 @@ que el panel muestra con los filtros aplicados**. Cada pestaña lleva «Descarga
 
 ## Cierre de un panel (marcar todo antes de decir «listo»)
 
+- [ ] Textos según `docs/estilo/LIBRO-DE-ESTILO.md` (lista de control del §9).
 - [ ] Usa `Panel`; el `<h2>` imprime la unidad.
 - [ ] Hay `.chart-legend` hermana de cada `.chart-frame`.
 - [ ] Pie de fuente único con fecha.

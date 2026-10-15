@@ -165,9 +165,9 @@ test('campoCsv entrecomilla lo que lo pide y neutraliza fórmulas', () => {
 test('nombreDeArchivo: sin espacios ni tildes, con fecha y extensión', () => {
   assert.equal(
     nombreDeArchivo('Dólar paralelo (Bs por USD)', '2026-10-03', 'csv'),
-    'observatorio-dolar-paralelo-bs-por-usd-2026-10-03.csv',
+    'datosbolivia-dolar-paralelo-bs-por-usd-2026-10-03.csv',
   );
-  assert.equal(nombreDeArchivo('///', '2026-10-03', 'xlsx'), 'observatorio-datos-2026-10-03.xlsx');
+  assert.equal(nombreDeArchivo('///', '2026-10-03', 'xlsx'), 'datosbolivia-datos-2026-10-03.xlsx');
 });
 
 test('filasDeSeries usa los nombres legibles y no inventa ceros', () => {
