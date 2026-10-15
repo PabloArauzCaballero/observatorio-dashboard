@@ -122,6 +122,8 @@ export interface RawPeopleData {
 
 const WORDS_PER_PERSON = 25;
 const WORDS_ALL = 60;
+// El panel del canal muestra 15 en total: con 12 por persona alcanza y el resumen no engorda.
+const CHANNEL_WORDS_PER_PERSON = 12;
 
 /** Quita el enlace pegado en medio de la frase: la ficha de la encuesta lo muestra aparte. */
 export function splitUrl(text: string): { text: string; url: string | null } {
@@ -164,6 +166,7 @@ export function buildSummary(raw: RawPeopleData): PeopleSummary {
                 read: entry.own.commentsRead,
                 analyzed: entry.own.commentsAnalyzed,
                 sentiment: entry.own.sentiment,
+                words: entry.own.sentiment ? topWords(entry.own.words, CHANNEL_WORDS_PER_PERSON) : [],
               }
             : null,
         }
