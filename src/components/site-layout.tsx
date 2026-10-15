@@ -139,9 +139,23 @@ function Indice({ lugar }: { lugar: Lugar }) {
   const abierta = SITE.find((s) => s.label === lugar.seccion);
   const paginas = abierta?.pages ?? [];
 
+  // En el teléfono las franjas se deslizan: la sección y la página abiertas quedan a la vista.
+  const franjaSecciones = useRef<HTMLUListElement>(null);
+  const franjaPaginas = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    for (const [franja, activo] of [
+      [franjaSecciones.current, '.site-link-on'],
+      [franjaPaginas.current, '.site-page-on'],
+    ] as const) {
+      const enlace = franja?.querySelector<HTMLElement>(activo);
+      if (!franja || !enlace || franja.scrollWidth <= franja.clientWidth) continue;
+      franja.scrollLeft = enlace.offsetLeft - (franja.clientWidth - enlace.offsetWidth) / 2;
+    }
+  }, [lugar.seccion, lugar.pagina]);
+
   return (
     <nav className="site-index" aria-label="Secciones">
-      <ul className="site-sections">
+      <ul className="site-sections" ref={franjaSecciones}>
         {SITE.map((seccion) => {
           const esActiva = lugar.seccion === seccion.label;
           const primera = seccion.pages[0]?.label ?? null;
@@ -160,7 +174,7 @@ function Indice({ lugar }: { lugar: Lugar }) {
         })}
       </ul>
       {abierta && paginas.length > 0 ? (
-        <div className="site-pages-col">
+        <div className="site-pages-col" ref={franjaPaginas}>
           <p className="site-pages-head" aria-hidden="true">
             {abierta.label}
           </p>

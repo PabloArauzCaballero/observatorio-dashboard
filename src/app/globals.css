@@ -9542,6 +9542,7 @@ button.download-btn {
 
 /* Teléfono y tableta: las páginas, en una segunda franja que se desliza. */
 .site-pages-col {
+  position: relative;
   margin: calc(var(--s4) * -1) calc(var(--s3) * -1) var(--s3);
   padding: 0 var(--s3);
   overflow-x: auto;
