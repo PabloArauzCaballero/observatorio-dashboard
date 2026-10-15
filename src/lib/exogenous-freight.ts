@@ -1,6 +1,7 @@
 import 'server-only';
 import { pool } from './db';
 import type { ExogenousSeries } from './exogenous-board';
+import { rollingFreight, type FreightMonth } from './freight-rolling';
 
 /**
  * El flete que Bolivia paga en su aduana, por tonelada importada.
@@ -20,12 +21,16 @@ import type { ExogenousSeries } from './exogenous-board';
  * Sólo cuentan las filas con FOB y peso: una fila sin FOB haría pasar todo su
  * valor por flete. Es un valor unitario y no una tarifa; el panel lo dice.
  *
- * Y sólo los meses con peso suficiente: un cociente sobre un denominador ínfimo
- * no es un flete, es ruido. Pando, julio de 2012, declaró 20 kg y 2.537 US$ de
- * diferencia CIF−FOB: 8.350 US$ por tonelada, 110 veces su mediana, y esa sola
- * lectura aplanaba las cinco series del gráfico. Medido sobre los 1.779 meses
- * departamentales: bajo 100 t la mediana sube a 220–480 US$/t (frente a 114) y
- * entre un quinto y dos quintos pasan de 600; sobre 500 t pasa el 0,4 %.
+ * Un cociente sobre un denominador ínfimo no es un flete, es ruido. Pando, julio de 2012,
+ * declaró 20 kg y 2.537 US$ de diferencia CIF−FOB: 8.350 US$ por tonelada, 110 veces su
+ * mediana, y esa sola lectura aplanaba las cinco series del gráfico. Medido sobre los 1.779
+ * meses departamentales: bajo 100 t la mediana sube a 220–480 US$/t (frente a 114) y entre un
+ * quinto y dos quintos pasan de 600; sobre 500 t pasa el 0,4 %.
+ *
+ * Por eso cada punto suma los doce meses que terminan en él (`freight-rolling.ts`): flete total
+ * entre toneladas totales. Un mes de 20 kg pesa en esa suma lo que pesa su carga —casi nada— en
+ * vez de dibujar un pico, así que no hace falta descartarlo; la ventana exige 100 t y nueve meses
+ * con importaciones.
  */
 
 interface Row {
@@ -52,11 +57,8 @@ const DEPARTMENTS: Readonly<Record<string, string>> = {
 /** Menos meses que esto no dibujan una línea que se pueda leer. */
 const MINIMUM_MONTHS = 24;
 
-/** Peso mensual mínimo, en kg, para que el valor por tonelada diga algo: 100 toneladas. */
-const MINIMUM_KG = 100_000;
-
 const NOTE =
-  'Valor CIF en frontera menos valor FOB, por tonelada de peso bruto importada (base aduanera del INE). Incluye flete y seguro hasta la frontera, no sólo el tramo marítimo, y cambia con lo que se importa: es un valor unitario, no una tarifa. No se dibujan los meses con menos de 100 toneladas importadas: con un peso tan bajo, el cociente no es representativo.';
+  'Valor CIF en frontera menos valor FOB, por tonelada de peso bruto importada (base aduanera del INE). Incluye flete y seguro hasta la frontera, no sólo el tramo marítimo, y cambia con lo que se importa: es un valor unitario, no una tarifa. Cada punto suma los doce meses que terminan en él (flete total entre toneladas totales), para que un mes con poca carga no dibuje un pico.';
 
 const seriesOf = (
   code: string,
@@ -98,32 +100,35 @@ export async function readImpliedFreight(): Promise<ExogenousSeries[]> {
     return [];
   }
 
-  const byKey = new Map<string, Array<[string, number]>>();
+  const monthsByKey = new Map<string, FreightMonth[]>();
   for (const row of rows) {
     const cif = Number(row.cif);
     const fob = Number(row.fob);
     const kg = Number(row.kg);
-    if (!(kg >= MINIMUM_KG) || cif < fob) continue;
-    const perTonne = ((cif - fob) / kg) * 1000;
+    if (!(kg > 0) || cif < fob) continue;
     const key = row.department ?? 'TOTAL';
-    const period = `${row.year}-${String(row.month).padStart(2, '0')}`;
-    const own = byKey.get(key) ?? [];
-    own.push([period, Math.round(perTonne * 100) / 100]);
-    byKey.set(key, own);
+    const own = monthsByKey.get(key) ?? [];
+    own.push({ year: row.year, month: row.month, freightUsd: cif - fob, kg });
+    monthsByKey.set(key, own);
   }
+  const byKey = new Map(
+    [...monthsByKey].map(([key, months]) => [key, rollingFreight(months)] as const),
+  );
 
   const out: ExogenousSeries[] = [];
   const total = byKey.get('TOTAL');
   if (total && total.length >= MINIMUM_MONTHS) {
     out.push(
-      seriesOf('EXO_BO_FREIGHT_IMPLIED_TOTAL', 'Flete implícito de las importaciones, país', 'Bolivia', total),
+      seriesOf('EXO_BO_FREIGHT_IMPLIED_TOTAL', 'Flete implícito, todo el país', 'Bolivia', total),
     );
   }
   for (const [code, name] of Object.entries(DEPARTMENTS)) {
     const points = byKey.get(code);
     if (!points || points.length < MINIMUM_MONTHS) continue;
     out.push(
-      seriesOf(`EXO_BO_FREIGHT_IMPLIED_D${code}`, `Flete implícito de las importaciones, ${name}`, name, points),
+      // El departamento al principio del rótulo: «Flete implícito de las importaciones, …» se
+      // cortaba en el riel antes de llegar a él y las diez lecturas se leían iguales.
+      seriesOf(`EXO_BO_FREIGHT_IMPLIED_D${code}`, `Flete implícito, ${name}`, name, points),
     );
   }
   return out;

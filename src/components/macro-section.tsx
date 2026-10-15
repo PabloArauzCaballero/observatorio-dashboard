@@ -6,6 +6,7 @@ import { DepartmentsSection } from './departments-section';
 import { EnergySection } from './energy-section';
 import { EnvironmentSection } from './environment-section';
 import dynamic from 'next/dynamic';
+import { ExogenousComparatives } from './exogenous-comparatives';
 import { ExogenousSection } from './exogenous-section';
 import { ExternalDrivers } from './exogenous-drivers';
 import { ForeignTradeSection } from './foreign-trade-section';
@@ -96,14 +97,19 @@ export function MacroSection() {
  * externos» ya no existe: las 150 series de su catálogo estaban, una por una, en estas dos
  * pestañas, en el tipo de cambio o en «Social Info»; repetirlas era el defecto. `SubTabs`
  * monta sólo la abierta, así que ninguna pide sus datos hasta que alguien la elige.
+ *
+ * «Comparativos» es la segunda: dos lecturas frente a frente. Vivía al pie de «Precios por
+ * producto» y no seguía a sus filtros, así que mezclaba lo que el lector filtraba arriba con dos
+ * listas de todo; con su propia pestaña abre en las comparaciones que preguntan algo sobre Bolivia.
  */
 function ExogenousPage() {
   return (
     <SubTabs
-      labels={['Precios por producto', 'Demanda externa y clima']}
-      icons={['monedas', 'clima']}
+      labels={['Precios por producto', 'Comparativos', 'Demanda externa y clima']}
+      icons={['monedas', 'balanza', 'clima']}
     >
       <ExogenousSection />
+      <ExogenousComparatives />
       <ExternalDrivers />
     </SubTabs>
   );

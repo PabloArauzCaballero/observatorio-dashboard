@@ -10329,3 +10329,105 @@ progress {
     display: none;
   }
 }
+
+/*
+ * Las barras de ránking no se estiran con la fila.
+ *
+ * `ShareBars` y `DivergingBars` miden su alto por filas (36 px cada una): la barra es delgada y
+ * el aire es parte del diseño. Al lado de un ránking de 40 países, los 9 departamentos se
+ * repartían en 1.100 px y quedaban sueltos, una barra cada 120 px.
+ */
+.chart-frame.chart-frame-rows {
+  flex-grow: 0 !important;
+}
+
+/* Y el panel tampoco: con su gráfico de alto fijo, estirarlo sólo dejaba un hueco debajo. */
+.grid-pair > :has(.chart-frame-rows),
+.grid-three > :has(.chart-frame-rows) {
+  align-self: start;
+}
+
+/* Comparativos ----------------------------------------------------------- */
+
+/*
+ * Las preguntas, por tema: un rótulo corto encima de cada grupo de pastillas. Las pastillas son
+ * preguntas enteras, así que se dejan partir en dos renglones antes que desbordar en el móvil.
+ */
+.compare-themes {
+  display: grid;
+  gap: var(--s3);
+}
+
+.compare-theme {
+  display: grid;
+  gap: var(--s1);
+}
+
+.compare-theme-title {
+  margin: 0;
+  color: var(--ink-soft);
+  font-family: var(--sans);
+  font-size: var(--text-xs);
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.compare-theme .chip {
+  max-width: 100%;
+  text-align: left;
+  white-space: normal;
+}
+
+/*
+ * Los controles en una fila que se parte: las dos lecturas se llevan el ancho, los años y la
+ * escala lo justo. Antes eran tres listas a lo ancho del panel, una debajo de la otra.
+ */
+.compare-controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: var(--s2);
+  padding-bottom: var(--s2);
+  border-bottom: 1px solid var(--rule-soft);
+}
+
+.compare-field {
+  display: grid;
+  gap: 0.3rem;
+  flex: 1 1 18rem;
+  min-width: 0;
+}
+
+.compare-field-narrow {
+  flex: 0 0 auto;
+}
+
+.compare-label {
+  color: var(--ink-soft);
+  font-size: var(--text-xs);
+}
+
+.compare-field select {
+  width: 100%;
+  min-width: 0;
+  padding: 0.45rem 0.7rem;
+  border: 1px solid var(--rule);
+  border-radius: var(--radius-md);
+  background: var(--field);
+  color: var(--ink);
+  font: inherit;
+  /* 16 px: por debajo, iOS hace zoom al enfocar. */
+  font-size: max(1rem, var(--text-sm));
+}
+
+.compare-field select:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
+.compare-stats .stat-label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}

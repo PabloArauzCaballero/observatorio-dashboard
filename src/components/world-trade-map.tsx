@@ -65,6 +65,17 @@ const say = (value: number, decimals = 0): string =>
     maximumFractionDigits: decimals,
   });
 
+/** El radio del punto que dibuja un país sin contorno. */
+const DOT_RADIUS = 5;
+
+/**
+ * Si el punto cae dentro del dibujo. La Antártida no tiene contorno en el mapa y su punto quedaba
+ * debajo del lienzo, encima de la leyenda; las islas del Pacífico pasadas del antimeridiano caen a
+ * la izquierda del borde y se pegan a él en vez de perderse.
+ */
+const insideBox = (point: { y: number }): boolean =>
+  point.y >= DOT_RADIUS && point.y <= WORLD_BOX.height - DOT_RADIUS;
+
 export function WorldTradeMap({
   rows,
   unit,
@@ -212,7 +223,7 @@ export function WorldTradeMap({
               </g>
             );
           })}
-          {WORLD_POINTS.filter((point) => byIso.has(point.iso3)).map((point) => {
+          {WORLD_POINTS.filter((point) => byIso.has(point.iso3) && insideBox(point)).map((point) => {
             const row = byIso.get(point.iso3);
             return (
               <g
@@ -221,9 +232,9 @@ export function WorldTradeMap({
                 {...handlers(row, point.name)}
               >
                 <circle
-                  cx={point.x}
+                  cx={Math.min(Math.max(point.x, DOT_RADIUS), WORLD_BOX.width - DOT_RADIUS)}
                   cy={point.y}
-                  r={5}
+                  r={DOT_RADIUS}
                   style={{ fill: row ? fillOf(row.value) : NONE }}
                 />
               </g>

@@ -9,6 +9,7 @@ import { AUTO_DRAWN, FREQUENCY_LABEL, MAX_SELECTED, PAGE, shortLabels } from '@/
 import type { BcbCatalogPage, BcbSeriesData, BcbSeriesInfo } from '@/lib/bcb-board';
 import { Panel } from '@/components/ui/panel';
 import { celda } from '@/components/ui/panel-data';
+import { fittedDomain } from '@/lib/chart-axis';
 
 /**
  * Las estadísticas del Banco Central, con la misma estructura que las otras pestañas.
@@ -27,7 +28,36 @@ const monthFormat = new Intl.DateTimeFormat('es-BO', {
   year: 'numeric',
   timeZone: 'UTC',
 });
-const sayMonth = (value: string): string => monthFormat.format(new Date(`${value}T12:00:00Z`));
+const dayFormat = new Intl.DateTimeFormat('es-BO', {
+  day: 'numeric',
+  month: 'short',
+  year: 'numeric',
+  timeZone: 'UTC',
+});
+const asDate = (value: string): Date => new Date(`${value.slice(0, 10)}T12:00:00Z`);
+
+/**
+ * Un período dicho como lo publica su frecuencia: «2025» para una serie anual, «T3 2025» para una
+ * trimestral, «sept 2025» para una mensual y el día entero para una diaria o semanal.
+ *
+ * Todo se decía como mes: las series anuales del BCB están fechadas el 1 de enero y se leían
+ * «ene 2008 – ene 2026», como si fueran de enero.
+ */
+function sayPeriod(value: string, frequency?: string): string {
+  const date = asDate(value);
+  if (Number.isNaN(date.getTime())) return value;
+  if (frequency === 'ANNUAL') return String(date.getUTCFullYear());
+  if (frequency === 'QUARTERLY') {
+    return `T${Math.floor(date.getUTCMonth() / 3) + 1} ${date.getUTCFullYear()}`;
+  }
+  if (frequency === 'SEMIANNUAL') {
+    return `${date.getUTCMonth() < 6 ? '1.er' : '2.º'} semestre ${date.getUTCFullYear()}`;
+  }
+  if (frequency === 'DAILY' || frequency === 'WEEKLY') return dayFormat.format(date);
+  if (frequency === 'MONTHLY') return monthFormat.format(date);
+  // Sin frecuencia (el dato más reciente de un recorte mezclado): el día si lo hay.
+  return date.getUTCDate() === 1 ? monthFormat.format(date) : dayFormat.format(date);
+}
 
 const figure = (value: number): string =>
   new Intl.NumberFormat('es-BO', {
@@ -107,11 +137,22 @@ function autoPick(results: readonly BcbSeriesInfo[]): string[] {
 /** El informe con el que se abre la pestaña: el de las reservas, que es lo que se busca primero. */
 const FEATURED = /reservas internacionales netas/iu;
 
-/** Un eje que arranca en cero cuando la serie no baja de cero: el mínimo negativo sobra. */
+/**
+ * Un eje que arranca en cero cuando la serie no baja de cero, con marcas redondas: el máximo por
+ * 1,08 dejaba la marca de arriba en «16.332,7».
+ */
 function floor(group: readonly BcbSeriesData[]): { domain?: [number, number] } {
   const values = group.flatMap((one) => one.points.map(([, value]) => value));
   if (!values.length || Math.min(...values) < 0) return {};
-  return { domain: [0, Math.max(...values) * 1.08] };
+  return { domain: fittedDomain([0, ...values]) };
+}
+
+/** Cómo se rotula el eje de un grupo de series de una misma frecuencia. */
+function cadenceOf(frequency: string, years: number) {
+  if (frequency === 'ANNUAL' || frequency === 'SEMIANNUAL') return { cadence: 'year' as const };
+  if (frequency === 'QUARTERLY') return { cadence: 'quarter' as const };
+  if (frequency === 'MONTHLY') return { monthly: true };
+  return { yearTicks: years >= 2 };
 }
 
 /** La celda de una serie dicha en claro: «columna D, filas 8 a 303» o «fila 43, columnas D a V». */
@@ -197,7 +238,7 @@ function LatestReadings({ selected }: { selected: readonly BcbSeriesData[] }) {
             <span className="stat-label">{short}</span>
             <span className="stat-value">{figure(last[1])}</span>
             <span className="stat-hint">
-              {one.unit ?? 'sin unidad declarada'} · {sayMonth(last[0])}
+              {one.unit ?? 'sin unidad declarada'} · {sayPeriod(last[0], one.frequency)}
               {change === null
                 ? ''
                 : ` · ${change >= 0 ? '+' : ''}${figure(change)} % contra el dato anterior`}
@@ -295,8 +336,10 @@ export function BcbSection() {
   const shown = [...page.results, ...extra];
   const selected = picked.map((code) => loaded[code]).filter((s): s is BcbSeriesData => !!s);
   const groups = new Map<string, BcbSeriesData[]>();
+  // Por unidad y por frecuencia: una serie anual y una diaria en el mismo eje se leen mal, y el
+  // eje no puede decir a la vez «2019» y «14 mar».
   for (const one of selected) {
-    const key = one.unit ?? 'sin unidad declarada en el cuaderno';
+    const key = `${one.unit ?? 'sin unidad declarada en el cuaderno'}|${one.frequency}`;
     groups.set(key, [...(groups.get(key) ?? []), one]);
   }
   // Las series de una misma hoja empiezan igual: en la tabla se lee solo lo que las distingue.
@@ -400,7 +443,12 @@ export function BcbSection() {
           </div>
           <div className="stat">
             <span className="stat-label">Dato más reciente</span>
-            <span className="stat-value">{page.latest ? sayMonth(page.latest) : '—'}</span>
+            <span className="stat-value">{page.latest
+                ? sayPeriod(
+                    page.latest,
+                    page.frequencies.length === 1 ? page.frequencies[0]?.key : undefined,
+                  )
+                : '—'}</span>
             <span className="stat-hint">entre las series a la vista</span>
           </div>
         </div>
@@ -553,7 +601,9 @@ export function BcbSection() {
 
           {selected.length ? <LatestReadings selected={selected} /> : null}
 
-          {[...groups.entries()].map(([unit, group]) => {
+          {[...groups.entries()].map(([key, group]) => {
+            const unit = group[0]?.unit ?? 'sin unidad declarada en el cuaderno';
+            const frequency = group[0]?.frequency ?? '';
             const labels = shortLabels(group.map((one) => one.name));
             const lines: DatedLineSeries[] = group.map((one, index) => ({
               key: one.code,
@@ -565,9 +615,9 @@ export function BcbSection() {
             const lastYear = Math.max(...group.map((one) => Number(one.lastPeriod.slice(0, 4))));
             return (
               <Panel
-                key={unit}
-                id={`bcb-grafico-${slug(unit)}`}
-                title={`Series del Banco Central (${inParens(unit)})`}
+                key={key}
+                id={`bcb-grafico-${slug(`${unit}-${frequency}`)}`}
+                title={`Series del Banco Central (${inParens(unit)}, ${(FREQUENCY_LABEL[frequency] ?? frequency).toLowerCase()})`}
                 lede={group
                   .map((one) => `${one.workbookTitle} · ${one.sheet}`)
                   .filter((t, i, all) => all.indexOf(t) === i)
@@ -579,7 +629,7 @@ export function BcbSection() {
                   series={lines}
                   unit={unit.slice(0, 24)}
                   decimals={2}
-                  yearTicks={lastYear - firstYear >= 2}
+                  {...cadenceOf(frequency, lastYear - firstYear)}
                   {...floor(group)}
                 />
                 <details className="panel-note">
@@ -671,7 +721,8 @@ export function BcbSection() {
                         </td>
                         <td>{FREQUENCY_LABEL[one.frequency] ?? one.frequency}</td>
                         <td>
-                          {sayMonth(one.firstPeriod)} – {sayMonth(one.lastPeriod)}
+                          {sayPeriod(one.firstPeriod, one.frequency)} –{' '}
+                          {sayPeriod(one.lastPeriod, one.frequency)}
                         </td>
                       </tr>
                     );
