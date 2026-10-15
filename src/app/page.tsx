@@ -1,7 +1,6 @@
 import { Suspense } from 'react';
 import { Asistente } from '@/components/asistente';
 import type { GapChartPoint, RatePoint } from '@/components/charts';
-import { FxEconometricsCard } from '@/components/fx-econometrics-card';
 import { FxSection } from '@/components/fx-section';
 import { MarketCards } from '@/components/market-cards';
 import { SummaryExplorer } from '@/components/summary-explorer';
@@ -640,20 +639,17 @@ export default function Page() {
 
         <section className="stack">
           {/*
-            Las pruebas formales van después de la lectura y de los gráficos,
-            pero ya no se leen aquí: se descargan como informe. La tarjeta no
-            lee nada, así que no necesita su propio `Suspense`; el cálculo corre
-            en `/api/econometria` cuando alguien pide el documento.
+            Las pruebas formales viven ahora en la última página de la sección,
+            «Análisis técnico», que monta `FxSection`.
           */}
           <TabHeader
             id="tipo-de-cambio"
             title="Tipo de cambio"
-            lede="El dólar oficial del Banco Central de Bolivia y el paralelo de los mercados P2P, en bolivianos y descontada la inflación, y el boliviano frente a otras monedas. El paralelo es una medición de mercados abiertos, no una cotización oficial."
+            lede="Cuánto cuesta el dólar hoy, en el mercado y en el Banco Central de Bolivia, y cuánto vale el boliviano frente a otras monedas. Cada página responde una pregunta; la estadística detallada está al final, en «Análisis técnico»."
           />
           <Suspense fallback={<Armando que="la sección de tipo de cambio" />}>
             <FxSection />
           </Suspense>
-          <FxEconometricsCard />
         </section>
 
         <section className="stack">

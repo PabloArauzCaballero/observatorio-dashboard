@@ -2,7 +2,6 @@
 
 import { useState } from 'react';
 
-import { BankQuotesPanel } from './bank-quotes-panel';
 import { BcbUsdtMarket } from './bcb-usdt-market';
 import { DatedLines } from './charts';
 import type { DatedBand, DatedLinePoint, DatedLineSeries } from './charts';
@@ -180,6 +179,11 @@ export interface FxMacroPanelsProps {
   tokens: ReadonlyArray<{ token: string; points: readonly SidedPoint[] }>;
   /** First day a reading names its instrument, where the token line stops being spliced. */
   labelledFrom?: string | undefined;
+  /**
+   * Qué mitad dibujar: «Poder de compra» (lecturas e índice real) o «Dólar digital» (fichas
+   * y el mercado del BCB). Desde el 15-oct-2026 cada una es una página propia de la sección.
+   */
+  only: 'real' | 'tokens';
 }
 
 const REAL_SERIES: readonly DatedLineSeries[] = [
@@ -229,6 +233,7 @@ export function FxMacroPanels({
   realParallel,
   tokens,
   labelledFrom,
+  only,
 }: FxMacroPanelsProps) {
   /*
    * Línea o velas, por panel y a propósito por separado. Los dos dibujan un
@@ -304,7 +309,7 @@ export function FxMacroPanels({
 
   return (
     <>
-      <FxConclusions conclusions={snapshot.conclusions} />
+      {only === 'real' ? <FxConclusions conclusions={snapshot.conclusions} /> : null}
 
       {/*
        * Las dos series de tiempo del capítulo, en una fila y no una debajo de
@@ -326,148 +331,150 @@ export function FxMacroPanels({
        * los bancos —el volumen que declara el BCB y lo que cobra cada banco—.
        */}
       <div className="grid-pair fx-par">
-        <Panel
-          id="dolar-paralelo-real"
-          title="Dólar paralelo descontada la inflación (índice, base 100)"
-          lede={realLede}
-          source="Mercados P2P en bolivianos (paralelo) y UFV del Banco Central de Bolivia; cálculo de DatosBolivia.com"
-        >
-          {realRows.length > 1 && realCandles ? (
-            <LevelCandles
-              sessions={realSessions}
-              unit="puntos del índice"
-              decimals={1}
-              lead={<ShapeToggle candles={realCandles} onChange={setRealCandles} />}
-            />
-          ) : realRows.length > 1 ? (
-            <>
-              <div className="fx-filters">
-                <ShapeToggle candles={realCandles} onChange={setRealCandles} />
-              </div>
-              <DatedLines
-                data={realRows}
-                series={REAL_SERIES}
-                unit="índice"
+        {only === 'real' ? (
+          <Panel
+            id="dolar-paralelo-real"
+            title="Dólar paralelo descontada la inflación (índice, base 100)"
+            lede={realLede}
+            source="Mercados P2P en bolivianos (paralelo) y UFV del Banco Central de Bolivia; cálculo de DatosBolivia.com"
+          >
+            {realRows.length > 1 && realCandles ? (
+              <LevelCandles
+                sessions={realSessions}
+                unit="puntos del índice"
                 decimals={1}
-                referenceLine={100}
-                referenceLabel="nivel del inicio"
-                bands={bands}
+                lead={<ShapeToggle candles={realCandles} onChange={setRealCandles} />}
               />
-            </>
-          ) : (
-            <div className="callout">
-              Datos insuficientes: el índice requiere al menos dos jornadas con tipo de cambio y UFV.
-            </div>
-          )}
-          <details className="panel-note">
-            <summary>Cómo leer este panel</summary>
-            <p>
-              El panel «Dólar oficial y paralelo (Bs por USD)», más abajo, muestra el mismo dólar en
-              bolivianos corrientes; esta línea lo expresa en poder de compra, algo que el nivel
-              nominal no indica. Por encima de 100, el dólar se encareció en términos reales; por
-              debajo, subió menos que los precios y hoy cuesta menos, en términos reales, que al
-              inicio. La franja sombreada marca el tramo en que el oficial estuvo fijo.
-            </p>
-          </details>
-        </Panel>
-
-        <Panel
-          id="dolar-por-ficha"
-          title="Precio del dólar por ficha estable (Bs por USD)"
-          lede="Punto medio de la cotización de cada ficha estable, la vía por la que se compran dólares cuando el sistema financiero no los vende."
-          source="Mercados P2P en bolivianos; lecturas por ficha recopiladas por DatosBolivia.com"
-          data={() =>
-            tokenChart
-              ? undefined
-              : {
-                  unidad: 'Bs por USD',
-                  columnas: [
-                    'Ficha',
-                    'Punto medio (Bs por USD)',
-                    'Compra (Bs)',
-                    'Venta (Bs)',
-                    'Ida y vuelta (%)',
-                    'Costo de comprar sobre el punto medio (%)',
-                    'Plazas',
-                  ],
-                  filas: snapshot.stablecoins.map((reading) => [
-                    reading.token,
-                    reading.mid,
-                    reading.bid,
-                    reading.ask,
-                    reading.spreadPercent,
-                    reading.premiumAskPercent,
-                    reading.venues,
-                  ]),
-                }
-          }
-        >
-          {tokenChart ? (
-            <div className="fx-filters">
-              <ShapeToggle candles={tokenCandles} onChange={setTokenCandles} />
-            </div>
-          ) : null}
-          {tokenChart && tokenCandles ? (
-            /*
-             * Una pila de velas por ficha y no una sola con las dos: una vela
-             * es un precio en el tiempo, y dos fichas superpuestas serían dos
-             * precios peleando por el mismo cuerpo. La ventana abre en «90
-             * días» porque es donde vive el tramo leído por ficha; «Todo»
-             * devuelve a USDT su historia empalmada, ya por semanas.
-             */
-            <div className="chart-stack">
-              {tokenSessions.map((entry) => (
-                <div key={entry.token} className="candle-token">
-                  <h4 className="candle-token-title">
-                    {entry.token} (Bs por USD)
-                    <span className="candle-token-hint">
-                      {entry.sessions.length.toLocaleString('es-BO')} jornadas
-                    </span>
-                  </h4>
-                  <LevelCandles
-                    sessions={entry.sessions}
-                    unit="Bs por USD"
-                    decimals={3}
-                    sidesNote="la compra y la venta medianas de la jornada"
-                    defaultRange="90d"
-                  />
+            ) : realRows.length > 1 ? (
+              <>
+                <div className="fx-filters">
+                  <ShapeToggle candles={realCandles} onChange={setRealCandles} />
                 </div>
-              ))}
-            </div>
-          ) : tokenChart ? (
-            <DatedLines
-              data={tokenRows}
-              series={tokenSeries}
-              unit="Bs por USD"
-              decimals={3}
-              bands={labelledBand(labelledFrom, tokenDates)}
-            />
-          ) : (
-            <StablecoinTable readings={snapshot.stablecoins} />
-          )}
-          <details className="panel-note">
-            <summary>Cómo leer este panel</summary>
-            <p>
-              Las fichas están ancladas al mismo dólar: la diferencia entre ellas refleja el costo
-              de cada vía de compra, no un precio distinto.
-              {labelledFrom ? (
-                <>
-                  {' '}
-                  Antes del {sayLong(labelledFrom)} el archivo no anotaba el instrumento, y lo que
-                  cotizaba era USDT: hasta esa fecha la línea es el punto medio del paralelo, y{' '}
-                  <b>la franja sombreada</b> es el tramo en que cada lectura ya viene con el nombre
-                  de su ficha.
-                </>
-              ) : null}
-            </p>
-          </details>
-        </Panel>
+                <DatedLines
+                  data={realRows}
+                  series={REAL_SERIES}
+                  unit="índice"
+                  decimals={1}
+                  referenceLine={100}
+                  referenceLabel="nivel del inicio"
+                  bands={bands}
+                />
+              </>
+            ) : (
+              <div className="callout">
+                Datos insuficientes: el índice requiere al menos dos jornadas con tipo de cambio y
+                UFV.
+              </div>
+            )}
+            <details className="panel-note">
+              <summary>Cómo leer este panel</summary>
+              <p>
+                La página «Resumen» muestra el mismo dólar en bolivianos corrientes; esta línea lo
+                expresa en poder de compra, algo que el nivel nominal no indica. Por encima de 100,
+                el dólar se encareció en términos reales; por debajo, subió menos que los precios y
+                hoy cuesta menos, en términos reales, que al inicio. La franja sombreada marca el
+                tramo en que el oficial estuvo fijo.
+              </p>
+            </details>
+          </Panel>
+        ) : null}
+
+        {only === 'tokens' ? (
+          <Panel
+            id="dolar-por-ficha"
+            title="Precio del dólar por ficha estable (Bs por USD)"
+            lede="Punto medio de la cotización de cada ficha estable, la vía por la que se compran dólares cuando el sistema financiero no los vende."
+            source="Mercados P2P en bolivianos; lecturas por ficha recopiladas por DatosBolivia.com"
+            data={() =>
+              tokenChart
+                ? undefined
+                : {
+                    unidad: 'Bs por USD',
+                    columnas: [
+                      'Ficha',
+                      'Punto medio (Bs por USD)',
+                      'Compra (Bs)',
+                      'Venta (Bs)',
+                      'Ida y vuelta (%)',
+                      'Costo de comprar sobre el punto medio (%)',
+                      'Plazas',
+                    ],
+                    filas: snapshot.stablecoins.map((reading) => [
+                      reading.token,
+                      reading.mid,
+                      reading.bid,
+                      reading.ask,
+                      reading.spreadPercent,
+                      reading.premiumAskPercent,
+                      reading.venues,
+                    ]),
+                  }
+            }
+          >
+            {tokenChart ? (
+              <div className="fx-filters">
+                <ShapeToggle candles={tokenCandles} onChange={setTokenCandles} />
+              </div>
+            ) : null}
+            {tokenChart && tokenCandles ? (
+              /*
+               * Una pila de velas por ficha y no una sola con las dos: una vela
+               * es un precio en el tiempo, y dos fichas superpuestas serían dos
+               * precios peleando por el mismo cuerpo. La ventana abre en «90
+               * días» porque es donde vive el tramo leído por ficha; «Todo»
+               * devuelve a USDT su historia empalmada, ya por semanas.
+               */
+              <div className="chart-stack">
+                {tokenSessions.map((entry) => (
+                  <div key={entry.token} className="candle-token">
+                    <h4 className="candle-token-title">
+                      {entry.token} (Bs por USD)
+                      <span className="candle-token-hint">
+                        {entry.sessions.length.toLocaleString('es-BO')} jornadas
+                      </span>
+                    </h4>
+                    <LevelCandles
+                      sessions={entry.sessions}
+                      unit="Bs por USD"
+                      decimals={3}
+                      sidesNote="la compra y la venta medianas de la jornada"
+                      defaultRange="90d"
+                    />
+                  </div>
+                ))}
+              </div>
+            ) : tokenChart ? (
+              <DatedLines
+                data={tokenRows}
+                series={tokenSeries}
+                unit="Bs por USD"
+                decimals={3}
+                bands={labelledBand(labelledFrom, tokenDates)}
+              />
+            ) : (
+              <StablecoinTable readings={snapshot.stablecoins} />
+            )}
+            <details className="panel-note">
+              <summary>Cómo leer este panel</summary>
+              <p>
+                Las fichas están ancladas al mismo dólar: la diferencia entre ellas refleja el costo
+                de cada vía de compra, no un precio distinto.
+                {labelledFrom ? (
+                  <>
+                    {' '}
+                    Antes del {sayLong(labelledFrom)} el archivo no anotaba el instrumento, y lo que
+                    cotizaba era USDT: hasta esa fecha la línea es el punto medio del paralelo, y{' '}
+                    <b>la franja sombreada</b> es el tramo en que cada lectura ya viene con el
+                    nombre de su ficha.
+                  </>
+                ) : null}
+              </p>
+            </details>
+          </Panel>
+        ) : null}
       </div>
 
-      <div className="grid-pair fx-par">
-        <BcbUsdtMarket />
-        <BankQuotesPanel />
-      </div>
+      {only === 'tokens' ? <BcbUsdtMarket /> : null}
     </>
   );
 }

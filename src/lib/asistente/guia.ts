@@ -39,8 +39,8 @@ export const GUIA: readonly EntradaGuia[] = [
   },
   {
     pestana: 'Tipo de cambio',
-    que: 'El explorador del dólar oficial, el paralelo (compra, venta y punto medio) y las fichas estables USDT y USDC en bolivianos; paneles de régimen cambiario, nivel real deflactado por la UFV e inflación implícita; y el informe econométrico.',
-    como: 'Se elige el periodo (desde 90 días hasta toda la historia) y la serie medida. El menú «Descargar» de cada panel baja lo que se ve. «Descargar informe econométrico (PDF)» genera las pruebas formales (raíz unitaria, cointegración, volatilidad).',
+    que: 'Seis páginas: «Resumen» (cuánto cuesta hoy el dólar oficial y el paralelo, la brecha y su cambio en 30 días, con un gráfico y un glosario), «Dólar digital» (USDT y USDC en bolivianos y el mercado de USDT que informa el BCB), «Otras monedas» (conversor, el boliviano frente a 22 monedas del BCB y qué monedas se encarecieron), «Bancos» (lo que cobra cada banco por un dólar digital y qué bancos lo ofrecen), «Poder de compra» (el paralelo descontada la inflación con la UFV y las lecturas derivadas) y «Análisis técnico» (el explorador con filtros, la estadística de retornos y el informe econométrico).',
+    como: 'Se elige la página en el índice. En «Resumen», el periodo del gráfico (1 mes a todo); en «Análisis técnico», el periodo y la serie medida. El menú «Descargar» de cada panel baja lo que se ve. «Descargar informe econométrico (PDF)», en «Análisis técnico», genera las pruebas formales (raíz unitaria, cointegración, volatilidad).',
   },
   {
     pestana: 'Macroeconomía',

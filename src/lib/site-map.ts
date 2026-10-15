@@ -37,9 +37,22 @@ export interface SiteSection {
 
 const paginas = (...rotulos: string[]): SitePage[] => rotulos.map((label) => ({ label }));
 
+/**
+ * Las páginas de «Tipo de cambio», una pregunta cada una (15-oct-2026). Exportadas porque
+ * `fx-section.tsx` las rotula con la misma lista: si una cambia de nombre, cambia en los dos.
+ */
+export const FX_PAGES = [
+  'Resumen',
+  'Dólar digital',
+  'Otras monedas',
+  'Bancos',
+  'Poder de compra',
+  'Análisis técnico',
+] as const;
+
 export const SITE: readonly SiteSection[] = [
   { label: 'Hoy', icon: 'diana', pages: [] },
-  { label: 'Tipo de cambio', icon: 'linea', pages: [] },
+  { label: 'Tipo de cambio', icon: 'linea', pages: paginas(...FX_PAGES) },
   {
     label: 'Macroeconomía',
     icon: 'globo',

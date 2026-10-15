@@ -90,3 +90,17 @@ test('las diez páginas viejas de Transporte llegan a las cuatro que las agrupan
     assert.equal(destinoDe('transporte', vieja)?.pagina, actual, vieja);
   }
 });
+
+test('«Tipo de cambio» tiene una página por pregunta, y la dirección llega a cada una', () => {
+  const fx = SITE.find((s) => s.label === 'Tipo de cambio');
+  assert.deepEqual(
+    fx?.pages.map((p) => p.label),
+    ['Resumen', 'Dólar digital', 'Otras monedas', 'Bancos', 'Poder de compra', 'Análisis técnico'],
+  );
+  assert.equal(destinoDe('tipo-de-cambio', 'otras-monedas')?.id, 'tipo-de-cambio--otras-monedas');
+  // Un enlace viejo, sin página, sigue abriendo la sección (en su primera página).
+  assert.deepEqual(destinoDe('tipo-de-cambio', null), {
+    id: 'tipo-de-cambio',
+    seccion: 'Tipo de cambio',
+  });
+});

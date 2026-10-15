@@ -11215,3 +11215,89 @@ a {
 .figures > .figure {
   flex: 1 1 11rem;
 }
+
+/* === Tipo de cambio: páginas sencillas (15-oct-2026) === */
+/* «Resumen»: las tres cifras del día, grandes; en el teléfono, una por fila. */
+.fx-hoy .stat-value {
+  font-size: var(--text-2xl);
+}
+@media (max-width: 640px) {
+  .fx-hoy {
+    grid-template-columns: 1fr;
+  }
+  .fx-en-pocas {
+    font-size: var(--text-md);
+  }
+  /* Apiladas, las cifras se separan con un filete arriba y no a la izquierda. */
+  .fx-hoy .stat + .stat {
+    padding-left: 0;
+    border-left: 0;
+    border-top: 1px solid var(--rule);
+  }
+}
+.fx-en-pocas {
+  margin: var(--s3) 0 0;
+  padding-left: var(--s4);
+  font-family: var(--serif);
+  font-size: var(--text-lede);
+  line-height: 1.45;
+  color: var(--ink);
+}
+.fx-en-pocas li + li {
+  margin-top: var(--s1);
+}
+.fx-glosario {
+  display: grid;
+  grid-template-columns: minmax(8rem, max-content) 1fr;
+  gap: var(--s2) var(--s4);
+  margin: 0;
+}
+.fx-glosario dt {
+  font-weight: 700;
+}
+.fx-glosario dd {
+  margin: 0;
+  color: var(--ink-soft);
+}
+@media (max-width: 640px) {
+  .fx-glosario {
+    grid-template-columns: 1fr;
+    gap: var(--s1);
+  }
+  .fx-glosario dd {
+    margin-bottom: var(--s2);
+  }
+}
+/* «Otras monedas»: el conversor. */
+.fx-convert {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: var(--s3);
+}
+.fx-convert-field {
+  display: grid;
+  gap: var(--s1);
+  font-size: var(--text-sm);
+  color: var(--ink-soft);
+}
+.fx-convert-field input {
+  width: 9rem;
+}
+.fx-convert-field select {
+  max-width: 100%;
+}
+.fx-convert-result {
+  margin: var(--s3) 0 0;
+  font-size: var(--text-xl);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--ink);
+}
+.fx-convert-hint {
+  display: block;
+  margin-top: var(--s1);
+  font-size: var(--text-sm);
+  font-weight: 400;
+  color: var(--ink-soft);
+}
