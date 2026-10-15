@@ -40,11 +40,19 @@ import { ViewToggle } from '@/components/ui/view-toggle';
 const MEASURES: ReadonlyArray<{ key: Measure; label: string; hint: string }> = [
   {
     key: 'LEVEL',
-    label: 'Nivel',
-    hint: 'Valor de la moneda en bolivianos, por la cantidad indicada para cada una.',
+    label: 'Precio en Bs',
+    hint: 'Cuántos bolivianos cuesta la moneda (por la cantidad indicada para cada una).',
   },
-  { key: 'INDEX', label: 'Índice', hint: 'Base 100 en el primer dato visible de cada moneda.' },
-  { key: 'YOY', label: 'Var. anual', hint: 'Variación frente a la misma fecha del año anterior, en %.' },
+  {
+    key: 'INDEX',
+    label: 'Evolución (base 100)',
+    hint: 'Todas las monedas parten de 100 en el primer año visible: se comparan aunque valgan distinto.',
+  },
+  {
+    key: 'YOY',
+    label: 'Cambio en un año (%)',
+    hint: 'Cuánto más o menos cuesta frente a la misma fecha del año anterior.',
+  },
 ];
 
 const START: readonly string[] = ['CNY', 'JPY', 'EUR', 'BRL'];
@@ -77,9 +85,9 @@ interface CoinRow {
 }
 
 const CHANGES = [
-  { key: 'year', label: 'Frente a hace un año' },
-  { key: 'month', label: 'Frente a hace un mes' },
-  { key: 'day', label: 'Frente al dato anterior' },
+  { key: 'year', label: 'En un año' },
+  { key: 'month', label: 'En un mes' },
+  { key: 'day', label: 'Desde el dato anterior' },
 ] as const;
 
 /**
@@ -120,6 +128,7 @@ function CoinChangeChart({ rows }: { rows: readonly CoinRow[] }) {
         <MacroViewChart shown={shown.length} total={moved.length}>
           <DivergingBars
             signed
+            sides={['Se encareció frente al boliviano (%)', 'Se abarató frente al boliviano (%)']}
             data={shown.map(({ row, value }) => ({
               name: row.one.label,
               value,
@@ -135,6 +144,77 @@ function CoinChangeChart({ rows }: { rows: readonly CoinRow[] }) {
         <div className="callout">Ninguna moneda tiene aún datos para esta comparación.</div>
       )}
     </>
+  );
+}
+
+/**
+ * Convertir: cuántos bolivianos son tantos yenes, euros o reales (y al revés).
+ *
+ * Es la pregunta más común de quien llega a esta página, y la tabla la contestaba solo a medias:
+ * el yen se cotiza por cien unidades y el won por mil, y había que hacer la cuenta a mano.
+ */
+function CurrencyConverter({ rows }: { rows: readonly CoinRow[] }) {
+  const [iso, setIso] = useState(
+    rows.find((row) => row.one.iso === 'EUR')?.one.iso ?? rows[0]?.one.iso ?? '',
+  );
+  const [amount, setAmount] = useState('100');
+  const [toBs, setToBs] = useState(true);
+  const row = rows.find((one) => one.one.iso === iso);
+  const quantity = Number(amount.replace(/\./g, '').replace(',', '.'));
+  const perUnit = row ? row.last[1] : null;
+  const result =
+    perUnit && Number.isFinite(quantity) ? (toBs ? quantity * perUnit : quantity / perUnit) : null;
+  return (
+    <Panel
+      id="convertir-monedas"
+      title="Convertir monedas a bolivianos (Bs)"
+      lede="Escriba un monto y elija la moneda. El cálculo usa la última cotización del Banco Central de Bolivia."
+      source="Banco Central de Bolivia, tabla de cotizaciones (bcb.gob.bo); cálculo de DatosBolivia.com"
+      downloadable={false}
+    >
+      <div className="fx-convert">
+        <label className="fx-convert-field">
+          <span>Monto</span>
+          <input
+            type="text"
+            inputMode="decimal"
+            value={amount}
+            onChange={(event) => setAmount(event.target.value)}
+          />
+        </label>
+        <label className="fx-convert-field">
+          <span>{toBs ? 'De' : 'A'}</span>
+          <select value={iso} onChange={(event) => setIso(event.target.value)}>
+            {rows.map((one) => (
+              <option key={one.one.iso} value={one.one.iso}>
+                {one.one.label} ({one.one.iso})
+              </option>
+            ))}
+          </select>
+        </label>
+        <button
+          type="button"
+          className="chip"
+          onClick={() => setToBs(!toBs)}
+          title="Invertir el sentido de la conversión"
+        >
+          {toBs ? 'Moneda → Bs' : 'Bs → moneda'} ⇄
+        </button>
+      </div>
+      {row && result !== null ? (
+        <p className="fx-convert-result">
+          {toBs
+            ? `${number(quantity, 2)} ${row.one.iso} = ${number(result, 2)} Bs`
+            : `${number(quantity, 2)} Bs = ${number(result, result >= 100 ? 0 : 2)} ${row.one.iso}`}
+          <span className="fx-convert-hint">
+            Cotización usada: 1 {row.one.iso} = {number(row.last[1], decimalsFor([row.last[1]]))}{' '}
+            Bs, al {sayDate(row.last[0])}
+          </span>
+        </p>
+      ) : (
+        <p className="fx-convert-result">Escriba un número para convertir.</p>
+      )}
+    </Panel>
   );
 }
 
@@ -233,10 +313,12 @@ export function CurrenciesExplorer({ board }: { board: CurrencyBoard }) {
 
   return (
     <>
+      <CurrencyConverter rows={coinRows} />
+
       <Panel
         id="monedas-principales"
-        title="Principales monedas del comercio exterior frente al boliviano (Bs)"
-        lede={`Cotización en bolivianos de ${coins.length} monedas, según la tabla del Banco Central de Bolivia; último dato del ${board.latestDate ? sayDate(board.latestDate) : '—'}.`}
+        title="Cuántos bolivianos cuestan las monedas de los principales socios (Bs)"
+        lede={`Último dato del ${board.latestDate ? sayDate(board.latestDate) : '—'}, según el Banco Central de Bolivia. Debajo de cada cifra, cuánto cambió en un año.`}
         source="Banco Central de Bolivia, tabla de cotizaciones (bcb.gob.bo)"
         data={{
           unidad: 'Bs',
@@ -272,6 +354,84 @@ export function CurrenciesExplorer({ board }: { board: CurrencyBoard }) {
             oficial.
           </p>
         </details>
+      </Panel>
+
+      <Panel
+        id="monedas-tabla"
+        title="Qué monedas se encarecieron frente al boliviano (variación en %)"
+        lede={`Barra hacia la derecha: esa moneda cuesta hoy más bolivianos que antes (el boliviano perdió valor frente a ella). Hacia la izquierda: cuesta menos. En «Tabla», las ${coins.length} monedas con su precio en Bs.`}
+        source="Banco Central de Bolivia, tabla de cotizaciones (bcb.gob.bo)"
+        data={() => ({
+          unidad: 'Bs por la cantidad de moneda que dice «Por»; variaciones en %',
+          columnas: [
+            'Moneda',
+            'Código',
+            'País',
+            'Por (unidades de moneda)',
+            'Bs',
+            'Unidades por US$',
+            'Variación contra el dato anterior (%)',
+            'Variación contra hace un mes (%)',
+            'Variación contra hace un año (%)',
+            'Fecha',
+          ],
+          filas: coinRows.map((row) => [
+            row.one.label,
+            row.one.iso,
+            row.one.country,
+            row.scale,
+            celda(row.bs),
+            celda(row.units),
+            celda(row.day),
+            celda(row.month),
+            celda(row.year),
+            row.last[0],
+          ]),
+        })}
+      >
+        <ViewToggle
+          chart={<CoinChangeChart rows={coinRows} />}
+          table={
+            <div className="table-wrap">
+              <table className="grid-table">
+                <thead>
+                  <tr>
+                    <th>Moneda</th>
+                    <th>País</th>
+                    <th>Cantidad</th>
+                    <th className="num">Bs</th>
+                    <th className="num">Unidades por 1 USD</th>
+                    <th className="num">Cambio último dato</th>
+                    <th className="num">Cambio en un mes</th>
+                    <th className="num">Cambio en un año</th>
+                    <th>Fecha</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {coinRows.map(({ one, last, scale, bs, units, day, month, year }) => (
+                    <tr key={one.iso} title={one.note}>
+                      <td>
+                        <b>{one.label}</b> <span className="muted">{one.iso}</span>
+                      </td>
+                      <td>{one.country}</td>
+                      <td>{scale === 1 ? '1' : number(scale, 0)}</td>
+                      <td className="num">
+                        <b>{number(bs, decimalsFor([bs]))}</b>
+                      </td>
+                      <td className="num">
+                        {units === null ? '—' : number(units, units >= 100 ? 1 : 3)}
+                      </td>
+                      <td className="num">{signed(day)}</td>
+                      <td className="num">{signed(month)}</td>
+                      <td className="num">{signed(year)}</td>
+                      <td>{sayDate(last[0])}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          }
+        />
       </Panel>
 
       <div className="workspace workspace-filters-first">
@@ -392,7 +552,7 @@ export function CurrenciesExplorer({ board }: { board: CurrencyBoard }) {
           <Panel
             id="monedas-grafico"
             title={title}
-            lede="Cada línea sigue una moneda frente al boliviano, según la tabla de cotizaciones del BCB."
+            lede="La historia de cada moneda frente al boliviano. Elija monedas, años y medida en los filtros; «Evolución» las compara aunque valgan distinto."
             source="Banco Central de Bolivia, tabla de cotizaciones (bcb.gob.bo)"
           >
             {data.length > 1 ? (
@@ -428,84 +588,6 @@ export function CurrenciesExplorer({ board }: { board: CurrencyBoard }) {
                 frente al dólar.
               </p>
             </details>
-          </Panel>
-
-          <Panel
-            id="monedas-tabla"
-            title={`Cotización de ${coins.length} monedas frente al boliviano (Bs y variación en %)`}
-            lede="«Por» es la cantidad de moneda extranjera a la que se refiere la cifra: 100 yenes, 1.000 wones. «Por USD» son las unidades que equivalen a un dólar oficial."
-            source="Banco Central de Bolivia, tabla de cotizaciones (bcb.gob.bo)"
-            data={() => ({
-              unidad: 'Bs por la cantidad de moneda que dice «Por»; variaciones en %',
-              columnas: [
-                'Moneda',
-                'Código',
-                'País',
-                'Por (unidades de moneda)',
-                'Bs',
-                'Unidades por US$',
-                'Variación contra el dato anterior (%)',
-                'Variación contra hace un mes (%)',
-                'Variación contra hace un año (%)',
-                'Fecha',
-              ],
-              filas: coinRows.map((row) => [
-                row.one.label,
-                row.one.iso,
-                row.one.country,
-                row.scale,
-                celda(row.bs),
-                celda(row.units),
-                celda(row.day),
-                celda(row.month),
-                celda(row.year),
-                row.last[0],
-              ]),
-            })}
-          >
-            <ViewToggle
-              chart={<CoinChangeChart rows={coinRows} />}
-              table={
-                <div className="table-wrap">
-                  <table className="grid-table">
-                    <thead>
-                      <tr>
-                        <th>Moneda</th>
-                        <th>País</th>
-                        <th>Por</th>
-                        <th className="num">Bs</th>
-                        <th className="num">Por USD</th>
-                        <th className="num">Var. anterior</th>
-                        <th className="num">Var. mes</th>
-                        <th className="num">Var. año</th>
-                        <th>Fecha</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {coinRows.map(({ one, last, scale, bs, units, day, month, year }) => (
-                        <tr key={one.iso} title={one.note}>
-                          <td>
-                            <b>{one.label}</b> <span className="muted">{one.iso}</span>
-                          </td>
-                          <td>{one.country}</td>
-                          <td>{scale === 1 ? '1' : number(scale, 0)}</td>
-                          <td className="num">
-                            <b>{number(bs, decimalsFor([bs]))}</b>
-                          </td>
-                          <td className="num">
-                            {units === null ? '—' : number(units, units >= 100 ? 1 : 3)}
-                          </td>
-                          <td className="num">{signed(day)}</td>
-                          <td className="num">{signed(month)}</td>
-                          <td className="num">{signed(year)}</td>
-                          <td>{sayDate(last[0])}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              }
-            />
           </Panel>
         </div>
       </div>

@@ -1,15 +1,21 @@
 import { Suspense } from 'react';
 import { BankAssetsTable } from './bank-assets-section';
+import { BankQuotesPanel } from './bank-quotes-panel';
 import { CurrenciesSection } from './currencies-section';
+import { FxEconometricsCard } from './fx-econometrics-card';
 import { FxExplorer } from './fx-explorer';
 import { FxMacroPanels } from './fx-macro-panels';
 import type { SidedPoint } from './fx-macro-panels';
+import { FxSummary } from './fx-summary';
+import type { FxDay, FxTokenNow } from './fx-summary';
+import { SubSections } from './site-layout';
 import type { RatePoint } from './charts';
 import { officialSeries, readObservatory, readStablecoins } from '@/lib/series';
 import type { Observatory } from '@/lib/series';
 import { realIndex, toMacroPoints } from '@/lib/fx-macro';
 import { readFxSnapshot } from '@/lib/fx-reader';
 import type { Observation } from '@/lib/econometrics';
+import { FX_PAGES } from '@/lib/site-map';
 
 /**
  * The whole exchange-rate chapter, assembled where the data lives.
@@ -81,52 +87,67 @@ export async function FxSection() {
     return { token: entry.token, points: spliced };
   });
 
+  const rows = buildRateSeries(observatory, official);
+  const days: FxDay[] = rows.map((row) => ({
+    date: row.date,
+    official: row.official ?? null,
+    parallel:
+      typeof row.parallelBuy === 'number' && typeof row.parallelSell === 'number'
+        ? (row.parallelBuy + row.parallelSell) / 2
+        : null,
+  }));
+  const tokensNow: FxTokenNow[] = snapshot.stablecoins
+    .filter((reading) => reading.token === 'USDT' || reading.token === 'USDC')
+    .map((reading) => ({ token: reading.token, mid: reading.mid, date: reading.date }));
+
   return (
     /*
      * Un contenedor propio y no los hijos sueltos del `.stack` de la página: la regla
      * móvil `.stack > .workspace` manda los carriles de filtros al final de la pila,
      * detrás de la tabla de bancos, y aquí el orden de lectura es el del documento.
+     *
+     * Seis páginas y no una sola tira (pedido del usuario, 15-oct-2026: «incomprensible,
+     * necesito que sea más sencillo»). Cada página contesta una pregunta: cuánto cuesta hoy,
+     * cuánto cuesta en dólar digital, cuánto valen las otras monedas, qué cobran los bancos,
+     * cuánto vale el dólar descontada la inflación y, al final, la estadística para quien la busca.
+     * Los rótulos son los de `SITE` en `site-map.ts`.
      */
     <div className="fx-tab">
-      <details className="panel-note">
-        <summary>Qué muestra esta sección</summary>
-        <p>
-          Bolivia tiene dos precios para el dólar: el oficial, que administra el Banco Central de
-          Bolivia (BCB), y el paralelo, que se forma en los mercados P2P de fichas estables. La
-          distancia entre ambos es la <strong>brecha cambiaria</strong> y mide la escasez de
-          divisas. Cuando la brecha se cierra, la cuestión pasa a ser{' '}
-          <strong>si el dólar está caro o barato en términos reales</strong>, una vez descontada la
-          inflación; el precio nominal no lo responde. Las dos cifras figuran en la lectura de abajo.
-        </p>
-        <ul>
-          <li>
-            <b>Nivel real, no nominal:</b> deflactado por la Unidad de Fomento de Vivienda (UFV),
-            que el BCB publica a diario.
-          </li>
-          <li>
-            <b>Separado por régimen:</b> un tramo de tipo fijo y uno de cotización móvil no se
-            promedian.
-          </li>
-          <li>
-            <b>Filtros comunes:</b> todas las cifras se recalculan con los filtros de esta sección.
-          </li>
-        </ul>
-      </details>
-      <FxMacroPanels
-        snapshot={snapshot}
-        realParallel={realParallel}
-        tokens={tokens}
-        labelledFrom={labelled}
-      />
-      <FxExplorer
-        rows={buildRateSeries(observatory, official)}
-        official={asObservations(official)}
-        readingCount={observatory.readingCount}
-      />
-      <Suspense fallback={<div className="callout">Cargando las cotizaciones de otras monedas…</div>}>
-        <CurrenciesSection />
-      </Suspense>
-      <BankAssetsTable />
+      <SubSections
+        labels={[...FX_PAGES]}
+        icons={['diana', 'chip', 'globo', 'banco', 'balanza', 'sigma']}
+      >
+        <FxSummary days={days} tokens={tokensNow} />
+        <FxMacroPanels
+          only="tokens"
+          snapshot={snapshot}
+          realParallel={realParallel}
+          tokens={tokens}
+          labelledFrom={labelled}
+        />
+        <Suspense fallback={<div className="callout">Cargando las otras monedas…</div>}>
+          <CurrenciesSection />
+        </Suspense>
+        <>
+          <BankQuotesPanel />
+          <BankAssetsTable />
+        </>
+        <FxMacroPanels
+          only="real"
+          snapshot={snapshot}
+          realParallel={realParallel}
+          tokens={tokens}
+          labelledFrom={labelled}
+        />
+        <>
+          <FxExplorer
+            rows={rows}
+            official={asObservations(official)}
+            readingCount={observatory.readingCount}
+          />
+          <FxEconometricsCard />
+        </>
+      </SubSections>
     </div>
   );
 }

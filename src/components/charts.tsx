@@ -2272,8 +2272,11 @@ export function DivergingBars({
   unit = 'puntos',
   signed = false,
   ordered = false,
+  sides,
 }: {
   data: DivergingRow[];
+  /** Cómo se llama cada lado del cero en la leyenda, si «Positivo/Negativo» no dice nada al lector. */
+  sides?: readonly [string, string];
   unit?: string;
   /** Ya no manda: el alto sale del número de filas. Se conserva para las llamadas que lo pasan. */
   height?: number;
@@ -2328,9 +2331,11 @@ export function DivergingBars({
   const hasPlus = rows.some((row) => row.value >= 0);
   const hasMinus = rows.some((row) => row.value < 0);
   /* La leyenda nombra solo los lados que el dibujo tiene: «Negativo» sin una barra es ruido. */
-  const key = (signed ? SIGN_KEY(unit) : DISTANCE_KEY(unit)).filter((_item, index) =>
-    index === 0 ? hasPlus || !hasMinus : hasMinus,
-  );
+  const named = signed ? SIGN_KEY(unit) : DISTANCE_KEY(unit);
+  const legend = sides
+    ? named.map((item, index) => ({ ...item, label: sides[index] ?? item.label }))
+    : named;
+  const key = legend.filter((_item, index) => (index === 0 ? hasPlus || !hasMinus : hasMinus));
   const signedLabel = (value: unknown): string =>
     typeof value === 'number' ? `${value > 0 ? '+' : ''}${number(value, 1)}` : '';
 
