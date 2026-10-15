@@ -25,9 +25,9 @@ const MEASURES = [
   {
     code: 'BCB_ACTIVOS_VIRTUALES_MONTOS_USDT',
     chip: 'Montos',
-    title: 'Mercado de USDT en Bolivia: montos (millones de dólares)',
+    title: 'Mercado de USDT en Bolivia: montos (millones de USD)',
     label: 'Montos comerciados',
-    unit: 'millones de US$',
+    unit: 'millones de USD',
     decimals: 1,
   },
   {
@@ -68,7 +68,7 @@ export function BcbUsdtMarket() {
     <Panel
       id="mercado-usdt-bcb"
       title={measure.title}
-      lede="Compras de USDT hechas desde Bolivia, por mes, según el Banco Central con información de Binance."
+      lede="Compras mensuales de USDT realizadas desde Bolivia, según el Banco Central de Bolivia con información de Binance."
       source="Banco Central de Bolivia (libro del bicentenario y Memoria), con información de Binance"
     >
       <div className="fx-filters">
@@ -96,12 +96,13 @@ export function BcbUsdtMarket() {
           domain={[0, Math.max(...one.points.map(([, value]) => value)) * 1.08]}
         />
       ) : (
-        <div className="callout">Leyendo las cifras del Banco Central…</div>
+        <div className="callout">Cargando las cifras del Banco Central…</div>
       )}
       <details className="panel-note">
         <summary>Cómo leer este gráfico</summary>
         <p>
-          Es el mercado que los bancos empezaron a atender; el BCB lo publica hasta mayo de 2025.
+          Mide el mercado que los bancos empezaron a atender. El BCB publicó la serie de enero de
+          2024 a mayo de 2025.
         </p>
       </details>
     </Panel>

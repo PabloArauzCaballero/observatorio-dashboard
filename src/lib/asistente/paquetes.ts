@@ -284,7 +284,7 @@ async function dolar(): Promise<Salida> {
     fx.impliedInflationAnnual !== null ? `- Inflación anual implícita en la UFV (últimos doce meses): ${pct(fx.impliedInflationAnnual)}.` : '',
     ...fx.stablecoins.map(
       (s) =>
-        `- ${s.token} en bolivianos (${s.venues} plazas P2P, ${s.date}): medio ${num(s.mid)}${s.ask !== null ? `, venta ${num(s.ask)}` : ''}${s.bid !== null ? `, compra ${num(s.bid)}` : ''}; prima para comprar frente al riel más barato ${pct(s.premiumAskPercent, 2)}.`,
+        `- ${s.token} en bolivianos (${s.venues} plazas P2P, ${s.date}): medio ${num(s.mid)}${s.ask !== null ? `, venta ${num(s.ask)}` : ''}${s.bid !== null ? `, compra ${num(s.bid)}` : ''}; prima para comprar frente a la ficha más barata ${pct(s.premiumAskPercent, 2)}.`,
     ),
     'CONCLUSIONES DEL CAPÍTULO CAMBIARIO:',
     ...fx.conclusions.map(conclusion),
@@ -304,7 +304,7 @@ async function dolar(): Promise<Salida> {
           const oficial = enFecha(official, p.date);
           return [p.date, r(oficial?.value), r(p.value), oficial ? r((p.value / oficial.value - 1) * 100) : null];
         }),
-      'Banco Central de Bolivia (oficial) y mercado paralelo que recoge el Observatorio',
+      'Banco Central de Bolivia (oficial) y mercados P2P en bolivianos (paralelo), recopilados por DatosBolivia.com',
       ultimo ? exportar({ dataset: 'series', desde: haceDias(ultimo.date, 365) }, 'Todas las series diarias del último año') : undefined,
     ),
   };
@@ -507,7 +507,7 @@ async function prensa(busqueda: string | null): Promise<Salida> {
       busqueda ? `Notas recientes que mencionan «${busqueda}»` : 'Notas de prensa recientes',
       ['Fecha', 'Medio', 'Tema', 'Tono', 'Región', 'Titular', 'Enlace'],
       page.articles.map((a) => [a.eventDate, a.outlet, a.topic, a.tone, a.region ?? null, a.headline, a.url ?? null]),
-      'Medios bolivianos; el tema y el tono los deriva el Observatorio del titular',
+      'Medios bolivianos; tema y tono clasificados por DatosBolivia.com a partir del titular',
       busqueda ? exportar({ dataset: 'prensa', buscar: busqueda }, `Todas las notas del archivo que mencionan «${busqueda}»`) : exportar({ dataset: 'prensa', desde: haceDias(fechaDeHoy(), 30) }, 'Todas las notas del último mes'),
     ),
   };
@@ -598,7 +598,7 @@ async function comercio(): Promise<Salida> {
           `Principales exportadoras${exporters.exportYear ? `, ${exporters.exportYear}` : ''}`,
           ['Puesto', 'Empresa', 'Participación en las exportaciones (%)'],
           ranking.map((e) => [e.rank, e.name, r(e.share)]),
-          'Ranking de fuente privada, no oficial',
+          'Clasificación de fuente privada, no oficial',
         )
       : tabla('comercio', 'Comercio exterior', COLUMNAS_CONCLUSION, conclusiones.map(filaDeConclusion), 'INE y UN Comtrade'),
   };
@@ -668,7 +668,7 @@ async function ventasEnVivo(): Promise<Salida> {
       'Ventas en vivo de TikTok por rubro',
       ['Rubro', 'Lives', 'Minutos', '% del tiempo', '% de los pedidos', 'Pedidos por mil', 'Fuente'],
       rubros.map((fila) => [nombre(fila.rubro), fila.lives, fila.minutes, r(fila.offerShare ?? 0, 1), r(fila.demandShare ?? 0, 1), r(fila.buyPerThousand ?? 0, 1), null]),
-      'Lives públicos de TikTok observados por el Observatorio',
+      'Transmisiones en vivo públicas de TikTok registradas por DatosBolivia.com',
     ),
   };
 }
@@ -799,7 +799,7 @@ async function carreteras(): Promise<Salida> {
       'Red vial mapeada por departamento',
       ['Departamento', 'Kilómetros'],
       board.kmByDepartment.map((d) => [d.name, r(d.totalKm, 0)]),
-      'INE, ATT y red vial mapeada por el Observatorio',
+      'INE, ATT y red vial cartografiada por DatosBolivia.com',
       exportar({ dataset: 'transporte-terrestre' }, 'Parque automotor, GNV y pasajes completos'),
     ),
   };
@@ -863,7 +863,7 @@ async function metodo(): Promise<Salida> {
       'Fuentes de las series diarias',
       ['Serie', 'Editor', 'Frecuencia', 'Desde', 'Hasta', 'Lecturas'],
       sources.map((f) => [f.name ?? f.indicator, f.publisher, f.frequency ?? null, f.firstDay, f.lastDay, f.readings]),
-      'Registro de fuentes del Observatorio',
+      'Registro de fuentes de DatosBolivia.com',
     ),
   };
 }

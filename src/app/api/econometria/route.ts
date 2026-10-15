@@ -16,7 +16,7 @@ export async function GET(): Promise<Response> {
   try {
     const document = await readEconometricsReport();
     if (!document) {
-      return new Response('Todavía no hay jornadas suficientes del paralelo para las pruebas.\n', {
+      return new Response('Aún no hay jornadas suficientes del paralelo para las pruebas.\n', {
         status: 404,
         headers: { 'Content-Type': 'text/plain; charset=utf-8', 'Cache-Control': 'no-store' },
       });
@@ -32,7 +32,7 @@ export async function GET(): Promise<Response> {
   } catch (error) {
     // El detalle va al registro: un mensaje de conexión puede llevar el host.
     console.error('[observatorio] informe econométrico fallido', error);
-    return new Response('No fue posible armar el informe.\n', {
+    return new Response('No fue posible generar el informe. Intentar de nuevo en unos minutos.\n', {
       status: 503,
       headers: { 'Content-Type': 'text/plain; charset=utf-8', 'Cache-Control': 'no-store' },
     });

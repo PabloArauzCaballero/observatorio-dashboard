@@ -132,8 +132,8 @@ export function DollarQuotesCard({ data }: { data: DollarQuotes }) {
   if (!data.quotes.length) {
     return (
       <div className="callout">
-        No hay cotizaciones del dólar para mostrar en esta carga. El detalle está en «Tipo de
-        cambio».
+        No hay cotizaciones del dólar disponibles en esta carga. La serie completa está en «Tipo
+        de cambio».
       </div>
     );
   }
@@ -149,7 +149,7 @@ export function DollarQuotesCard({ data }: { data: DollarQuotes }) {
     <Panel
       id="cotizacion-dolar"
       title="Cotización del dólar (Bs por USD)"
-      source="mercados P2P en bolivianos (mediana de las plazas) y Banco Central de Bolivia (oficial)"
+      source="Mercados P2P en bolivianos (mediana de las plazas) y Banco Central de Bolivia (oficial)"
       data={quotesRows(data)}
       className="quotes"
     >

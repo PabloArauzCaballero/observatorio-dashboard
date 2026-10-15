@@ -50,7 +50,7 @@ export async function POST(request: Request): Promise<Response> {
   }
   const pregunta = (cuerpo as { pregunta?: unknown } | null)?.pregunta;
   if (typeof pregunta !== 'string' || !pregunta.trim()) {
-    return Response.json({ error: 'Escribí una pregunta.' }, { status: 400 });
+    return Response.json({ error: 'Falta la pregunta.' }, { status: 400 });
   }
   if (pregunta.length > MAX_PREGUNTA) {
     return Response.json({ error: `La pregunta puede tener hasta ${MAX_PREGUNTA} caracteres.` }, { status: 400 });
@@ -75,6 +75,6 @@ export async function POST(request: Request): Promise<Response> {
     }
     // El mensaje puede llevar el servidor, el usuario y el puerto.
     console.error('[asistente] respuesta fallida', error);
-    return Response.json({ error: 'No se pudo armar la respuesta. Probá de nuevo.' }, { status: 500 });
+    return Response.json({ error: 'No se pudo generar la respuesta. Intentar de nuevo.' }, { status: 500 });
   }
 }

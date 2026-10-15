@@ -137,7 +137,7 @@ function bajar(nombre: string, contenido: string, tipo: string): void {
 function respuestaComoMarkdown(pregunta: string | undefined, turno: Turno): string {
   const origen = window.location.origin;
   const partes = [
-    '# Observatorio Económico de Bolivia',
+    '# DatosBolivia.com',
     pregunta ? `**Pregunta:** ${pregunta}` : '',
     turno.fecha ? `**Datos al:** ${turno.fecha}` : '',
     turno.texto,
@@ -280,9 +280,9 @@ export function Asistente() {
                 ...(datos.tablas?.length ? { tablas: datos.tablas } : {}),
                 ...(datos.fecha ? { fecha: datos.fecha } : {}),
               }
-            : { rol: 'asistente', texto: datos.error ?? 'No se pudo responder. Probá de nuevo.', error: true };
+            : { rol: 'asistente', texto: datos.error ?? 'No se pudo generar la respuesta. Intentar de nuevo.', error: true };
       } catch {
-        nuevo = { rol: 'asistente', texto: 'No hay conexión con el servidor. Revisá tu red y probá de nuevo.', error: true };
+        nuevo = { rol: 'asistente', texto: 'No hay conexión con el servidor. Comprobar la red e intentar de nuevo.', error: true };
       }
       const final = [...conPregunta, nuevo];
       setTurnos(final);
@@ -317,7 +317,7 @@ export function Asistente() {
       {!abierto ? (
         <button type="button" className="asistente-lanzador" onClick={() => setAbierto(true)} aria-haspopup="dialog">
           <Burbuja />
-          <span>Preguntale al Observatorio</span>
+          <span>Consultar al asistente de DatosBolivia</span>
         </button>
       ) : null}
 
@@ -328,12 +328,12 @@ export function Asistente() {
               <Burbuja />
             </span>
             <div>
-              <h2 id={titulo}>Preguntale al Observatorio</h2>
-              <p>Responde con los datos del tablero, con su fecha</p>
+              <h2 id={titulo}>Asistente de DatosBolivia.com</h2>
+              <p>Respuestas con los datos del tablero y su fecha</p>
             </div>
             {turnos.length ? (
               <button type="button" className="asistente-accion" onClick={reiniciar}>
-                Nueva
+                Nueva consulta
               </button>
             ) : null}
             <button type="button" className="asistente-cerrar" onClick={() => setAbierto(false)} aria-label="Cerrar el asistente">
@@ -345,8 +345,9 @@ export function Asistente() {
             {turnos.length === 0 ? (
               <div className="asistente-vacio">
                 <p>
-                  Preguntá por el dólar, la inflación, la economía de cualquier departamento, las instituciones o cómo
-                  usar el tablero. Solo contesta temas económicos de Bolivia, con los datos que el Observatorio recoge.
+                  Consultas sobre el dólar, la inflación, la economía de cada departamento, las instituciones o el uso
+                  del tablero. El asistente responde solo sobre la economía de Bolivia, con los datos que recoge
+                  DatosBolivia.com.
                 </p>
                 <div className="asistente-sugerencias">
                   {SUGERENCIAS.map((s) => (
@@ -427,13 +428,13 @@ export function Asistente() {
                   <i />
                   <i />
                 </span>
-                Leyendo los datos del tablero…
+                Consultando los datos del tablero…
               </div>
             ) : null}
           </div>
 
           {activo === false ? (
-            <p className="asistente-aviso">El asistente todavía no está disponible en este servidor.</p>
+            <p className="asistente-aviso">El asistente aún no está disponible en este servidor.</p>
           ) : null}
 
           <form
@@ -444,7 +445,7 @@ export function Asistente() {
             }}
           >
             <label htmlFor={`${titulo}-pregunta`} className="asistente-oculto">
-              Tu pregunta
+              Pregunta
             </label>
             <textarea
               id={`${titulo}-pregunta`}
@@ -467,7 +468,7 @@ export function Asistente() {
             </button>
           </form>
           <p className="asistente-pie">
-            Información general con datos públicos; no es asesoría financiera. No escribas datos personales ni contraseñas.
+            Información general basada en datos públicos; no constituye asesoría financiera. No incluir datos personales ni contraseñas.
           </p>
         </section>
       ) : null}

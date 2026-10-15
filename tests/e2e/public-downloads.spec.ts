@@ -20,7 +20,7 @@ import { LUGARES, SECCIONES, abrirTablero, bloque, irA, irALugar } from './suppo
  */
 async function settle(page: Page): Promise<void> {
   await expect(page.locator('.loading-note')).toHaveCount(0, { timeout: 120_000 });
-  await expect(page.locator('.callout').filter({ hasText: /^Armando / })).toHaveCount(0, {
+  await expect(page.locator('.callout').filter({ hasText: /^(Armando|Cargando) / })).toHaveCount(0, {
     timeout: 120_000,
   });
 }

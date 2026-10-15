@@ -76,11 +76,11 @@ test('sin IA se muestran los hechos de los paquetes, no sus notas', () => {
   assert.deepEqual(hechos(DOLAR).length, 3, 'solo las líneas «- », sin la cabecera ni las sublíneas');
   assert.equal(hechos('- Inflación [vigilar]: sube. Cifra: 15,8 % (UFV). Regla: más de 10 % es adverso')[0], '- Inflación [vigilar]: sube. Cifra: 15,8 % (UFV).');
   const r = respuestaSinIa([{ id: 'DOLAR', texto: DOLAR, leido: true }, { id: 'MACRO', texto: 'x', leido: false }], 'fallo');
-  assert.match(r, /no puedo redactar la respuesta con IA/);
+  assert.match(r, /No es posible redactar la respuesta con IA/);
   assert.match(r, /\*\*Dólar\*\*/);
   assert.match(r, /12,05 Bs por dólar/);
   assert.doesNotMatch(r, /Indicadores anuales/, 'un paquete sin leer no aparece');
-  assert.match(respuestaSinIa([], 'presupuesto'), /No encontré cifras/);
+  assert.match(respuestaSinIa([], 'presupuesto'), /No se encontraron cifras/);
   assert.match(respuestaSinIa([{ id: 'DOLAR', texto: DOLAR, leido: true }], 'presupuesto'), /límite de uso de IA por hoy/);
 });
 

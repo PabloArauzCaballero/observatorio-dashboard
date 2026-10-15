@@ -42,9 +42,9 @@ const TITULO: Record<string, string> = {
 };
 
 const ENCABEZADO: Record<Motivo, string> = {
-  'sin-proveedor': 'El asistente está funcionando sin IA en este servidor, así que no redacta: te muestro las cifras del tablero que responden tu pregunta, con su fecha.',
-  fallo: 'Ahora no puedo redactar la respuesta con IA (el servicio no está disponible), pero estas son las cifras del tablero que responden tu pregunta, con su fecha.',
-  presupuesto: 'El asistente llegó a su límite de uso de IA por hoy, pero estas son las cifras del tablero que responden tu pregunta, con su fecha.',
+  'sin-proveedor': 'El asistente funciona sin IA en este servidor y no redacta respuestas. Estas son las cifras del tablero que responden a la consulta, con su fecha.',
+  fallo: 'No es posible redactar la respuesta con IA en este momento (el servicio no está disponible). Estas son las cifras del tablero que responden a la consulta, con su fecha.',
+  presupuesto: 'El asistente alcanzó su límite de uso de IA por hoy. Estas son las cifras del tablero que responden a la consulta, con su fecha.',
 };
 
 const POR_PAQUETE = 4;
@@ -106,9 +106,9 @@ export function respuestaSinIa(paquetes: readonly PaqueteLeido[], motivo: Motivo
     partes.push(`**${TITULO[p.id]}**`, ...lineas);
   }
   if (partes.length === 1) {
-    partes.push('No encontré cifras para esa pregunta en los datos que leí. Probá nombrando el tema: el dólar, la inflación, un departamento, las exportaciones.');
+    partes.push('No se encontraron cifras para esa consulta en los datos disponibles. Conviene nombrar el tema: el dólar, la inflación, un departamento, las exportaciones.');
   } else {
-    partes.push('Abajo están las tablas completas para ver o descargar, y los enlaces a la pestaña donde está cada dato.');
+    partes.push('Debajo figuran las tablas completas, para consultar o descargar, y los enlaces a la pestaña de cada dato.');
   }
   return partes.join('\n');
 }

@@ -43,7 +43,8 @@ export function PanelSection({ guests }: { guests?: readonly GuestRubro[] }) {
   if (failed) {
     return (
       <div className="callout">
-        No se pudo leer Social Info. El resto del capítulo sigue al día.
+        No se pudo cargar «Social Info». El resto de la sección no está afectado; recargar la
+        página en unos minutos.
       </div>
     );
   }

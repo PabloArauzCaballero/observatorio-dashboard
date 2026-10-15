@@ -105,7 +105,7 @@ export function dailyAnalysis(input: AnalysisInput): {
           value: 'sin dato',
           tone: 'flat',
           detail:
-            'Ninguna jornada tiene cotización oficial y de mercado a la vez, de modo que la brecha no puede establecerse.',
+            'Ninguna jornada reúne la cotización oficial y la del mercado paralelo, de modo que la brecha no puede calcularse.',
         },
       ],
     };
@@ -127,10 +127,10 @@ export function dailyAnalysis(input: AnalysisInput): {
       (gapIsCurrent
         ? `Al ${longDate(last.date)}`
         : `Al ${longDate(last.date)}, última jornada con ambas cotizaciones`) +
-      (gapMove === null ? '.' : `, ${signed(gapMove)} puntos respecto a la jornada anterior.`) +
+      (gapMove === null ? '.' : `, ${signed(gapMove)} puntos porcentuales respecto a la jornada anterior.`) +
       (peak.date === last.date
         ? ' Es el máximo de la serie disponible.'
-        : ` Queda ${number(peak.gapPercent - last.gapPercent)} puntos por debajo del máximo del periodo (${signed(peak.gapPercent)} %, ${longDate(peak.date)}).`),
+        : ` Está ${number(peak.gapPercent - last.gapPercent)} puntos porcentuales por debajo del máximo del periodo (${signed(peak.gapPercent)} %, ${longDate(peak.date)}).`),
   });
 
   // 2. The market rate: level, daily move, dispersion between venues.
@@ -149,7 +149,7 @@ export function dailyAnalysis(input: AnalysisInput): {
     key: 'paralelo',
     icon: 'monedas',
     label: 'Dólar paralelo',
-    value: `${number(mid, 4)} Bs/USD`,
+    value: `${number(mid, 4)} Bs por USD`,
     tone: toneOf(midMove),
     detail:
       (midMove === null
@@ -165,11 +165,11 @@ export function dailyAnalysis(input: AnalysisInput): {
     key: 'oficial',
     icon: 'banco',
     label: 'Tipo de cambio oficial',
-    value: `${number(last.official)} Bs/USD`,
+    value: `${number(last.official)} Bs por USD`,
     tone: toneOf(officialMove),
     detail:
       officialMove === null || Math.abs(officialMove) < 0.005
-        ? 'Sin variación en la jornada; la cotización la administra el Banco Central.'
+        ? 'Sin variación en la jornada. El Banco Central de Bolivia administra esta cotización.'
         : `Varió ${signed(officialMove)} % en la jornada.`,
   });
 
@@ -180,12 +180,12 @@ export function dailyAnalysis(input: AnalysisInput): {
       key: 'ufv',
       icon: 'sigma',
       label: 'Unidad de Fomento de Vivienda',
-      value: `${number(ufv.value, 5)} Bs/UFV`,
+      value: `${number(ufv.value, 5)} Bs por UFV`,
       tone: toneOf(ufv.changePercent ?? null, 0.0005),
       detail:
         ufv.changePercent === null
           ? `Valor publicado para el ${longDate(ufv.date)}.`
-          : `${signed(ufv.changePercent, 4)} % respecto al día anterior; es la unidad a la que se indexan contratos y créditos.`,
+          : `${signed(ufv.changePercent, 4)} % respecto al día anterior. Es la unidad a la que se indexan contratos y créditos.`,
     });
   }
 
@@ -230,7 +230,7 @@ export function dailyAnalysis(input: AnalysisInput): {
       key: 'reservas',
       icon: 'escudo',
       label: 'Reservas internacionales',
-      value: `${number(reserves.value / 1_000_000, 0)} M USD`,
+      value: `USD ${number(reserves.value / 1_000_000, 0)} millones`,
       tone: toneOf(reserves.changePercent ?? null),
       detail:
         reserves.changePercent === null

@@ -199,17 +199,17 @@ function refugeConclusion(
   return {
     key: 'refugio',
     claim: lost
-      ? 'Guardar dólares perdió poder de compra en los últimos doce meses'
-      : 'Guardar dólares conservó poder de compra en los últimos doce meses',
+      ? 'El ahorro en dólares perdió poder de compra en los últimos doce meses'
+      : 'El ahorro en dólares conservó poder de compra en los últimos doce meses',
     figure: `${signed(real.percent, 1)} % real`,
     detail:
-      `Entre el ${longDate(nominal.from.date)} y el ${longDate(nominal.to.date)} el dólar de ` +
-      `mercado pasó de ${say(nominal.from.value)} a ${say(nominal.to.value)} Bs/USD ` +
-      `(${signed(nominal.percent, 1)} % nominal) mientras los precios subían ${say(prices, 1)} %. ` +
-      `Quien pasó bolivianos a dólares y los guardó ${lost ? 'perdió' : 'ganó'} ` +
-      `${say(Math.abs(real.percent), 1)} % frente a quien los dejó indexados a la UFV, que por ` +
-      `construcción sigue al índice de precios. Esa resta es la que decide en qué moneda estar, y ` +
-      `mirando solo el nivel —que es lo que se mira— sale al revés.`,
+      `Entre el ${longDate(nominal.from.date)} y el ${longDate(nominal.to.date)}, el dólar ` +
+      `paralelo pasó de ${say(nominal.from.value)} a ${say(nominal.to.value)} Bs por USD ` +
+      `(${signed(nominal.percent, 1)} % nominal), mientras los precios subían ${say(prices, 1)} %. ` +
+      `Quien cambió bolivianos a dólares y los guardó ${lost ? 'perdió' : 'ganó'} ` +
+      `${say(Math.abs(real.percent), 1)} % frente a quien los mantuvo indexados a la UFV, que por ` +
+      `construcción sigue al índice de precios. Esa diferencia, y no el nivel nominal, es la que ` +
+      `decide en qué moneda conviene ahorrar.`,
     tone: lost ? 'favourable' : 'adverse',
   };
 }
@@ -239,21 +239,21 @@ function gapConclusion(gap: GapProfile, official: readonly MacroPoint[]): FxConc
   return {
     key: 'brecha',
     claim: nearlyClosed
-      ? 'Conseguir un dólar en el mercado ya cuesta casi lo mismo que al tipo oficial'
-      : 'Un dólar de mercado cuesta más que uno al tipo oficial',
+      ? 'El dólar paralelo ya cuesta casi lo mismo que el oficial'
+      : 'El dólar paralelo cuesta más que el oficial',
     figure: `${signed(gap.current.gapPercent)} %`,
     detail:
-      `Al ${longDate(gap.current.date)}. Llegó a ${signed(gap.peak.gapPercent)} % el ` +
-      `${longDate(gap.peak.date)}, de modo que del máximo ya se recorrió el ${say(travelled, 0)} %.` +
+      `Al ${longDate(gap.current.date)}. La brecha llegó a ${signed(gap.peak.gapPercent)} % el ` +
+      `${longDate(gap.peak.date)}; desde ese máximo se cerró el ${say(travelled, 0)} %.` +
       (rent !== null
-        ? ` Lo que queda no mide lo que vale el dólar sino lo que vale el acceso: cada 1.000 ` +
-          `dólares comprados al oficial y vendidos en el mercado dejan Bs ${say(rent, 0)}, y esa ` +
-          `renta la cobra quien consigue el cupo, no quien produjo lo que se exportó para ganarlo.`
+        ? ` Lo que queda no mide el valor del dólar sino el del acceso: cada USD 1.000 ` +
+          `comprados al oficial y vendidos en el paralelo dejan Bs ${say(rent, 0)}. Esa renta ` +
+          `la cobra quien obtiene el cupo, no quien produjo la exportación que generó las divisas.`
         : '') +
       (gap.daysInverted > 0
         ? ` En ${gap.daysInverted} de ${gap.observations} jornadas el oficial cotizó por encima ` +
-          `del mercado: cuando eso pasa no es el mercado el que está caro, es el oficial el que ` +
-          `se pasó de largo.`
+          `del paralelo: en esos días no es el mercado el que está caro, sino el oficial el que ` +
+          `lo supera.`
         : ''),
     tone: gap.current.gapPercent > 20 ? 'adverse' : 'favourable',
   };
@@ -288,19 +288,19 @@ function regimeConclusion(
     claim: moving
       ? bothWays
         ? 'El oficial dejó de ser un ancla: se mueve a diario y en los dos sentidos'
-        : 'El tipo de cambio oficial ya no está fijo: se mueve'
-      : 'El tipo de cambio oficial está administrado y quieto',
+        : 'El tipo de cambio oficial dejó de estar fijo'
+      : 'El tipo de cambio oficial está administrado y sin variación',
     figure: `${say(current.days, 0)} días`,
     detail:
       (moving
-        ? `Se mueve desde el ${longDate(current.from)}: salió de ${say(current.rateFrom)}` +
+        ? `Se mueve desde el ${longDate(current.from)}: partió de ${say(current.rateFrom)}` +
           (bothWays && high
-            ? `, tocó ${say(high.value)} el ${longDate(high.date)} y hoy cotiza ` +
-              `${say(current.rateTo)} Bs/USD. No fue una devaluación de una vez sino un precio ` +
-              `que el emisor corrige en las dos direcciones, y eso deja a quien firma a plazo ` +
-              `sin una tasa que pueda dar por conocida.`
-            : ` y hoy cotiza ${say(current.rateTo)} Bs/USD.`)
-        : `Sin variación desde el ${longDate(current.from)}, en ${say(current.rateTo)} Bs/USD.`) +
+            ? `, alcanzó ${say(high.value)} el ${longDate(high.date)} y hoy cotiza ` +
+              `${say(current.rateTo)} Bs por USD. No fue una devaluación única, sino un precio ` +
+              `que el emisor corrige en ambas direcciones; quien firma contratos a plazo no tiene ` +
+              `una tasa que pueda dar por conocida.`
+            : ` y hoy cotiza ${say(current.rateTo)} Bs por USD.`)
+        : `Sin variación desde el ${longDate(current.from)}, en ${say(current.rateTo)} Bs por USD.`) +
       (previous
         ? ` Antes estuvo ${previous.regime === 'FIJO' ? 'fijo' : 'en movimiento'} ` +
           `${say(previous.days, 0)} días. Ninguna estadística que cruce esa fecha —una ` +
@@ -340,8 +340,8 @@ function realConclusion(
       `pero los precios subieron ${say(prices, 1)} %, así que medido en poder de compra ` +
       `${cheaper ? 'cayó' : 'subió'} ${say(Math.abs(realChange), 1)} %. Índice ` +
       `${say(now.value, 1)} sobre base 100, deflactado con la UFV, que el Banco Central publica ` +
-      `todos los días. El índice del oficial corre aparte y contra su propio arranque: los dos ` +
-      `números no se comparan entre sí.`,
+      `a diario. El índice del oficial se calcula aparte, con su propia base: las dos cifras no ` +
+      `se comparan entre sí.`,
     tone: cheaper ? 'favourable' : 'adverse',
   };
 }
@@ -378,18 +378,18 @@ function parityConclusion(
     key: 'paridad',
     claim:
       distance > 0
-        ? 'Deshacer el atraso pide un dólar más alto que el que se paga'
-        : 'El dólar que se paga ya pasó al que devolvería el poder de compra de la base',
-    figure: `${say(parity)} Bs/USD`,
+        ? 'Recuperar el poder de compra de la base exige un dólar más caro que el actual'
+        : 'El dólar actual ya supera el precio que devolvería el poder de compra de la base',
+    figure: `${say(parity)} Bs por USD`,
     detail:
-      `El mercado paga ${say(spot.value)} Bs/USD; igualar el poder de compra del ` +
-      `${longDate(base)} pide ${say(parity)}, un ${signed(distance, 1)} % de distancia. No es un ` +
-      `pronóstico ni la meta de nadie: es el mismo índice real leído al revés, el precio al que ` +
-      `un dólar compraría hoy lo que compraba entonces, y sirve para medir si una corrección ya ` +
-      `alcanzó o todavía debe.` +
+      `El paralelo cotiza ${say(spot.value)} Bs por USD; igualar el poder de compra del ` +
+      `${longDate(base)} exige ${say(parity)}, a ${signed(distance, 1)} % de distancia. No es un ` +
+      `pronóstico ni una meta: es el mismo índice real leído a la inversa —el precio al que un ` +
+      `dólar compraría hoy lo que compraba entonces— y sirve para medir si una corrección ya se ` +
+      `completó o sigue pendiente.` +
       (baseGap !== null && baseGap > 1
-        ? ` Al oficial no se le puede hacer la misma cuenta: su arranque ya cargaba ` +
-          `${say(baseGap, 1)} % de brecha encima, y una paridad calculada sobre él heredaría esa ` +
+        ? ` Al oficial no se le puede aplicar el mismo cálculo: su punto de partida ya incluía ` +
+          `una brecha de ${say(baseGap, 1)} %, y una paridad calculada sobre él heredaría esa ` +
           `distorsión.`
         : ''),
     tone: 'neutral',
@@ -424,35 +424,35 @@ function paceConclusion(
     officialReal === null
       ? ''
       : gaining && officialReal.percent < 0
-        ? ` Uno sube y el otro baja: la brecha se está volviendo a abrir, y esta vez por el lado ` +
-          `del oficial.`
+        ? ` El paralelo gana terreno real y el oficial lo pierde: la brecha vuelve a abrirse, ` +
+          `esta vez por el lado del oficial.`
         : !gaining && officialReal.percent > 0
-          ? ` El oficial gana terreno real y el mercado lo pierde: la brecha se cierra desde ` +
+          ? ` El oficial gana terreno real y el paralelo lo pierde: la brecha se cierra desde ` +
             `arriba.`
           : gaining
-            ? ` Los dos le ganan terreno a los precios: la corrección real sigue en curso.`
-            : ` Los dos lo pierden: el atraso cambiario se está reconstruyendo sobre las dos ` +
-              `tasas a la vez.`;
+            ? ` Ambos ganan terreno frente a los precios: la corrección real sigue en curso.`
+            : ` Ambos lo pierden: el atraso cambiario vuelve a acumularse en las dos ` +
+              `cotizaciones.`;
   return {
     key: 'ritmo',
     claim: gaining
-      ? 'En el último mes el dólar le ganó terreno a los precios'
-      : 'En el último mes el dólar siguió cediendo terreno frente a los precios',
+      ? 'En el último mes, el dólar ganó terreno frente a los precios'
+      : 'En el último mes, el dólar perdió terreno frente a los precios',
     figure: `${signed(real.percent, 1)} % real en 30 días`,
     detail:
-      `Del ${longDate(nominal.from.date)} al ${longDate(nominal.to.date)} el mercado pasó de ` +
-      `${say(nominal.from.value)} a ${say(nominal.to.value)} Bs/USD ` +
-      `(${signed(nominal.percent, 1)} % nominal) con los precios subiendo ${say(prices, 2)} %.` +
+      `Del ${longDate(nominal.from.date)} al ${longDate(nominal.to.date)}, el paralelo pasó de ` +
+      `${say(nominal.from.value)} a ${say(nominal.to.value)} Bs por USD ` +
+      `(${signed(nominal.percent, 1)} % nominal), mientras los precios subían ${say(prices, 2)} %.` +
       (officialNominal && officialReal
-        ? ` El oficial hizo ${signed(officialNominal.percent, 1)} % nominal y ` +
+        ? ` El oficial registró ${signed(officialNominal.percent, 1)} % nominal y ` +
           `${signed(officialReal.percent, 1)} % real en el mismo mes.`
         : '') +
       divergence +
       (gaining
-        ? ` Cada punto que el dólar recupera en términos reales alivia a quien vende afuera y ` +
-          `encarece a quien debe en dólares.`
-        : ` Cada punto que el dólar pierde en términos reales lo gana quien debe en dólares y lo ` +
-          `paga quien vende afuera.`),
+        ? ` Cada punto real que recupera el dólar favorece a los exportadores y encarece las ` +
+          `deudas en dólares.`
+        : ` Cada punto real que pierde el dólar alivia las deudas en dólares y resta ingresos ` +
+          `a los exportadores.`),
     tone: 'neutral',
   };
 }
@@ -474,16 +474,16 @@ function anchorConclusion(
   const perYear = years > 0.25 ? ((atPegEnd.value / 100) ** (1 / years) - 1) * 100 : null;
   return {
     key: 'ancla',
-    claim: 'Mantener el oficial quieto le costó competitividad al tipo de cambio',
+    claim: 'El oficial fijo restó competitividad al tipo de cambio',
     figure: `${signed(atPegEnd.value - 100, 1)} % real`,
     detail:
-      `Con el oficial clavado y los precios corriendo, su nivel real cayó hasta ` +
+      `Con el oficial fijo y los precios internos en alza, su nivel real cayó hasta ` +
       `${say(atPegEnd.value, 1)} el ${longDate(atPegEnd.date)}, la víspera de que empezara a ` +
-      `moverse: el mismo número de bolivianos compraba cada vez menos dólar de verdad` +
+      `moverse: cada dólar cambiado al oficial compraba cada vez menos en Bolivia` +
       (perYear !== null
-        ? `, a razón de ${say(Math.abs(perYear), 1)} puntos de nivel real por año de ancla. Eso ` +
-          `es lo que cuesta sostener quieto un precio mientras los de adentro no lo están, y lo ` +
-          `paga entero el que vende afuera.`
+        ? `, a razón de ${say(Math.abs(perYear), 1)} puntos de nivel real por año de tipo fijo. ` +
+          `Ese es el costo de sostener fijo un precio mientras los precios internos suben, y ` +
+          `recae sobre los exportadores.`
         : '.') +
       ` Hoy está en ${say(now.value, 1)}, de modo que la corrección ` +
       `${now.value >= 100 ? 'recuperó el terreno perdido' : 'aún no lo recupera'}.`,
@@ -510,24 +510,24 @@ function inflationConclusion(series: readonly MacroPoint[]): FxConclusion | null
     key: 'inflacion',
     claim:
       multiple !== null && multiple >= 2
-        ? `Los precios corren ${say(multiple, 1)} veces más rápido que hace dos años`
+        ? `La inflación es ${say(multiple, 1)} veces la de hace dos años`
         : 'Inflación implícita en la UFV, últimos doce meses',
     figure: `${say(now.value, 1)} %`,
     detail:
-      `Al ${longDate(now.date)}, leída de la unidad a la que se indexan los contratos y el ` +
-      `crédito.` +
+      `Al ${longDate(now.date)}, según la UFV, la unidad a la que se indexan contratos y ` +
+      `créditos.` +
       (yearAgo && yearAgo.date !== now.date
         ? ` La misma lectura daba ${say(yearAgo.value, 1)} % hace un año` +
           (twoAgo && twoAgo.date !== yearAgo.date ? ` y ${say(twoAgo.value, 1)} % hace dos.` : '.')
         : '') +
       (doubling !== null
-        ? ` A este paso los precios se duplican en ${say(doubling, 1)} años, y todo crédito en ` +
+        ? ` A este ritmo, los precios se duplican en ${say(doubling, 1)} años, y todo crédito en ` +
           `bolivianos pactado por debajo de ${say(now.value, 1)} % anual se devuelve con moneda ` +
           `que vale menos que la prestada: por eso lo indexado a la UFV y lo que no lo está son ` +
           `dos negocios distintos.`
         : '') +
-      ` Es la única medida de precios que este informe tiene a frecuencia diaria: la serie anual ` +
-      `del compilador multilateral llega una vez al año y con retraso.`,
+      ` Es la única medida de precios diaria de este tablero: la serie anual de los organismos ` +
+      `multilaterales se publica una vez al año y con retraso.`,
     tone: now.value > 10 ? 'adverse' : now.value > 5 ? 'neutral' : 'favourable',
   };
 }
@@ -573,32 +573,32 @@ function railConclusion(
     key: 'riel',
     claim:
       vsParallel === null
-        ? 'El dólar por riel digital tiene su propio precio'
+        ? 'El dólar en fichas estables tiene su propio precio'
         : vsParallel > 0
-          ? 'Comprar dólares por el riel digital sale más caro que en la calle'
-          : 'El riel digital vende el dólar por debajo del precio de calle',
+          ? 'Comprar dólares en fichas estables cuesta más que en el paralelo'
+          : 'Las fichas estables venden el dólar por debajo del paralelo',
     figure:
-      vsParallel === null ? `${say(price)} Bs/USD` : `${signed(vsParallel, 1)} % sobre el mercado`,
+      vsParallel === null ? `${say(price)} Bs por USD` : `${signed(vsParallel, 1)} % sobre el paralelo`,
     detail:
-      `Al ${longDate(cheapest.date)} el riel más barato (${cheapest.token}) ` +
-      `${onAsk ? 'pide' : 'cotiza a'} ${say(price)} Bs/USD con ${say(cheapest.venues, 0)} ` +
-      `plaza${cheapest.venues === 1 ? '' : 's'} cotizando${onAsk ? '' : ', a punto medio'}` +
+      `Al ${longDate(cheapest.date)}, la ficha más barata (${cheapest.token}) ` +
+      `${onAsk ? 'se ofrece a' : 'cotiza a'} ${say(price)} Bs por USD en ${say(cheapest.venues, 0)} ` +
+      `plaza${cheapest.venues === 1 ? '' : 's'}${onAsk ? '' : ', a punto medio'}` +
       (parallel
-        ? `, contra ${say(parallel.value)} del mercado paralelo del ${longDate(parallel.date)}`
+        ? `, frente a ${say(parallel.value)} del paralelo del ${longDate(parallel.date)}`
         : '') +
       (official && vsOfficial !== null
         ? ` y ${say(official.value)} del oficial (${signed(vsOfficial, 1)} %)`
         : '') +
       '.' +
       (cheapest.spreadPercent !== null
-        ? ` Ida y vuelta por ese riel cuesta ${say(cheapest.spreadPercent)} %`
+        ? ` La ida y vuelta en esa ficha cuesta ${say(cheapest.spreadPercent)} %`
         : '') +
       (betweenRails !== null
-        ? `${cheapest.spreadPercent !== null ? ', y entre' : ' Entre'} rieles la diferencia para ` +
+        ? `${cheapest.spreadPercent !== null ? ', y entre' : ' Entre'} fichas la diferencia para ` +
           `${onAsk ? 'comprar' : 'el punto medio'} es de ${say(betweenRails)} % (${dearest.token})`
         : '') +
-      `. Las fichas están ancladas al mismo dólar, así que lo que se paga de más es el riel y no ` +
-      `otro dólar.`,
+      `. Las fichas están ancladas al mismo dólar: lo que se paga de más es el costo de la vía, ` +
+      `no otro dólar.`,
     tone: vsParallel !== null && vsParallel > 0 ? 'adverse' : 'neutral',
   };
 }

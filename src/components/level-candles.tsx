@@ -162,7 +162,7 @@ export function LevelCandles({
               cotización por día, el cierre de una vela diaria <b>es</b> la apertura de la siguiente
               y los cuerpos se pegan en una cinta continua.
               {set.clipped ? <> Se dibujan las últimas {CANDLE_WEEK_LIMIT} semanas. </> : ' '}
-              Elegí «90 días» para verlas jornada por jornada.
+              Con el periodo «90 días» se ven jornada por jornada.
             </>
           ) : (
             <>
@@ -176,12 +176,12 @@ export function LevelCandles({
               ) : (
                 <>
                   la serie no publica lados, así que la mecha coincide con el cuerpo en vez de
-                  estirarse con precios que nadie cotizó.
+                  extenderse a precios que no se cotizaron.
                 </>
               )}
             </>
           )}{' '}
-          <b>No es una vela intradía</b>: el observatorio guarda una lectura por día, y dibujar
+          <b>No es una vela intradía</b>: el archivo guarda una lectura por día, y dibujar
           cuatro precios a partir de una sola cotización sería inventarlos.
         </p>
       </details>

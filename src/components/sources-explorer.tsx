@@ -44,7 +44,7 @@ const NAMES: Record<string, string> = {
   FX_PARALLEL_USD_BOB: 'Dólar paralelo',
   UFV_BOB: 'Unidad de Fomento de Vivienda',
   BTC_USD: 'Bitcoin',
-  USDT_USD: 'Estables USDT/USDC',
+  USDT_USD: 'Fichas estables USDT y USDC',
   XAU_USD: 'Oro (PAX Gold)',
   GOLD_USD_OZT: 'Oro, cotización oficial del BCB',
 };
@@ -191,8 +191,8 @@ export function SourcesExplorer({
       title: 'Nada sin fuente',
       body: (
         <>
-          Toda lectura de este informe cita el documento del que se leyó y conserva su{' '}
-          <strong>huella sha256</strong>. Una cifra sin documento no se publica.
+          Toda lectura de DatosBolivia.com cita el documento del que se tomó y conserva su{' '}
+          <strong>huella digital (SHA-256)</strong>. Una cifra sin documento no se publica.
         </>
       ),
     },
@@ -203,7 +203,7 @@ export function SourcesExplorer({
     },
     {
       icon: 'balanza',
-      title: 'Los dos lados del paralelo no son una horquilla compra/venta',
+      title: 'Los dos lados del paralelo no son una horquilla de compra y venta',
       body: (
         <>
           La fuente publica dos valores por día bajo las etiquetas <code>buy</code> y{' '}
@@ -218,8 +218,8 @@ export function SourcesExplorer({
           ) : (
             ' Se reportan tal como las publica la fuente.'
           )}{' '}
-          Por eso el informe no las traduce, encabeza con el <strong>punto medio</strong> —que no
-          depende de esa distinción— y mide la brecha contra él.
+          Por eso DatosBolivia.com no las traduce: encabeza con el <strong>punto medio</strong>
+          —que no depende de esa distinción— y mide la brecha contra él.
         </>
       ),
     },
@@ -229,8 +229,8 @@ export function SourcesExplorer({
       body: (
         <>
           En el tipo de cambio oficial el lado «sell» es mayor o igual al «buy» en toda la serie.
-          Cuando existe el valor único que publica el Banco Central, el informe usa ese; si no, el
-          lado «sell», que es lo que paga quien adquiere dólares.
+          Cuando existe el valor único que publica el Banco Central, DatosBolivia.com usa ese; si
+          no, el lado «sell», que es lo que paga quien adquiere dólares.
         </>
       ),
     },
@@ -262,8 +262,8 @@ export function SourcesExplorer({
       title: 'Frecuencias separadas',
       body: (
         <>
-          Una cifra anual y un precio cotizado a diario viven en modelos de lectura distintos, de
-          modo que ningún gráfico puede ponerlas en el mismo eje ni promediarlas.
+          Una cifra anual y un precio cotizado a diario se registran en modelos de lectura
+          distintos, de modo que ningún gráfico las pone en el mismo eje ni las promedia.
         </>
       ),
     },
@@ -272,11 +272,11 @@ export function SourcesExplorer({
       title: 'Trazabilidad y sus límites',
       body: (
         <>
-          Cada lectura cita su fuente y conserva el hash del documento del que se obtuvo. En la
+          Cada lectura cita su fuente y conserva la huella digital del documento del que se obtuvo. En la
           serie histórica del <strong>oficial</strong> y en los hechos relevantes, la cita es el
           fragmento literal del que se leyó el dato. En la del <strong>paralelo</strong>, cargada
           antes de esa mejora, es una reformulación de los valores y no un extracto literal: sigue
-          siendo trazable hasta el documento y su hash, pero no al nivel de la cita.
+          siendo trazable hasta el documento y su huella digital, pero no al nivel de la cita.
         </>
       ),
     },
@@ -455,10 +455,10 @@ export function SourcesExplorer({
         {selected.length ? (
           <Panel
             id="metodo-series"
-            title="Series y fuentes del Observatorio (cantidad de series)"
-            lede="Una fila por serie y publicador: cuántas lecturas tiene, de cuántos documentos se armó y desde cuándo."
+            title="Series y fuentes de DatosBolivia.com (cantidad de series)"
+            lede="Una fila por serie y publicador, con el número de lecturas, los documentos de los que proceden y el periodo que cubren."
             meta={`${describe(publisher, (value) => value, 'Todas las fuentes')} · ${selected.length} serie${selected.length === 1 ? '' : 's'}`}
-            source="catálogo de fuentes del Observatorio: cada fila enlaza al documento de su publicador"
+            source="Catálogo de fuentes de DatosBolivia.com; cada fila enlaza al documento de su publicador"
             data={() => ({
               unidad: 'series',
               columnas: [
@@ -536,7 +536,7 @@ export function SourcesExplorer({
                       <td className="num">{source.lastDay}</td>
                       <td>
                         <a href={source.sourceUrl} target="_blank" rel="noreferrer noopener">
-                          abrir
+                          Abrir
                         </a>
                       </td>
                     </tr>
@@ -574,8 +574,8 @@ export function SourcesExplorer({
               noun="series"
             />
             <p className="panel-sub">
-              El núcleo del observatorio guarda {readingCount.toLocaleString('es-BO')} puntos de
-              serie en total, con o sin filtro.
+              La base de DatosBolivia.com guarda {readingCount.toLocaleString('es-BO')} lecturas
+              en total, con o sin filtro.
             </p>
           </Panel>
         ) : (

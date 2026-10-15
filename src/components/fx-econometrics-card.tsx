@@ -25,14 +25,14 @@ export function FxEconometricsCard() {
     <Panel
       id="pruebas-econometricas"
       title="Pruebas econométricas del tipo de cambio (informe en PDF)"
-      lede="Raíz unitaria del paralelo y de la brecha, cointegración entre oficial y paralelo, causalidad de Granger, quiebre estructural, volatilidad GARCH y traspaso a precios."
-      source="Cálculo del Observatorio sobre el oficial del Banco Central, el paralelo de los mercados P2P en bolivianos y la UFV"
+      lede="Raíz unitaria del paralelo y de la brecha, cointegración entre oficial y paralelo, causalidad de Granger, quiebre estructural, volatilidad (GARCH) y traspaso a precios."
+      source="Banco Central de Bolivia (oficial y UFV) y mercados P2P en bolivianos (paralelo); cálculo de DatosBolivia.com"
       downloadable={false}
       className="fx-econ"
     >
       <p className="panel-note">
-        Cada prueba con su estadístico, su valor crítico o p-valor, la ventana y la decisión, y las
-        conclusiones que se derivan de ellas.
+        El informe recoge cada prueba con su estadístico, su valor crítico o p-valor, la ventana y
+        la decisión, junto con las conclusiones que se derivan de ellas.
       </p>
       <div className="download">
         <a
@@ -41,7 +41,7 @@ export function FxEconometricsCard() {
           download
           onClick={announce}
         >
-          <Icon name="descarga" size={13} /> Descargar el informe (PDF)
+          <Icon name="descarga" size={13} /> Descargar informe econométrico (PDF)
         </a>
       </div>
     </Panel>

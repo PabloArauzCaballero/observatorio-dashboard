@@ -193,7 +193,7 @@ export function SummaryExplorer({
                   : `${move > 0 ? '+' : ''}${move.toLocaleString('es-BO', {
                       minimumFractionDigits: 1,
                       maximumFractionDigits: 1,
-                    })} pts`}
+                    })} p. p.`}
               </span>
             </div>
             <p className="rail-note">
@@ -205,7 +205,7 @@ export function SummaryExplorer({
         <div className="rail-sec">
           <div className="rail-head">
             <Icon name="capas" size={13} />
-            Lo que guarda el observatorio
+            Contenido de la base
           </div>
           {coverage.map((row) => (
             <div className="rail-fact" key={row.label}>
@@ -217,7 +217,7 @@ export function SummaryExplorer({
         </div>
 
         <div className="rail-foot">
-          Cada cifra guarda la <b>huella</b> del documento del que se leyó.
+          Cada cifra conserva la <b>huella digital</b> del documento del que se tomó.
           {latestDate ? (
             <>
               <br />
@@ -233,7 +233,7 @@ export function SummaryExplorer({
         <Panel
           id="indicadores-hoy"
           title="Indicadores de hoy (Bs por USD, % y Bs por UFV)"
-          source="Banco Central de Bolivia, mercados P2P en bolivianos y cálculo del Observatorio"
+          source="Banco Central de Bolivia y mercados P2P en bolivianos; cálculo de DatosBolivia.com"
           data={{
             columnas: ['Indicador', 'Valor', 'Unidad', 'Detalle'],
             filas: figures.map((figure) => [
@@ -291,8 +291,8 @@ export function SummaryExplorer({
           ) : (
             <div className="callout">
               {gapUnread
-                ? 'La serie de la brecha no se pudo leer a tiempo en esta carga. No es que falte: es que la consulta que la arma agotó su plazo, y el informe prefiere no dibujarla antes que dibujarla a medias.'
-                : 'La brecha solo puede calcularse en los días con ambas cotizaciones.'}
+                ? 'La serie de la brecha no se pudo leer a tiempo en esta carga: la consulta agotó su plazo. Los datos existen, pero no se dibujan incompletos. Recargar la página en unos minutos.'
+                : 'No hay jornadas con ambas cotizaciones en este periodo; la brecha solo se calcula cuando existen las dos.'}
             </div>
           )}
           {peak && trough && peak.date !== trough.date ? (
@@ -322,7 +322,7 @@ export function SummaryExplorer({
           title="Análisis del día (lecturas derivadas de las series)"
           lede={
             analysisOpen
-              ? 'Derivado de las observaciones, no redactado: cada cifra procede de las series de este informe y se recalcula con cada carga.'
+              ? 'Cada cifra se deriva de las series de DatosBolivia.com y se recalcula con cada carga; ninguna frase se redacta a mano.'
               : undefined
           }
           meta={
@@ -337,7 +337,7 @@ export function SummaryExplorer({
                 : `Ver ${analysis.length} lectura${analysis.length === 1 ? '' : 's'}`}
             </button>
           }
-          source="series de este informe, recalculadas con cada carga"
+          source="Series de esta sección; cálculo de DatosBolivia.com"
           data={{
             columnas: ['Lectura', 'Cifra', 'Detalle'],
             filas: analysis.map((bullet) => [bullet.label, bullet.value, bullet.detail]),
