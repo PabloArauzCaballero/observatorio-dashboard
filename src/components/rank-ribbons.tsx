@@ -294,6 +294,10 @@ export function RankRibbons({
           { color: 'var(--ribbon-rest)', label: others, shape: 'line' },
         ]}
       />
+      <p className="chart-note">
+        Al pasar el cursor sobre una cinta se muestra el puesto de cada periodo; al seleccionarla,
+        queda resaltada y se abre su detalle.
+      </p>
     </div>
   );
 }

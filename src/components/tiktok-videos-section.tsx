@@ -35,7 +35,7 @@ import {
  */
 
 const SOURCE =
-  'Perfiles públicos de TikTok de vendedores bolivianos, leídos por el Observatorio sin iniciar sesión (cifras al día de la lectura)';
+  'Perfiles públicos de TikTok de vendedores bolivianos; lectura de DatosBolivia.com sin iniciar sesión (cifras a la fecha de lectura)';
 const MIN_PRICES = 3;
 
 const count = (value: number): string => value.toLocaleString('es-BO');
@@ -44,8 +44,8 @@ const decimal = (value: number | null, digits = 1): string =>
 const barsKey = (label: string) => <ChartLegend items={[{ color: 'var(--official)', label }]} />;
 
 const DIMENSION_LABEL: Record<VideoDimension, { title: string; icon: 'tienda' | 'personas' | 'capas' | 'mapa' }> = {
-  kind: { title: 'Clase de cuenta', icon: 'tienda' },
-  origin: { title: 'Cómo se la encontró', icon: 'personas' },
+  kind: { title: 'Tipo de cuenta', icon: 'tienda' },
+  origin: { title: 'Origen de la cuenta', icon: 'personas' },
   rubro: { title: 'Rubro', icon: 'capas' },
   city: { title: 'Departamento', icon: 'mapa' },
 };
@@ -109,13 +109,13 @@ function VideosOverview({ board }: { board: VideoBoard }) {
       <Panel
         id="videos-de-vendedores-resumen"
         title="Videos de vendedores bolivianos leídos (cantidad)"
-        lede={`Lo que publican en TikTok quienes venden, cocinan o entretienen en vivo, y cuentas parecidas, del ${first ?? '—'} al ${last ?? '—'}. Es un catálogo aparte de «Ventas en vivo»: un video no es un live.`}
+        lede={`${count(videos.length)} videos de ${count(sellers.size)} cuentas que venden, cocinan o entretienen en transmisiones en vivo de TikTok, y de cuentas similares, publicados del ${first ?? '—'} al ${last ?? '—'}. Es un catálogo distinto de «Ventas en vivo»: un video no es una transmisión en vivo.`}
         source={SOURCE}
         {...(board.analyzedAt ? { updated: board.analyzedAt.slice(0, 10) } : {})}
       >
         <div className="stat-strip">
           <div className="stat">
-            <span className="stat-label">Videos en el recorte</span>
+            <span className="stat-label">Videos en la selección</span>
             <span className="stat-value">{count(videos.length)}</span>
             <span className="stat-hint">de {count(board.videos.length)} leídos</span>
           </div>
@@ -127,12 +127,12 @@ function VideosOverview({ board }: { board: VideoBoard }) {
           <div className="stat">
             <span className="stat-label">Vistas sumadas</span>
             <span className="stat-value">{decimal(videos.reduce((sum, video) => sum + (video.plays ?? 0), 0) / 1_000_000)} M</span>
-            <span className="stat-hint">al día de la lectura, no el día de publicación</span>
+            <span className="stat-hint">a la fecha de lectura, no de publicación</span>
           </div>
           <div className="stat">
             <span className="stat-label">Con precio en el texto</span>
             <span className="stat-value">{decimal(videos.length ? (100 * videos.filter((video) => video.tactics.includes('PRECIO')).length) / videos.length : null)} %</span>
-            <span className="stat-hint">de los videos del recorte</span>
+            <span className="stat-hint">de los videos de la selección</span>
           </div>
         </div>
         {coverage ? (
@@ -154,10 +154,10 @@ function VideosOverview({ board }: { board: VideoBoard }) {
           <summary>Cómo leerlo</summary>
           <p>
             Sin iniciar sesión, TikTok muestra de cada perfil sus videos más recientes (unos 16 a 35). Para quien publica poco eso llega
-            años atrás; para quien publica a diario, semanas. Por eso la serie diaria está cargada hacia lo reciente: los años viejos
-            tienen menos videos porque se ven menos, no necesariamente porque se vendía menos. Las vistas y los me gusta son los que cada
-            video tenía el día que se leyó. De cada video se guardan solo marcas (dice el precio, ofrece envío, anuncia un live…), nunca
-            su texto ni su autor.
+            años atrás; para quien publica a diario, semanas. Por eso la serie diaria está cargada hacia lo reciente: los años anteriores
+            tienen menos videos porque se ven menos, no necesariamente porque se vendía menos. Las vistas y los «me gusta» son los que cada
+            video tenía el día de la lectura. De cada video se guardan solo marcas (dice el precio, ofrece envío, anuncia una transmisión
+            en vivo…), nunca su texto ni su autor.
           </p>
         </details>
       </Panel>
@@ -230,7 +230,7 @@ function VideosOverview({ board }: { board: VideoBoard }) {
         <div className="workspace-main">
           <Panel
             id="videos-de-vendedores-dia"
-            title="Videos publicados por día, por clase de cuenta (cantidad)"
+            title="Videos publicados por día, por tipo de cuenta (cantidad)"
             lede="Día a día desde el video más antiguo leído. La serie está cargada hacia lo reciente (ver «Cómo leerlo»)."
             source={SOURCE}
           >
@@ -256,7 +256,7 @@ function VideosOverview({ board }: { board: VideoBoard }) {
                       <th>Venta</th>
                       <th>Gastronomía</th>
                       <th>Entretenimiento</th>
-                      <th>Vistas (al día de lectura)</th>
+                      <th>Vistas (a la fecha de lectura)</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -277,8 +277,8 @@ function VideosOverview({ board }: { board: VideoBoard }) {
 
           <Panel
             id="videos-de-vendedores-vistas"
-            title="Vistas de los videos publicados cada día (millones de vistas, al día de la lectura)"
-            lede="Cuánta atención juntó lo que se publicó cada día. Un video viejo tuvo más tiempo para sumar vistas."
+            title="Vistas de los videos publicados cada día (millones de vistas a la fecha de lectura)"
+            lede="Vistas acumuladas por los videos publicados cada día. Un video más antiguo tuvo más tiempo para sumar vistas."
             source={SOURCE}
           >
             <DatedLines
@@ -292,7 +292,7 @@ function VideosOverview({ board }: { board: VideoBoard }) {
 
           <Panel
             id="videos-de-vendedores-rubros"
-            title="Qué se vendía cada año (% de los videos del año por rubro)"
+            title="Rubros de los videos por año (% de los videos del año)"
             lede="El rubro sale del producto que nombra cada video o, si no nombra ninguno, del rubro de la cuenta."
             source={SOURCE}
           >
@@ -308,15 +308,15 @@ function VideosOverview({ board }: { board: VideoBoard }) {
           <div className="grid-pair">
             <Panel
               id="videos-de-vendedores-tacticas"
-              title={tacticView === 'share' ? 'Cómo venden: marcas en el texto del video (% de los videos)' : 'Interacción según la marca (me gusta por cada 1.000 vistas, mediana)'}
-              lede="Lo que el vendedor hace en el texto para vender. La interacción se compara con la mediana de todos los videos del recorte."
+              title={tacticView === 'share' ? 'Recursos de venta en el texto del video (% de los videos)' : 'Interacción según el recurso de venta («me gusta» por cada 1.000 vistas, mediana)'}
+              lede="Recursos que el vendedor usa en el texto del video. La interacción se compara con la mediana de todos los videos de la selección."
               source={SOURCE}
             >
               <div className="rail-pills">
                 {(
                   [
-                    ['share', 'Cuánto se usa'],
-                    ['likes', 'Interacción que logra'],
+                    ['share', 'Frecuencia de uso'],
+                    ['likes', 'Interacción'],
                   ] as const
                 ).map(([value, label]) => (
                   <button key={value} type="button" className={tacticView === value ? 'chip chip-on' : 'chip'} aria-pressed={tacticView === value} onClick={() => setTacticView(value)}>
@@ -336,7 +336,7 @@ function VideosOverview({ board }: { board: VideoBoard }) {
                 unit={tacticView === 'share' ? '%' : 'por mil'}
                 height={Math.max(220, tacticRows.length * 30)}
               />
-              {barsKey(tacticView === 'share' ? 'Parte de los videos del recorte con esa marca, en %' : 'Me gusta por cada 1.000 vistas, mediana de los videos con esa marca')}
+              {barsKey(tacticView === 'share' ? 'Parte de los videos de la selección con ese recurso (%)' : '«Me gusta» por cada 1.000 vistas, mediana de los videos con ese recurso')}
             </Panel>
             <Panel
               id="videos-de-vendedores-formato"
@@ -345,7 +345,7 @@ function VideosOverview({ board }: { board: VideoBoard }) {
               source={SOURCE}
             >
               <ShareBars data={formatRows.map((row) => ({ name: row.band, value: row.share, parts: [{ name: 'Videos', value: row.videos }] }))} unit="%" height={240} />
-              {barsKey('Parte de los videos del recorte, en %')}
+              {barsKey('Parte de los videos de la selección (%)')}
             </Panel>
           </div>
 
@@ -372,7 +372,7 @@ function VideosOverview({ board }: { board: VideoBoard }) {
                       unit="Bs"
                       height={Math.max(200, Math.min(prices.length, 20) * 28)}
                     />
-                    {barsKey('Precio mediano del producto, en bolivianos')}
+                    {barsKey('Precio mediano del producto (Bs)')}
                   </>
                 }
                 table={
@@ -403,14 +403,14 @@ function VideosOverview({ board }: { board: VideoBoard }) {
                 }
               />
             ) : (
-              <div className="callout">Ningún producto del recorte junta {MIN_PRICES} precios en el texto de los videos.</div>
+              <div className="callout">Ningún producto de la selección reúne {MIN_PRICES} precios en el texto de los videos.</div>
             )}
           </Panel>
 
           <Panel
             id="videos-de-vendedores-horas"
-            title="Cuándo publican: videos por día y hora (cantidad, hora de La Paz)"
-            lede="La hora en que se subió cada video."
+            title="Videos por día y hora de publicación (cantidad, hora de Bolivia)"
+            lede="Día y hora en que se publicó cada video."
             source={SOURCE}
           >
             <HeatGrid
@@ -424,12 +424,12 @@ function VideosOverview({ board }: { board: VideoBoard }) {
 
           <Panel
             id="videos-de-vendedores-hashtags"
-            title="Hashtags más usados (veces que aparecen)"
-            lede="Los hashtags de los videos, según el rubro elegido en el filtro."
+            title="Etiquetas (#) más usadas (veces que aparecen)"
+            lede="Etiquetas de los videos según el rubro seleccionado en el filtro."
             source={SOURCE}
           >
             <TermCloud data={cloud.map((word) => ({ ...word, label: `#${readable(word.term)}` }))} limit={60} />
-            <ChartLegend items={[{ color: 'var(--official)', label: 'El tamaño del hashtag es cuántas veces aparece' }]} />
+            <ChartLegend items={[{ color: 'var(--official)', label: 'El tamaño de cada etiqueta indica cuántas veces aparece' }]} />
           </Panel>
         </div>
       </div>

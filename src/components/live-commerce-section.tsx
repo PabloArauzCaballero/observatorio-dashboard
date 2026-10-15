@@ -47,7 +47,7 @@ import {
  */
 
 const SOURCE =
-  'Lives públicos de TikTok observados por el Observatorio sin iniciar sesión, desde una conexión en Bolivia (chat, voz del vendedor y texto en pantalla)';
+  'Transmisiones en vivo públicas de TikTok, observadas por DatosBolivia.com sin iniciar sesión desde una conexión en Bolivia (chat, voz del vendedor y texto en pantalla)';
 const MIN_APT = 30;
 const MIN_MESSAGES = 50;
 const MIN_PRICES = 3;
@@ -67,10 +67,10 @@ const slices = (counts: Record<string, number>, labels: Record<string, string>, 
 };
 
 const DIMENSION_LABEL: Record<Dimension, { title: string; icon: 'capas' | 'mapa' | 'personas' | 'reloj' | 'calendario' | 'tienda' }> = {
-  status: { title: 'Clase de live', icon: 'tienda' },
+  status: { title: 'Tipo de transmisión', icon: 'tienda' },
   rubro: { title: 'Rubro', icon: 'capas' },
   city: { title: 'Departamento del vendedor', icon: 'mapa' },
-  size: { title: 'Audiencia del live', icon: 'personas' },
+  size: { title: 'Audiencia de la transmisión', icon: 'personas' },
   slot: { title: 'Franja horaria', icon: 'reloj' },
   weekday: { title: 'Día de la semana', icon: 'calendario' },
 };
@@ -142,10 +142,10 @@ export function LiveCommerceExplorer({ board }: { board: LiveCommerceBoard }) {
 
   if (!board.rooms.length) {
     return (
-      <Panel id="ventas-en-vivo-vacio" title="Lives de venta observados (cantidad)" source={SOURCE}>
+      <Panel id="ventas-en-vivo-vacio" title="Transmisiones de venta observadas (cantidad)" source={SOURCE}>
         <div className="callout">
-          Todavía no hay noches de captura publicadas. La página se llena cuando el núcleo siembra la primera lectura
-          de lives.
+          Todavía no hay noches de captura publicadas. La página se completa con la primera lectura de transmisiones
+          en vivo.
         </div>
       </Panel>
     );
@@ -155,16 +155,16 @@ export function LiveCommerceExplorer({ board }: { board: LiveCommerceBoard }) {
     <>
       <Panel
         id="ventas-en-vivo-resumen"
-        title="Lives de venta observados y mensajes leídos (cantidad)"
-        lede={`${count(days.length)} ${days.length === 1 ? 'noche' : 'noches'} de captura, del ${days[0]} al ${days[days.length - 1]}. Cada cifra describe lo que se vio en esos lives, no todo el comercio en vivo del país.`}
+        title="Transmisiones de venta observadas y mensajes leídos (cantidad)"
+        lede={`${count(rooms.length)} ${rooms.length === 1 ? 'transmisión' : 'transmisiones'} y ${count(messages)} mensajes de chat en la selección, sobre ${count(days.length)} ${days.length === 1 ? 'noche' : 'noches'} de captura del ${days[0]} al ${days[days.length - 1]}. Las cifras describen lo observado en esas transmisiones, no todo el comercio en vivo del país.`}
         source={SOURCE}
         {...(board.analyzedAt ? { updated: board.analyzedAt.slice(0, 10) } : {})}
       >
         <div className="stat-strip">
           <div className="stat">
-            <span className="stat-label">Lives en el recorte</span>
+            <span className="stat-label">Transmisiones en la selección</span>
             <span className="stat-value">{count(rooms.length)}</span>
-            <span className="stat-hint">de {count(board.rooms.length)} observados</span>
+            <span className="stat-hint">de {count(board.rooms.length)} observadas</span>
           </div>
           <div className="stat">
             <span className="stat-label">Horas observadas</span>
@@ -174,7 +174,7 @@ export function LiveCommerceExplorer({ board }: { board: LiveCommerceBoard }) {
           <div className="stat">
             <span className="stat-label">Mensajes del chat</span>
             <span className="stat-value">{count(messages)}</span>
-            <span className="stat-hint">{count(total(rooms, 'authors'))} personas distintas por live, sumadas</span>
+            <span className="stat-hint">{count(total(rooms, 'authors'))} personas distintas por transmisión, sumadas</span>
           </div>
           <div className="stat">
             <span className="stat-label">Pedidos por cada 1.000 mensajes</span>
@@ -188,8 +188,8 @@ export function LiveCommerceExplorer({ board }: { board: LiveCommerceBoard }) {
             compra, pregunta o reclamo; el resto es saludo, emoji o charla.
           </li>
           <li>
-            <b>Lives</b> {count(coverage.reduce((sum, night) => sum + night.roomsOpened, 0))} abiertos ·{' '}
-            {count(coverage.reduce((sum, night) => sum + night.roomsBlocked, 0))} con muro ·{' '}
+            <b>Transmisiones</b> {count(coverage.reduce((sum, night) => sum + night.roomsOpened, 0))} abiertas ·{' '}
+            {count(coverage.reduce((sum, night) => sum + night.roomsBlocked, 0))} con acceso restringido ·{' '}
             {count(coverage.reduce((sum, night) => sum + night.roomsNoCommerce, 0))} sin venta ·{' '}
             {count(coverage.reduce((sum, night) => sum + night.roomsForeign, 0))} de otro país
           </li>
@@ -197,10 +197,11 @@ export function LiveCommerceExplorer({ board }: { board: LiveCommerceBoard }) {
         <details className="panel-note">
           <summary>Cómo leerlo</summary>
           <p>
-            Los lives salen del feed de TikTok visto desde Bolivia, sin iniciar sesión, en las noches de captura. El
-            chat se lee mientras ocurre; la voz del vendedor se transcribe entera y el texto en pantalla se lee cada
-            10 segundos, en memoria. No se guarda quién comenta ni se publica a ningún vendedor. Un «mío» es una
-            intención declarada: el pago se cierra fuera de TikTok y no se ve.
+            Las transmisiones provienen de la página de inicio de TikTok vista desde Bolivia, sin iniciar sesión, en
+            las noches de captura. El chat se lee en tiempo real; la voz del vendedor se transcribe completa y el texto
+            en pantalla se lee cada 10 segundos, en memoria. No se guarda la identidad de quien comenta ni se publica
+            el nombre de ningún vendedor. Un «mío» es una intención declarada: el pago se cierra fuera de TikTok y no
+            es observable.
           </p>
         </details>
       </Panel>
@@ -285,8 +286,8 @@ export function LiveCommerceExplorer({ board }: { board: LiveCommerceBoard }) {
             title="Pedidos y preguntas en el chat por semana (mensajes por cada 1.000)"
             lede={
               weeks.length > 1
-                ? 'La tendencia del recorte, semana a semana. Las tasas se calculan sobre los mensajes de cada semana, así que una semana con menos noches de captura no parece una caída.'
-                : 'Por ahora hay una sola semana de captura: la línea se arma a medida que se suman noches.'
+                ? 'Evolución semanal de la selección. Las tasas se calculan sobre los mensajes de cada semana, de modo que una semana con menos noches de captura no aparece como una caída.'
+                : 'Por ahora hay una sola semana de captura; la serie se completa a medida que se suman noches.'
             }
             source={SOURCE}
           >
@@ -312,7 +313,7 @@ export function LiveCommerceExplorer({ board }: { board: LiveCommerceBoard }) {
                   <thead>
                     <tr>
                       <th>Semana (lunes)</th>
-                      <th>Lives</th>
+                      <th>Transmisiones</th>
                       <th>Horas</th>
                       <th>Mensajes</th>
                       <th>Mensajes por hora</th>
@@ -341,8 +342,8 @@ export function LiveCommerceExplorer({ board }: { board: LiveCommerceBoard }) {
           <div className="grid-pair">
             <Panel
               id="ventas-en-vivo-oferta"
-              title="Qué se vende: rubros por tiempo en vivo (% de las horas observadas)"
-              lede="La oferta: cuánto del tiempo observado dedicó cada rubro. Un clic en una barra filtra la página."
+              title="Oferta por rubro (% de las horas de transmisión observadas)"
+              lede="Parte del tiempo de transmisión observado que dedicó cada rubro."
               source={SOURCE}
             >
               <ShareBars
@@ -352,7 +353,7 @@ export function LiveCommerceExplorer({ board }: { board: LiveCommerceBoard }) {
                   pick: row.rubro,
                   emphasis: filters.rubro.has(row.rubro),
                   parts: [
-                    { name: 'Lives', value: row.lives },
+                    { name: 'Transmisiones', value: row.lives },
                     { name: 'Minutos', value: row.minutes },
                   ],
                 }))}
@@ -360,12 +361,13 @@ export function LiveCommerceExplorer({ board }: { board: LiveCommerceBoard }) {
                 height={Math.max(200, rubros.length * 30)}
                 onPick={(value, add) => set('rubro', value, add)}
               />
-              {barsKey('Parte de las horas observadas que fue de ese rubro, en %')}
+              {barsKey('Parte de las horas observadas dedicada a ese rubro (%)')}
+              <p className="chart-note">Al seleccionar una barra se filtra la página por ese rubro.</p>
             </Panel>
             <Panel
               id="ventas-en-vivo-demanda"
-              title="Qué se pide: rubros por pedidos en el chat (% de los pedidos)"
-              lede="La demanda: de todos los «mío» y «sepárame» del recorte, cuántos fueron en cada rubro."
+              title="Demanda por rubro: pedidos en el chat (% de los pedidos)"
+              lede="Reparto por rubro de los pedidos («mío», «sepárame») escritos en el chat de la selección."
               source={SOURCE}
             >
               <ShareBars
@@ -385,14 +387,14 @@ export function LiveCommerceExplorer({ board }: { board: LiveCommerceBoard }) {
                 height={Math.max(200, rubros.length * 30)}
                 onPick={(value, add) => set('rubro', value, add)}
               />
-              {barsKey('Parte de los pedidos del chat que fue de ese rubro, en %')}
+              {barsKey('Parte de los pedidos del chat correspondiente a ese rubro (%)')}
             </Panel>
           </div>
 
           <Panel
             id="ventas-en-vivo-precios"
             title="Precio mediano por producto (Bs)"
-            lede={`Precios que el vendedor dijo en voz, mostró en pantalla o escribió en el chat. Solo productos con ${MIN_PRICES} precios o más; al pasar sobre la barra se ven el cuartil bajo y el alto.${board.usdRate ? ` Los dichos en dólares se pasan a Bs con el paralelo del Observatorio (${decimal(board.usdRate, 2)} Bs por USD).` : ''}`}
+            lede={`Precios que el vendedor dijo en voz, mostró en pantalla o escribió en el chat. Solo productos con ${MIN_PRICES} precios o más; el detalle de cada barra muestra los cuartiles inferior y superior.${board.usdRate ? ` Los precios en dólares se convierten a Bs al dólar paralelo que registra DatosBolivia.com (Bs ${decimal(board.usdRate, 2)} por USD).` : ''}`}
             source={SOURCE}
           >
             {prices.length ? (
@@ -412,7 +414,7 @@ export function LiveCommerceExplorer({ board }: { board: LiveCommerceBoard }) {
                       unit="Bs"
                       height={Math.max(200, Math.min(prices.length, 20) * 28)}
                     />
-                    {barsKey('Precio mediano del producto, en bolivianos')}
+                    {barsKey('Precio mediano del producto (Bs)')}
                   </>
                 }
                 table={
@@ -443,7 +445,7 @@ export function LiveCommerceExplorer({ board }: { board: LiveCommerceBoard }) {
                 }
               />
             ) : (
-              <div className="callout">Ningún producto del recorte junta {MIN_PRICES} precios todavía.</div>
+              <div className="callout">Ningún producto de la selección reúne todavía {MIN_PRICES} precios.</div>
             )}
           </Panel>
 
@@ -451,8 +453,8 @@ export function LiveCommerceExplorer({ board }: { board: LiveCommerceBoard }) {
           <div className="grid-pair">
             <Panel
               id="ventas-en-vivo-espectadores"
-              title="Espectadores durante el live (mediana por tramo de 10 minutos desde el inicio)"
-              lede="Cuánta gente sostiene un live a medida que avanza. Cada tramo junta al menos 3 lives; el minuto cero es el inicio del live, no el de la captura."
+              title="Espectadores durante la transmisión (mediana por tramo de 10 minutos desde el inicio)"
+              lede="Evolución de la audiencia a medida que avanza la transmisión. Cada tramo reúne al menos 3 transmisiones; el minuto cero es el inicio de la transmisión, no el de la captura."
               source={SOURCE}
             >
               {curve.length ? (
@@ -463,13 +465,13 @@ export function LiveCommerceExplorer({ board }: { board: LiveCommerceBoard }) {
                   height={240}
                 />
               ) : (
-                <div className="callout">Todavía no hay tramos con 3 lives o más en el recorte.</div>
+                <div className="callout">Todavía no hay tramos con 3 transmisiones o más en la selección.</div>
               )}
             </Panel>
             <Panel
               id="ventas-en-vivo-interaccion"
-              title="Regalos, seguidores nuevos y compartidos por rubro (por hora de live)"
-              lede="Lo que el público hace además de escribir. Los regalos se cuentan, no se convierten en dinero: TikTok no publica cuánto vale cada uno para el vendedor."
+              title="Regalos, seguidores nuevos y compartidos por rubro (por hora de transmisión)"
+              lede="Acciones del público además de escribir. Los regalos se cuentan y no se convierten en dinero: TikTok no publica cuánto recibe el vendedor por cada uno."
               source={SOURCE}
             >
               <div className="rail-pills">
@@ -504,21 +506,21 @@ export function LiveCommerceExplorer({ board }: { board: LiveCommerceBoard }) {
                     height={Math.max(200, interaction.length * 30)}
                     onPick={(value, add) => set('rubro', value, add)}
                   />
-                  {barsKey('Cantidad por hora de live observada, por rubro')}
+                  {barsKey('Cantidad por hora de transmisión observada, por rubro')}
                 </>
               ) : (
-                <div className="callout">Nadie lo hizo en los lives del recorte (o ningún rubro junta media hora observada).</div>
+                <div className="callout">Sin registros en las transmisiones de la selección, o ningún rubro reúne media hora observada.</div>
               )}
             </Panel>
           </div>
 
           <Panel
             id="ventas-en-vivo-precio-ufv"
-            title="Precio en los lives frente a la UFV (índice, base 100 = primera semana)"
+            title="Precio en las transmisiones frente a la UFV (índice, primera semana = 100)"
             lede={
               indexed.length > 1
-                ? 'Encadenado semana a semana sobre los productos que tienen precio en las dos semanas, para que un cambio de mezcla no parezca inflación. La UFV es el índice diario de precios del Banco Central.'
-                : 'Hace falta una segunda semana con productos en común para dibujar la comparación; hoy hay una. La línea se arma sola a medida que se suman noches.'
+                ? 'Índice encadenado semana a semana sobre los productos con precio en ambas semanas, para que un cambio en la composición no se confunda con inflación. La Unidad de Fomento de Vivienda (UFV) es el índice diario de precios que publica el Banco Central de Bolivia.'
+                : 'La comparación requiere una segunda semana con productos en común; por ahora hay una. La serie se completa a medida que se suman noches.'
             }
             source={`${SOURCE}; UFV: Banco Central de Bolivia`}
           >
@@ -526,7 +528,7 @@ export function LiveCommerceExplorer({ board }: { board: LiveCommerceBoard }) {
               <DatedLines
                 data={index.map((row) => ({ date: row.week, lives: row.lives, ufv: row.ufv }))}
                 series={[
-                  { key: 'lives', label: 'Precio en los lives (índice)', tone: 'var(--series-1)', emphasis: true },
+                  { key: 'lives', label: 'Precio en las transmisiones (índice)', tone: 'var(--series-1)', emphasis: true },
                   { key: 'ufv', label: 'UFV (índice)', tone: 'var(--series-2)', dashed: true },
                 ]}
                 unit="índice"
@@ -542,49 +544,49 @@ export function LiveCommerceExplorer({ board }: { board: LiveCommerceBoard }) {
           <div className="grid-three">
             <Panel
               id="ventas-en-vivo-preguntas"
-              title="Qué pregunta o pide el comprador (% de las preguntas y pedidos del chat)"
-              lede="Lo que el chat le pregunta o le pide al vendedor antes de comprar: precio, talla, envío, rebaja…"
+              title="Preguntas y pedidos del comprador (% de las preguntas y pedidos del chat)"
+              lede="Consultas y pedidos que el chat dirige al vendedor antes de comprar: precio, talla, envío, rebaja y otros."
               source={SOURCE}
             >
               <ShareBars data={slices(signals, SIGNAL_LABEL, QUESTIONS)} unit="%" height={260} />
-              {barsKey('Parte de las preguntas del recorte, en %')}
+              {barsKey('Parte de las preguntas de la selección (%)')}
             </Panel>
             <Panel
               id="ventas-en-vivo-pagos"
-              title="Cómo se habla de pagar (% de las menciones de pago)"
-              lede={`Menciones de medios de pago en el chat. Además, ${count(dollarTalk)} mensajes del recorte hablan del dólar, del paralelo o del tipo de cambio.`}
+              title="Medios de pago mencionados (% de las menciones de pago)"
+              lede={`Menciones de medios de pago en el chat. Además, ${count(dollarTalk)} mensajes de la selección hablan del dólar, del paralelo o del tipo de cambio.`}
               source={SOURCE}
             >
               {Object.keys(payments).length ? (
                 <>
                   <ShareBars data={slices(payments, PAYMENT_LABEL)} unit="%" height={240} />
-                  {barsKey('Parte de las menciones de pago del recorte, en %')}
+                  {barsKey('Parte de las menciones de pago de la selección (%)')}
                 </>
               ) : (
-                <div className="callout">Nadie mencionó un medio de pago en el recorte.</div>
+                <div className="callout">No hay menciones de medios de pago en la selección.</div>
               )}
             </Panel>
             <Panel
               id="ventas-en-vivo-envios"
-              title="A dónde piden envío (% de las menciones de destino)"
-              lede="Departamentos que el chat nombra al preguntar por envíos o entregas."
+              title="Destinos de envío solicitados (% de las menciones de destino)"
+              lede="Departamentos que el chat menciona al preguntar por envíos o entregas."
               source={SOURCE}
             >
               {Object.keys(destinations).length ? (
                 <>
                   <ShareBars data={slices(destinations, board.departments)} unit="%" height={240} />
-                  {barsKey('Parte de las menciones de destino del recorte, en %')}
+                  {barsKey('Parte de las menciones de destino de la selección (%)')}
                 </>
               ) : (
-                <div className="callout">Ningún pedido de envío nombró un departamento en el recorte.</div>
+                <div className="callout">Ningún pedido de envío de la selección menciona un departamento.</div>
               )}
             </Panel>
           </div>
 
           <Panel
               id="ventas-en-vivo-horas"
-              title="Cuándo se vende: lives por día y hora (cantidad, hora de La Paz)"
-              lede="Solo cubre las horas en que hubo captura; una casilla vacía puede ser una hora sin observar."
+              title="Transmisiones por día y hora de inicio (cantidad, hora de Bolivia)"
+              lede="Solo cubre las horas con captura; una casilla vacía puede corresponder a una hora no observada."
               source={SOURCE}
             >
               <HeatGrid
@@ -593,9 +595,9 @@ export function LiveCommerceExplorer({ board }: { board: LiveCommerceBoard }) {
                   .sort((left, right) => left - right)
                   .map((hour) => `${String(hour).padStart(2, '0')} h`)}
                 cells={heat(rooms)}
-                unit="lives"
+                unit="transmisiones"
               />
-              <ChartLegend items={[{ color: 'var(--official)', label: 'Lives que empezaron en esa hora y día' }]} />
+              <ChartLegend items={[{ color: 'var(--official)', label: 'Transmisiones iniciadas en ese día y hora' }]} />
             </Panel>
 
           <div className="grid-pair">
@@ -604,8 +606,8 @@ export function LiveCommerceExplorer({ board }: { board: LiveCommerceBoard }) {
               title="Emociones en el chat (% de los mensajes con texto suficiente)"
               lede={
                 apt >= MIN_APT
-                  ? `${count(apt)} mensajes con tres palabras o más, o solo emojis con valor claro; ${decimal(share(ironic, apt))} % irónicos, contados aparte y no sumados a la alegría.`
-                  : `Hacen falta ${MIN_APT} mensajes con texto suficiente para mostrar porcentajes; el recorte tiene ${count(apt)}.`
+                  ? `${count(apt)} mensajes con tres palabras o más, o solo emojis de significado claro; el ${decimal(share(ironic, apt))} % son irónicos y se cuentan aparte, sin sumarse a la alegría.`
+                  : `Se requieren ${MIN_APT} mensajes con texto suficiente para mostrar porcentajes; la selección tiene ${count(apt)}.`
               }
               source={`${SOURCE}. Modelo: pysentimiento (RoBERTuito)`}
             >
@@ -618,10 +620,10 @@ export function LiveCommerceExplorer({ board }: { board: LiveCommerceBoard }) {
                     unit="%"
                     height={240}
                   />
-                  {barsKey('Parte de los mensajes aptos con esa emoción, en %')}
+                  {barsKey('Parte de los mensajes aptos con esa emoción (%)')}
                 </>
               ) : (
-                <div className="callout">Muestra insuficiente para este recorte.</div>
+                <div className="callout">Muestra insuficiente para esta selección.</div>
               )}
             </Panel>
             <Panel
@@ -670,7 +672,7 @@ export function LiveCommerceExplorer({ board }: { board: LiveCommerceBoard }) {
             <Panel
               id="ventas-en-vivo-frases"
               title="Comentarios más repetidos (personas distintas que lo escribieron)"
-              lede="Frases dichas por al menos 5 personas distintas en al menos 3 lives. Nunca una cita de alguien: la frase es de muchos."
+              lede="Frases escritas por al menos 5 personas distintas en al menos 3 transmisiones. No se atribuyen a nadie: cada frase la comparten muchas personas."
               source={SOURCE}
             >
               {phrases.length ? (
@@ -680,7 +682,7 @@ export function LiveCommerceExplorer({ board }: { board: LiveCommerceBoard }) {
                       name: `«${readable(row.phrase)}»`,
                       value: row.people,
                       parts: [
-                        { name: 'Lives', value: row.lives },
+                        { name: 'Transmisiones', value: row.lives },
                         ...(row.emotion ? [{ name: EMOTION_LABEL[row.emotion] ?? row.emotion, value: 1 }] : []),
                       ],
                       ...(row.signal && SIGNAL_LABEL[row.signal] ? { note: SIGNAL_LABEL[row.signal] as string } : {}),
@@ -693,14 +695,14 @@ export function LiveCommerceExplorer({ board }: { board: LiveCommerceBoard }) {
                 </>
               ) : (
                 <div className="callout">
-                  Ninguna frase llega todavía a 5 personas en 3 lives distintos. Se publican a medida que se suman noches.
+                  Ninguna frase reúne todavía 5 personas en 3 transmisiones distintas. Se publican a medida que se suman noches.
                 </div>
               )}
             </Panel>
             <Panel
               id="ventas-en-vivo-palabras"
               title="Palabras más repetidas (menciones)"
-              lede="Lo que más se repite en el chat o en la voz del vendedor, según el rubro elegido."
+              lede="Términos más repetidos en el chat o en la voz del vendedor, según el rubro seleccionado."
               source={SOURCE}
             >
               <div className="rail-pills">
@@ -722,14 +724,14 @@ export function LiveCommerceExplorer({ board }: { board: LiveCommerceBoard }) {
                 ))}
               </div>
               <TermCloud data={cloud} limit={60} />
-              <ChartLegend items={[{ color: 'var(--official)', label: 'El tamaño de la palabra es cuántas veces se repite' }]} />
+              <ChartLegend items={[{ color: 'var(--official)', label: 'El tamaño de cada palabra indica cuántas veces se repite' }]} />
             </Panel>
           </div>
 
           <Panel
             id="ventas-en-vivo-cobertura"
             title="Mensajes sin clasificar en cada noche de captura (% de los mensajes)"
-            lede="Cuánto se vio y cuánto quedó fuera: lives con muro, sin venta o de otro país, y mensajes sin ninguna señal."
+            lede="Alcance de la captura y lo que quedó fuera: transmisiones con acceso restringido, sin venta o de otro país, y mensajes sin ninguna señal."
             source={SOURCE}
           >
             <ViewToggle
@@ -741,14 +743,14 @@ export function LiveCommerceExplorer({ board }: { board: LiveCommerceBoard }) {
                       value: night.messages ? 100 - (share(night.messagesWithSignal, night.messages) ?? 0) : 0,
                       parts: [
                         { name: 'Mensajes', value: night.messages },
-                        { name: 'Lives abiertos', value: night.roomsOpened },
-                        { name: 'Con muro', value: night.roomsBlocked },
+                        { name: 'Transmisiones abiertas', value: night.roomsOpened },
+                        { name: 'Con acceso restringido', value: night.roomsBlocked },
                       ],
                     }))}
                     unit="%"
                     height={Math.max(160, coverage.length * 30)}
                   />
-                  {barsKey('Mensajes de la noche sin ninguna señal de compra, pregunta o reclamo, en %')}
+                  {barsKey('Mensajes de la noche sin ninguna señal de compra, pregunta o reclamo (%)')}
                 </>
               }
               table={
@@ -756,8 +758,8 @@ export function LiveCommerceExplorer({ board }: { board: LiveCommerceBoard }) {
               <thead>
                 <tr>
                   <th>Noche</th>
-                  <th>Lives abiertos</th>
-                  <th>Con muro</th>
+                  <th>Transmisiones abiertas</th>
+                  <th>Acceso restringido</th>
                   <th>Con venta</th>
                   <th>Sin rubro</th>
                   <th>Horas</th>

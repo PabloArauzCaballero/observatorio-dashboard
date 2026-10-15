@@ -10,12 +10,12 @@ export function LargestCompaniesSection() {
   const { payload, failed } = useOnOpen<{ board: LargestBoard; links: Record<string, CrossLinks>; exportYear: number | null }>(
     '/api/principales-empresas',
   );
-  if (!payload) return <OnOpenNotice what="el ránking de empresas" failed={failed} />;
+  if (!payload) return <OnOpenNotice what="la clasificación de empresas" failed={failed} />;
   if (!payload.board.companies.length) {
     return (
       <div className="callout">
-        Todavía no hay ránking de empresas cargado. La página se llena sola cuando el núcleo haya sembrado las memorias de
-        Impuestos y «Las 500».
+        Todavía no hay datos de las principales empresas. La página se completa cuando se cargan las memorias de
+        Impuestos Nacionales y «Las 500».
       </div>
     );
   }

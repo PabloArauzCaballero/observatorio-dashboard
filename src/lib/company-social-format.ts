@@ -2,7 +2,7 @@ import type { PostShape } from './company-social-board';
 import type { Choice } from './choice';
 
 const FORMAT_LABEL: Record<string, string> = {
-  POST: 'Post de Instagram',
+  POST: 'Publicación de Instagram',
   REEL: 'Reel',
   VIDEO: 'Video',
   PHOTO: 'Foto',

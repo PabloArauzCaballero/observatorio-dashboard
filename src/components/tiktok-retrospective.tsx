@@ -31,7 +31,7 @@ import { TACTIC_LABEL, type VideoBoard } from '@/lib/tiktok-videos-board';
  */
 
 const SOURCE =
-  'Perfiles públicos de TikTok de vendedores bolivianos, leídos por el Observatorio sin iniciar sesión (cifras al día de la lectura); dólar paralelo del Observatorio';
+  'Perfiles públicos de TikTok de vendedores bolivianos; lectura de DatosBolivia.com sin iniciar sesión (cifras a la fecha de lectura); dólar paralelo registrado por DatosBolivia.com';
 const TABLE_ROWS = 300;
 
 const count = (value: number): string => value.toLocaleString('es-BO');
@@ -69,7 +69,7 @@ export function TiktokRetrospective({ board }: { board: VideoBoard }) {
     return (
       <Panel id="videos-retro-vacio" title="Retrospectiva de videos comerciales (videos por mes y rubro)" source={SOURCE}>
         <div className="callout">
-          Todavía no hay una retrospectiva publicada: el núcleo la agrega a la lectura de videos con la migración 0106 y el siguiente análisis.
+          Todavía no hay una retrospectiva publicada. Se incorpora con el próximo análisis de la lectura de videos.
         </div>
       </Panel>
     );
@@ -91,13 +91,13 @@ export function TiktokRetrospective({ board }: { board: VideoBoard }) {
       <Panel
         id="videos-retro-resumen"
         title="Videos comerciales leídos por mes y rubro (cantidad de videos)"
-        lede={`Qué fue trend en cada rubro, mes a mes. Un video es trend si está en el ${decimal(100 * trends.trendShare, 0)} % superior de vistas de su propio mes y su propio rubro, no de todos los años mezclados.`}
+        lede={`${count(trendVideos)} de los ${count(videos)} videos de la selección son destacados: están en el ${decimal(100 * trends.trendShare, 0)} % superior de vistas de su propio mes y su propio rubro, no del conjunto de los años.`}
         source={SOURCE}
         {...(board.analyzedAt ? { updated: board.analyzedAt.slice(0, 10) } : {})}
       >
         <div className="stat-strip">
           <div className="stat">
-            <span className="stat-label">Videos en el recorte</span>
+            <span className="stat-label">Videos en la selección</span>
             <span className="stat-value">{count(videos)}</span>
             <span className="stat-hint">de cuentas de venta y gastronomía</span>
           </div>
@@ -112,7 +112,7 @@ export function TiktokRetrospective({ board }: { board: VideoBoard }) {
             <span className="stat-hint">{count(split.videosCountOnly)} videos, menos de {trends.minN} por mes: no se calcula percentil</span>
           </div>
           <div className="stat">
-            <span className="stat-label">Videos trend</span>
+            <span className="stat-label">Videos destacados</span>
             <span className="stat-value">{count(trendVideos)}</span>
             <span className="stat-hint">en el 5 % superior de su mes y rubro</span>
           </div>
@@ -121,8 +121,8 @@ export function TiktokRetrospective({ board }: { board: VideoBoard }) {
           <summary>Cómo leerlo</summary>
           <p>
             Sin iniciar sesión, TikTok muestra de cada perfil solo sus videos más recientes, y la lectura histórica llega hasta donde el
-            servicio deja paginar. Los años viejos son por eso un piso: tienen menos videos porque se alcanzan menos, no porque se vendiera
-            menos, y las cuentas borradas no aparecen. Las vistas son las del día de la lectura. Un rubro y mes con menos de {trends.minN} videos
+            servicio permite paginar. Por eso, las cifras de los años anteriores son un mínimo: tienen menos videos porque se alcanzan
+            menos, no porque se vendiera menos, y las cuentas eliminadas no aparecen. Las vistas son las del día de la lectura. Un rubro y mes con menos de {trends.minN} videos
             se publica con su cantidad y sin mediana, percentil ni razón. De cada video se guardan solo marcas, nunca su texto ni su autor.
           </p>
         </details>
@@ -195,7 +195,7 @@ export function TiktokRetrospective({ board }: { board: VideoBoard }) {
           <Panel
             id="videos-retro-cobertura"
             title="Cobertura de la lectura por año (cuentas con el año leído)"
-            lede="Cuántas cuentas tienen el año entero leído, a medias o fuera de alcance. Es el piso de cada año: lo que se ve es lo que se alcanzó a leer."
+            lede="Cuentas con el año leído completo, en parte o fuera de alcance. Cada año representa un mínimo: refleja lo que se alcanzó a leer."
             source={SOURCE}
           >
             {perYear && coverageYears.length ? (
@@ -251,7 +251,7 @@ export function TiktokRetrospective({ board }: { board: VideoBoard }) {
                 <ul className="social-coverage" aria-label="Videos leídos por año">
                   {coverageYears.map((year) => (
                     <li key={year}>
-                      <b>{year}</b> {count(perYear[year]?.videos ?? 0)} videos · {perYear[year]?.cause === 'COMPLETO' ? 'cobertura completa' : 'piso, no total'}
+                      <b>{year}</b> {count(perYear[year]?.videos ?? 0)} videos · {perYear[year]?.cause === 'COMPLETO' ? 'cobertura completa' : 'mínimo, no total'}
                     </li>
                   ))}
                 </ul>
@@ -264,7 +264,7 @@ export function TiktokRetrospective({ board }: { board: VideoBoard }) {
           <Panel
             id="videos-retro-calor"
             title="Vistas del percentil 95 por rubro y mes (vistas por video)"
-            lede="El percentil 95 es el umbral de trend: arriba de él está el 5 % más visto de ese rubro en ese mes. Más oscuro, más vistas. Las celdas vacías son meses con menos videos que el mínimo."
+            lede="El percentil 95 es el umbral de video destacado: por encima está el 5 % más visto de ese rubro en ese mes. Un tono más oscuro indica más vistas; las celdas vacías son meses con menos videos que el mínimo."
             source={SOURCE}
           >
             {heat.cells.length ? (
@@ -286,11 +286,11 @@ export function TiktokRetrospective({ board }: { board: VideoBoard }) {
                           <th>Cuentas</th>
                           <th>Mediana (vistas)</th>
                           <th>Percentil 95 (vistas)</th>
-                          <th>Trend</th>
+                          <th>Destacados</th>
                           <th>Compartidos por vista</th>
                           <th>Precio mediano (Bs)</th>
                           <th>Dólar paralelo del mes (Bs)</th>
-                          <th>Marcas de venta</th>
+                          <th>Recursos de venta</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -311,19 +311,19 @@ export function TiktokRetrospective({ board }: { board: VideoBoard }) {
                         ))}
                       </tbody>
                     </table>
-                    {months.length > TABLE_ROWS ? <p className="panel-note">Se muestran los {TABLE_ROWS} meses-rubro más recientes de {count(months.length)}; el filtro recorta el resto.</p> : null}
+                    {months.length > TABLE_ROWS ? <p className="panel-note">Se muestran las {TABLE_ROWS} combinaciones de mes y rubro más recientes de {count(months.length)}; los filtros permiten acotar el resto.</p> : null}
                   </>
                 }
               />
             ) : (
-              <div className="callout">Ningún rubro del recorte tiene {trends.minN} videos o más en un mismo mes: solo hay cantidades, sin percentil.</div>
+              <div className="callout">Ningún rubro de la selección reúne {trends.minN} videos o más en un mismo mes; solo hay cantidades, sin percentil.</div>
             )}
           </Panel>
 
           <Panel
             id="videos-retro-hashtags"
-            title="Hashtags nuevos por mes (cantidad de hashtags que aparecen por primera vez)"
-            lede="Un hashtag es nuevo el mes en que aparece en un rubro y no había aparecido antes, en al menos dos cuentas. El primer mes leído de cada rubro no cuenta: no tiene «antes»."
+            title="Etiquetas (#) nuevas por mes (cantidad de etiquetas que aparecen por primera vez)"
+            lede="Una etiqueta es nueva el mes en que aparece en un rubro, en al menos dos cuentas, sin haber aparecido antes. El primer mes leído de cada rubro no se cuenta porque no tiene referencia anterior."
             source={SOURCE}
           >
             {tagMonths.length ? (
@@ -336,11 +336,11 @@ export function TiktokRetrospective({ board }: { board: VideoBoard }) {
                         value: row.count,
                         parts: row.tags.slice(0, 6).map((tag) => ({ name: `#${readable(tag.tag)} (${labelOf(tag.rubro)})`, value: tag.n })),
                       }))}
-                      unit="hashtags"
+                      unit="etiquetas"
                       decimals={0}
                       height={Math.max(220, Math.min(tagMonths.length, 24) * 26)}
                     />
-                    <ChartLegend items={[{ color: 'var(--official)', label: 'Hashtags que aparecen por primera vez ese mes (con los más usados al pasar el cursor)' }]} />
+                    <ChartLegend items={[{ color: 'var(--official)', label: 'Etiquetas que aparecen por primera vez ese mes (el detalle de cada barra muestra las más usadas)' }]} />
                   </>
                 }
                 table={
@@ -349,7 +349,7 @@ export function TiktokRetrospective({ board }: { board: VideoBoard }) {
                       <tr>
                         <th>Mes</th>
                         <th>Rubro</th>
-                        <th>Hashtag nuevo</th>
+                        <th>Etiqueta nueva</th>
                         <th>Videos</th>
                       </tr>
                     </thead>
@@ -369,14 +369,14 @@ export function TiktokRetrospective({ board }: { board: VideoBoard }) {
                 }
               />
             ) : (
-              <div className="callout">Ningún hashtag del recorte aparece por primera vez en dos cuentas distintas en un mismo mes.</div>
+              <div className="callout">Ninguna etiqueta de la selección aparece por primera vez en dos cuentas distintas en un mismo mes.</div>
             )}
           </Panel>
 
           <Panel
             id="videos-retro-precios"
-            title="Precio mediano dicho en los videos, por año (Bs por producto)"
-            lede="Los precios escritos en el texto de los videos, con moneda explícita, y el dólar paralelo promedio del año al lado para separar lo que subió el producto de lo que subió el dólar."
+            title="Precio mediano en el texto de los videos, por año (Bs por producto)"
+            lede="Precios escritos con moneda explícita en el texto de los videos, junto al dólar paralelo promedio del año, para distinguir la variación del producto de la del dólar."
             source={SOURCE}
           >
             {choices.length ? (
@@ -409,7 +409,7 @@ export function TiktokRetrospective({ board }: { board: VideoBoard }) {
                         unit="Bs"
                         height={Math.max(180, priceRows.length * 34)}
                       />
-                      <ChartLegend items={[{ color: 'var(--official)', label: `Precio mediano de ${productName(activeProduct)}, en bolivianos` }]} />
+                      <ChartLegend items={[{ color: 'var(--official)', label: `Precio mediano de ${productName(activeProduct)} (Bs)` }]} />
                     </>
                   }
                   table={
@@ -443,10 +443,10 @@ export function TiktokRetrospective({ board }: { board: VideoBoard }) {
                     </table>
                   }
                 />
-                <p className="panel-note">Un año sin mediana tiene menos de 3 precios dichos para ese producto: se cuenta y no se resume.</p>
+                <p className="panel-note">Un año sin mediana tiene menos de 3 precios registrados para ese producto: se cuenta, pero no se resume.</p>
               </>
             ) : (
-              <div className="callout">Ningún producto del recorte junta precios dichos en los videos.</div>
+              <div className="callout">Ningún producto de la selección reúne precios en el texto de los videos.</div>
             )}
           </Panel>
         </div>
