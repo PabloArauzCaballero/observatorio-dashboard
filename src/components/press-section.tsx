@@ -25,7 +25,7 @@ export function PressSection() {
       <TabHeader
         id="prensa"
         title="Prensa"
-        lede="Lo que publicaron los medios bolivianos y de qué hablaron. Es reporte, no medición: ninguna cifra de aquí entra a una serie, y el tema y el tono los deriva el Observatorio con listas de palabras. En «Temas» se cuentan menciones, no notas."
+        lede="Las notas de los medios bolivianos y los temas que trataron, como registro de lo publicado y no como medición: ninguna cifra de esta sección entra en una serie. El tema y el tono los asigna DatosBolivia con listas de palabras, y en «Temas» se cuentan menciones, no notas."
       />
       <SubSections enlace labels={['Cobertura', 'Temas']} icons={['ventana', 'etiqueta']}>
         <CoveragePanel />

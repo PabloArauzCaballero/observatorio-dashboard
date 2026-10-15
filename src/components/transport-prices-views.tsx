@@ -20,7 +20,7 @@ export const format = (value: number) =>
   value.toLocaleString('es-BO', { maximumFractionDigits: 2 });
 
 export const money = (value: number, currency: string) =>
-  `${currency === 'USD' ? 'US$' : currency === 'BOB' ? 'Bs' : currency} ${format(value)}`;
+  `${currency === 'USD' ? 'USD' : currency === 'BOB' ? 'Bs' : currency} ${format(value)}`;
 
 /** «+12,5 %» o «−3 %»: el signo siempre dicho. */
 export const signedPercent = (value: number) =>
@@ -172,7 +172,7 @@ export function FuelLatestFigure({
           />
           <TopNote shown={ranked.length} total={inUnit.length} noun="variedades" />
           <p className="panel-note">
-            Cada variedad toma su propia fecha más reciente (se dice al pasar el cursor): los
+            Cada variedad toma su propia fecha más reciente, visible al pasar el cursor: los
             productos no necesariamente comparten corte.
           </p>
         </>
@@ -281,11 +281,11 @@ export function FuelHistoryFigure({
           {lines.total > lines.series.length ? (
             <p className="panel-note">
               Se dibujan {lines.series.length} de {lines.total} variedades, las de corte más
-              reciente; fija «Variedad» en el carril para ver otras. La tabla trae todas.
+              reciente; el filtro «Variedad» permite elegir otras. La tabla incluye todas.
             </p>
           ) : null}
           <p className="panel-note">
-            Cada punto es un corte publicado por ANH; la línea los une, pero no estima precios entre
+            Cada punto es un corte publicado por la ANH; la línea los une, pero no estima precios entre
             cortes. Hasta 2024 los cortes son de cierre anual y desde 2025 son más frecuentes, y el
             eje los reparte a igual distancia. Donde una variedad no tiene corte, la línea se corta.
           </p>
@@ -313,8 +313,8 @@ export function FuelHistoryFigure({
           <TopNote shown={biggest.length} total={changes.length} noun="variedades con dos cortes" />
           <p className="panel-note">
             Cambio entre el primer y el último corte de cada variedad en la selección. Cada una
-            parte de su propio primer corte, así que las que nacieron después cuentan menos
-            historia; un cambio no dice cuándo comenzó a regir el precio.
+            parte de su propio primer corte, así que las que se publican desde más tarde abarcan
+            un período más corto. Un cambio no indica cuándo comenzó a regir el precio.
           </p>
         </>
       }
@@ -662,7 +662,7 @@ export function VehicleBrandPricePanel({ rows }: { rows: readonly VehicleOffer[]
     .filter((row) => row.currency === currency)
     .sort((a, b) => b.median - a.median)
     .slice(0, TOP);
-  const unit = currency === 'USD' ? 'US$' : currency === 'BOB' ? 'Bs' : currency;
+  const unit = currency === 'USD' ? 'USD' : currency === 'BOB' ? 'Bs' : currency;
   return (
     <Panel
       id="vehiculos-precio-por-marca"
@@ -692,7 +692,7 @@ export function VehicleBrandPricePanel({ rows }: { rows: readonly VehicleOffer[]
               value={currency}
               options={mostFrequent(rows, (row) => row.currency).map((id) => ({
                 id,
-                label: id === 'USD' ? 'US$' : id === 'BOB' ? 'Bs' : id,
+                label: id === 'USD' ? 'USD' : id === 'BOB' ? 'Bs' : id,
               }))}
               onChange={setChosen}
             />

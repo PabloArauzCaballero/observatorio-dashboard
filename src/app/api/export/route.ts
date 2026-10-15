@@ -592,7 +592,7 @@ export async function GET(request: Request): Promise<Response> {
       headers: {
         'Content-Type':
           format === 'json' ? 'application/json; charset=utf-8' : 'text/csv; charset=utf-8',
-        'Content-Disposition': `attachment; filename="observatorio-${dataset}.${format}"`,
+        'Content-Disposition': `attachment; filename="datosbolivia-${dataset}.${format}"`,
         'Cache-Control': 'no-store',
         'X-Export-Request': requestId,
         'X-Export-Rows': String(rows.length),

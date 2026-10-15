@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, type ReactNode } from 'react';
 import { DownloadMenu } from '@/components/ui/download-menu';
+import { pieDeFuente } from '@/lib/export/pie';
 import { registrarPanel } from '@/lib/export/registro';
 import {
   ProveedorDePanel,
@@ -127,10 +128,7 @@ export function Panel({
       <ProveedorDePanel almacen={almacen}>
         <div className="panel-body">{children}</div>
       </ProveedorDePanel>
-      <p className="panel-source">
-        Fuente: {source}
-        {updated ? <> · actualizado {updated}</> : null}
-      </p>
+      <p className="panel-source">{pieDeFuente(source, updated)}</p>
     </section>
   );
 }

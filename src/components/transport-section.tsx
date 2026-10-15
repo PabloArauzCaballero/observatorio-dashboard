@@ -34,7 +34,7 @@ export function TransportSection() {
       <TabHeader
         id="transporte"
         title="Transporte"
-        lede="Mercado automotor, pasajes e infraestructura de Bolivia. Parque y tarifas de fuentes oficiales; precios de anuncios comerciales y análisis empresarial con sus condiciones. Los mapas recogen lo trazado en OpenStreetMap."
+        lede="Parque automotor, precios de vehículos y combustibles, pasajes, fletes e infraestructura de Bolivia. El parque y las tarifas provienen de fuentes oficiales; los precios de vehículos, de anuncios comerciales, y los mapas de la red, de OpenStreetMap."
       />
       <SubSections
         labels={['Parque y mercado', 'Combustible y pasajes', 'Infraestructura', 'Fletes']}
@@ -66,7 +66,7 @@ function ParqueYMercado() {
     if (!payload.board.fleet.length) {
       return (
         <div className="callout">
-          Todavía no se cargó la fotografía histórica del transporte terrestre.
+          Todavía no hay datos históricos del parque automotor.
         </div>
       );
     }
@@ -137,8 +137,8 @@ function RailSection() {
   if (!payload.board.lines.length) {
     return (
       <div className="callout">
-        Todavía no hay vías férreas cargadas. La página se llena cuando el núcleo haya sembrado la
-        red ferroviaria (catálogo «bolivia-transport-network»).
+        Todavía no hay datos de la red ferroviaria. La página se completará cuando se cargue su
+        trazado.
       </div>
     );
   }
@@ -151,8 +151,8 @@ function WaterwaysSection() {
   if (!payload.board.waterways.length) {
     return (
       <div className="callout">
-        Todavía no hay ríos cargados. La página se llena cuando el núcleo haya sembrado la red
-        fluvial (catálogo «bolivia-transport-network»).
+        Todavía no hay datos de la red fluvial. La página se completará cuando se cargue su
+        trazado.
       </div>
     );
   }

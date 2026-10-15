@@ -39,9 +39,9 @@ const TONE: Record<string, { accent: string }> = {
 };
 
 const CAPTION: Record<string, string> = {
-  XAU_USD: 'Token redimible por una onza asignada; sigue al contado',
+  XAU_USD: 'Ficha redimible por una onza asignada; sigue al precio al contado',
   BTC_USD: 'Cierre diario en dólares',
-  USDT_USD: 'Dos estables anclados al dólar; su desvío mide tensión en el canal cripto',
+  USDT_USD: 'Dos fichas estables ancladas al dólar; su desvío mide la tensión en el canal de criptoactivos',
 };
 
 const number = (value: number, decimals: number): string =>
@@ -60,7 +60,7 @@ function headline(series: MarketCard): string {
 function deviation(series: MarketCard): string | null {
   if (series.code !== 'USDT_USD') return null;
   const points = (series.latest - 1) * 10_000;
-  return `${points > 0 ? '+' : ''}${number(points, 1)} pb entre estables`;
+  return `${points > 0 ? '+' : ''}${number(points, 1)} pb entre fichas estables`;
 }
 
 export function MarketCards({ markets }: { markets: MarketCard[] }) {
@@ -69,9 +69,9 @@ export function MarketCards({ markets }: { markets: MarketCard[] }) {
   return (
     <Panel
       id="mercados-dolar"
-      title="Oro, bitcoin y estables frente al dólar (USD)"
+      title="Oro, bitcoin y fichas estables frente al dólar (USD)"
       lede="Tres mercados cotizados en dólares. No se suman ni se comparan entre sí: cada tarjeta se lee contra su propia historia."
-      source="cierre diario de cada mercado (mediana de las lecturas que guarda el Observatorio); el catálogo de fuentes está en «Método»"
+      source="Cierre diario de cada mercado (mediana de las lecturas que registra DatosBolivia.com); catálogo de fuentes en «Método»"
       data={{
         unidad: 'USD',
         columnas: [

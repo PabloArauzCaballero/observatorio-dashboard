@@ -77,7 +77,7 @@ type SeriesChoice = 'MID' | 'BUY' | 'SELL' | 'OFICIAL';
 
 /** Quién publica las cifras de cada panel de la sección, y qué se calcula encima. */
 const FX_SOURCE =
-  'Banco Central de Bolivia (oficial) y mercados P2P en bolivianos (paralelo); cálculo del Observatorio';
+  'Banco Central de Bolivia (oficial) y mercados P2P en bolivianos (paralelo); cálculo de DatosBolivia.com';
 
 const RANGES: ReadonlyArray<{ key: string; label: string; days: number | null }> = [
   { key: '90d', label: '90 días', days: 90 },
@@ -110,7 +110,7 @@ const SERIES: ReadonlyArray<{
     hint: 'tal como lo etiqueta la fuente',
     icon: 'area',
   },
-  { key: 'OFICIAL', label: 'Oficial', hint: 'el que publica el Banco Central', icon: 'banco' },
+  { key: 'OFICIAL', label: 'Oficial', hint: 'el que publica el Banco Central de Bolivia', icon: 'banco' },
 ];
 
 const WINDOWS = [30, 60, 90] as const;
@@ -504,15 +504,15 @@ export function FxExplorer({ rows, official, readingCount }: FxExplorerProps) {
         <div className="workspace-main" id="tablero" tabIndex={-1}>
           {returns.length < 5 ? (
             <div className="callout">
-              La selección deja menos de cinco jornadas encadenadas: no alcanza para estimar nada.
-              Amplía el periodo o vuelve a «Toda la serie».
+              La selección deja menos de cinco jornadas encadenadas, insuficientes para estimar.
+              Ampliar el periodo o volver a la base «Toda la serie».
             </div>
           ) : (
             <>
               <Panel
                 id="dolar-oficial-y-paralelo"
                 title="Dólar oficial y paralelo (Bs por USD)"
-                lede="El paralelo, con los dos lados que publica la fuente, y el tipo de cambio oficial del Banco Central."
+                lede="Cotización diaria del paralelo —los dos lados que publica la fuente— frente al tipo de cambio oficial del Banco Central de Bolivia."
                 meta={
                   first && last
                     ? `${selected.length.toLocaleString('es-BO')} jornadas · ${first.date} → ${last.date}`
@@ -553,7 +553,7 @@ export function FxExplorer({ rows, official, readingCount }: FxExplorerProps) {
                             {candleSet.clipped
                               ? ` Se dibujan las últimas ${CANDLE_WEEK_LIMIT} semanas. `
                               : ' '}
-                            Elegí «90 días» a la izquierda para verlas jornada por jornada.
+                            Con el periodo «90 días» se ven jornada por jornada.
                           </>
                         ) : (
                           <>
@@ -563,7 +563,7 @@ export function FxExplorer({ rows, official, readingCount }: FxExplorerProps) {
                             larga es una jornada en la que compra y venta se separaron.
                           </>
                         )}{' '}
-                        <b>No es una vela intradía</b>: el observatorio guarda una lectura por día,
+                        <b>No es una vela intradía</b>: el archivo guarda una lectura por día,
                         y dibujar cuatro precios a partir de una sola cotización sería inventarlos.
                       </p>
                     </details>
@@ -575,8 +575,8 @@ export function FxExplorer({ rows, official, readingCount }: FxExplorerProps) {
                       <summary>Cómo leer este gráfico</summary>
                       <p>
                         Bolivianos por dólar. Naranja: los dos lados que publica la fuente para el
-                        paralelo. Azul: tipo de cambio oficial. El eje no arranca en cero, porque un
-                        movimiento de dos bolivianos es enorme y una base en cero lo aplanaría.
+                        paralelo. Azul: tipo de cambio oficial. El eje no arranca en cero para que los
+                        movimientos de pocos bolivianos no queden aplanados.
                       </p>
                     </details>
                   </>
@@ -586,9 +586,9 @@ export function FxExplorer({ rows, official, readingCount }: FxExplorerProps) {
               <Panel
                 id="estadistica-tecnica"
                 title="Estadística técnica del tipo de cambio (retornos diarios, %)"
-                lede={`Las medidas con las que se describe un activo que cotiza, calculadas sobre «${
+                lede={`Medidas habituales de un activo cotizado, calculadas sobre «${
                   chosen?.label ?? ''
-                }»: cuánto se mueve al día, qué tan gruesa es la cola de los días malos y cuánto se aparta del máximo.`}
+                }»: amplitud del movimiento diario, peso de la cola de pérdidas y distancia al máximo.`}
                 meta={
                   <button
                     type="button"
@@ -627,12 +627,11 @@ export function FxExplorer({ rows, official, readingCount }: FxExplorerProps) {
                     <details className="panel-note">
                       <summary>Cómo leer estas medidas</summary>
                       <p>
-                        Están aquí y no arriba porque responden «qué tan violento fue el
-                        movimiento», que no es la pregunta que se le hace a una moneda administrada,
-                        y porque <b>ninguna de ellas distingue los dos regímenes</b>: calculadas
-                        sobre toda la historia mezclan un tramo fijo con uno en movimiento y
-                        describen un promedio que no existió. Para leerlas de una en una, acotá el
-                        periodo a la izquierda.
+                        Miden la amplitud del movimiento, que no es la cuestión central en una
+                        moneda administrada, y <b>ninguna de ellas distingue los dos regímenes</b>:
+                        calculadas sobre toda la historia, mezclan un tramo de tipo fijo con uno de
+                        cotización móvil y describen un promedio que no existió. Para medir cada
+                        régimen por separado, se acota el periodo en los filtros.
                       </p>
                     </details>
                   </>
@@ -662,7 +661,7 @@ export function FxExplorer({ rows, official, readingCount }: FxExplorerProps) {
                     <Panel
                       id="volatilidad-anualizada"
                       title="Volatilidad anualizada del tipo de cambio (%)"
-                      lede={`Ventana móvil de ${span} días, anualizada. Responde a «¿está el mercado más nervioso ahora que hace un mes?».`}
+                      lede={`Desviación típica de los retornos en una ventana móvil de ${span} días, anualizada. Un valor que sube indica un mercado más inestable que en el tramo anterior.`}
                       source={FX_SOURCE}
                     >
                       {volatility.length >= 2 ? (
@@ -685,7 +684,7 @@ export function FxExplorer({ rows, official, readingCount }: FxExplorerProps) {
                     <Panel
                       id="jornadas-por-tramo"
                       title="Jornadas por tramo de variación diaria (cantidad de jornadas)"
-                      lede="Días por tramo; en rojo, la cola inferior del 5 %. Si las barras extremas son más altas de lo que sería normal, los días excepcionales no son tan excepcionales."
+                      lede="Jornadas por tramo de variación; en rojo, el 5 % inferior. Barras extremas más altas que las de una distribución normal indican que los saltos grandes son más frecuentes de lo que esa distribución predice."
                       source={FX_SOURCE}
                     >
                       <Histogram data={buckets} />
@@ -696,7 +695,7 @@ export function FxExplorer({ rows, official, readingCount }: FxExplorerProps) {
                     <Panel
                       id="correlacion-oficial-paralelo"
                       title="Correlación entre el oficial y el paralelo (−1 a 1)"
-                      lede={`Ventana móvil de ${Math.max(span, 60)} días. Cerca de cero mientras el oficial estuvo fijo: un precio que no se mueve no puede acompañar a otro. Se despega cuando empieza a seguir al mercado.`}
+                      lede={`Ventana móvil de ${Math.max(span, 60)} días. La correlación queda cerca de cero mientras el oficial está fijo, porque un precio inmóvil no acompaña a otro, y se aparta de cero cuando el oficial sigue al mercado.`}
                       source={FX_SOURCE}
                     >
                       {correlation.length >= 2 ? (
@@ -739,8 +738,8 @@ export function FxExplorer({ rows, official, readingCount }: FxExplorerProps) {
           )}
 
           <p className="panel-source">
-            {readingCount.toLocaleString('es-BO')} puntos de serie leídos del núcleo del
-            observatorio.
+            {readingCount.toLocaleString('es-BO')} lecturas de la serie en la base de
+            DatosBolivia.com.
           </p>
         </div>
       </div>

@@ -81,10 +81,10 @@ export function aMarkdown(t: Tabla): string {
   ].join('\n');
 }
 
-/** Un nombre de archivo sin espacios ni tildes: «observatorio-dolar-2026-09-27.csv». */
+/** Un nombre de archivo sin espacios ni tildes: «datosbolivia-dolar-2026-09-27.csv». */
 export function nombreDeArchivo(id: string, fecha: string, extension: string): string {
   const base = id.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9]+/g, '-');
-  return `observatorio-${base}-${fecha}.${extension}`;
+  return `datosbolivia-${base}-${fecha}.${extension}`;
 }
 
 /**

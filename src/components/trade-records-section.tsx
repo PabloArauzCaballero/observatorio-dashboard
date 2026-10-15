@@ -20,8 +20,7 @@ export function TradeRecordsSection() {
   if (!payload.coverage.length) {
     return (
       <div className="callout">
-        La base aduanera del INE todavía no está cargada en este servidor. Se llena sola cuando el
-        núcleo termina de sembrarla después de su despliegue.
+        La base aduanera del INE aún no está disponible en este servidor.
       </div>
     );
   }

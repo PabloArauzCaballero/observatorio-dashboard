@@ -38,15 +38,15 @@ export function BankQuotesPanel() {
     <Panel
       id="cotizacion-por-banco"
       title="Cotización de cada banco (Bs por ficha)"
-      lede="Lo que el cliente paga por cada USDT o USDC en cada banco."
-      source="BISA (archivo público de su sitio) y cotizaciones anotadas de la aplicación de cada banco"
+      lede="Precio que paga el cliente por cada USDT o USDC, banco por banco."
+      source="Banco BISA (archivo público de su sitio) y cotizaciones anotadas de la aplicación de cada banco"
     >
       <DatedLines data={quotes} series={series} unit="Bs" decimals={2} yearTicks />
       <details className="panel-note">
         <summary>Cómo leer este gráfico</summary>
         <p>
-          BISA publica esa cifra en su sitio y se lee cada día; los demás bancos la muestran solo
-          dentro de su aplicación, así que su línea aparece cuando alguien la anota
+          BISA publica el precio en su sitio y se lee a diario; los demás bancos lo muestran solo
+          dentro de su aplicación, por lo que su línea aparece cuando se registra una cotización
           {latest ? ` (última cifra, del ${sayLong(latest)})` : ''}.
         </p>
       </details>

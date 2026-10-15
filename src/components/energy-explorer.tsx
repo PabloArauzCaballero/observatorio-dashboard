@@ -159,11 +159,11 @@ export function EnergyExplorer({ board: entire }: { board: EnergyBoard }) {
       <TabHeader
         id="energia"
         title="Matriz energética"
-        lede={`De dónde sale la energía que Bolivia usa, cuánta vende y cuánta compra, y qué le deja el subsuelo. Todas las cifras son del Banco Mundial, con la misma definición para Bolivia y para cada vecino, así que se pueden poner en un mismo eje. El dato más reciente es de ${board.asOfYear ?? '—'}; las series de energía llegan con dos o tres años de retraso, que es lo que tarda el compilador en cerrarlas.`}
+        lede={`Las fuentes de la energía que usa Bolivia, cuánta vende y compra, y qué renta deja el subsuelo. Todas las cifras son del Banco Mundial, con una definición común para Bolivia y sus vecinos. El dato más reciente es de ${board.asOfYear ?? '—'}: las series de energía se publican con dos o tres años de retraso.`}
       />
       <DerivedReading
         title="Qué dicen estos datos"
-        note="Cada frase sale de las series de este capítulo y se recalcula con cada carga. Dice qué nivel hay y contra qué se compara; no dice por qué ni qué va a pasar."
+        note="Cada frase se calcula con las series de este capítulo y se actualiza con cada carga. Indica el nivel y la referencia con que se compara; no explica causas ni anticipa tendencias."
         conclusions={board.conclusions}
         icons={CONCLUSION_ICON}
       />
@@ -179,7 +179,7 @@ export function EnergyExplorer({ board: entire }: { board: EnergyBoard }) {
         <Panel
           id="energia-electricidad"
           title={ENERGY_GROUP_LABEL.ELECTRICIDAD}
-          lede="De dónde sale la electricidad: parte de la generación por fuente, año a año. Las cuatro no suman cien porque el carbón y lo no clasificado quedan fuera; el gas y el agua son casi todo."
+          lede="El gas natural y la hidroeléctrica generan casi toda la electricidad del país. Las cuatro fuentes no suman 100 % porque el carbón y la generación sin clasificar quedan fuera."
           source={SOURCE}
         >
           <div className="stat-strip">
@@ -196,7 +196,7 @@ export function EnergyExplorer({ board: entire }: { board: EnergyBoard }) {
         <Panel
           id="energia-comercio"
           title={ENERGY_GROUP_LABEL.COMERCIO}
-          lede="Lo que se vende y lo que se compra: peso del combustible en lo que se exporta y en lo que se importa. Donde la segunda línea cruza a la primera, el diésel que entra empieza a pesar más que el gas que sale."
+          lede="Peso del combustible en las exportaciones y en las importaciones de mercancías. Cuando la línea de importaciones supera a la de exportaciones, el diésel y la gasolina que entran pesan más que el gas que sale."
           source={SOURCE}
         >
           {trade.data.length > 1 ? (
@@ -206,7 +206,7 @@ export function EnergyExplorer({ board: entire }: { board: EnergyBoard }) {
         <Panel
           id="energia-importada-neta"
           title="Energía importada neta (% del uso total)"
-          lede="Importaciones menos exportaciones de energía, como parte del uso. Por debajo de cero el país exporta más de lo que consume; cuanto más abajo, más excedente."
+          lede="Importaciones menos exportaciones de energía, como porcentaje del uso total. Un valor negativo indica que el país exporta más energía de la que importa; cuanto más bajo, mayor el excedente."
           source={SOURCE}
         >
           {net.length > 1 ? (
@@ -217,7 +217,7 @@ export function EnergyExplorer({ board: entire }: { board: EnergyBoard }) {
         <Panel
           id="energia-renta"
           title={ENERGY_GROUP_LABEL.RENTA}
-          lede="Lo que el subsuelo deja: lo que cada recurso rinde por encima de su costo de extracción, como parte del PIB. La renta cae con el precio y con la producción, y arrastra al fisco con ella."
+          lede="Lo que cada recurso rinde por encima de su costo de extracción, como porcentaje del PIB. La renta baja cuando caen el precio o la producción, y con ella los ingresos fiscales que dependen de esos recursos."
           source={SOURCE}
         >
           {rents.data.length > 1 ? (
@@ -227,7 +227,7 @@ export function EnergyExplorer({ board: entire }: { board: EnergyBoard }) {
         <Panel
           id="energia-fuentes"
           title={ENERGY_GROUP_LABEL.FUENTES}
-          lede="Con qué se mueve el país: de toda la energía que se consume —no solo la eléctrica—, qué parte es renovable, qué parte es leña y biomasa, y qué parte son hidro y otras alternativas."
+          lede="Del total de la energía consumida —no solo la eléctrica—, la parte renovable, la que aportan la leña y la biomasa, y la que aportan la hidroelectricidad y otras fuentes alternativas."
           source={SOURCE}
         >
           {sources.data.length > 1 ? (
@@ -237,7 +237,7 @@ export function EnergyExplorer({ board: entire }: { board: EnergyBoard }) {
         <Panel
           id="energia-consumo"
           title={ENERGY_GROUP_LABEL.CONSUMO}
-          lede="Cuánta energía se usa: kilos de petróleo equivalente por habitante y año, Bolivia contra sus vecinos. La línea gruesa es Bolivia; las demás dan la escala."
+          lede="Kilos de petróleo equivalente por habitante y año, Bolivia frente a sus vecinos. La línea gruesa es Bolivia; las demás dan la escala regional."
           source={SOURCE}
         >
           <div className="stat-strip">
@@ -256,14 +256,14 @@ export function EnergyExplorer({ board: entire }: { board: EnergyBoard }) {
 
         <Panel
           id="energia-intensidad"
-          title="Intensidad energética (MJ por dólar de PIB)"
-          lede="Megajulios por dólar de PIB a paridad de compra. Baja cuando la misma producción necesita menos energía; sube cuando la economía se mueve hacia sectores que queman más."
+          title="Intensidad energética (MJ por USD de PIB, PPA)"
+          lede="Megajulios necesarios para producir un dólar de PIB a paridad de poder adquisitivo. Baja cuando la misma producción requiere menos energía y sube cuando la economía se desplaza hacia sectores de mayor consumo energético."
           source={SOURCE}
         >
           {intensity.length > 1 ? (
             <MacroChart
               data={intensity}
-              unit="MJ/$"
+              unit="MJ/USD"
               tone="var(--series-3)"
               label="Intensidad energética"
             />
@@ -272,7 +272,7 @@ export function EnergyExplorer({ board: entire }: { board: EnergyBoard }) {
         <Panel
           id="energia-acceso"
           title={ENERGY_GROUP_LABEL.ACCESO}
-          lede="Quién tiene energía: quién tiene conexión eléctrica y quién cocina con gas o electricidad en vez de leña, en el país y en el campo. La distancia entre las dos líneas de cada par es la brecha rural."
+          lede="Población con conexión eléctrica y población que cocina con gas o electricidad en lugar de leña, en todo el país y en el área rural. La distancia entre las dos líneas de cada par mide la brecha rural."
           source={SOURCE}
         >
           {access.data.length > 1 ? (
@@ -282,7 +282,7 @@ export function EnergyExplorer({ board: entire }: { board: EnergyBoard }) {
         <Panel
           id="energia-emisiones"
           title={ENERGY_GROUP_LABEL.EMISIONES}
-          lede="Lo que se emite: dióxido de carbono del transporte y de las centrales eléctricas, en millones de toneladas. Sin el cambio de uso del suelo, que en Bolivia pesa más que las dos juntas."
+          lede="Dióxido de carbono emitido por el transporte y por las centrales eléctricas. No incluye el cambio de uso del suelo, que en Bolivia emite más que ambos sectores juntos."
           source={SOURCE}
         >
           <div className="stat-strip">
@@ -302,13 +302,13 @@ export function EnergyExplorer({ board: entire }: { board: EnergyBoard }) {
 
       <p className="guest-note">
         El cuadro «Bolivia y sus vecinos» —el último dato de cada país en las series que distinguen
-        una matriz de otra— está ahora en la pestaña «Bolivia ante el mundo», junto a los de
+        una matriz de otra— se encuentra en la página «Bolivia ante el mundo», junto a los de
         recursos naturales y medio ambiente.
       </p>
       <p className="guest-note">
-        Series del Banco Mundial (Indicadores del Desarrollo Mundial), leídas del panel de treinta
-        economías que recoge el núcleo del observatorio. Las definiciones de cada serie están en
-        «Social Info».
+        Series del Banco Mundial (Indicadores del Desarrollo Mundial), tomadas del panel de treinta
+        economías que recopila DatosBolivia. Las definiciones de cada serie están en «Indicadores
+        sociales».
       </p>
     </div>
   );

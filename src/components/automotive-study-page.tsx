@@ -39,8 +39,8 @@ function Study({ study }: { study: AutomotiveStudy }) {
   return (
     <>
       <p className="panel-note">
-        <strong>Corte {study.observedAt}.</strong> Anuncios y registros oficiales de períodos
-        distintos: no miden stock, precio final ni ventas.{' '}
+        <strong>Corte del {study.observedAt}.</strong> Los anuncios y los registros oficiales
+        cubren períodos distintos y no miden existencias, precio final ni ventas.{' '}
         <a href="/api/transporte/estudio">Descargar evidencia y condiciones</a>.
       </p>
       <h3 className="automotive-band">Parque y comercio exterior</h3>
@@ -52,7 +52,7 @@ function Study({ study }: { study: AutomotiveStudy }) {
       <Abroad study={study} />
       <h3 className="automotive-band">Escenarios de costo</h3>
       <Scenarios />
-      <h3 className="automotive-band">Para leer con calma</h3>
+      <h3 className="automotive-band">Decisiones, fuentes y método</h3>
       <Reading study={study} />
     </>
   );
@@ -117,29 +117,29 @@ function Fleet({ study }: { study: AutomotiveStudy }) {
         <article>
           <small>Parque registrado · 2025</small>
           <strong>{num(signals.total)}</strong>
-          <span>+{num(signals.growth, 2)}% anual, con motos.</span>
+          <span>+{num(signals.growth, 2)} % anual, con motocicletas.</span>
         </article>
         <article>
           <small>Sin motocicletas</small>
           <strong>{num(signals.nonMotorcycle)}</strong>
-          <span>+{num(signals.nonMotorcycleGrowth, 2)}% anual.</span>
+          <span>+{num(signals.nonMotorcycleGrowth, 2)} % anual.</span>
         </article>
         <article>
-          <small>Motos en el aumento neto</small>
-          <strong>{num(signals.motorcycleContribution, 1)}%</strong>
+          <small>Peso de las motocicletas en el aumento neto</small>
+          <strong>{num(signals.motorcycleContribution, 1)} %</strong>
           <span>De {num(signals.increase)} registros nuevos.</span>
         </article>
         <article>
           <small>Modelos hasta 2015</small>
-          <strong>{num((signals.through2015 / signals.total) * 100, 1)}%</strong>
-          <span>Señal para posventa, no ventas.</span>
+          <strong>{num((signals.through2015 / signals.total) * 100, 1)} %</strong>
+          <span>Indica demanda de posventa, no ventas.</span>
         </article>
       </div>
       <div className="grid-pair">
         <Panel
           id="automotor-parque-serie"
           title="Parque registrado de Bolivia, 2003–2025 (vehículos)"
-          source="INE, boletín Parque Automotor 2025; fuente primaria RUAT"
+          source="Instituto Nacional de Estadística (INE), boletín Parque Automotor 2025, con registros del RUAT"
           updated="Cierre 2025"
         >
           <ViewToggle
@@ -161,7 +161,7 @@ function Fleet({ study }: { study: AutomotiveStudy }) {
                   <tr key={row.year}>
                     <td>{row.year}</td>
                     <td>{num(row.value)}</td>
-                    <td>{i ? `${num((row.value / all[i - 1]!.value - 1) * 100, 2)}%` : '—'}</td>
+                    <td>{i ? `${num((row.value / all[i - 1]!.value - 1) * 100, 2)} %` : '—'}</td>
                   </tr>
                 ))}
               </Table>
@@ -171,7 +171,7 @@ function Fleet({ study }: { study: AutomotiveStudy }) {
         <Panel
           id="automotor-parque-composicion"
           title={`Parque registrado 2025 por ${dimensionName} (vehículos)`}
-          source="INE/RUAT, cuadros 2, 3 y 4 del boletín 2025"
+          source="INE y RUAT, cuadros 2, 3 y 4 del boletín Parque Automotor 2025"
           updated="Cierre 2025"
         >
           <Chips
@@ -199,8 +199,8 @@ function Fleet({ study }: { study: AutomotiveStudy }) {
                   <tr key={row.name}>
                     <td>{row.name}</td>
                     <td>{num(row.value)}</td>
-                    <td>{num((row.value / signals.total) * 100, 2)}%</td>
-                    <td>{'prior' in row ? num(row.prior as number) : 'Ver fuente'}</td>
+                    <td>{num((row.value / signals.total) * 100, 2)} %</td>
+                    <td>{'prior' in row ? num(row.prior as number) : 'n.d.'}</td>
                   </tr>
                 ))}
               </Table>
@@ -241,14 +241,14 @@ function Trade({ study }: { study: AutomotiveStudy }) {
     <div className="grid-pair">
       <Panel
         id="automotor-importaciones"
-        title={`Importaciones anuales, partida ${heading} (millones USD CIF)`}
-        lede="8702: 10 o más personas · 8703: personas · 8704: mercancías. Sin motos ni repuestos."
+        title={`Importaciones anuales, partida ${heading} (millones de USD CIF)`}
+        lede="Partida 8702: vehículos para diez o más personas. Partida 8703: vehículos de pasajeros. Partida 8704: vehículos de carga. No incluye motocicletas ni repuestos."
         {...(latest && prior
           ? {
-              meta: `${latest.year}: USD ${num(latest.usd / 1e6, 1)} M (${num((latest.usd / prior.usd - 1) * 100, 1)}%)`,
+              meta: `${latest.year}: USD ${num(latest.usd / 1e6, 1)} millones (${num((latest.usd / prior.usd - 1) * 100, 1)} %)`,
             }
           : {})}
-        source="Base aduanera INE del núcleo, grano M_DETAIL; valores anuales por NANDINA y país"
+        source="Instituto Nacional de Estadística (INE), registros aduaneros de importación; valores anuales por partida NANDINA y país"
       >
         <Chips label="Partida arancelaria" options={HEADINGS} value={heading} onPick={setHeading} />
         <ViewToggle
@@ -259,7 +259,7 @@ function Trade({ study }: { study: AutomotiveStudy }) {
                 period: `${row.year}${row.provisional ? ' (p)' : ''}`,
                 value: row.usd / 1e6,
               }))}
-              unit="millones USD CIF"
+              unit="millones de USD CIF"
               tone="var(--official)"
               label={`Importaciones, partida ${heading}`}
             />
@@ -271,7 +271,7 @@ function Trade({ study }: { study: AutomotiveStudy }) {
                   <td>{row.year}</td>
                   <td>{num(row.usd)}</td>
                   <td>{num(row.kg)}</td>
-                  <td>{row.provisional ? 'Provisional' : 'Sin marca provisional'}</td>
+                  <td>{row.provisional ? 'Preliminar (p)' : 'Sin marca de preliminar'}</td>
                 </tr>
               ))}
             </Table>
@@ -279,22 +279,22 @@ function Trade({ study }: { study: AutomotiveStudy }) {
         />
         {partial && (
           <p className="panel-note">
-            Año parcial {partial.year} (meses {partial.months[0]}–{partial.months.at(-1)}): USD{' '}
-            {num(partial.usd / 1e6, 1)} M, provisional; no se anualiza.
+            {partial.year} es un año parcial (meses {partial.months[0]}–{partial.months.at(-1)}): USD{' '}
+            {num(partial.usd / 1e6, 1)} millones, cifra preliminar que no se anualiza.
           </p>
         )}
       </Panel>
       <Panel
         id="automotor-importaciones-origen"
-        title="Origen de las importaciones de pasajeros (8703), 2025 (millones USD CIF)"
-        lede={`China, Japón e India concentran ${num(topShare, 1)}% del valor. País de origen no es nacionalidad de la marca.`}
-        source="Base aduanera INE del núcleo; ocho principales orígenes, provisional"
+        title="Origen de las importaciones de vehículos de pasajeros (8703), 2025 (millones de USD CIF)"
+        lede={`China, Japón e India concentran el ${num(topShare, 1)} % del valor importado. El país de origen no equivale a la nacionalidad de la marca.`}
+        source="INE, registros aduaneros de importación; ocho principales orígenes, cifras preliminares"
       >
         <ViewToggle
           chart={
             <StudyBars
               data={origins.map((row) => ({ name: row.name, value: row.usd / 1e6 }))}
-              unit="millones USD CIF"
+              unit="millones de USD CIF"
               decimals={1}
               legend="Principales países de origen, 2025 (p)"
               height={320}
@@ -306,7 +306,7 @@ function Trade({ study }: { study: AutomotiveStudy }) {
                 <tr key={row.code}>
                   <td>{row.name}</td>
                   <td>{num(row.usd)}</td>
-                  <td>{passengers ? `${num((row.usd / passengers.usd) * 100, 2)}%` : '—'}</td>
+                  <td>{passengers ? `${num((row.usd / passengers.usd) * 100, 2)} %` : '—'}</td>
                 </tr>
               ))}
             </Table>
@@ -360,8 +360,8 @@ function Competition({ study }: { study: AutomotiveStudy }) {
             ? 'Precio de entrada anunciado por marca en Bolivia (USD)'
             : `Precios anunciados de ${brand} en Bolivia, por versión (USD)`
         }
-        lede={`${quoted.length} de ${rows.length} registros con USD, versión y año confirmados${missing.length ? `; sin precio comparable: ${missing.join(', ')} (ver tabla)` : ''}. No es participación de mercado.`}
-        source="Capturas directas de los sitios oficiales; ver condiciones por fila"
+        lede={`${quoted.length} de ${rows.length} registros tienen precio en USD, versión y año confirmados${missing.length ? `. Sin precio comparable: ${missing.join(', ')} (detalle en la tabla)` : ''}. Un precio anunciado no indica participación de mercado.`}
+        source="Sitios oficiales de las marcas y de sus redes en Bolivia; condiciones por fila en la tabla"
         updated={study.observedAt}
         extraDownloads={studyDownloads}
       >
@@ -384,7 +384,7 @@ function Competition({ study }: { study: AutomotiveStudy }) {
                 height={Math.max(250, bars.length * 34)}
               />
             ) : (
-              <p className="callout">Esta marca solo tiene precios sin moneda o con conflicto: ver la tabla.</p>
+              <p className="callout">Esta marca solo tiene precios sin moneda o con datos en conflicto; el detalle está en la tabla.</p>
             )
           }
           table={
@@ -417,8 +417,8 @@ function Competition({ study }: { study: AutomotiveStudy }) {
       </Panel>
       <Panel
         id="automotor-redes"
-        title={`Redes comerciales documentadas: ${rail === 'brands' ? 'marcas' : 'ciudades publicadas'} por red`}
-        lede="No es un censo vigente ni un ranking de ventas."
+        title={`${rail === 'brands' ? 'Marcas representadas' : 'Ciudades publicadas'} por red comercial (cantidad)`}
+        lede="Cuenta lo que cada red documenta en sus propios sitios. No es un censo vigente ni una clasificación por ventas."
         source="Sitios y documentos oficiales de cada red"
         updated={study.observedAt}
         extraDownloads={studyDownloads}
@@ -434,7 +434,7 @@ function Competition({ study }: { study: AutomotiveStudy }) {
         }}
       >
         <Chips
-          label="Qué contar"
+          label="Medida"
           options={[
             ['brands', 'Marcas'],
             ['cities', 'Ciudades'],
@@ -544,8 +544,8 @@ function Abroad({ study }: { study: AutomotiveStudy }) {
       <Panel
         id="automotor-internacional"
         title="Mismo modelo: precio anunciado en Bolivia y en el exterior (USD)"
-        lede={`Letra = comparabilidad (A: ficha equivalente · B: familia próxima · C: solo el nombre). Ningún par es A: no se calcula sobreprecio.${apart ? ` ${apart} par(es) en otra moneda, en la tabla.` : ''}`}
-        source="Ofertas oficiales de Bolivia, Perú, Chile y Paraguay; Argentina excluida por precio no reproducible"
+        lede={`Ningún par comparte ficha técnica equivalente, por lo que no se calcula sobreprecio. La letra indica la comparabilidad: A, ficha equivalente; B, familia próxima; C, solo el nombre.${apart ? ` ${apart} par(es) con precio en otra moneda figuran solo en la tabla.` : ''}`}
+        source="Listas de precios oficiales de Bolivia, Perú, Chile y Paraguay; Argentina excluida por precio no reproducible"
         updated={study.observedAt}
         extraDownloads={studyDownloads}
         data={{
@@ -567,11 +567,11 @@ function Abroad({ study }: { study: AutomotiveStudy }) {
                 abroadLabel={countries.join(' / ') || 'Exterior'}
               />
             ) : (
-              <p className="callout">Ningún par tiene los dos precios en dólares.</p>
+              <p className="callout">Ningún par tiene los dos precios en USD.</p>
             )
           }
           table={
-            <Table head={['Modelo', 'Comp.', 'Bolivia', 'Exterior', 'Qué falta']}>
+            <Table head={['Modelo', 'Comparabilidad', 'Bolivia', 'Exterior', 'Diferencias']}>
               {pairs.map(({ pair, bolivia, abroad }) => (
                 <tr key={pair.id}>
                   <td>{pair.model}</td>
@@ -596,7 +596,7 @@ function Abroad({ study }: { study: AutomotiveStudy }) {
       <Panel
         id="automotor-ofertas-exterior"
         title={`Precios anunciados en ${market} (${currency})`}
-        lede="Modelos y condiciones distintos: describe anuncios, no un ranking de vehículos equivalentes."
+        lede="Precios de lista de modelos y condiciones distintos: describen anuncios, no una clasificación de vehículos equivalentes."
         source="Listas oficiales y campañas enlazadas en cada registro"
         updated={study.observedAt}
         extraDownloads={studyDownloads}
@@ -617,7 +617,7 @@ function Abroad({ study }: { study: AutomotiveStudy }) {
               }))}
               unit={currency}
               decimals={0}
-              legend={`Precio anunciado (${currency}); las vencidas son antecedente`}
+              legend={`Precio anunciado (${currency}); las ofertas vencidas quedan como antecedente`}
               height={Math.max(240, foreign.length * 40)}
             />
           }
@@ -651,7 +651,7 @@ function Abroad({ study }: { study: AutomotiveStudy }) {
 
 const initial: InventoryInputs = { purchaseUsd: 15000, freightUsd: 1000, fx: 7, taxesBob: 28000, recoverableTaxBob: 0, localBob: 3000, units: 10, days: 90, annualRate: 15, targetMargin: 18, fixedMonthlyBob: 40000 };
 const labels: Record<keyof InventoryInputs, string> = {
-  purchaseUsd: 'Compra FOB por unidad (USD)', freightUsd: 'Flete y seguro por unidad (USD)', fx: 'Costo efectivo de USD (Bs/USD)', taxesBob: 'Tributos no recuperables por unidad (Bs)', recoverableTaxBob: 'Tributos recuperables adelantados (Bs)', localBob: 'Logística local por unidad (Bs)', units: 'Unidades compradas', days: 'Días de caja inmovilizada', annualRate: 'Costo financiero simple anual (%)', targetMargin: 'Margen objetivo sobre venta neta (%)', fixedMonthlyBob: 'Costos fijos mensuales (Bs)',
+  purchaseUsd: 'Compra FOB por unidad (USD)', freightUsd: 'Flete y seguro por unidad (USD)', fx: 'Costo efectivo del dólar (Bs por USD)', taxesBob: 'Tributos no recuperables por unidad (Bs)', recoverableTaxBob: 'Tributos recuperables adelantados (Bs)', localBob: 'Logística local por unidad (Bs)', units: 'Unidades compradas', days: 'Días de caja inmovilizada', annualRate: 'Costo financiero simple anual (%)', targetMargin: 'Margen objetivo sobre venta neta (%)', fixedMonthlyBob: 'Costos fijos mensuales (Bs)',
 };
 
 function Scenarios() {
@@ -659,9 +659,9 @@ function Scenarios() {
   const baseline = inventoryScenario(inputs);
   const scenarios = [
     { name: 'Supuestos ingresados', input: inputs },
-    { name: 'USD +20%; tributos constantes', input: { ...inputs, fx: inputs.fx * 1.2 } },
+    { name: 'Dólar 20 % más caro, tributos constantes', input: { ...inputs, fx: inputs.fx * 1.2 } },
     { name: '60 días más de inventario', input: { ...inputs, days: inputs.days + 60 } },
-    { name: 'Financiación +5 puntos', input: { ...inputs, annualRate: inputs.annualRate + 5 } },
+    { name: 'Tasa de financiación +5 puntos porcentuales', input: { ...inputs, annualRate: inputs.annualRate + 5 } },
   ].flatMap((row) => {
     const result = inventoryScenario(row.input);
     return result ? [{ name: row.name, result }] : [];
@@ -680,8 +680,8 @@ function Scenarios() {
       <Panel
         id="automotor-inventario"
         title="Inventario y precio objetivo: supuestos del simulador (Bs)"
-        lede="Valores de ejemplo, no tasas vigentes ni márgenes observados. Cambiá cualquiera y las figuras se recalculan."
-        source="Modelo explícito del Observatorio; entradas del usuario"
+        lede="Valores de ejemplo, no tasas vigentes ni márgenes observados. Las figuras se recalculan al cambiar cualquier supuesto."
+        source="Supuestos editables de DatosBolivia.com; valores ingresados en el simulador"
         downloadable={false}
       >
         <div className="automotive-inputs">
@@ -720,13 +720,13 @@ function Scenarios() {
               <strong>Bs {num(baseline.targetPrice)}</strong>
             </article>
             <article>
-              <small>Unidades/mes para cubrir costos fijos</small>
+              <small>Unidades por mes para cubrir costos fijos</small>
               <strong>{baseline.breakEvenUnits === null ? 'No definido' : num(baseline.breakEvenUnits)}</strong>
             </article>
           </div>
         ) : (
           <p role="alert" className="callout">
-            Completá valores no negativos, tipo de cambio mayor que cero y margen menor que 100%.
+            Valores no válidos: deben ser no negativos, con tipo de cambio mayor que cero y margen menor que 100 %.
           </p>
         )}
         <details>
@@ -740,7 +740,7 @@ function Scenarios() {
           <Panel
             id="automotor-inventario-escenarios"
             title="Precio neto objetivo por escenario (Bs por unidad)"
-            source="Modelo explícito del Observatorio; entradas del usuario"
+            source="Supuestos editables de DatosBolivia.com; valores ingresados en el simulador"
           >
             <ViewToggle
               chart={
@@ -753,7 +753,7 @@ function Scenarios() {
                 />
               }
               table={
-                <Table head={['Escenario', 'Costo/unidad', 'Financiación/unidad', 'Precio objetivo', 'Caja lote']}>
+                <Table head={['Escenario', 'Costo por unidad', 'Financiación por unidad', 'Precio objetivo', 'Caja del lote']}>
                   {scenarios.map((row) => (
                     <tr key={row.name}>
                       <td>{row.name}</td>
@@ -769,8 +769,8 @@ function Scenarios() {
           </Panel>
           <Panel
             id="automotor-inventario-composicion"
-            title="De qué se compone el precio neto objetivo (Bs por unidad)"
-            source="Modelo explícito del Observatorio; entradas del usuario"
+            title="Composición del precio neto objetivo (Bs por unidad)"
+            source="Supuestos editables de DatosBolivia.com; valores ingresados en el simulador"
           >
             <StudyBars
               legend="Parte del precio neto objetivo (Bs por unidad)"
@@ -796,8 +796,8 @@ function Ownership() {
     <Panel
       id="automotor-costo-uso"
       title="Costo de uso: compra, energía, mantenimiento y reventa (Bs)"
-      lede="Ejemplo editable. Usá una tecnología a la vez: litros para combustión, kWh para eléctrico."
-      source="Supuestos del usuario; cálculo sin financiación ni descuento temporal"
+      lede="Ejemplo editable para una tecnología a la vez: litros para motores de combustión, kWh para eléctricos."
+      source="Supuestos ingresados en el simulador; cálculo sin financiación ni descuento temporal"
       data={() =>
         cost
           ? {
@@ -849,12 +849,12 @@ function Ownership() {
         </>
       ) : (
         <p role="alert" className="callout">
-          Revisá los valores: años y kilómetros deben ser positivos; la reventa no puede superar la compra.
+          Valores no válidos: años y kilómetros deben ser positivos, y la reventa no puede superar la compra.
         </p>
       )}
       <details>
         <summary>Fórmula y límites</summary>
-        <p>Costo = compra − reventa + años × (km/año × consumo/100 × precio de energía + otros costos anuales). No incluye costo de capital, cargador, batería ni reparaciones extraordinarias. Para comparar dos tecnologías conservá horizonte y kilometraje y cambiá solo sus costos documentados.</p>
+        <p>Costo = compra − reventa + años × (km/año × consumo/100 × precio de energía + otros costos anuales). No incluye costo de capital, cargador, batería ni reparaciones extraordinarias. Una comparación entre dos tecnologías mantiene el mismo horizonte y kilometraje y solo cambia sus costos documentados.</p>
       </details>
     </Panel>
   );
@@ -874,8 +874,8 @@ function Reading({ study }: { study: AutomotiveStudy }) {
     <Panel
       id="automotor-decision"
       title="Decisiones, entorno, fichas y fuentes del estudio"
-      lede="Todo el texto de la investigación, plegado: abrí solo lo que necesites."
-      source="INE/RUAT, sitios oficiales de marcas, ASFI y Aduana; elaboración del Observatorio"
+      lede="El texto completo de la investigación, plegado por apartados."
+      source="INE y RUAT, sitios oficiales de las marcas, Autoridad de Supervisión del Sistema Financiero (ASFI) y Aduana Nacional"
       updated={study.observedAt}
       extraDownloads={studyDownloads}
       data={{
@@ -939,7 +939,7 @@ function Reading({ study }: { study: AutomotiveStudy }) {
             </article>
           ))}
         </div>
-        <p><strong>Padrón histórico AEMP ({study.historicalDealers.length} empresas, 2023–junio 2024):</strong> sirve para detectar empresas que requieren verificación; las representaciones pueden haber cambiado.</p>
+        <p><strong>Padrón histórico de la Autoridad de Fiscalización de Empresas (AEMP), {study.historicalDealers.length} empresas, 2023–junio de 2024:</strong> identifica empresas cuya representación debe verificarse, porque pudo haber cambiado.</p>
         <ul>
           {study.historicalDealers.map((row) => (
             <li key={row.name}><strong>{row.name}:</strong> {row.brands}. {row.period}.</li>
@@ -965,7 +965,7 @@ function Reading({ study }: { study: AutomotiveStudy }) {
       </details>
       <details>
         <summary>{num(study.sources.length)} fuentes y huellas de archivo</summary>
-        <p>Una respuesta HTTP exitosa acredita la captura del documento; no confirma la vigencia comercial.</p>
+        <p>Una descarga correcta acredita la captura del documento, no su vigencia comercial.</p>
         {study.sources.map((source) => (
           <p className="automotive-source" key={source.id}>
             <a href={source.url} target="_blank" rel="noreferrer">{source.title}</a>
@@ -976,7 +976,7 @@ function Reading({ study }: { study: AutomotiveStudy }) {
           </p>
         ))}
         <details>
-          <summary>Proveniencia de las importaciones</summary>
+          <summary>Procedencia de los datos de importaciones</summary>
           {study.trade.sources.map((source) => (
             <p key={source.year}>
               <a href={source.sourceUrl}>{source.title}</a> · captura {source.retrievedAt} · meses {source.months.join(', ')}.
@@ -984,7 +984,7 @@ function Reading({ study }: { study: AutomotiveStudy }) {
               <code>SHA-256 fuente: {source.upstreamSha256}</code>
             </p>
           ))}
-          <p>Agregación reproducible: scripts/automotor/aggregate-trade.py. No se suman M_DETAIL y M_MONTHLY.</p>
+          <p>Las importaciones se agregan por partida y mes; el detalle y el total mensual no se suman entre sí.</p>
         </details>
       </details>
     </Panel>

@@ -66,7 +66,7 @@ import type { WorldIndicator, WorldTheme } from '@/lib/world-board';
  */
 
 /** Quién publica las cifras de todo el tablero mundial. */
-const WORLD_SOURCE = 'Banco Mundial, World Development Indicators (WDI)';
+const WORLD_SOURCE = 'Banco Mundial, Indicadores del Desarrollo Mundial';
 
 const PAGE_SIZE = 20;
 const DEFAULT_REGION = 'LCN';
@@ -197,9 +197,9 @@ export function WorldExplorer() {
       <div className="loading-note" role="status" aria-live="polite">
         <span className="loading-spin" aria-hidden="true" />
         <div>
-          <b>Leyendo la economía mundial…</b>
+          <b>Cargando los indicadores mundiales…</b>
           <span>
-            Veintiséis indicadores del Banco Mundial, para el mundo, sus regiones y Bolivia.
+            Veintiséis indicadores del Banco Mundial para el mundo, sus regiones y Bolivia.
           </span>
         </div>
       </div>
@@ -211,8 +211,8 @@ export function WorldExplorer() {
     return (
       <div className="stack">
         <div className="callout">
-          No fue posible leer el tablero mundial. El detalle queda en el registro del servidor; el
-          resto del informe no depende de esta lectura.
+          No se pudieron leer los indicadores mundiales. Recargar la página o volver en unos
+          minutos. El resto del informe no depende de esta lectura.
         </div>
         {neighbours}
       </div>
@@ -450,26 +450,27 @@ export function WorldExplorer() {
           <br />
           Mundo, <b>{regionLabel}</b> y Bolivia
           <br />
-          Desde <b>{from}</b> · Banco Mundial (WDI)
+          Desde <b>{from}</b> · Banco Mundial
         </div>
       </aside>
 
       <div className="workspace-main" id="tablero" tabIndex={-1}>
         <header className="page-intro">
-          <h3 className="page-intro-title">Cómo está la economía mundial</h3>
+          <h3 className="page-intro-title">La economía mundial y Bolivia</h3>
           <p className="page-intro-lede">
-            Crecimiento, precios, comercio, trabajo y bienestar <b>del mundo entero</b>, con la
-            región que elijas a la izquierda y <b>Bolivia en la misma escala</b>. Al pie,{' '}
+            Crecimiento, precios, comercio, trabajo y bienestar <b>del mundo entero</b>, junto a una
+            región de comparación y a <b>Bolivia en la misma escala</b>. Al pie,{' '}
             <a href="#vecinos">Bolivia y sus vecinos</a>.
           </p>
           <details className="panel-note">
             <summary>Cómo leerlo</summary>
             <p>
               Todas las cifras son del Banco Mundial y usan la misma definición para el mundo, las
-              regiones y el país, así que las tasas se leen sobre un solo eje sin convertir nada.
-              Los dos totales —el PIB en dólares y la población— se dibujan como índice, porque
-              junto al mundo Bolivia no se vería. Al pie de la página, «Bolivia y sus vecinos» da el
-              último dato de cada país de al lado en energía, recursos naturales y medio ambiente.
+              regiones y el país, de modo que las tasas comparten un solo eje sin conversiones. Los
+              dos totales —el PIB en USD y la población— se dibujan como índice: en valores
+              absolutos, la línea de Bolivia quedaría pegada a cero junto a la del mundo. La región
+              de comparación se elige en el panel de filtros. Al pie, «Bolivia y sus vecinos» da el
+              último dato de cada país limítrofe en energía, recursos naturales y medio ambiente.
             </p>
           </details>
           <div className="brief-points">
@@ -482,13 +483,13 @@ export function WorldExplorer() {
             <div className="brief-point">
               <div>
                 <b>Bolivia en la misma escala</b>
-                <span>la línea naranja de cada gráfico</span>
+                <span>la línea destacada de cada gráfico</span>
               </div>
             </div>
             <div className="brief-point">
               <div>
                 <b>Qué mide cada cifra</b>
-                <span>tocá la ⓘ de una tarjeta</span>
+                <span>en la ⓘ de cada tarjeta</span>
               </div>
             </div>
           </div>
@@ -496,9 +497,8 @@ export function WorldExplorer() {
 
         {hasWorld ? null : (
           <div className="callout">
-            Las cifras del mundo y de las regiones todavía no están cargadas en la base: las carga
-            el núcleo del observatorio en su próximo despliegue. Mientras tanto cada tarjeta muestra
-            sólo a Bolivia.
+            Las cifras del mundo y de las regiones aún no están disponibles. Mientras tanto, cada
+            tarjeta muestra solo a Bolivia.
           </div>
         )}
 
@@ -567,7 +567,7 @@ export function WorldExplorer() {
             <a
               className="download-btn"
               href={`/api/export?${exportQuery.toString()}&format=csv`}
-              download={`observatorio-mundo-${region.toLowerCase()}-desde-${from}.csv`}
+              download={`datosbolivia-mundo-${region.toLowerCase()}-desde-${from}.csv`}
               title={`Una fila por indicador, lugar y año, para el mundo, ${regionLabel} y Bolivia: todas las páginas`}
             >
               Selección en CSV
@@ -575,7 +575,7 @@ export function WorldExplorer() {
             <a
               className="download-btn"
               href={`/api/export?${exportQuery.toString()}&format=json`}
-              download={`observatorio-mundo-${region.toLowerCase()}-desde-${from}.json`}
+              download={`datosbolivia-mundo-${region.toLowerCase()}-desde-${from}.json`}
               title={`Una fila por indicador, lugar y año, para el mundo, ${regionLabel} y Bolivia: todas las páginas`}
             >
               Selección en JSON
@@ -618,7 +618,7 @@ export function WorldExplorer() {
             />
           </>
         ) : (
-          <div className="callout">Ningún indicador mundial coincide con esta búsqueda.</div>
+          <div className="callout">No hay indicadores mundiales para estos filtros.</div>
         )}
 
         {neighbours}
@@ -750,11 +750,11 @@ function WorldCard({
               <b>Cómo leerlo.</b> {indicator.howToRead}
             </p>
             <p className="card-note-source">
-              <b>Dato:</b> Banco Mundial, World Development Indicators ·{' '}
+              <b>Fuente:</b> Banco Mundial, Indicadores del Desarrollo Mundial · código{' '}
               <code>{indicator.code}</code>
             </p>
             <p className="card-note-source">
-              <b>Definición:</b> redactada por el {DEFINITION_AUTHOR} a partir del concepto
+              <b>Definición:</b> redactada por {DEFINITION_AUTHOR} a partir del concepto
               estándar. No es la del publicador.
             </p>
           </InfoPopover>

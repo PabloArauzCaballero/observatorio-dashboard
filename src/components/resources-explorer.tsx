@@ -219,11 +219,11 @@ export function ResourcesExplorer({ board: entire }: { board: ResourceBoard }) {
       <TabHeader
         id="recursos"
         title="Recursos naturales"
-        lede={`Qué sale del país, qué deja el subsuelo, cuánto patrimonio se consume al sacarlo y en qué se convierte. Dos fuentes: la declaración aduanera ante Naciones Unidas, que da el detalle por producto —de ahí sale el litio—, y el Banco Mundial, que da las rentas y las cuentas ajustadas con la misma definición para Bolivia y para cada vecino. El dato más reciente es de ${board.asOfYear ?? '—'}; las aduanas cierran un año después y las cuentas ajustadas dos o tres, así que no todos los paneles terminan igual y cada uno lleva su año escrito.`}
+        lede={`Qué exporta el país, qué renta deja el subsuelo, cuánto patrimonio natural se consume al extraerlo y en qué se convierte. Dos fuentes: la declaración aduanera ante Naciones Unidas, con el detalle por producto —incluido el litio—, y el Banco Mundial, con las rentas y las cuentas ajustadas bajo una misma definición para Bolivia y sus vecinos. El dato más reciente es de ${board.asOfYear ?? '—'}. Las aduanas cierran con un año de rezago y las cuentas ajustadas con dos o tres, por lo que cada panel indica su último año.`}
       />
       <DerivedReading
         title="Qué dicen estos datos"
-        note="Cada frase sale de las series de este capítulo y se recalcula con cada carga. Dice qué nivel hay y contra qué se compara; no dice por qué ni qué va a pasar."
+        note="Cada frase se calcula a partir de las series de esta sección y se actualiza con cada carga. Indica el nivel y la referencia de comparación; no atribuye causas ni hace proyecciones."
         conclusions={board.conclusions}
         icons={CONCLUSION_ICON}
       />
@@ -249,14 +249,14 @@ export function ResourcesExplorer({ board: entire }: { board: ResourceBoard }) {
           {mineralValue.data.length > 1 ? (
             <Panel
               id="recursos-minerales-exportados"
-              title="Minerales exportados por producto (millones de US$)"
-              lede="Lo que de verdad sale del país, partida por partida, tal como Bolivia lo declaró en aduana ante Naciones Unidas desde 1992. Las rentas de abajo dicen cuánto deja el subsuelo; esto dice qué se vende. El concentrado de cinc y los minerales de oro y plata son dos negocios distintos y aquí se ven separados por primera vez."
+              title="Minerales exportados por producto (millones de USD)"
+              lede="Las exportaciones de minerales partida por partida, tal como Bolivia las declaró en aduana ante Naciones Unidas desde 1992. Las rentas de los paneles siguientes miden cuánto deja el subsuelo; este, qué se vende. El concentrado de cinc y los minerales de oro y plata aparecen por separado."
               source={SOURCE_CUSTOMS}
             >
               <WorldLines
                 data={mineralValue.data}
                 series={mineralValue.series}
-                format={(value) => `${number(value, 1)} millones de US$`}
+                format={(value) => `${number(value, 1)} millones de USD`}
                 tick={millions}
               />
             </Panel>
@@ -265,7 +265,7 @@ export function ResourcesExplorer({ board: entire }: { board: ResourceBoard }) {
             <Panel
               id="recursos-minerales-peso"
               title="Peso exportado por mineral (miles de toneladas)"
-              lede="La misma canasta medida en peso y no en plata. Es la diferencia entre «subió el precio» y «salió más»: el valor de una exportación de oro se duplica con el precio sin que salga un gramo más, y sólo esta medida lo distingue."
+              lede="La misma canasta, medida en peso y no en valor. Separa el efecto precio del efecto volumen: el valor exportado de oro puede duplicarse con el precio sin que salga un gramo más."
               source={SOURCE_CUSTOMS}
             >
               <WorldLines
@@ -280,7 +280,7 @@ export function ResourcesExplorer({ board: entire }: { board: ResourceBoard }) {
             <Panel
               id="recursos-litio"
               title="Carbonato de litio exportado (toneladas)"
-              lede="El litio no tiene partida de mineral: lo que cruza la frontera es carbonato, que el Sistema Armonizado clasifica entre los productos químicos (2836.91) y no entre los minerales. Hay años sin declaración en el registro y la línea une los puntos que existen: donde el tramo es largo y recto no hay dato intermedio, hay un hueco."
+              lede="El litio se exporta como carbonato, que el Sistema Armonizado clasifica entre los productos químicos (partida 2836.91) y no entre los minerales. Hay años sin declaración; la línea une los puntos disponibles, y un tramo largo y recto indica un hueco, no un dato intermedio."
               source={SOURCE_CUSTOMS}
             >
               <MacroChart
@@ -294,14 +294,14 @@ export function ResourcesExplorer({ board: entire }: { board: ResourceBoard }) {
           {fuelValue.data.length > 1 ? (
             <Panel
               id="recursos-hidrocarburos-exportados"
-              title="Hidrocarburos exportados (millones de US$)"
-              lede="El gas y sus compañeros, en la misma unidad y sobre el mismo registro que los minerales, para que la comparación entre los dos no dependa de dos fuentes distintas."
+              title="Hidrocarburos exportados (millones de USD)"
+              lede="El gas natural y los demás hidrocarburos, en la misma unidad y del mismo registro aduanero que los minerales, de modo que la comparación entre ambos no mezcla fuentes."
               source={SOURCE_CUSTOMS}
             >
               <WorldLines
                 data={fuelValue.data}
                 series={fuelValue.series}
-                format={(value) => `${number(value, 1)} millones de US$`}
+                format={(value) => `${number(value, 1)} millones de USD`}
                 tick={millions}
               />
             </Panel>
@@ -309,13 +309,13 @@ export function ResourcesExplorer({ board: entire }: { board: ResourceBoard }) {
           {oreValue.length > 1 ? (
             <Panel
               id="recursos-minerales-metaliferos"
-              title="Minerales metalíferos, capítulo entero (millones de US$)"
-              lede="El agregado que el registro publica para todo el capítulo 26. Va aparte del desglose y no encima de él: sumarlo con las partidas que lo componen contaría lo mismo dos veces."
+              title="Minerales metalíferos, capítulo 26 completo (millones de USD)"
+              lede="El agregado que el registro publica para todo el capítulo 26 del Sistema Armonizado. Se muestra aparte del desglose: sumarlo con las partidas que lo componen contaría dos veces el mismo valor."
               source={SOURCE_CUSTOMS}
             >
               <MacroChart
                 data={oreValue}
-                unit="millones de US$"
+                unit="millones de USD"
                 tone="var(--series-2)"
                 label="Minerales metalíferos"
               />
@@ -334,7 +334,7 @@ export function ResourcesExplorer({ board: entire }: { board: ResourceBoard }) {
         <Panel
           id="recursos-renta"
           title={RESOURCE_GROUP_LABEL.RENTA}
-          lede="Lo que cada recurso deja por encima de su costo de extracción, como parte del PIB. Donde la línea mineral cruza a la del gas está el relevo que cambió de qué vive el país."
+          lede="La renta de cada recurso —su valor por encima del costo de extracción—, como porcentaje del PIB. El cruce de la línea de minerales con la del gas marca el relevo de la principal fuente de renta del país."
           source={SOURCE}
         >
           <div className="stat-strip">
@@ -351,7 +351,7 @@ export function ResourcesExplorer({ board: entire }: { board: ResourceBoard }) {
         <Panel
           id="recursos-canasta"
           title={RESOURCE_GROUP_LABEL.CANASTA}
-          lede="Peso de cada cosa en lo que el país vende afuera. Las manufacturas son el espejo: suben cuando lo primario baja, y en sesenta años no han pasado de un cuarto de la canasta."
+          lede="Peso de cada grupo de productos en las exportaciones de mercancías. Las manufacturas se mueven en sentido contrario a los productos primarios: suben cuando estos bajan, y en seis décadas no superaron la cuarta parte de la canasta."
           source={SOURCE}
         >
           <div className="stat-strip">
@@ -365,8 +365,8 @@ export function ResourcesExplorer({ board: entire }: { board: ResourceBoard }) {
         </Panel>
         <Panel
           id="recursos-renta-vecinos"
-          title="Renta total, Bolivia contra sus vecinos (% del PIB)"
-          lede="Minerales, gas, petróleo, carbón y bosque sumados, como parte del PIB de cada país. La línea gruesa es Bolivia; las demás dan la escala de lo que en la región es normal."
+          title="Renta total de recursos naturales, Bolivia y vecinos (% del PIB)"
+          lede="Rentas de minerales, gas, petróleo, carbón y bosques sumadas, como porcentaje del PIB de cada país. La línea gruesa es Bolivia; las demás muestran el rango habitual en la región."
           source={SOURCE}
         >
           {totalRent.data.length > 1 ? (
@@ -382,7 +382,7 @@ export function ResourcesExplorer({ board: entire }: { board: ResourceBoard }) {
         <Panel
           id="recursos-agotamiento"
           title={RESOURCE_GROUP_LABEL.AGOTAMIENTO}
-          lede="Las cuentas ajustadas del Banco Mundial: al ahorro del año se le resta la depreciación del capital y el patrimonio natural consumido, y se le suma el gasto en educación. Por debajo de cero el país está financiando su consumo con lo que saca de la tierra."
+          lede="Las cuentas ajustadas del Banco Mundial restan al ahorro del año la depreciación del capital y el patrimonio natural consumido, y le suman el gasto en educación. Un valor por debajo de cero indica que el país financia su consumo con el agotamiento de sus recursos."
           source={SOURCE}
         >
           <div className="stat-strip">
@@ -399,7 +399,7 @@ export function ResourcesExplorer({ board: entire }: { board: ResourceBoard }) {
         <Panel
           id="recursos-patrimonio-consumido"
           title="Patrimonio consumido por recurso (% del INB)"
-          lede="El patrimonio consumido en el año, repartido entre mina, pozo y bosque. La suma es la línea gruesa; el relevo del gas por los minerales se ve aquí igual que en la renta."
+          lede="El patrimonio natural consumido en el año, repartido entre minerales, energía y bosques. La línea gruesa es la suma; el relevo del gas por los minerales aparece igual que en la renta."
           source={SOURCE}
         >
           {depletion.data.length > 1 ? (
@@ -414,7 +414,7 @@ export function ResourcesExplorer({ board: entire }: { board: ResourceBoard }) {
         <Panel
           id="recursos-ahorro-vecinos"
           title="Ahorro neto ajustado, Bolivia y vecinos (% del INB)"
-          lede="La misma cuenta para cada vecino. Sirve para separar «vive de minerales» de «se está gastando el patrimonio»: son cosas distintas y sólo esta serie las distingue."
+          lede="La misma cuenta para cada vecino. Distingue a una economía que depende de sus recursos de una que consume su patrimonio: son situaciones distintas y esta serie las separa."
           source={SOURCE}
         >
           {savingsAcross.data.length > 1 ? (
@@ -430,7 +430,7 @@ export function ResourcesExplorer({ board: entire }: { board: ResourceBoard }) {
         <Panel
           id="recursos-transformacion"
           title={RESOURCE_GROUP_LABEL.TRANSFORMACION}
-          lede="Qué parte del PIB sale de una fábrica, qué parte del campo y qué parte se invierte en capital fijo. Es la respuesta larga a si la renta se convierte en otra cosa."
+          lede="Qué parte del PIB generan la manufactura y el agro, y qué parte se invierte en capital fijo. Muestra a largo plazo si la renta de los recursos se transforma en otra actividad."
           source={SOURCE}
         >
           <div className="stat-strip">
@@ -449,14 +449,14 @@ export function ResourcesExplorer({ board: entire }: { board: ResourceBoard }) {
         </Panel>
         <Panel
           id="recursos-ingreso-ajustado"
-          title="Ingreso neto ajustado por habitante (US$ de 2015)"
-          lede="Dólares constantes de 2015 por persona, una vez descontados la depreciación del capital y el agotamiento del subsuelo. Es el PIB per cápita menos lo que costó producirlo en patrimonio."
+          title="Ingreso neto ajustado por habitante (USD de 2015)"
+          lede="Dólares constantes de 2015 por persona, descontadas la depreciación del capital y el agotamiento de los recursos naturales. Equivale al ingreso por habitante menos el costo de producirlo en patrimonio."
           source={SOURCE}
         >
           {income.length > 1 ? (
             <MacroChart
               data={income}
-              unit="US$"
+              unit="USD"
               tone="var(--series-3)"
               label="Ingreso neto ajustado por habitante"
             />
@@ -465,17 +465,17 @@ export function ResourcesExplorer({ board: entire }: { board: ResourceBoard }) {
       </div>
 
       <p className="guest-note">
-        El cuadro «Bolivia y sus vecinos» —el último dato de cada país en las series que distinguen
-        un caso de otro— está ahora en la pestaña «Bolivia ante el mundo», junto a los de energía y
-        medio ambiente.
+        El cuadro «Bolivia y sus vecinos» —el último dato de cada país en las series que mejor
+        distinguen un caso de otro— está en la página «Bolivia ante el mundo», junto a los de
+        energía y medio ambiente.
       </p>
       <p className="guest-note">
-        Las rentas, el agotamiento y la comparación regional salen del Banco Mundial (Indicadores
-        del Desarrollo Mundial), leídos del panel de treinta economías que recoge el núcleo del
-        observatorio; vienen de sus cuentas de riqueza y no de la contabilidad nacional boliviana, y
-        por eso cierran más tarde. El detalle por producto es la declaración aduanera de Bolivia
-        ante Naciones Unidas (UN Comtrade), por partida del Sistema Armonizado, desde 1992. Las
-        definiciones de cada serie del panel están en «Social Info».
+        Las rentas, el agotamiento y la comparación regional proceden del Banco Mundial
+        (Indicadores del Desarrollo Mundial), sobre un panel de treinta economías. Salen de sus
+        cuentas de riqueza y no de la contabilidad nacional boliviana, por lo que se publican con
+        más rezago. El detalle por producto es la declaración aduanera de Bolivia ante Naciones
+        Unidas (UN Comtrade), por partida del Sistema Armonizado, desde 1992. Las definiciones de
+        cada serie están en «Indicadores sociales».
       </p>
     </div>
   );

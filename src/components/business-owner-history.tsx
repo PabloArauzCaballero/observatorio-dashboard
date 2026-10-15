@@ -13,10 +13,10 @@ import type { OwnersBoard } from '@/lib/business-owners-board';
 
 /** De dónde sale cada estimación: los documentos públicos de cada empresa, no el Observatorio solo. */
 export const ESTIMATE_SOURCE =
-  'Documentos públicos de cada empresa (memorias de bancos, prospectos y registros de la bolsa, vía ASFI y la Bolsa Boliviana de Valores) y razón precio/valor en libros de Aswath Damodaran (NYU Stern); cálculo del Observatorio';
+  'Documentos públicos de cada empresa (memorias de bancos, prospectos y registros de la bolsa, vía la Autoridad de Supervisión del Sistema Financiero y la Bolsa Boliviana de Valores) y razón precio/valor en libros de Aswath Damodaran (NYU Stern); cálculo de DatosBolivia.com';
 
 const usd = (value: number): string =>
-  `$us ${value.toLocaleString('es-BO', { minimumFractionDigits: value < 10 ? 1 : 0, maximumFractionDigits: value < 10 ? 1 : 0 })} M`;
+  `USD ${value.toLocaleString('es-BO', { minimumFractionDigits: value < 10 ? 1 : 0, maximumFractionDigits: value < 10 ? 1 : 0 })} M`;
 const pct = (value: number): string =>
   `${value.toLocaleString('es-BO', { maximumFractionDigits: 2 })} %`;
 
@@ -98,7 +98,7 @@ export function BusinessOwnerHistory({
             </p>
           </div>
         </div>
-        <p>Elegí cualquiera de las {histories.length} personas con estimaciones documentables.</p>
+        <p>Ficha disponible para las {histories.length} personas con estimaciones documentables.</p>
         <label className={styles.chooser}>
           Empresario
           <select
@@ -120,8 +120,8 @@ export function BusinessOwnerHistory({
 
       <Panel
         id="empresario-trayectoria"
-        title={`${history.name}: fortuna y posición a través del tiempo (millones de dólares)`}
-        lede={`Estimaciones disponibles entre ${history.firstYear} y ${history.latestYear}; cada cifra conserva las empresas y documentos que sostienen el cálculo.`}
+        title={`${history.name}: patrimonio estimado y posición por año (millones de USD)`}
+        lede={`Estimaciones disponibles entre ${history.firstYear} y ${history.latestYear}. Cada cifra conserva las empresas y los documentos que sustentan el cálculo.`}
         source={ESTIMATE_SOURCE}
         data={() => ({
           columnas: [
@@ -197,7 +197,7 @@ export function BusinessOwnerHistory({
                   </SinDeclarar>
                 ) : (
                   <div className="callout">
-                    Sólo hay una gestión con estimación calculable para esta persona.
+                    Solo hay una gestión con estimación calculable para esta persona.
                   </div>
                 )}
               </div>
@@ -271,8 +271,8 @@ export function BusinessOwnerHistory({
                 </table>
               </div>
               <p className="chart-note">
-                El puesto es entre las estimaciones calculables de ese año, no entre fortunas
-                reales.
+                El puesto se calcula entre las estimaciones disponibles de ese año, no entre
+                fortunas totales.
               </p>
             </>
           }
@@ -289,8 +289,8 @@ export function BusinessOwnerHistory({
                   />
                 </SinDeclarar>
                 <p className="chart-note">
-                  Cuánto se movió el piso contable de un año al siguiente; el puesto es entre las
-                  estimaciones calculables de ese año.
+                  Variación anual del piso contable; el puesto se calcula entre las estimaciones
+                  disponibles de ese año.
                 </p>
               </>
             ) : undefined
@@ -300,8 +300,8 @@ export function BusinessOwnerHistory({
 
       <Panel
         id="empresario-empresas"
-        title={`Principales empresas en el historial de ${history.name} (millones de dólares y % de participación)`}
-        lede="Las empresas que más aportaron a la estimación, con el año del mayor aporte."
+        title={`Principales empresas en el historial de ${history.name} (millones de USD y % de participación)`}
+        lede="Empresas con mayor aporte a la estimación y año de ese aporte máximo."
         source={ESTIMATE_SOURCE}
       >
         <div className="table-wrap">
@@ -335,8 +335,8 @@ export function BusinessOwnerHistory({
 
       <Panel
         id="empresario-composicion"
-        title={`Composición de la estimación de ${history.name}, ${current.year} (millones de dólares)`}
-        lede="Cada empresa con la participación, el documento y el patrimonio que sostienen su tramo."
+        title={`Composición de la estimación de ${history.name}, ${current.year} (millones de USD)`}
+        lede="Cada empresa con la participación, el documento y el patrimonio que sustentan su tramo de la estimación."
         source={ESTIMATE_SOURCE}
       >
         <div className="table-wrap">

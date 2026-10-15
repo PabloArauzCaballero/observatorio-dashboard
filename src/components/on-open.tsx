@@ -70,7 +70,10 @@ export function useOnOpen<T>(url: string): { payload: T | null; failed: boolean 
 export function OnOpenNotice({ what, failed }: { what: string; failed: boolean }) {
   if (failed) {
     return (
-      <div className="callout">No se pudo leer {what}. El resto del informe sigue al día.</div>
+      <div className="callout">
+        No se pudo cargar {what}. El resto del tablero no está afectado; recargar la página en unos
+        minutos.
+      </div>
     );
   }
 
@@ -78,7 +81,7 @@ export function OnOpenNotice({ what, failed }: { what: string; failed: boolean }
     <div className="loading-note" role="status" aria-live="polite">
       <span className="loading-spin" aria-hidden="true" />
       <div>
-        <b>Leyendo {what}…</b>
+        <b>Cargando {what}…</b>
       </div>
     </div>
   );

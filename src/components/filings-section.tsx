@@ -46,7 +46,7 @@ export function FilingsSection() {
       <TabHeader
         id="empresas"
         title="Empresas"
-        lede="Cuántas empresas hay, cuáles son las más grandes, quiénes son sus dueños, qué comunican a la bolsa, cómo las ve el público y qué publican en sus redes. Cada página dice quién mide y cuánto confiar."
+        lede="Las empresas bolivianas según el registro de comercio, Impuestos Nacionales, la bolsa de valores, las clasificaciones privadas y sus cuentas públicas. Cada página indica quién mide y con qué grado de confianza."
       />
       <SubSections
         enlace

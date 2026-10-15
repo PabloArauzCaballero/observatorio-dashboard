@@ -27,8 +27,8 @@ export const THEME_LABEL: Record<WorldTheme, string> = {
   FINANZAS: 'Precios y finanzas',
   COMERCIO: 'Comercio',
   POBLACION: 'Trabajo y población',
-  ESTRUCTURA: 'Qué produce la economía',
-  BIENESTAR: 'Cómo se vive',
+  ESTRUCTURA: 'Estructura productiva',
+  BIENESTAR: 'Bienestar',
 };
 
 /** How a figure is printed; the unit follows from it. */
@@ -77,7 +77,7 @@ export const WORLD_INDICATORS: readonly WorldIndicator[] = [
     decimals: 1,
     what: 'Cuánto más —o menos— produjo la economía que el año anterior, sin el efecto de los precios.',
     howToRead:
-      'Es una tasa y no un nivel: un 2 % sobre una economía grande agrega más producción que un 5 % sobre una chica.',
+      'Es una tasa y no un nivel: un 2 % sobre una economía grande agrega más producción que un 5 % sobre una pequeña.',
   },
   {
     code: 'NY.GDP.PCAP.KD.ZG',
@@ -88,12 +88,12 @@ export const WORLD_INDICATORS: readonly WorldIndicator[] = [
     decimals: 1,
     what: 'El crecimiento de la producción una vez repartida entre la población.',
     howToRead:
-      'Una economía que crece 2 % con una población que crece 2 % no mejora el ingreso medio: esta es la cifra que lo dice.',
+      'Una economía que crece 2 % con una población que crece 2 % no mejora el ingreso medio, y esta cifra lo refleja.',
   },
   {
     code: 'NY.GDP.MKTP.CD',
     label: 'PIB',
-    unit: 'dólares corrientes',
+    unit: 'USD corrientes',
     theme: 'CRECIMIENTO',
     format: 'usd',
     decimals: 2,
@@ -209,7 +209,7 @@ export const WORLD_INDICATORS: readonly WorldIndicator[] = [
     decimals: 1,
     what: 'La parte de la población en edad de trabajar que trabaja o busca trabajo.',
     howToRead:
-      'Sube tanto cuando se abren oportunidades como cuando más hogares necesitan un segundo ingreso: leerla junto al desempleo.',
+      'Sube tanto cuando se abren oportunidades como cuando más hogares necesitan un segundo ingreso, por lo que se lee junto al desempleo.',
   },
   {
     code: 'SP.POP.TOTL',
@@ -378,12 +378,12 @@ export function sayWorldFigure(value: number, indicator: WorldIndicator): string
     case 'percent':
       return `${plain(value, indicator.decimals)} %`;
     case 'usd':
-      if (Math.abs(value) >= 1e12) return `${plain(value / 1e12, 2)} billones US$`;
-      if (Math.abs(value) >= 1e9) return `${plain(value / 1e9, 1)} mil M US$`;
-      return `${plain(value / 1e6, 0)} M US$`;
+      if (Math.abs(value) >= 1e12) return `USD ${plain(value / 1e12, 2)} billones`;
+      if (Math.abs(value) >= 1e9) return `USD ${plain(value / 1e9, 1)} mil millones`;
+      return `USD ${plain(value / 1e6, 0)} millones`;
     case 'people':
-      if (Math.abs(value) >= 1e9) return `${plain(value / 1e9, 2)} mil M`;
-      return `${plain(value / 1e6, 2)} M`;
+      if (Math.abs(value) >= 1e9) return `${plain(value / 1e9, 2)} mil millones`;
+      return `${plain(value / 1e6, 2)} millones`;
     case 'years':
       return `${plain(value, indicator.decimals)} años`;
     case 'months':

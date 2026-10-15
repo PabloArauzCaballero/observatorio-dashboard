@@ -258,7 +258,7 @@ const sumOf = (folds: Iterable<{ mentions: number }>): number => {
 
 /** Quién dice lo que se cuenta aquí: las notas son de los medios, los temas los fija el Observatorio. */
 const SUBJECTS_SOURCE =
-  'archivo de prensa de medios bolivianos, leído contra la lista de temas vigilados del Observatorio (ver «Método»)';
+  'Medios de prensa bolivianos; temas según la lista de seguimiento de DatosBolivia.com (ver «Método»)';
 
 /**
  * La clave de unas barras de ShareBars: un solo color, o —si hay una marcada—
@@ -338,8 +338,7 @@ export function SubjectsExplorer({ months, totals }: { months: TermMonth[]; tota
   if (!months.length) {
     return (
       <div className="callout">
-        Todavía no hay lecturas por tema. El modelo existe en la base; se llena cuando se refresca
-        la copia del corpus de prensa.
+        Todavía no hay menciones por tema. Se publican cuando se actualiza el archivo de prensa.
       </div>
     );
   }
@@ -430,11 +429,11 @@ export function SubjectsExplorer({ months, totals }: { months: TermMonth[]; tota
    * A name that says what is inside the file.
    *
    * Four downloads taken from four different selections all arrive as
-   * `observatorio-temas.csv`, and the reader is left with `(1)`, `(2)` and `(3)`
+   * `datosbolivia-temas.csv`, and the reader is left with `(1)`, `(2)` and `(3)`
    * in their downloads folder and no way to tell which year is which.
    */
   const fileName = (subjectTerm: string | undefined, format: string): string => {
-    const parts = ['observatorio-temas'];
+    const parts = ['datosbolivia-temas'];
     if (subjectTerm) parts.push(subjectTerm.toLocaleLowerCase('es'));
     else if (family.size) parts.push(list(family).join('-').toLocaleLowerCase('es'));
     if (year.size) parts.push(chosenYears.join('-'));
@@ -768,8 +767,9 @@ export function SubjectsExplorer({ months, totals }: { months: TermMonth[]; tota
             </select>
           </div>
           <p className="rail-hint">
-            También se elige tocando una palabra de la nube, y se quita tocándola otra vez. El tema
-            se abre de a uno: es el que se analiza abajo, no un recorte más del archivo.
+            El tema también se elige al seleccionar una palabra de la nube, y se quita al
+            seleccionarla otra vez. Se abre un tema a la vez: es el que se analiza abajo, no un
+            recorte más del archivo.
           </p>
         </div>
 
@@ -847,7 +847,7 @@ export function SubjectsExplorer({ months, totals }: { months: TermMonth[]; tota
             </span>
             <span className="stat-value">{count(selectedMentions)}</span>
             <span className="stat-hint">
-              {year.size ? `sólo ${yearsLabel}` : 'todo el archivo'}
+              {year.size ? `solo ${yearsLabel}` : 'todo el archivo'}
             </span>
           </div>
           <div
@@ -890,7 +890,7 @@ export function SubjectsExplorer({ months, totals }: { months: TermMonth[]; tota
           id="temas-nube"
           title="Menciones de cada tema vigilado (cantidad de menciones)"
           lede="Cada palabra es un tema, al tamaño de las veces que la prensa lo nombró."
-          meta={`${cloud.length} tema${cloud.length === 1 ? '' : 's'} · tocá uno para abrirlo`}
+          meta={`${cloud.length} tema${cloud.length === 1 ? '' : 's'}`}
           source={SUBJECTS_SOURCE}
           data={() => ({
             unidad: 'menciones',
@@ -913,10 +913,11 @@ export function SubjectsExplorer({ months, totals }: { months: TermMonth[]; tota
             onPick={(picked) => setTerm(term === picked ? '' : picked)}
           />
           <p className="panel-sub">
-            El tamaño es cuántas veces la prensa nombró cada asunto — en raíz cuadrada, porque lo
-            que el ojo compara es el área — y el color es qué parte de esa cobertura fue adversa:
-            del azul, casi nada, al rojo, casi toda. El orden es alfabético para que un tema pueda
-            buscarse; el dato es el tamaño, no la posición.
+            El tamaño indica cuántas veces la prensa nombró cada tema —en raíz cuadrada, porque el
+            ojo compara áreas— y el color, qué parte de esa cobertura fue adversa: del azul (casi
+            ninguna) al rojo (casi toda). El orden es alfabético para facilitar la búsqueda; el
+            dato es el tamaño, no la posición. Al seleccionar una palabra se abre el análisis de
+            ese tema.
           </p>
         </Panel>
 
@@ -924,7 +925,7 @@ export function SubjectsExplorer({ months, totals }: { months: TermMonth[]; tota
           <Panel
             id="temas-quince"
             title="Quince temas más nombrados (cantidad de menciones)"
-            lede={`La altura es atención mediática y no tamaño económico: el contrabando ocupa más titulares que la manufactura sin mover más dinero.${family.size ? ` Familias: ${familiesLabel}.` : ''}`}
+            lede={`El largo de cada barra mide atención mediática, no peso económico: un tema puede ocupar muchos titulares y mover poco dinero.${family.size ? ` Familias: ${familiesLabel}.` : ''}`}
             source={SUBJECTS_SOURCE}
           >
             <ShareBars
@@ -946,15 +947,15 @@ export function SubjectsExplorer({ months, totals }: { months: TermMonth[]; tota
           >
             <MonthlyBars data={archiveMonths} height={240} />
             <p className="panel-sub">
-              Los años delgados son los que se reconstruyeron desde los mapas de sitio de cada
-              medio, no años sin economía.
+              Los años con pocas menciones son los que se reconstruyeron a partir de los mapas de
+              sitio de cada medio, no años sin noticias económicas.
             </p>
           </Panel>
 
           <Panel
             id="temas-familias"
             title="Menciones por familia de temas (cantidad de menciones)"
-            lede="Siguen todas aunque haya una elegida, porque un ranking de una sola barra no compara nada."
+            lede="Todas las familias de temas, ordenadas por volumen de menciones. Se muestran todas aunque haya una elegida, porque una clasificación de una sola barra no compara nada."
             source={SUBJECTS_SOURCE}
           >
             <ShareBars
@@ -972,7 +973,7 @@ export function SubjectsExplorer({ months, totals }: { months: TermMonth[]; tota
               )}
             />
             <p className="panel-sub">
-              Tocá una barra para quedarte con esa familia; Ctrl+clic suma otra.
+              Al seleccionar una barra se filtra esa familia; con Ctrl+clic se suma otra.
             </p>
           </Panel>
 
@@ -1000,8 +1001,9 @@ export function SubjectsExplorer({ months, totals }: { months: TermMonth[]; tota
             <p className="panel-sub">
               Cada barra es una división —las menciones que la prensa cubrió con alarma, deterioro,
               conflicto o incertidumbre, <strong>divididas entre todas</strong> las menciones de esa
-              familia—, y las dos listas rara vez coinciden en quién va primero. Pasá el puntero por
-              una barra y el globo muestra los dos números.
+              familia—. El orden puede diferir del de volumen: la familia más nombrada no es
+              necesariamente la que recibe la cobertura más adversa. Al pasar el cursor sobre una
+              barra se muestran los dos números.
             </p>
           </Panel>
         </div>
@@ -1024,19 +1026,19 @@ export function SubjectsExplorer({ months, totals }: { months: TermMonth[]; tota
             <strong>Por mes</strong> abre cada año en sus doce meses, y el filtro del año de la
             izquierda recorta la tabla igual que a los demás paneles:{' '}
             {year.size
-              ? `ahora muestra sólo ${yearsLabel}${grain === 'mes' ? ', mes por mes' : ''}.`
-              : 'sin año elegido está el archivo entero.'}{' '}
+              ? `ahora muestra solo ${yearsLabel}${grain === 'mes' ? ', mes por mes' : ''}.`
+              : 'sin año elegido, muestra el archivo entero.'}{' '}
             La familia elegida no la recorta, porque las familias son las filas y dejar una sola no
-            comparte nada con nada. Las celdas vacías son periodos sin ninguna mención del asunto,
-            no periodos con cero cobertura económica.
+            permite comparar. Las celdas vacías son periodos sin ninguna mención de la familia, no
+            periodos sin cobertura económica.
           </p>
         </Panel>
 
         {missing ? (
           <div className="callout">
             El tema elegido no tiene ninguna mención{year.size ? ` en ${yearsLabel}` : ''}
-            {family.size ? ` dentro de ${familiesLabel}` : ''}. Quitá el filtro del año o elegí otro
-            tema para ver su análisis.
+            {family.size ? ` dentro de ${familiesLabel}` : ''}. El análisis aparece al quitar el
+            filtro de año o al elegir otro tema.
           </div>
         ) : null}
 
@@ -1071,10 +1073,10 @@ export function SubjectsExplorer({ months, totals }: { months: TermMonth[]; tota
               <Panel
                 id="tema-por-mes"
                 title={`Menciones de «${subject.label}» por mes (cantidad de menciones)`}
-                lede={`Acumula ${count(subject.mentions)} menciones en ${subject.months} meses, con su pico en ${sayMonth(subject.peakMonth)} (${count(subject.peakMentions)} notas)${
+                lede={`Acumula ${count(subject.mentions)} menciones en ${subject.months} meses, con su pico en ${sayMonth(subject.peakMonth)} (${count(subject.peakMentions)} menciones)${
                   subject.adverseShare === null
                     ? ''
-                    : ` y un ${percent(subject.adverseShare)} % de cobertura adversa`
+                    : `; el ${percent(subject.adverseShare)} % de su cobertura fue adversa`
                 }.`}
                 source={SUBJECTS_SOURCE}
               >
@@ -1084,7 +1086,7 @@ export function SubjectsExplorer({ months, totals }: { months: TermMonth[]; tota
               <Panel
                 id="tema-por-anio"
                 title={`Menciones de «${subject.label}» por año (cantidad de menciones)`}
-                lede="Este panel ignora el filtro del año a propósito: es la comparación entre años, y recortarla a uno dejaría una sola barra."
+                lede="Comparación entre años: el panel no aplica el filtro de año, porque recortarlo a uno dejaría una sola barra."
                 source={SUBJECTS_SOURCE}
               >
                 <YearlyBars data={subjectYears} height={240} />
@@ -1093,7 +1095,7 @@ export function SubjectsExplorer({ months, totals }: { months: TermMonth[]; tota
               <Panel
                 id="tema-tono"
                 title={`Tono con que se cubrió «${subject.label}» (cantidad de menciones)`}
-                lede="Van marcados los cuatro tonos que componen la cobertura adversa."
+                lede="Se resaltan los cuatro tonos que componen la cobertura adversa: alarma, deterioro, conflicto e incertidumbre."
                 source={SUBJECTS_SOURCE}
               >
                 <ShareBars
@@ -1143,7 +1145,7 @@ export function SubjectsExplorer({ months, totals }: { months: TermMonth[]; tota
               <Panel
                 id="tema-calendario"
                 title={`${FAMILY_LABEL[subject.family] ?? subject.family}: menciones por tema y por ${grain === 'mes' ? 'mes' : 'año'} (cantidad de menciones)`}
-                lede="Un pico sólo significa algo contra los de al lado: dice si el periodo que disparó a este tema disparó también a los demás de su familia, o sólo a él."
+                lede="Un pico se lee contra los temas vecinos: muestra si el periodo que elevó las menciones de este tema elevó también las del resto de su familia, o solo las suyas."
                 meta={`hasta 12 temas · ${periodLabel}`}
                 source={SUBJECTS_SOURCE}
               >
@@ -1155,8 +1157,8 @@ export function SubjectsExplorer({ months, totals }: { months: TermMonth[]; tota
                   unit="menciones"
                 />
                 <p className="panel-sub">
-                  Un shock del sector mueve a varios temas a la vez. Lleva el mismo año y la misma
-                  granularidad que la rejilla de arriba.
+                  Un choque sectorial mueve varios temas a la vez. La tabla usa el mismo año y la
+                  misma granularidad que la de arriba.
                 </p>
               </Panel>
             ) : null}

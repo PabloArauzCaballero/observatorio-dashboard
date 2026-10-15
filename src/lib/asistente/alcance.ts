@@ -281,6 +281,7 @@ const USO = palabra([
   'sitio',
   'web',
   'observatorio',
+  'datosbolivia',
   'como funciona',
   'para que sirve',
   'que puedo hacer',

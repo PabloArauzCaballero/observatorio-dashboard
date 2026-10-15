@@ -42,9 +42,9 @@ export function BankAssetsTable() {
   return (
     <Panel
       id="bancos-con-dolar-digital"
-      title="Qué ofrece cada banco, desde cuándo y con qué límites (Bs por ficha)"
-      lede="Ordenados por fecha de arranque."
-      source="Páginas y comunicados de cada banco y prensa (el enlace está en cada fecha); BISA publica su cotización en un archivo de su sitio"
+      title="Dólar digital por banco: inicio, cotización y límites (Bs por ficha)"
+      lede="Bancos ordenados por la fecha de inicio del servicio."
+      source="Páginas y comunicados de cada banco y prensa (enlazados en cada fecha); Banco BISA publica su cotización en un archivo de su sitio"
     >
       <div className="table-wrap">
         <table className="grid-table">
@@ -83,18 +83,18 @@ export function BankAssetsTable() {
                 <td>
                   {bank.quote ? (
                     <>
-                      Paga <b>{price(bank.quote.clientBuys)}</b> · recibe{' '}
+                      El cliente paga <b>{price(bank.quote.clientBuys)}</b> · recibe{' '}
                       <b>{price(bank.quote.clientSells)}</b> Bs
                       <span className="stat-hint">
                         {' '}
                         · {sayLong(bank.quote.date)} ·{' '}
                         {bank.quote.basis === 'OFFICIAL_FEED'
                           ? 'la publica el banco'
-                          : 'anotada de su app'}
+                          : 'anotada de su aplicación'}
                       </span>
                     </>
                   ) : (
-                    'solo dentro de su app'
+                    'solo dentro de su aplicación'
                   )}
                 </td>
                 <td>

@@ -61,7 +61,11 @@ export function TopTen({
         <div className={styles.topBar}>
           <label className={styles.topYear}>
             <span>Año</span>
-            <select value={period} onChange={(event) => onPeriod(Number(event.target.value))}>
+            <select
+              title="Al elegir un periodo se muestra la clasificación de ese periodo"
+              value={period}
+              onChange={(event) => onPeriod(Number(event.target.value))}
+            >
               {periods.map((one) => (
                 <option key={one} value={one}>
                   {label(one)}

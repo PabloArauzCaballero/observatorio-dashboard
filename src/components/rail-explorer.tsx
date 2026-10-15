@@ -259,8 +259,10 @@ export function RailExplorer({ board }: { board: RailBoard }) {
   ];
 
   const trafficNote = `${
-    board.lastMonth ? `${board.lastMonth.slice(0, 4)} llega solo hasta ${board.lastMonth}. ` : ''
-  }Un año a medias aparece en la vista mensual y no en la anual.`;
+    board.lastMonth
+      ? `Los datos de ${board.lastMonth.slice(0, 4)} llegan solo hasta ${board.lastMonth}. `
+      : ''
+  }Un año incompleto aparece en la vista mensual y no en la anual.`;
 
   return (
     <>
@@ -268,7 +270,7 @@ export function RailExplorer({ board }: { board: RailBoard }) {
         id="red-ferroviaria"
         className="transp"
         title="Red ferroviaria de Bolivia: vía, estaciones y carga (km, estaciones y toneladas)"
-        lede="Las vías troncales que OpenStreetMap traza dentro del país, sin patios, desvíos ni ramales de servicio, cortadas por departamento y agrupadas por línea, red y estado. El tráfico es el que publica el INE."
+        lede="Vías troncales trazadas en OpenStreetMap dentro del país —sin patios, desvíos ni ramales de servicio—, divididas por departamento y agrupadas por línea, red y estado. El tráfico de carga y pasajeros es el que publica el INE."
         source="OpenStreetMap contributors (vías y estaciones) e Instituto Nacional de Estadística, con datos de la Empresa Ferroviaria Andina y la Oriental (carga)"
         data={() => ({
           etiqueta: 'Cifras de la selección',
@@ -286,15 +288,15 @@ export function RailExplorer({ board }: { board: RailBoard }) {
           ))}
         </div>
         <p className="panel-note">
-          La Red Andina y la Oriental no se tocan; el tren metropolitano de Cochabamba es de trocha
-          estándar.
+          La Red Andina y la Oriental no están conectadas entre sí. El tren metropolitano de
+          Cochabamba es de trocha estándar.
         </p>
       </Panel>
 
       <div className="workspace">
         <aside className="rail">
           <FilterHint>
-            La cifra de cada opción son los km que quedan con los demás filtros puestos.
+            La cifra de cada opción indica los km que quedan con los demás filtros aplicados.
           </FilterHint>
           <FilterGroup
             title="Departamento"
@@ -416,7 +418,7 @@ export function RailExplorer({ board }: { board: RailBoard }) {
               ]}
               pointLabel="Estación o apeadero"
               ariaLabel="Red ferroviaria de Bolivia"
-              foot="Pasa el cursor por una vía o una estación para ver qué es; haz clic en una vía para aislar su línea."
+              foot="Al pasar el cursor sobre una vía o una estación se muestra su ficha; al hacer clic en una vía, se aísla su línea."
             />
           </Panel>
 
@@ -424,7 +426,7 @@ export function RailExplorer({ board }: { board: RailBoard }) {
             id="lineas-ferroviarias"
             className="transp"
             title={`Km por línea ferroviaria, ${where} (km)`}
-            lede="El nombre de la línea es el que le da OpenStreetMap a su relación de ruta o a la vía. Toca una línea para aislarla en el mapa."
+            lede="El nombre de cada línea es el que OpenStreetMap asigna a su ruta o a la vía. Las barras muestran el total y la parte en servicio."
             meta={`${km(rows.length)} líneas · ${km(rows.reduce((sum, row) => sum + row.km, 0))} km`}
             source="OpenStreetMap contributors (ODbL)"
             data={() => ({
@@ -449,7 +451,7 @@ export function RailExplorer({ board }: { board: RailBoard }) {
             })}
           >
             {rows.length === 0 ? (
-              <div className="callout">Ninguna línea coincide con el recorte y la búsqueda.</div>
+              <div className="callout">Ninguna línea coincide con los filtros y la búsqueda.</div>
             ) : (
               <ViewToggle
                 chart={
@@ -481,6 +483,7 @@ export function RailExplorer({ board }: { board: RailBoard }) {
                       ]}
                     />
                     <TopNote shown={longest.length} total={rows.length} noun="líneas" />
+                    <p className="panel-note">Al seleccionar una línea, se aísla en el mapa.</p>
                   </>
                 }
                 table={
@@ -494,8 +497,8 @@ export function RailExplorer({ board }: { board: RailBoard }) {
                             <th>Red</th>
                             <th>Estado</th>
                             <th>Departamentos</th>
-                            <th className="num">En servicio km</th>
-                            <th className="num">Total km</th>
+                            <th className="num">En servicio (km)</th>
+                            <th className="num">Total (km)</th>
                           </tr>
                         </thead>
                         <tbody>
@@ -554,7 +557,7 @@ export function RailExplorer({ board }: { board: RailBoard }) {
               role="group"
               aria-label="Vista del tráfico ferroviario"
             >
-              <span className="roads-map-tools-label">Tráfico ferroviario: ver</span>
+              <span className="roads-map-tools-label">Tráfico ferroviario</span>
               {(['anual', 'mensual'] as const).map((one) => (
                 <button
                   key={one}
@@ -595,7 +598,7 @@ export function RailExplorer({ board }: { board: RailBoard }) {
                       ? `Carga por ferrocarril, ${porAno} (toneladas)`
                       : `Pasajeros por ferrocarril, ${porAno} (personas)`
                   }
-                  lede="Sigue el filtro de red; el INE no lo da por departamento."
+                  lede={`${service === 'CARGA' ? 'Toneladas transportadas' : 'Pasajeros transportados'} por la Red Andina y la Oriental. La serie responde al filtro de red; el INE no la desglosa por departamento.`}
                   source="Instituto Nacional de Estadística, con datos de la Empresa Ferroviaria Andina y la Oriental"
                 >
                   {chart.data.length > 1 ? (
@@ -613,7 +616,7 @@ export function RailExplorer({ board }: { board: RailBoard }) {
                       }
                     />
                   ) : (
-                    <div className="callout">Sin datos del INE para la red elegida.</div>
+                    <div className="callout">El INE no publica datos para la red elegida.</div>
                   )}
                 </Panel>
               );

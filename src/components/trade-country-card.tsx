@@ -143,7 +143,11 @@ export function TradeCountryCard({
 
   const loading = sold.loading || bought.loading || exportRank.loading || importRank.loading;
   if (sold.failed && bought.failed) {
-    return <div className="callout">No se pudo leer la ficha de {name}. El mapa sigue al día.</div>;
+    return (
+      <div className="callout">
+        No se pudo leer la ficha de {name}. Recargar la página o volver en unos minutos.
+      </div>
+    );
   }
 
   const exported = standingOf(exportRank.views?.pais, countries);
@@ -157,13 +161,13 @@ export function TradeCountryCard({
   const lines: NamedLine[] = [
     {
       key: 'X',
-      label: 'Bolivia le vende (FOB)',
+      label: 'Exportaciones (valor FOB)',
       values: asYears(sold.views?.serie),
       tone: 'var(--official)',
     },
     {
       key: 'M',
-      label: 'Bolivia le compra (CIF frontera)',
+      label: 'Importaciones (valor CIF en frontera)',
       values: asYears(bought.views?.serie),
       tone: 'var(--parallel)',
     },
@@ -174,8 +178,8 @@ export function TradeCountryCard({
     <div className={loading ? 'panel-group aduana-cargando' : 'panel-group'}>
       <Panel
         id="aduana-ficha-pais"
-        title={`Bolivia y ${name}: cifras de ${to} y comercio en el tiempo (millones de USD)`}
-        lede="Cuánto fue ese comercio, qué parte del total es y si Bolivia le vende más de lo que le compra."
+        title={`Comercio de Bolivia con ${name} (millones de USD, ${from}-${to})`}
+        lede={`Exportaciones, importaciones y saldo bilateral en ${to}, su peso en el total de Bolivia y su evolución desde ${from}.`}
         source={SOURCE_ADUANA}
         data={() => ({
           etiqueta: `Cifras ${to}`,
@@ -183,19 +187,19 @@ export function TradeCountryCard({
           columnas: ['Medida', 'Valor (millones de USD)', 'Parte del total (%)', 'Puesto'],
           filas: [
             [
-              'Bolivia le vende (FOB)',
+              'Exportaciones (FOB)',
               exported?.value ? exported.value / 1_000_000 : null,
               exported?.value && exported.total ? (exported.value / exported.total) * 100 : null,
               exported?.rank ?? null,
             ],
             [
-              'Bolivia le compra (CIF en frontera)',
+              'Importaciones (CIF en frontera)',
               imported?.value ? imported.value / 1_000_000 : null,
               imported?.value && imported.total ? (imported.value / imported.total) * 100 : null,
               imported?.rank ?? null,
             ],
             [
-              'Saldo (exportación menos importación)',
+              'Saldo (exportaciones menos importaciones)',
               balance === null ? null : balance / 1_000_000,
               null,
               null,
@@ -205,7 +209,7 @@ export function TradeCountryCard({
       >
         <dl className="country-figures">
           <div>
-            <dt>Le vende</dt>
+            <dt>Exportaciones</dt>
             <dd>{exported?.value ? millions(exported.value) : 'sin exportaciones declaradas'}</dd>
             {exported?.value && exported.total ? (
               <dd className="country-aside">
@@ -215,7 +219,7 @@ export function TradeCountryCard({
             ) : null}
           </div>
           <div>
-            <dt>Le compra</dt>
+            <dt>Importaciones</dt>
             <dd>{imported?.value ? millions(imported.value) : 'sin importaciones declaradas'}</dd>
             {imported?.value && imported.total ? (
               <dd className="country-aside">
@@ -233,7 +237,7 @@ export function TradeCountryCard({
             </dd>
             <dd className="country-aside">
               {balance === null
-                ? 'Hace falta el dato de los dos flujos'
+                ? 'Requiere el dato de ambos flujos'
                 : 'Exportación FOB menos importación CIF en frontera'}
             </dd>
           </div>
@@ -251,9 +255,11 @@ export function TradeCountryCard({
         <details className="panel-note">
           <summary>Cómo leerlo</summary>
           <p>
-            La ficha cuenta el país en los años elegidos y sin los demás filtros. Las exportaciones
-            traen el departamento de origen; las importaciones por país no, porque el INE las
-            publica por partida y país o por partida y departamento, no por las tres cosas a la vez.
+            La ficha considera solo el país y los años elegidos, sin los demás filtros. Las
+            exportaciones incluyen el departamento de origen; las importaciones por país no, porque
+            el INE las publica por partida y país o por partida y departamento, nunca por las tres
+            dimensiones a la vez. FOB (libre a bordo) es el valor en el punto de embarque; CIF
+            (costo, seguro y flete) suma el transporte y el seguro hasta la frontera.
           </p>
         </details>
       </Panel>
@@ -261,16 +267,16 @@ export function TradeCountryCard({
       <div className="grid-pair">
         <Bars
           id="aduana-ficha-vende"
-          title={`Qué le vende Bolivia a ${name} (millones de USD por capítulo, ${from}-${to})`}
-          lede={`Los ${SHOWN} capítulos del arancel que más valen en esos años.`}
+          title={`Exportaciones a ${name} por capítulo del arancel (millones de USD, ${from}-${to})`}
+          lede={`Los ${SHOWN} capítulos de mayor valor en el período.`}
           legend="Valor FOB, millones de USD"
           view={sold.views?.productos}
           tone="var(--official)"
         />
         <Bars
           id="aduana-ficha-compra"
-          title={`Qué le compra Bolivia a ${name} (millones de USD por capítulo, ${from}-${to})`}
-          lede={`Los ${SHOWN} capítulos del arancel que más valen en esos años.`}
+          title={`Importaciones desde ${name} por capítulo del arancel (millones de USD, ${from}-${to})`}
+          lede={`Los ${SHOWN} capítulos de mayor valor en el período.`}
           legend="Valor CIF en frontera, millones de USD"
           view={bought.views?.productos}
           tone="var(--parallel)"
@@ -278,8 +284,8 @@ export function TradeCountryCard({
       </div>
       <Bars
         id="aduana-ficha-deptos"
-        title={`De qué departamentos sale lo que Bolivia le vende (millones de USD, ${from}-${to})`}
-        lede={`Los ${SHOWN} departamentos de origen que más valen en esos años.`}
+        title={`Exportaciones a ${name} por departamento de origen (millones de USD, ${from}-${to})`}
+        lede={`Los ${SHOWN} departamentos de origen de mayor valor en el período.`}
         legend="Valor FOB, millones de USD"
         view={sold.views?.deptos}
         tone="var(--official)"

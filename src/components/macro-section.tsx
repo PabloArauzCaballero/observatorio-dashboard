@@ -62,13 +62,13 @@ export function MacroSection() {
       <TabHeader
         id="macroeconomia"
         title="Macroeconomía"
-        lede="Las series anuales de Bolivia, su comparación con el mundo y su comercio exterior. Cada cifra dice quién la publica; lo que calcula el Observatorio se dice aparte."
+        lede="Las series anuales de Bolivia, su comparación con el mundo y su comercio exterior. Cada cifra indica quién la publica; los cálculos de DatosBolivia se señalan aparte."
       />
       <SubSections
         enlace
         labels={[
           'Series de Bolivia',
-          'Social Info',
+          'Indicadores sociales',
           'Bolivia ante el mundo',
           'Variables exógenas',
           'Series del BCB',

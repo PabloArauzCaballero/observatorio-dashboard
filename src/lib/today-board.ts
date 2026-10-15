@@ -115,9 +115,9 @@ const signedPct = (value: number, decimals = 1): string =>
 function usd(value: number): string {
   const millions = value / 1_000_000;
   if (Math.abs(millions) >= 1000) {
-    return `${num(millions / 1000, { minimumFractionDigits: 1, maximumFractionDigits: 1 })} mil M`;
+    return `${num(millions / 1000, { minimumFractionDigits: 1, maximumFractionDigits: 1 })} mil millones`;
   }
-  return `${num(millions, { minimumFractionDigits: 0, maximumFractionDigits: 0 })} M`;
+  return `${num(millions, { minimumFractionDigits: 0, maximumFractionDigits: 0 })} millones`;
 }
 
 /** El ultimo valor publicado de un indicador, y su historia para la chispa. */
@@ -319,10 +319,10 @@ export function buildTodayBoard({
       verdict: judge(lastGap.gapPercent, 2, 10, 'low'),
       reading:
         lastGap.gapPercent <= 2
-          ? 'El tipo oficial y el paralelo están prácticamente en el mismo precio.'
+          ? 'El dólar oficial y el paralelo cotizan prácticamente al mismo precio.'
           : lastGap.gapPercent < 10
-            ? 'Hay dos precios del dólar, y la diferencia entre ellos ya no cabe en el costo de cambiarlo.'
-            : 'El tipo de cambio oficial no es el precio al que se consigue el dólar.',
+            ? 'El dólar tiene dos precios: la diferencia entre el oficial y el paralelo ya supera el costo de cambiar moneda.'
+            : 'La brecha supera el 10 %: el dólar no se consigue al tipo de cambio oficial.',
       value: signedPct(lastGap.gapPercent, 2),
       unit: 'sobre el oficial',
       measure: 'Brecha entre el dólar oficial y el paralelo',
@@ -330,13 +330,13 @@ export function buildTodayBoard({
       lag: 0,
       rule: 'Umbrales: hasta 2 % favorable, hasta 10 % vigilar, por encima adverso. El 2 % es el orden del costo de cambiar moneda: por debajo de ahí las dos cotizaciones son la misma. Por encima del 10 % el tipo oficial deja de describir el mercado.',
       facts: [
-        { label: 'Oficial', value: num(lastGap.official, { minimumFractionDigits: 2, maximumFractionDigits: 2 }), meta: 'Bs/USD' },
-        { label: 'Paralelo', value: num(lastGap.parallelMid, { minimumFractionDigits: 2, maximumFractionDigits: 2 }), meta: 'punto medio, Bs/USD' },
+        { label: 'Oficial', value: num(lastGap.official, { minimumFractionDigits: 2, maximumFractionDigits: 2 }), meta: 'Bs por USD' },
+        { label: 'Paralelo', value: num(lastGap.parallelMid, { minimumFractionDigits: 2, maximumFractionDigits: 2 }), meta: 'punto medio, Bs por USD' },
         ...(move !== null
           ? [
               {
                 label: 'En 30 días',
-                value: `${move > 0 ? '+' : ''}${num(move, { minimumFractionDigits: 1, maximumFractionDigits: 1 })} pts`,
+                value: `${move > 0 ? '+' : ''}${num(move, { minimumFractionDigits: 1, maximumFractionDigits: 1 })} p. p.`,
                 meta: `desde el ${monthAgo?.date ?? '—'}`,
               },
             ]
@@ -368,10 +368,10 @@ export function buildTodayBoard({
       verdict: withLag(judge(inflation.value, 5, 10, 'low'), lag),
       reading:
         inflation.value >= 10
-          ? 'La inflación es de dos dígitos por primera vez en dos décadas; el interés real es negativo, así que ahorrar en bolivianos pierde poder de compra.'
+          ? 'La inflación anual llega a dos dígitos, el doble o más del techo de 5 % que Bolivia sostuvo entre 2012 y 2023. Con un interés real negativo, el ahorro en bolivianos pierde poder de compra.'
           : inflation.value > 5
-            ? 'La inflación se salió del rango en que estuvo una década, sin llegar a dos dígitos.'
-            : 'Los precios crecen dentro del rango en que Bolivia los mantuvo durante una década.',
+            ? 'La inflación supera el 5 %, techo del rango en que Bolivia la mantuvo una década, sin llegar a dos dígitos.'
+            : 'La inflación se mantiene dentro del rango de hasta 5 % que Bolivia sostuvo entre 2012 y 2023.',
       value: pct(inflation.value),
       unit: 'anual',
       measure: 'Inflación al consumidor',
@@ -412,19 +412,19 @@ export function buildTodayBoard({
       verdict: withLag(judge(months.value, 3, 1, 'high'), lag),
       reading:
         months.value < 1
-          ? 'Las reservas no cubren un mes de importaciones. Es la restricción que está detrás de la escasez de dólares y de combustible.'
+          ? 'Las reservas no cubren un mes de importaciones. La escasez de dólares y de combustible coincide con esa restricción.'
           : months.value < 3
-            ? 'Las reservas cubren menos de los tres meses de importaciones que se consideran suficientes.'
-            : 'Las reservas cubren el colchón de importaciones que se considera suficiente.',
+            ? 'Las reservas cubren menos de tres meses de importaciones, el mínimo de uso corriente.'
+            : 'Las reservas cubren tres meses de importaciones o más, el mínimo de uso corriente.',
       value: num(months.value, { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
       unit: 'meses de importación',
-      measure: 'Reservas internacionales, medidas en importaciones que cubren',
+      measure: 'Reservas internacionales en meses de importación',
       asOf: months.period,
       lag,
-      rule: 'Umbrales: 3 meses o más favorable, entre 1 y 3 vigilar, menos de 1 adverso. Tres meses de importaciones es la regla de adecuación de reservas de uso corriente.',
+      rule: 'Umbrales: 3 meses o más favorable, entre 1 y 3 vigilar, menos de 1 adverso. Tres meses de importaciones es la regla de suficiencia de reservas de uso corriente.',
       facts: [
         ...(reserves
-          ? [{ label: 'Reservas', value: `${usd(reserves.value)} USD`, meta: reserves.period }]
+          ? [{ label: 'Reservas', value: `USD ${usd(reserves.value)}`, meta: reserves.period }]
           : []),
         ...(months.peak
           ? [
@@ -439,7 +439,7 @@ export function buildTodayBoard({
           ? [{ label: 'Cuenta corriente', value: signedPct(current.value), meta: `del PIB, ${current.period}` }]
           : []),
         ...(fdi
-          ? [{ label: 'Inversión extranjera', value: `${usd(fdi.value)} USD`, meta: fdi.period }]
+          ? [{ label: 'Inversión extranjera', value: `USD ${usd(fdi.value)}`, meta: fdi.period }]
           : []),
       ],
       spark: months.history,
@@ -471,16 +471,16 @@ export function buildTodayBoard({
       verdict: withLag(judge(ofPeak, 75, 50, 'high'), lag),
       reading:
         ofPeak < 50
-          ? `El gas dejó de ser lo que Bolivia vende: era el ${pct(fuelPeak.value, 1)} de las exportaciones en ${fuelPeak.period} y hoy es menos de la mitad de eso. Con él se fueron los dólares que sostenían el tipo de cambio.`
+          ? `El combustible, ${pct(fuelPeak.value, 1)} de las exportaciones en ${fuelPeak.period}, pesa hoy menos de la mitad de esa proporción. Con esa caída se redujo la principal fuente de los dólares que sostenían el tipo de cambio.`
           : ofPeak < 75
-            ? 'La exportación de combustible perdió peso frente a su máximo, sin llegar a la mitad.'
-            : 'El combustible sigue pesando en las exportaciones lo que pesaba en su mejor año.',
+            ? `El combustible perdió peso en las exportaciones frente a su máximo desde ${GAS_ERA}, sin caer a la mitad.`
+            : `El combustible conserva al menos tres cuartas partes del peso que alcanzó en las exportaciones desde ${GAS_ERA}.`,
       value: pct(fuelShare.value),
       unit: 'de lo exportado',
       measure: 'Combustible como parte de las exportaciones',
       asOf: fuelShare.period,
       lag,
-      rule: `Umbrales medidos contra el máximo de la propia serie desde ${GAS_ERA} (${pct(fuelPeak.value, 1)} en ${fuelPeak.period}): 75 % de ese máximo o más favorable, entre 50 % y 75 % vigilar, por debajo de la mitad adverso. Se mide contra su historia y no contra un nivel absoluto porque lo que importa aquí no es cuánto combustible exporta un país, sino que Bolivia construyó sus cuentas externas sobre el que exportaba.`,
+      rule: `Umbrales medidos contra el máximo de la propia serie desde ${GAS_ERA} (${pct(fuelPeak.value, 1)} en ${fuelPeak.period}): 75 % de ese máximo o más favorable, entre 50 % y 75 % vigilar, por debajo de la mitad adverso. Se mide contra su historia y no contra un nivel absoluto porque la cuestión no es cuánto combustible exporta un país, sino que Bolivia construyó sus cuentas externas sobre esa exportación.`,
       facts: [
         {
           label: 'Frente a su máximo',
@@ -535,10 +535,10 @@ export function buildTodayBoard({
       verdict: withLag(judge(ruleOfLaw.value, 0.5, 0.35, 'high'), lag),
       reading:
         ruleOfLaw.value < 0.35
-          ? 'El estado de derecho medido por V-Dem lleva cuatro años cayendo. Para un inversor externo, eso es la fuerza con que se hace cumplir un contrato.'
+          ? 'El índice de estado de derecho de V-Dem cae por debajo de 0,35 en su escala de 0 a 1. Para un inversor externo, mide la fuerza con que se hacen cumplir los contratos.'
           : ruleOfLaw.value < 0.5
-            ? 'El estado de derecho se sostiene por debajo del punto medio de la escala.'
-            : 'El estado de derecho se mantiene en la mitad alta de la escala.',
+            ? 'El índice de estado de derecho de V-Dem se ubica por debajo del punto medio de su escala.'
+            : 'El índice de estado de derecho de V-Dem se mantiene en la mitad superior de su escala.',
       value: num(ruleOfLaw.value, { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
       unit: 'de 0 a 1',
       measure: 'Índice de estado de derecho (V-Dem)',

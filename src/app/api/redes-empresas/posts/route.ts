@@ -25,7 +25,7 @@ export async function POST(request: Request): Promise<Response> {
   } catch (error) {
     console.error('[observatorio] posts de redes de empresas ilegibles', error);
     return Response.json(
-      { error: 'No se pudieron leer los posts de las redes de las empresas' },
+      { error: 'No se pudieron leer las publicaciones de las redes de las empresas' },
       { status: isUnaffordableRead(error) ? 503 : 500 },
     );
   }

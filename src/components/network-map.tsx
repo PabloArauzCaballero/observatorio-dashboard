@@ -333,7 +333,7 @@ export function NetworkMap({
                   <strong>{value}</strong>
                 </div>
               ))}
-              {hoveredLine?.line.pick ? <div className="t-note">Clic para aislarla.</div> : null}
+              {hoveredLine?.line.pick ? <div className="t-note">Un clic la aísla en el mapa.</div> : null}
             </div>
           </div>
         ) : null}

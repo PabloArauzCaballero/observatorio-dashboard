@@ -9,7 +9,7 @@
  * Puro, como `alcance.ts`, para poder probarlo sin levantar nada.
  */
 
-export const GUIA_VERSION = 'guia-tablero-v3-2026-10-03';
+export const GUIA_VERSION = 'guia-tablero-v4-2026-10-15';
 
 /** Las ocho pestañas, con el rótulo exacto del botón. */
 export const PESTANAS = [
@@ -39,38 +39,38 @@ export const GUIA: readonly EntradaGuia[] = [
   },
   {
     pestana: 'Tipo de cambio',
-    que: 'El explorador del dólar oficial, el paralelo (compra, venta y medio) y las stablecoins USDT/USDC en bolivianos; paneles de régimen cambiario, nivel real deflactado por la UFV e inflación implícita; y el informe econométrico.',
-    como: 'Elegí el rango (desde 90 días hasta todo el histórico) y las series a mostrar. Los botones «CSV» y «JSON» bajan lo que ves. «Descargar el informe (PDF)» arma las pruebas formales (raíz unitaria, cointegración, volatilidad).',
+    que: 'El explorador del dólar oficial, el paralelo (compra, venta y punto medio) y las fichas estables USDT y USDC en bolivianos; paneles de régimen cambiario, nivel real deflactado por la UFV e inflación implícita; y el informe econométrico.',
+    como: 'Se elige el periodo (desde 90 días hasta toda la historia) y la serie medida. El menú «Descargar» de cada panel baja lo que se ve. «Descargar informe econométrico (PDF)» genera las pruebas formales (raíz unitaria, cointegración, volatilidad).',
   },
   {
     pestana: 'Macroeconomía',
-    que: 'Seis páginas: «Series de Bolivia» (indicadores anuales por rubro, con los rubros invitados «Departamentos», «Cuentas públicas» —qué cobra, gasta y debe el Estado, qué dicen las normas de cada impuesto y cuánto de un precio es impuesto—, «Energía», «Recursos naturales» y «Medio ambiente»), «Social Info» (el catálogo del Banco Mundial para Bolivia, con el invitado «Instituciones»), «Bolivia ante el mundo», «Variables exógenas» (con tres pestañas arriba: «Precios por producto», «Comparativos» y «Demanda externa y clima», series de fuentes externas con licencia y disponibilidad verificables, con su historia y descarga), «Series del BCB» y «Comercio exterior» (con una pestaña por fuente: «Resumen: Comtrade e INE», con socios, productos, departamentos y principales exportadoras, y «Detalle aduanero (INE)»).',
-    como: 'Elegí la página arriba y después el rubro, indicador o filtro. El control «Desde» recorta los años. Los exploradores que ofrecen «Descargar análisis (PDF)» incluyen distribución y atípicos; las descargas disponibles se indican en cada tabla. En «Variables exógenas», «Precios por producto» es el explorador de precios, «Comparativos» pone dos precios frente a frente —el de Bolivia contra su referencia mundial, lo exportado contra su cotización— con su cambio y su correlación, y «Demanda externa y clima» muestra el crecimiento de los socios y el índice ONI.',
+    que: 'Seis páginas: «Series de Bolivia» (indicadores anuales por rubro, con los rubros invitados «Departamentos», «Cuentas públicas» —qué cobra, gasta y debe el Estado, qué dicen las normas de cada impuesto y cuánto de un precio es impuesto—, «Energía», «Recursos naturales» y «Medio ambiente»), «Indicadores sociales» (el catálogo del Banco Mundial para Bolivia, con el invitado «Instituciones»), «Bolivia ante el mundo», «Variables exógenas» (con tres pestañas arriba: «Precios por producto», «Comparativos» y «Demanda externa y clima», series de fuentes externas con licencia y disponibilidad verificables, con su historia y descarga), «Series del BCB» y «Comercio exterior» (con una pestaña por fuente: «Resumen: Comtrade e INE», con socios, productos, departamentos y principales exportadoras, y «Detalle aduanero (INE)»).',
+    como: 'Se elige la página arriba y después el rubro, el indicador o el filtro. El control «Desde» recorta los años. Los exploradores que ofrecen «Descargar análisis (PDF)» incluyen distribución y atípicos; las descargas disponibles se indican en cada tabla. En «Variables exógenas», «Precios por producto» es el explorador de precios, «Comparativos» pone dos precios frente a frente —el de Bolivia contra su referencia mundial, lo exportado contra su cotización— con su cambio y su correlación, y «Demanda externa y clima» muestra el crecimiento de los socios y el índice ONI.',
   },
   {
     pestana: 'Empresas',
-    que: 'Siete páginas: «Tejido empresarial» (cuántas empresas tiene Bolivia por tipo societario, departamento, actividad y tamaño desde 2008; cierres por cancelación de matrícula; y el directorio nominal disponible con nube de palabras y Excel), «Principales empresas» (el ránking anual de las que más impuestos pagan y de «Las 500» por ingresos, utilidad, activos y patrimonio), «Empresarios» (las fortunas que publica Forbes y la estimación del observatorio por participaciones en empresas, siempre rotulada como cota inferior), «Bolsa de valores (BBV)» con los hechos relevantes que publican los emisores, «Reputación empresarial» (las ediciones del monitor Merco), «Redes sociales» (seguidores, interacción, sentimiento de los comentarios y palabras más repetidas de las cuentas oficiales de esas empresas) y «Ventas en vivo» (los lives de venta de TikTok observados en Bolivia: qué se vende, a qué precio, qué pide el chat y con qué ánimo, semana a semana).',
-    como: 'En «Tejido empresarial» elegís la medida, el lugar (también tocando el mapa), la dimensión, las categorías y los años, y todo se cruza. El directorio se busca por nombre, departamento, municipio o palabra; «Excel» descarga todas las coincidencias, no sólo la página visible. En «Principales empresas» elegís la vara, el año, el departamento y el sector, y tocar una empresa abre su ficha. En la Bolsa podés filtrar por empresa, sector y categoría y bajar la selección en CSV o JSON. En «Redes sociales» filtrás por red, sector, tono y empresa; tocar una empresa de la tabla la aísla en los gráficos. En «Ventas en vivo» filtrás por rubro, departamento, audiencia, franja horaria, día y fechas, y tocar una barra de rubro recorta toda la página.',
+    que: 'Siete páginas: «Tejido empresarial» (cuántas empresas tiene Bolivia por tipo societario, departamento, actividad y tamaño desde 2008; cierres por cancelación de matrícula; y el directorio nominal disponible con nube de palabras y Excel), «Principales empresas» (el ránking anual de las que más impuestos pagan y de «Las 500» por ingresos, utilidad, activos y patrimonio), «Empresarios» (las fortunas que publica Forbes y la estimación de DatosBolivia.com por participaciones en empresas, siempre rotulada como cota inferior), «Bolsa de valores (BBV)» con los hechos relevantes que publican los emisores, «Reputación empresarial» (las ediciones del monitor Merco), «Redes sociales» (seguidores, interacción, sentimiento de los comentarios y palabras más repetidas de las cuentas oficiales de esas empresas) y «Ventas en vivo» (los lives de venta de TikTok observados en Bolivia: qué se vende, a qué precio, qué pide el chat y con qué ánimo, semana a semana).',
+    como: 'En «Tejido empresarial» se elige la medida, el lugar (también desde el mapa), la dimensión, las categorías y los años, y todo se cruza. El directorio se busca por nombre, departamento, municipio o palabra; «Excel» descarga todas las coincidencias, no solo la página visible. En «Principales empresas» se elige la medida, el año, el departamento y el sector; al seleccionar una empresa se abre su ficha. En la Bolsa se filtra por empresa, sector y categoría y la selección se descarga en CSV o JSON. En «Redes sociales» se filtra por red, sector, tono y empresa; al seleccionar una empresa de la tabla se aísla en los gráficos. En «Ventas en vivo» se filtra por rubro, departamento, audiencia, franja horaria, día y fechas; al seleccionar una barra de rubro se recorta toda la página.',
   },
   {
     pestana: 'Ciudades',
     que: 'Los lugares y negocios mapeados por ciudad y por familia (comercios, restaurantes, salud, educación, etc.), en mapa y en tabla.',
-    como: 'Elegí la ciudad y la familia; la tabla y el mapa se filtran juntos y la selección se baja en CSV o JSON.',
+    como: 'Se elige la ciudad y la familia; la tabla y el mapa se filtran juntos y la selección se descarga en CSV o JSON.',
   },
   {
     pestana: 'Transporte',
     que: 'Cuatro páginas, cada una con sus pestañas: «Parque y mercado» (Automotor: parque 2003–2025, servicio, clase, capacidad y GNV; Vehículos 0 km; Estudio automotor), «Combustible y pasajes» (Carburantes, Pasajes con los tarifarios ATT de 2013 y 2025 por ruta y tipo de asiento, y Tarifas publicadas), «Infraestructura» (Carreteras, Ferrocarriles, Ríos y puertos) y «Fletes» (histórico boliviano de aduana, índices internacionales y referencias nacionales documentadas).',
-    como: 'En «Combustible y pasajes › Pasajes» elegí el tarifario y buscá origen o destino. En «Fletes» la vista inicial muestra el histórico boliviano; los filtros permiten comparar otras familias sin mezclar unidades. En las pestañas de infraestructura filtrá por departamento y red.',
+    como: 'En «Combustible y pasajes › Pasajes» se elige el tarifario y se busca el origen o el destino. En «Fletes» la vista inicial muestra el histórico boliviano; los filtros permiten comparar otras familias sin mezclar unidades. En las pestañas de infraestructura se filtra por departamento y red.',
   },
   {
     pestana: 'Prensa',
     que: 'Dos páginas: «Cobertura» (el archivo de noticias desde 2020 con su tema, tono y región) y «Temas» (cuánto se habla de cada término mes a mes).',
-    como: 'En «Cobertura» filtrá por año, tono, tema, región, medio o término, o buscá una palabra; los conteos y las notas cambian juntos. El tema y el tono se derivan del titular: no los publica el medio.',
+    como: 'En «Cobertura» se filtra por año, tono, tema, región, medio o término, o se busca una palabra; los conteos y las notas cambian juntos. El tema y el tono se derivan del titular: no los publica el medio.',
   },
   {
     pestana: 'Método',
     que: 'De dónde sale cada cifra: fuente, enlace y notas metodológicas.',
-    como: 'Consultala cuando quieras saber quién publica un dato o cada cuánto se actualiza. El dólar y la prensa se recogen tres veces al día; los indicadores anuales, cuando la fuente publica.',
+    como: 'Se consulta para saber quién publica un dato o cada cuánto se actualiza. El dólar y la prensa se recogen tres veces al día; los indicadores anuales, cuando la fuente publica.',
   },
 ];
 
@@ -114,7 +114,7 @@ export const DESTINO_DE_PAQUETE: Record<string, Destino> = {
   MACRO: { pestana: 'Macroeconomía', pagina: 'Series de Bolivia' },
   DEPTO: { pestana: 'Macroeconomía', pagina: 'Series de Bolivia' },
   DEPTOS: { pestana: 'Macroeconomía', pagina: 'Series de Bolivia' },
-  POLITICA: { pestana: 'Macroeconomía', pagina: 'Social Info' },
+  POLITICA: { pestana: 'Macroeconomía', pagina: 'Indicadores sociales' },
   ENERGIA: { pestana: 'Macroeconomía', pagina: 'Series de Bolivia' },
   RECURSOS: { pestana: 'Macroeconomía', pagina: 'Series de Bolivia' },
   AMBIENTE: { pestana: 'Macroeconomía', pagina: 'Series de Bolivia' },
@@ -161,7 +161,7 @@ export const RUTA_DE_PAQUETE: Record<string, string> = {
   DEPTO: '«Macroeconomía» › «Series de Bolivia» › rubro «Departamentos»',
   DEPTOS: '«Macroeconomía» › «Series de Bolivia» › rubro «Departamentos»',
   POLITICA:
-    '«Macroeconomía» › «Social Info» › «Instituciones», y «Prensa» filtrando el tema «Política y Estado»',
+    '«Macroeconomía» › «Indicadores sociales» › «Instituciones», y «Prensa» filtrando el tema «Política y Estado»',
   ENERGIA: '«Macroeconomía» › «Series de Bolivia» › rubro «Energía»',
   RECURSOS: '«Macroeconomía» › «Series de Bolivia» › rubro «Recursos naturales»',
   AMBIENTE: '«Macroeconomía» › «Series de Bolivia» › rubro «Medio ambiente»',

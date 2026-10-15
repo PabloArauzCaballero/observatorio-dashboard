@@ -25,8 +25,8 @@ export type InstitutionGroup = 'ECONOMICA' | 'POLITICA' | 'DEMOCRACIA' | 'GOBERN
 export const INSTITUTION_GROUP_LABEL: Record<InstitutionGroup, string> = {
   ECONOMICA: 'Libertad económica',
   POLITICA: 'Libertad política',
-  DEMOCRACIA: 'Anatomía de la democracia',
-  GOBERNANZA: 'Cómo funciona el Estado',
+  DEMOCRACIA: 'Calidad de la democracia',
+  GOBERNANZA: 'Gobernanza',
 };
 
 export interface InstitutionIndicator {
@@ -69,7 +69,7 @@ export const INSTITUTION_INDICATORS: readonly InstitutionIndicator[] = [
     higherIsBetter: true,
     decimals: 2,
     publisher: FRASER,
-    what: 'Gasto, transferencias, empresas públicas e impuestos: más alto es un Estado que ocupa menos espacio.',
+    what: 'Gasto, transferencias, empresas públicas e impuestos. Un valor más alto indica un Estado de menor tamaño.',
   },
   {
     code: 'EFW_LEGAL_SYSTEM_PROPERTY_RIGHTS',
@@ -117,7 +117,7 @@ export const INSTITUTION_INDICATORS: readonly InstitutionIndicator[] = [
   },
   {
     code: 'FH_TOTAL_SCORE',
-    label: 'Libertad en el mundo, total',
+    label: 'Puntaje total de Freedom House',
     group: 'POLITICA',
     min: 0,
     max: 100,
@@ -179,7 +179,7 @@ export const INSTITUTION_INDICATORS: readonly InstitutionIndicator[] = [
     higherIsBetter: true,
     decimals: 0,
     publisher: FREEDOM_HOUSE,
-    what: 'Si los electos deciden de verdad, si hay controles a la corrupción y si el gobierno rinde cuentas.',
+    what: 'Si las autoridades electas deciden efectivamente, si hay controles a la corrupción y si el gobierno rinde cuentas.',
   },
   {
     code: 'FH_EXPRESSION_BELIEF_SCORE',
@@ -344,7 +344,7 @@ export const INSTITUTION_INDICATORS: readonly InstitutionIndicator[] = [
     higherIsBetter: false,
     decimals: 3,
     publisher: VDEM,
-    what: 'Corrupción en el Ejecutivo, el Legislativo, el Judicial y la administración. Aquí más alto es peor.',
+    what: 'Corrupción en el Ejecutivo, el Legislativo, el Judicial y la administración. En este índice, un valor más alto indica más corrupción.',
   },
   {
     code: 'POLITICAL_REGIME_CLASSIFICATION',
@@ -355,7 +355,7 @@ export const INSTITUTION_INDICATORS: readonly InstitutionIndicator[] = [
     higherIsBetter: true,
     decimals: 0,
     publisher: VDEM,
-    what: '0 autocracia cerrada, 1 autocracia electoral, 2 democracia electoral, 3 democracia liberal.',
+    what: '0: autocracia cerrada; 1: autocracia electoral; 2: democracia electoral; 3: democracia liberal.',
   },
   {
     code: 'RULE_OF_LAW_SCORE',
@@ -392,7 +392,7 @@ export const INSTITUTION_INDICATORS: readonly InstitutionIndicator[] = [
   },
   {
     code: 'GOVERNMENT_EFFECTIVENESS_SCORE',
-    label: 'Efectividad gubernamental',
+    label: 'Efectividad del gobierno',
     group: 'GOBERNANZA',
     min: -2.5,
     max: 2.5,
@@ -432,7 +432,7 @@ export const INSTITUTION_INDICATORS: readonly InstitutionIndicator[] = [
     higherIsBetter: true,
     decimals: 0,
     publisher: 'Transparency International',
-    what: 'Cómo perciben la corrupción del sector público expertos y empresarios. 100 es el más limpio.',
+    what: 'Percepción de la corrupción del sector público entre expertos y empresarios. 100 indica la menor corrupción percibida.',
   },
   {
     code: 'STATE_CAPACITY_INDEX',
@@ -536,13 +536,13 @@ function economicConclusion(series: InstitutionsBoard['series']): FxConclusion |
     key: 'libertad-economica',
     claim:
       weakest && weakest.reading.value < 5
-        ? `La libertad económica está a medias, y lo que la hunde es ${weakest.label.toLocaleLowerCase('es')}`
+        ? `La libertad económica está en la mitad de la escala, y el área más baja es ${weakest.label.toLocaleLowerCase('es')}`
         : 'La libertad económica está en la mitad de la escala',
     figure: `${say(summary.value)} / 10`,
     detail:
       `Índice de libertad económica del Fraser Institute en ${summary.year}` +
       (peak && peak.year !== summary.year
-        ? `, contra un máximo de ${say(peak.value)} en ${peak.year}`
+        ? `, frente a un máximo de ${say(peak.value)} en ${peak.year}`
         : '') +
       (decade ? `; diez años antes, en ${decade.year}, era ${say(decade.value)}` : '') +
       `.` +
@@ -673,15 +673,15 @@ function democracyConclusion(series: InstitutionsBoard['series']): FxConclusion 
     key: 'democracia',
     claim:
       electoral && electoral.value - liberal.value > 0.15
-        ? 'Las elecciones valen más que los contrapesos'
+        ? 'La dimensión electoral puntúa más que los contrapesos'
         : 'Democracia liberal según V-Dem',
     figure: `${say(liberal.value, 3)} / 1`,
     detail:
       `Índice de democracia liberal en ${liberal.year}` +
       (peak && peak.year !== liberal.year
-        ? `, contra un máximo de ${say(peak.value, 3)} en ${peak.year} desde la vuelta a las urnas en 1982`
+        ? `, frente a un máximo de ${say(peak.value, 3)} en ${peak.year} desde el retorno a la democracia en 1982`
         : '') +
-      (electoral ? `. La parte electoral sola da ${say(electoral.value, 3)}` : '') +
+      (electoral ? `. El índice de democracia electoral es ${say(electoral.value, 3)}` : '') +
       (weakest
         ? `; el componente más bajo es ${weakest.label.toLocaleLowerCase('es')}, ${say(weakest.reading.value, 3)}` +
           (components.length > 1
@@ -714,7 +714,7 @@ function regimeConclusion(series: InstitutionsBoard['series']): FxConclusion | n
       (previous
         ? `. En ${previous.year} estaba clasificado como ${REGIME_LABEL[previous.value] ?? previous.value}.`
         : '.') +
-      ' La escala va de autocracia cerrada a democracia liberal; el paso de una a otra lo dan las elecciones y los contrapesos, no el discurso.',
+      ' La escala va de autocracia cerrada a democracia liberal; la clasificación depende de las elecciones y de los contrapesos institucionales.',
     tone: latest.value >= 2 ? 'neutral' : 'adverse',
   };
 }
@@ -739,9 +739,9 @@ function ruleOfLawConclusion(series: InstitutionsBoard['series']): FxConclusion 
       `media mundial (cero)` +
       (before ? `; en ${before.year} era ${say(before.value)}` : '') +
       `.` +
-      (vdem ? ` V-Dem da ${say(vdem.value, 3)} sobre 1 en ${vdem.year}.` : '') +
+      (vdem ? ` El índice de V-Dem es ${say(vdem.value, 3)} sobre 1 en ${vdem.year}.` : '') +
       (corruption
-        ? ` La percepción de corrupción de Transparency International: ${say(corruption.value, 0)} sobre 100 en ${corruption.year}.`
+        ? ` El índice de percepción de la corrupción de Transparency International es ${say(corruption.value, 0)} sobre 100 en ${corruption.year}.`
         : ''),
     tone: wgi.value < -0.5 ? 'adverse' : 'neutral',
   };
@@ -769,7 +769,7 @@ function governanceConclusion(series: InstitutionsBoard['series']): FxConclusion
       dimensions
         .map((item) => `${item.entry.label.toLocaleLowerCase('es')} ${say(item.reading.value)}`)
         .join(', ') +
-      `. Lo que más falla es ${weakest.entry.label.toLocaleLowerCase('es')}; lo que mejor está, ` +
+      `. La dimensión más baja es ${weakest.entry.label.toLocaleLowerCase('es')}; la más alta, ` +
       `${strongest.entry.label.toLocaleLowerCase('es')}.`,
     tone: below >= dimensions.length - 1 ? 'adverse' : 'neutral',
   };

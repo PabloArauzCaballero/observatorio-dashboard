@@ -191,9 +191,9 @@ export function AccountsPanorama({ accounts }: { accounts: AccountsPayload }) {
       <header className="page-intro">
         <h3 className="page-intro-title">El Estado en cifras: cuánto entra, cuánto sale</h3>
         <p className="page-intro-lede">
-          Las cuentas del sector público no financiero que publica el Ministerio de Economía: lo que
-          el Estado cobra y vende, lo que gasta y la diferencia que se financia con deuda. Elegí qué
-          parte del Estado mirar y en qué unidad.
+          Las cuentas del sector público no financiero que publica el Ministerio de Economía y
+          Finanzas Públicas: lo que el Estado cobra y vende, lo que gasta y la diferencia que se
+          financia con deuda.
         </p>
       </header>
 
@@ -209,7 +209,7 @@ export function AccountsPanorama({ accounts }: { accounts: AccountsPayload }) {
       <div className="page-filters" role="group" aria-label="Filtros de las cuentas del Estado">
         <div className="slicer-row">
           <ChipPicker
-            label="Qué parte del Estado"
+            label="Perímetro del Estado"
             options={PERIMETERS.map((one) => ({ key: one.key, label: one.label, hint: one.hint }))}
             value={perimeter}
             onChange={setPerimeter}
@@ -290,7 +290,7 @@ export function AccountsPanorama({ accounts }: { accounts: AccountsPayload }) {
         <Panel
           id="cuentas-ingresos-gasto"
           title={`Ingresos, gasto y resultado (${unitName})`}
-          lede="Año por año, años cerrados. Donde la línea del gasto queda por encima de la de ingresos, la diferencia es el déficit de ese año."
+          lede="Solo años cerrados. Cuando la línea del gasto queda por encima de la de ingresos, la distancia entre ambas es el déficit del año."
           source={SOURCE.ministry}
         >
           {lines.length > 1 ? (
@@ -310,8 +310,8 @@ export function AccountsPanorama({ accounts }: { accounts: AccountsPayload }) {
         </Panel>
         <Panel
           id="cuentas-ingresos-partes"
-          title={`De qué están hechos los ingresos (${unitName})`}
-          lede="Impuestos, regalías, venta de hidrocarburos por las empresas públicas y el resto. Cuando el gas deja de venderse, la barra de «Venta de hidrocarburos» se achica."
+          title={`Composición de los ingresos (${unitName})`}
+          lede="Impuestos, Impuesto Directo a los Hidrocarburos (IDH) y regalías, venta de hidrocarburos de las empresas públicas y resto de ingresos. La parte de «Venta de hidrocarburos» se reduce cuando caen las ventas de gas."
           source={SOURCE.ministry}
         >
           <StackedYearBars
@@ -325,8 +325,8 @@ export function AccountsPanorama({ accounts }: { accounts: AccountsPayload }) {
         </Panel>
         <Panel
           id="cuentas-gasto-partes"
-          title={`En qué se gasta (${unitName})`}
-          lede="Sueldos, compras, intereses, transferencias —donde están las subvenciones a los combustibles— e inversión. Los intereses crecen cuando la deuda crece."
+          title={`Composición del gasto (${unitName})`}
+          lede="Sueldos y salarios, bienes y servicios, intereses de la deuda, transferencias —que incluyen las subvenciones a los combustibles— e inversión."
           source={SOURCE.ministry}
         >
           <StackedYearBars
@@ -343,11 +343,11 @@ export function AccountsPanorama({ accounts }: { accounts: AccountsPayload }) {
       <div className="callout">
         <Icon name="info" size={14} /> <b>Por qué hay más de una cifra de déficit.</b> El Ministerio
         informó para 2025 un déficit de 12,2 % del PIB en su Rendición Pública de Cuentas, con un
-        PIB estimado de unos Bs 375.000 millones. Este capítulo divide el mismo déficit por el PIB
-        nominal del Banco Mundial, que es mayor, y da una proporción menor. El FMI publica además un
-        resultado del gobierno general (rubro «Fiscal» de «Series de Bolivia») con otro perímetro y
-        otra fecha de estimación. Las tres cifras son ciertas para lo que miden; no son comparables
-        entre sí.{' '}
+        PIB estimado de unos Bs 375.000 millones. Esta sección divide el mismo déficit por el PIB
+        nominal del Banco Mundial, que es mayor, y obtiene una proporción menor. El FMI publica
+        además un resultado del gobierno general (rubro «Fiscal» de «Series de Bolivia») con otro
+        perímetro y otra fecha de estimación. Cada cifra es correcta para su perímetro y su PIB; no
+        son comparables entre sí.{' '}
         <a
           className="callout-link"
           href="https://www.economiayfinanzas.gob.bo/transparencia-rendiciones-de-cuentas"

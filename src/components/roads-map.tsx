@@ -865,11 +865,11 @@ export function RoadsMap({
         {urban.active ? (
           <div className="roads-map-urban-note" role="status" aria-live="polite">
             {urban.failed
-              ? 'No se pudieron leer las calles'
+              ? 'No se pudieron cargar las calles'
               : urban.loading && !urban.ways.length
-                ? 'Leyendo las calles…'
+                ? 'Cargando las calles…'
                 : urban.ways.length
-                  ? `${urban.ways.length.toLocaleString('es-BO')} calles a la vista${urban.truncated ? ' (acerca más para ver todas)' : ''}`
+                  ? `${urban.ways.length.toLocaleString('es-BO')} calles a la vista${urban.truncated ? ' (con más acercamiento se ven todas)' : ''}`
                   : 'Sin calles de ciudad en esta vista'}
           </div>
         ) : null}
@@ -916,10 +916,10 @@ export function RoadsMap({
       <ChartLegend items={legendItems} />
 
       <figcaption className="roads-map-foot">
-        Rueda del ratón, pellizco o doble clic para acercar; arrastra para moverte. Pasa el cursor por
-        una vía para ver qué es y haz clic para aislar su ruta o su calle. Al acercarte a una ciudad
-        aparecen sus calles (desde ×25, en gris fino); OpenStreetMap nombra sólo una de cada cuatro.
-        La imagen que se descarga no incluye esas calles.
+        La rueda del ratón, el pellizco o el doble clic acercan el mapa; el arrastre lo desplaza. Al
+        pasar el cursor sobre una vía se muestra su ficha; al hacer clic, se aísla su ruta o su calle.
+        Las calles de cada ciudad aparecen desde un acercamiento de ×25, en gris fino; OpenStreetMap
+        nombra solo una de cada cuatro. La imagen descargable no incluye esas calles.
       </figcaption>
     </figure>
   );
@@ -986,10 +986,10 @@ function RoadCard({
         </>
       ) : null}
       {section.status === 'EN_CONSTRUCCION' ? <div className="t-note">En construcción.</div> : null}
-      {section.route ? <div className="t-note">Clic para aislar la ruta {section.route}.</div> : null}
-      {!section.route && section.name ? <div className="t-note">Clic para aislar esta calle.</div> : null}
+      {section.route ? <div className="t-note">Un clic aísla la ruta {section.route}.</div> : null}
+      {!section.route && section.name ? <div className="t-note">Un clic aísla esta calle.</div> : null}
       {!section.route && !section.name ? (
-        <div className="t-note">OpenStreetMap no le da nombre a esta vía.</div>
+        <div className="t-note">OpenStreetMap no registra el nombre de esta vía.</div>
       ) : null}
     </div>
   );
@@ -1021,9 +1021,9 @@ function UrbanCard({ item }: { item: UrbanWay }) {
         </div>
       ) : null}
       {way.name ? (
-        <div className="t-note">Clic para aislar esta calle.</div>
+        <div className="t-note">Un clic aísla esta calle.</div>
       ) : (
-        <div className="t-note">OpenStreetMap no le da nombre a esta vía.</div>
+        <div className="t-note">OpenStreetMap no registra el nombre de esta vía.</div>
       )}
     </div>
   );

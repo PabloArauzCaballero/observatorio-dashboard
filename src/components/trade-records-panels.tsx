@@ -166,7 +166,7 @@ export function RankingPanel({
     >
       <div className="fx-filters">
         {controls}
-        <div className="chart-kind" role="group" aria-label="Cómo se muestra">
+        <div className="chart-kind" role="group" aria-label="Forma de presentación">
           {(['barras', 'tabla'] as const).map((option) => (
             <button
               key={option}
@@ -243,7 +243,7 @@ export function RankingTable({
             <th className="num">Millones de USD</th>
             <th className="num">Participación</th>
             <th className="num">Millones de USD {lastYear}</th>
-            <th className="num">vs. {lastYear - 1}</th>
+            <th className="num">Var. frente a {lastYear - 1}</th>
             <th className="num">Toneladas ({weightName(flow)})</th>
             <th className="num">USD por kg</th>
             {fine ? <th className="num">Toneladas finas</th> : null}

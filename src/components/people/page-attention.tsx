@@ -25,7 +25,7 @@ import { RankList, type RankItem } from './rank-list';
 import s from './people.module.css';
 
 const SOURCE =
-  'Observatorio Económico de Bolivia con Wikipedia, cuentas verificadas y Merco Líderes 2025/26';
+  'Wikipedia, cuentas verificadas en redes sociales y Merco Líderes 2025/26; cálculo de DatosBolivia.com';
 
 /**
  * «Atención medible»: el explorador. Los filtros recortan todos los paneles de la página y la
@@ -97,8 +97,9 @@ export function AttentionPage() {
       <FilterBar />
       {mixes ? (
         <p className={s.warn}>
-          Las empresas puntúan solo por Merco y Ciencia no tiene datos medibles: el orden entre
-          sectores no compara lo mismo. Elige un sector arriba para comparar dentro de él.
+          Las figuras de Empresas solo puntúan por Merco y las de Ciencia no tienen datos
+          medibles: el orden entre sectores no compara lo mismo. La comparación es homogénea dentro
+          de un solo sector, que se elige en el filtro de arriba.
         </p>
       ) : null}
 
@@ -107,7 +108,7 @@ export function AttentionPage() {
           <Panel
             id="personalidades-top10"
             title="Las diez primeras según el filtro (índice de 0 a 100)"
-            lede="Cada tramo de la barra es una fuente: así se ve por qué una persona está arriba."
+            lede="Cada tramo de la barra es una fuente y muestra cuánto aporta al índice de cada persona."
             meta={filtered ? `${num(byIndex.length)} personas con el filtro` : undefined}
             source={SOURCE}
             updated={updated}
@@ -145,15 +146,15 @@ export function AttentionPage() {
               >
                 {byIndex.length
                   ? `Las ${num(byIndex.length)} fichas que quedan no tienen artículo en Wikipedia, cuenta verificada ni puesto en Merco.`
-                  : 'Prueba con menos filtros o con otro sector.'}
+                  : 'Con menos filtros o con otro sector, la lista se amplía.'}
               </Empty>
             )}
           </Panel>
 
           <Panel
             id="personalidades-distribucion"
-            title="Cómo se reparte el índice (cantidad de personas por tramo de 10 puntos)"
-            lede="Pocas personas concentran casi toda la atención; la mayoría está en los tramos bajos."
+            title="Distribución del índice de atención (cantidad de personas por tramo de 10 puntos)"
+            lede="Cuenta solo a quienes pasan el filtro. Pocas personas en los tramos altos indican que la atención se concentra en unos pocos nombres."
             source={SOURCE}
             updated={updated}
           >
@@ -177,7 +178,7 @@ export function AttentionPage() {
           <Panel
             id="personalidades-sectores"
             title="Personas y mediana del índice por sector (cantidad de personas)"
-            lede="Toca una barra para filtrar por ese sector; Ctrl o ⌘ suma otro."
+            lede="Cantidad de personas de cada sector con los demás filtros aplicados; el rótulo de cada barra da la mediana del índice en ese sector."
             source={SOURCE}
             updated={updated}
           >
@@ -200,13 +201,16 @@ export function AttentionPage() {
                 },
               ]}
             />
+            <p className={s.footnote}>
+              Al seleccionar una barra se filtra ese sector; con Ctrl o ⌘ se suma otro.
+            </p>
           </Panel>
 
           <Panel
             id="personalidades-dispersion"
             title="Visitas a Wikipedia frente a audiencia verificada (visitas en 12 meses y seguidores)"
-            lede="Quien está arriba a la derecha concentra las dos atenciones. Los puntos pálidos son el resto; el azul, la persona elegida."
-            source="Wikipedia (es y en) y cuentas con identidad respaldada"
+            lede="Cada punto es una persona: arriba a la derecha están quienes reúnen más visitas y más seguidores a la vez. El punto resaltado es la persona elegida."
+            source="Wikipedia (ediciones en español e inglés) y cuentas con identidad respaldada"
             updated={updated}
           >
             <PeopleScatter rows={byIndex} selectedSlug={selectedSlug} onPick={openProfile} />
@@ -217,8 +221,8 @@ export function AttentionPage() {
               ]}
             />
             <p className={s.footnote}>
-              No aparecen en la nube {num(missing.views)} personas sin artículo en Wikipedia y{' '}
-              {num(missing.social)} sin cuenta verificada: ausente no es cero.
+              No aparecen en el gráfico {num(missing.views)} personas sin artículo en Wikipedia y{' '}
+              {num(missing.social)} sin cuenta verificada: la falta de dato no equivale a cero.
             </p>
           </Panel>
         </div>

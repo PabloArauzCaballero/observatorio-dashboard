@@ -41,10 +41,10 @@ const MEASURES: ReadonlyArray<{ key: Measure; label: string; hint: string }> = [
   {
     key: 'LEVEL',
     label: 'Nivel',
-    hint: 'Bolivianos que vale la moneda (por la cantidad que dice cada una).',
+    hint: 'Valor de la moneda en bolivianos, por la cantidad indicada para cada una.',
   },
   { key: 'INDEX', label: 'Índice', hint: 'Base 100 en el primer dato visible de cada moneda.' },
-  { key: 'YOY', label: 'Var. anual', hint: 'Cambio contra la misma fecha de un año antes, en %.' },
+  { key: 'YOY', label: 'Var. anual', hint: 'Variación frente a la misma fecha del año anterior, en %.' },
 ];
 
 const START: readonly string[] = ['CNY', 'JPY', 'EUR', 'BRL'];
@@ -77,9 +77,9 @@ interface CoinRow {
 }
 
 const CHANGES = [
-  { key: 'year', label: 'Contra hace un año' },
-  { key: 'month', label: 'Contra hace un mes' },
-  { key: 'day', label: 'Contra el dato anterior' },
+  { key: 'year', label: 'Frente a hace un año' },
+  { key: 'month', label: 'Frente a hace un mes' },
+  { key: 'day', label: 'Frente al dato anterior' },
 ] as const;
 
 /**
@@ -103,7 +103,7 @@ function CoinChangeChart({ rows }: { rows: readonly CoinRow[] }) {
 
   return (
     <>
-      <div className="chips" role="group" aria-label="Contra cuándo se mide el cambio">
+      <div className="chips" role="group" aria-label="Periodo de comparación">
         {CHANGES.map((one) => (
           <button
             key={one.key}
@@ -132,7 +132,7 @@ function CoinChangeChart({ rows }: { rows: readonly CoinRow[] }) {
           />
         </MacroViewChart>
       ) : (
-        <div className="callout">Ninguna moneda tiene esta comparación todavía.</div>
+        <div className="callout">Ninguna moneda tiene aún datos para esta comparación.</div>
       )}
     </>
   );
@@ -161,8 +161,8 @@ export function CurrenciesExplorer({ board }: { board: CurrencyBoard }) {
     return (
       <Panel
         id="monedas-sin-datos"
-        title="Otras monedas: el boliviano frente al mundo (Bs)"
-        lede="Todavía no hay cotizaciones cargadas en esta base. Se llenan con la tabla de cotizaciones del Banco Central de Bolivia."
+        title="El boliviano frente a otras monedas (Bs)"
+        lede="Aún no hay cotizaciones disponibles. La serie se alimenta de la tabla de cotizaciones del Banco Central de Bolivia."
         source="Banco Central de Bolivia, tabla de cotizaciones (bcb.gob.bo)"
         downloadable={false}
       >
@@ -199,9 +199,9 @@ export function CurrenciesExplorer({ board }: { board: CurrencyBoard }) {
   const unit = measure === 'LEVEL' ? 'Bs' : measure === 'INDEX' ? 'índice' : '%';
   const title =
     measure === 'LEVEL'
-      ? 'El boliviano frente a las monedas elegidas (Bs por la cantidad indicada de cada una)'
+      ? 'Monedas elegidas frente al boliviano (Bs por la cantidad indicada de cada una)'
       : measure === 'INDEX'
-        ? `Las monedas elegidas en índice (base 100 = primer dato visible desde ${from})`
+        ? `Monedas elegidas frente al boliviano (índice, base 100 = primer dato desde ${from})`
         : 'Variación interanual de cada moneda frente al boliviano (%)';
   /** Las monedas del cuadro, en el orden del catálogo, con la cifra que dice cada fila. */
   const coinRows: CoinRow[] = [...coins]
@@ -235,8 +235,8 @@ export function CurrenciesExplorer({ board }: { board: CurrencyBoard }) {
     <>
       <Panel
         id="monedas-principales"
-        title="Las monedas de mayor peso en el comercio frente al boliviano (Bs)"
-        lede={`${coins.length} monedas según la tabla de cotizaciones del Banco Central de Bolivia; la última es del ${board.latestDate ? sayDate(board.latestDate) : '—'}.`}
+        title="Principales monedas del comercio exterior frente al boliviano (Bs)"
+        lede={`Cotización en bolivianos de ${coins.length} monedas, según la tabla del Banco Central de Bolivia; último dato del ${board.latestDate ? sayDate(board.latestDate) : '—'}.`}
         source="Banco Central de Bolivia, tabla de cotizaciones (bcb.gob.bo)"
         data={{
           unidad: 'Bs',
@@ -266,9 +266,10 @@ export function CurrenciesExplorer({ board }: { board: CurrencyBoard }) {
         <details className="panel-note">
           <summary>Cómo leer estas cifras</summary>
           <p>
-            Bolivia vende y compra mucho con China: su moneda es el <b>yuan (CNY)</b>; el{' '}
-            <b>yen (JPY)</b> es la de Japón. Las cotizaciones son indicativas salvo la del dólar, y
-            los cruces salen del dólar oficial.
+            China es uno de los principales socios comerciales de Bolivia; su moneda es el{' '}
+            <b>yuan (CNY)</b>. El <b>yen (JPY)</b> es la moneda de Japón. Las cotizaciones son
+            indicativas, salvo la del dólar, y los tipos cruzados se calculan a partir del dólar
+            oficial.
           </p>
         </details>
       </Panel>
@@ -391,7 +392,7 @@ export function CurrenciesExplorer({ board }: { board: CurrencyBoard }) {
           <Panel
             id="monedas-grafico"
             title={title}
-            lede="Cada línea es lo que vale la moneda en bolivianos según el BCB."
+            lede="Cada línea sigue una moneda frente al boliviano, según la tabla de cotizaciones del BCB."
             source="Banco Central de Bolivia, tabla de cotizaciones (bcb.gob.bo)"
           >
             {data.length > 1 ? (
@@ -421,18 +422,19 @@ export function CurrenciesExplorer({ board }: { board: CurrencyBoard }) {
             <details className="panel-note">
               <summary>Cómo leer este gráfico</summary>
               <p>
-                La historia es semanal hasta fines de septiembre de 2026 y diaria desde entonces. El
-                dólar oficial pasó de 6,96 a flotar el 27-jun-2026: antes, el boliviano frente a
-                otra moneda sólo se movía con ella contra el dólar.
+                La serie es semanal hasta fines de septiembre de 2026 y diaria desde entonces. El
+                dólar oficial dejó el tipo fijo de 6,96 Bs y pasó a flotar el 27-jun-2026; hasta
+                entonces, el boliviano solo se movía frente a otra moneda cuando esta se movía
+                frente al dólar.
               </p>
             </details>
           </Panel>
 
           <Panel
             id="monedas-tabla"
-            title={`Las ${coins.length} monedas del BCB frente al boliviano (Bs y variación en %)`}
-            lede="«Por» es la cantidad de moneda extranjera a la que se refiere la cifra: 100 yenes, 1.000 wones. «Por US$» son las unidades que entran en un dólar oficial."
-            source="Banco Central de Bolivia, tabla de cotizaciones (bcb.gob.bo); cada cifra guarda la fila de la tabla de la que salió"
+            title={`Cotización de ${coins.length} monedas frente al boliviano (Bs y variación en %)`}
+            lede="«Por» es la cantidad de moneda extranjera a la que se refiere la cifra: 100 yenes, 1.000 wones. «Por USD» son las unidades que equivalen a un dólar oficial."
+            source="Banco Central de Bolivia, tabla de cotizaciones (bcb.gob.bo)"
             data={() => ({
               unidad: 'Bs por la cantidad de moneda que dice «Por»; variaciones en %',
               columnas: [
@@ -472,10 +474,10 @@ export function CurrenciesExplorer({ board }: { board: CurrencyBoard }) {
                         <th>País</th>
                         <th>Por</th>
                         <th className="num">Bs</th>
-                        <th className="num">Por US$</th>
-                        <th className="num">vs. anterior</th>
-                        <th className="num">vs. un mes</th>
-                        <th className="num">vs. un año</th>
+                        <th className="num">Por USD</th>
+                        <th className="num">Var. anterior</th>
+                        <th className="num">Var. mes</th>
+                        <th className="num">Var. año</th>
                         <th>Fecha</th>
                       </tr>
                     </thead>

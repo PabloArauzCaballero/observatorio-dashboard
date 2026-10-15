@@ -56,7 +56,7 @@ export const WATERWAY_CATEGORIES: readonly {
   {
     category: 'NAVEGABLE_OSM',
     label: 'Navegable según OpenStreetMap',
-    hint: 'Otros ríos con la etiqueta boat=yes',
+    hint: 'Otros ríos que OpenStreetMap marca como aptos para embarcaciones',
     color: 'var(--series-3)',
     navigable: true,
   },
@@ -70,7 +70,7 @@ export const WATERWAY_CATEGORIES: readonly {
   {
     category: 'RIO',
     label: 'Otros ríos',
-    hint: 'Sin afirmación de navegabilidad',
+    hint: 'Ninguna fuente los declara navegables',
     color: 'var(--ink-faint)',
     navigable: false,
   },

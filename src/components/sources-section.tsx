@@ -26,7 +26,7 @@ export function SourcesSection() {
       <TabHeader
         id="metodo"
         title="Método"
-        lede="De dónde sale cada cifra del Observatorio, con quién la publica, cuántas lecturas hay y qué advertencias hay que conocer antes de citarla."
+        lede="Origen de cada cifra de DatosBolivia.com: quién la publica, cuántas lecturas hay y qué advertencias conviene conocer antes de citarla."
       />
       {payload ? (
         <SourcesExplorer

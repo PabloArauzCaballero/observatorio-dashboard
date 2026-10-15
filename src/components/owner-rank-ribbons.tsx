@@ -10,7 +10,7 @@ import type { OwnerHistory } from '@/lib/business-owners-board';
  */
 
 const usd = (value: number): string =>
-  `$us ${value.toLocaleString('es-BO', { maximumFractionDigits: value < 10 ? 1 : 0 })} M`;
+  `USD ${value.toLocaleString('es-BO', { maximumFractionDigits: value < 10 ? 1 : 0 })} M`;
 
 export function OwnerRankRibbons({
   histories,

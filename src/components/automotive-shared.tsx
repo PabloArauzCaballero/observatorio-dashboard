@@ -32,5 +32,5 @@ export function Evidence({ study, ids }: { study: AutomotiveStudy; ids: string[]
 }
 
 export function StudyCaveat({ study }: { study: AutomotiveStudy }) {
-  return <div className="callout"><strong>Corte: {study.observedAt}.</strong> Ofertas observadas y registros oficiales con períodos distintos. Los anuncios no acreditan stock, precio final ni ventas. <a href="/api/transporte/estudio">Descargar evidencia y condiciones</a>.</div>;
+  return <div className="callout"><strong>Corte del {study.observedAt}.</strong> Las ofertas observadas y los registros oficiales cubren períodos distintos. Los anuncios no acreditan existencias, precio final ni ventas. <a href="/api/transporte/estudio">Descargar evidencia y condiciones</a>.</div>;
 }

@@ -170,18 +170,17 @@ export function InstitutionsExplorer({ board: entire }: { board: InstitutionsBoa
       <TabHeader
         id="instituciones"
         title="Situación jurídica y política"
-        lede={`Qué tan libre es el país, en qué sentido, y qué parte de esa libertad se movió. Cuatro instituciones lo califican con métodos publicados y cada índice se muestra con las partes que lo componen: el total esconde justo lo que cambia. El dato más reciente es de ${board.asOfYear ?? '—'}.`}
+        lede={`Cuatro instituciones califican, con métodos publicados, la libertad económica y política del país, la calidad de su democracia y el funcionamiento del Estado. Cada índice se muestra con sus componentes, porque el total oculta qué parte se movió. El dato más reciente es de ${board.asOfYear ?? '—'}.`}
       />
       <DerivedReading
         title="Qué dicen estos índices"
-        note="Cada frase sale de las series de este capítulo y se recalcula con cada carga. Dice qué nivel hay, contra qué techo y desde cuándo; no dice por qué ni qué va a pasar."
+        note="Cada frase se calcula a partir de las series de esta sección y se actualiza con cada carga. Indica el nivel, el techo de la escala y desde cuándo; no atribuye causas ni hace proyecciones."
         conclusions={board.conclusions}
         icons={CONCLUSION_ICON}
       />
       {missingLabels.length ? (
         <div className="callout">
-          Todavía no llegan al tablero: {missingLabels.join(', ')}. Las recoge el núcleo del
-          observatorio y aparecen aquí en cuanto su carga las publique.
+          Todavía no hay datos de: {missingLabels.join(', ')}. Aparecerán aquí en cuanto se carguen.
         </div>
       ) : null}
 
@@ -189,7 +188,7 @@ export function InstitutionsExplorer({ board: entire }: { board: InstitutionsBoa
         <Panel
           id="instituciones-libertad-economica"
           title="Libertad económica (índice de 0 a 10; 10 es la más libre)"
-          lede="Índice de libertad económica del Fraser Institute y las cinco áreas que promedia. Las áreas discrepan más de lo que el resumen deja ver: esa discrepancia es la lectura."
+          lede="Índice de libertad económica del Fraser Institute y las cinco áreas que promedia. Las áreas divergen más de lo que muestra el resumen, por eso cada una se dibuja por separado."
           source={SOURCE_FRASER}
         >
           <div className="stat-strip">
@@ -216,9 +215,9 @@ export function InstitutionsExplorer({ board: entire }: { board: InstitutionsBoa
             title="Libertad política (puntos de 0 a 100; más es más libre)"
             lede={
               <>
-                Freedom in the World: derechos políticos sobre 40, libertades civiles sobre 60 y el
-                total sobre 100. Cada subcategoría se dibuja como parte de su propio techo, porque
-                un 6 sobre 16 y un 6 sobre 12 no son la misma cosa.
+                Informe <i>Freedom in the World</i>: derechos políticos sobre 40, libertades civiles
+                sobre 60 y total sobre 100. Cada subcategoría se dibuja como porcentaje de su propio
+                techo, porque un 6 sobre 16 no equivale a un 6 sobre 12.
                 {status ? (
                   <>
                     {' '}
@@ -227,7 +226,7 @@ export function InstitutionsExplorer({ board: entire }: { board: InstitutionsBoa
                 ) : null}
               </>
             }
-            ledeText={`Freedom in the World: derechos políticos sobre 40, libertades civiles sobre 60 y el total sobre 100. Cada subcategoría se dibuja como parte de su propio techo, porque un 6 sobre 16 y un 6 sobre 12 no son la misma cosa.${status ? ` Estado actual: ${status}.` : ''}`}
+            ledeText={`Informe Freedom in the World: derechos políticos sobre 40, libertades civiles sobre 60 y total sobre 100. Cada subcategoría se dibuja como porcentaje de su propio techo, porque un 6 sobre 16 no equivale a un 6 sobre 12.${status ? ` Estado actual: ${status}.` : ''}`}
             source={SOURCE_FREEDOM_HOUSE}
           >
             <div className="stat-strip">
@@ -259,16 +258,16 @@ export function InstitutionsExplorer({ board: entire }: { board: InstitutionsBoa
           </Panel>
           <Panel
             id="instituciones-calificaciones"
-            title="Medio siglo de calificaciones (de 1 a 7; 1 es la más libre)"
+            title="Calificaciones de Freedom House desde 1972 (de 1 a 7; 1 es la más libre)"
             lede={
               <>
-                Las calificaciones que Freedom House publica desde 1972, donde{' '}
-                <b>1 es la más libre</b> y 7 la menos: aquí la línea sube cuando la libertad baja.
-                El promedio de las dos define el estado: hasta 2,5 «libre», hasta 5 «parcialmente
-                libre», más allá «no libre».
+                Calificaciones de derechos políticos y libertades civiles, donde{' '}
+                <b>1 es la más libre</b> y 7 la menos: la línea sube cuando la libertad baja. El
+                promedio de ambas define el estado: hasta 2,5, «libre»; hasta 5, «parcialmente
+                libre»; por encima, «no libre».
               </>
             }
-            ledeText="Las calificaciones que Freedom House publica desde 1972, donde 1 es la más libre y 7 la menos: aquí la línea sube cuando la libertad baja. El promedio de las dos define el estado: hasta 2,5 «libre», hasta 5 «parcialmente libre», más allá «no libre»."
+            ledeText="Calificaciones de derechos políticos y libertades civiles, donde 1 es la más libre y 7 la menos: la línea sube cuando la libertad baja. El promedio de ambas define el estado: hasta 2,5, «libre»; hasta 5, «parcialmente libre»; por encima, «no libre»."
             source={SOURCE_FREEDOM_HOUSE}
           >
             {ratings.data.length > 1 ? (
@@ -281,12 +280,12 @@ export function InstitutionsExplorer({ board: entire }: { board: InstitutionsBoa
       {democracy.series.length ? (
         <Panel
           id="instituciones-democracia"
-          title="Anatomía de la democracia (índices de 0 a 1; más es más democrático)"
+          title="Índices de democracia de V-Dem (de 0 a 1; más es más democrático)"
           lede={
             <>
-              Los índices de V-Dem, desde 1952. La democracia liberal es la electoral más los
-              contrapesos —control judicial y legislativo del Ejecutivo, libertades individuales— y
-              la distancia entre las dos líneas es cuánto pesan los contrapesos.
+              Índices de V-Dem desde 1952. La democracia liberal es la electoral más los contrapesos
+              —control judicial y legislativo del Ejecutivo, libertades individuales—; la distancia
+              entre ambas líneas mide el peso de esos contrapesos.
               {regime ? (
                 <>
                   {' '}
@@ -295,7 +294,7 @@ export function InstitutionsExplorer({ board: entire }: { board: InstitutionsBoa
               ) : null}
             </>
           }
-          ledeText={`Los índices de V-Dem, desde 1952. La democracia liberal es la electoral más los contrapesos —control judicial y legislativo del Ejecutivo, libertades individuales— y la distancia entre las dos líneas es cuánto pesan los contrapesos.${regime ? ` Régimen en ${regime.year}: ${REGIME_LABEL[regime.value] ?? regime.value}.` : ''}`}
+          ledeText={`Índices de V-Dem desde 1952. La democracia liberal es la electoral más los contrapesos —control judicial y legislativo del Ejecutivo, libertades individuales—; la distancia entre ambas líneas mide el peso de esos contrapesos.${regime ? ` Régimen en ${regime.year}: ${REGIME_LABEL[regime.value] ?? regime.value}.` : ''}`}
           source={SOURCE_VDEM}
         >
           <div className="stat-strip">
@@ -319,16 +318,16 @@ export function InstitutionsExplorer({ board: entire }: { board: InstitutionsBoa
         <div className="grid-pair">
           <Panel
             id="instituciones-gobernanza"
-            title="Cómo funciona el Estado: seis estimaciones, último año (desviaciones típicas)"
-            lede="Las seis estimaciones de gobernanza del Banco Mundial, respecto de la media mundial: cero es el país mediano del mundo, y casi todo va de −2,5 a 2,5. Las barras son el último año; la línea, la historia."
+            title="Indicadores de gobernanza, último año (desviaciones típicas)"
+            lede="Las seis estimaciones de gobernanza del Banco Mundial, medidas respecto de la media mundial: cero corresponde al país promedio y casi todos los valores van de −2,5 a 2,5. Las barras muestran el último año; el panel contiguo, la serie histórica."
             source={SOURCE_WGI}
           >
             {governanceLatest.length ? <DivergingBars data={governanceLatest} unit="σ" /> : null}
           </Panel>
           <Panel
             id="instituciones-gobernanza-tiempo"
-            title="Las seis dimensiones de gobernanza en el tiempo (desviaciones típicas)"
-            lede="La misma escala, año a año desde 1996. Una línea que baja es una dimensión en la que el país se aleja de la media mundial."
+            title="Indicadores de gobernanza desde 1996 (desviaciones típicas)"
+            lede="La misma escala, año a año desde 1996. Una línea descendente indica una dimensión en la que el país empeora respecto de la media mundial."
             source={`${SOURCE_WGI}; percepción de la corrupción de Transparency International y capacidad estatal de Hanson y Sigman`}
           >
             <WorldLines

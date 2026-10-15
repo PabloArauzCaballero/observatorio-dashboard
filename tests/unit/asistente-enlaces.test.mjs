@@ -100,7 +100,7 @@ test('el CSV se abre bien en Excel y no ejecuta fórmulas', () => {
   assert.equal(lineas[1], `2026-09-27,"'=HYPERLINK(""x"")",-1.5,BCB,2026-09-27`);
   assert.equal(lineas[2], '2026-09-26,"Sube, dice ""La Razón""",9.85,BCB,2026-09-27');
   assert.match(aMarkdown(t), /\| Fecha \| Titular \| Valor \|/);
-  assert.equal(nombreDeArchivo('depto-SANTA_CRUZ', '2026-09-27', 'csv'), 'observatorio-depto-santa-cruz-2026-09-27.csv');
+  assert.equal(nombreDeArchivo('depto-SANTA_CRUZ', '2026-09-27', 'csv'), 'datosbolivia-depto-santa-cruz-2026-09-27.csv');
 });
 
 test('la vista previa alinea decimales por columna y no pone punto en los años', async () => {

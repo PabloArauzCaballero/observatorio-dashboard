@@ -273,7 +273,7 @@ export function readTradeViews(
         out[spec.name] = {
           by: spec.by,
           grain: null,
-          unavailable: 'La base aduanera todavía se está cargando en este servidor.',
+          unavailable: 'La base aduanera aún no está disponible en este servidor.',
           items: [],
         };
       }

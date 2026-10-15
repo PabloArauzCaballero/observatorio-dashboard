@@ -56,7 +56,7 @@ export function aCsv(datos: Dataset, consultado: string): string {
   return `﻿${lineas.join('\r\n')}\r\n`;
 }
 
-/** Un nombre de archivo sin espacios ni tildes: «observatorio-dolar-paralelo-2026-10-03.csv». */
+/** Un nombre de archivo sin espacios ni tildes: «datosbolivia-dolar-paralelo-2026-10-03.csv». */
 export function nombreDeArchivo(id: string, fecha: string, extension: string): string {
   const base = id
     .toLowerCase()
@@ -64,7 +64,7 @@ export function nombreDeArchivo(id: string, fecha: string, extension: string): s
     .replace(/[̀-ͯ]/g, '')
     .replace(/[^a-z0-9]+/g, '-')
     .replace(/^-+|-+$/g, '');
-  return `observatorio-${base || 'datos'}-${fecha}.${extension}`;
+  return `datosbolivia-${base || 'datos'}-${fecha}.${extension}`;
 }
 
 export interface SerieAncha {

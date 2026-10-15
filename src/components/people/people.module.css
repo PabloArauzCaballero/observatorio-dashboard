@@ -44,7 +44,7 @@
   flex: none;
   width: 2rem;
   height: 2rem;
-  border-radius: var(--radius-pill);
+  border-radius: 50%;
   border: 1px solid var(--rule);
   background: var(--panel-tint);
   color: var(--ink-soft);
@@ -64,7 +64,7 @@
 }
 
 .avatarOn {
-  border-color: var(--series-1);
+  border-color: var(--accent);
   color: var(--ink);
 }
 
@@ -130,13 +130,13 @@
 }
 
 .nameBtn:hover {
-  color: var(--series-1);
+  color: var(--accent);
   text-decoration: underline;
   text-underline-offset: 3px;
 }
 
 .nameBtn:focus-visible {
-  outline: 2px solid var(--series-1);
+  outline: 2px solid var(--accent);
   outline-offset: 2px;
 }
 
@@ -273,7 +273,7 @@
   width: 0.8rem;
   height: 0.8rem;
   margin: -0.4rem 0 0 -0.4rem;
-  border-radius: var(--radius-pill);
+  border-radius: 50%;
   background: var(--series-1);
   border: 2px solid var(--chart-surface);
   box-shadow: 0 0 0 1px var(--series-1);
@@ -406,7 +406,7 @@
 
 .search input:focus-visible,
 .inlineField select:focus-visible {
-  outline: 2px solid var(--series-1);
+  outline: 2px solid var(--accent);
   outline-offset: 1px;
 }
 
@@ -419,7 +419,7 @@
 
 .range {
   width: 9rem;
-  accent-color: var(--series-1);
+  accent-color: var(--accent);
 }
 
 .rangeOut {
@@ -504,7 +504,7 @@
 .warn {
   margin: 0;
   padding: var(--s1) var(--s2);
-  border-left: 2px solid var(--series-4);
+  border-left: 2px solid var(--warning);
   background: var(--panel-tint);
   color: var(--ink-soft);
   font-size: var(--text-sm);
@@ -563,13 +563,13 @@
 }
 
 .opt:focus-visible {
-  outline: 2px solid var(--series-1);
+  outline: 2px solid var(--accent);
   outline-offset: -2px;
 }
 
 .optOn {
   background: var(--panel-tint);
-  box-shadow: inset 2px 0 0 var(--series-1);
+  box-shadow: inset 2px 0 0 var(--accent);
 }
 
 .opt .avatar {
@@ -612,7 +612,7 @@
 .mark {
   width: 0.45rem;
   height: 0.45rem;
-  border-radius: var(--radius-pill);
+  border-radius: 50%;
   background: var(--rule);
 }
 
@@ -675,7 +675,7 @@
   display: inline-block;
   width: fit-content;
   padding: 0.1rem var(--s1);
-  border: 1px solid var(--series-1);
+  border: 1px solid var(--accent);
   border-radius: var(--radius-pill);
   color: var(--ink);
   font-size: var(--text-xs);
@@ -987,7 +987,7 @@
 
 .sources a:hover,
 .sources a:focus-visible {
-  border-color: var(--series-1);
+  border-color: var(--accent);
   text-decoration: underline;
   text-underline-offset: 3px;
 }

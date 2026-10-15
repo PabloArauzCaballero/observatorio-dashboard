@@ -25,7 +25,7 @@
  */
 
 /** Who wrote the explanation, as distinct from who published the figure. */
-export const DEFINITION_AUTHOR = 'Observatorio Económico de Bolivia';
+export const DEFINITION_AUTHOR = 'DatosBolivia.com';
 
 export interface Definition {
   /** What the figure counts, in one sentence. */
@@ -40,13 +40,13 @@ export const GLOSSARY: Record<string, Definition> = {
   GDP_CURRENT_USD: {
     what: 'El valor de todo lo que el país produjo en un año, medido en dólares corrientes.',
     howToRead:
-      'A precios de cada año, así que crece tanto por producir más como por subir los precios o por moverse el tipo de cambio. Para comparar años, mirá el crecimiento del PIB, que ya descuenta la inflación.',
+      'A precios de cada año, así que crece tanto por producir más como por subir los precios o por moverse el tipo de cambio. Para comparar años se usa el crecimiento del PIB, que ya descuenta la inflación.',
     caveat: 'No mide bienestar ni cómo se reparte lo producido.',
   },
   GDP_GROWTH_ANNUAL_PCT: {
     what: 'Cuánto creció la producción del país respecto al año anterior, ya descontada la inflación.',
     howToRead:
-      'Es la cifra que la gente llama «crecimiento». Negativa significa que el país produjo menos que el año pasado. En Bolivia, un año por debajo del 2 % suele ir acompañado de tensión en el empleo.',
+      'Es la cifra que se cita como «crecimiento». Un valor negativo indica que el país produjo menos que el año anterior. En Bolivia, los años por debajo del 2 % suelen coincidir con tensión en el empleo.',
   },
   GDP_PER_CAPITA_USD: {
     what: 'El PIB dividido entre la población: cuánto se produjo por habitante.',
@@ -67,7 +67,7 @@ export const GLOSSARY: Record<string, Definition> = {
   CPI_INFLATION_ANNUAL_PCT: {
     what: 'Cuánto subió el costo de la canasta que compra un hogar típico en un año.',
     howToRead:
-      'Es la inflación de la que habla la gente. Se mide sobre una canasta fija, así que no capta que un hogar cambie de marca o de producto cuando algo se encarece.',
+      'Es la inflación de uso corriente. Se mide sobre una canasta fija, así que no capta que un hogar cambie de marca o de producto cuando algo se encarece.',
   },
   CPI_INDEX: {
     what: 'El nivel de precios al consumidor, como índice con un año base en 100.',
@@ -75,15 +75,15 @@ export const GLOSSARY: Record<string, Definition> = {
       'El número solo no dice nada; lo que importa es cuánto cambió. Un índice en 180 significa que la canasta cuesta un 80 % más que en el año base.',
   },
   INTERNATIONAL_RESERVES_USD: {
-    what: 'Las divisas y el oro que el Banco Central tiene guardados.',
+    what: 'Las divisas y el oro en poder del Banco Central de Bolivia.',
     howToRead:
-      'Es con lo que el país paga importaciones y deuda externa cuando no le entran dólares. Su caída es el indicador más vigilado de Bolivia: sostiene el tipo de cambio oficial.',
+      'Con ellas el país paga importaciones y deuda externa cuando no le entran dólares, y sostienen el tipo de cambio oficial. Por eso su evolución es una de las cifras más seguidas de Bolivia.',
     caveat: 'Incluye el oro, que se puede vender pero no se usa para pagar directamente.',
   },
   RESERVES_IN_IMPORT_MONTHS: {
     what: 'Cuántos meses de importaciones alcanzarían a cubrir las reservas.',
     howToRead:
-      'La referencia habitual son tres meses; por debajo se considera una posición frágil. Convierte un monto en una idea de cuánto tiempo compra.',
+      'La referencia habitual es de tres meses: por debajo, la posición se considera frágil. Traduce un monto en el tiempo de importaciones que alcanza a pagar.',
   },
   EXTERNAL_DEBT_USD: {
     what: 'Lo que el país debe a acreedores de fuera, sumando sector público y privado.',
@@ -93,23 +93,23 @@ export const GLOSSARY: Record<string, Definition> = {
   DEBT_SERVICE_PCT_EXPORTS: {
     what: 'Qué porcentaje de lo que el país exporta se va en pagar deuda externa.',
     howToRead:
-      'Es la medida de si la deuda es sostenible: dice cuánto de cada dólar que entra por exportar ya está comprometido antes de llegar.',
+      'Mide la carga de la deuda: cuánto de cada dólar que entra por exportaciones ya está comprometido antes de llegar.',
   },
   CURRENT_ACCOUNT_USD: {
     what: 'La diferencia entre lo que entra y lo que sale del país por comercio, servicios y rentas.',
     howToRead:
-      'Negativa significa que el país gasta afuera más de lo que gana afuera, y esa diferencia se financia con deuda o con reservas.',
+      'Un saldo negativo indica que el país gasta en el exterior más de lo que gana en el exterior; la diferencia se financia con deuda o con reservas.',
   },
   TRADE_BALANCE_PCT_GDP: {
     what: 'La diferencia entre exportaciones e importaciones, como porcentaje del PIB.',
     howToRead:
-      'Positiva significa que el país vendió al exterior más de lo que compró. En Bolivia depende sobre todo del precio del gas y de los minerales.',
+      'Un saldo positivo indica que el país vendió al exterior más de lo que compró. En Bolivia depende sobre todo del precio del gas y de los minerales.',
   },
   UNEMPLOYMENT_PCT: {
     what: 'Qué porcentaje de quienes buscan trabajo no lo encuentran.',
     howToRead:
       'Sólo cuenta a quien busca activamente. En economías con mucho empleo informal la cifra sale baja sin que eso signifique que hay buenos empleos.',
-    caveat: 'No mide subempleo ni informalidad, que en Bolivia son el grueso del problema.',
+    caveat: 'No mide subempleo ni informalidad, que en Bolivia abarcan la mayor parte del empleo.',
   },
   LABOUR_PARTICIPATION_PCT: {
     what: 'Qué parte de la población en edad de trabajar trabaja o busca trabajo.',
@@ -129,7 +129,7 @@ export const GLOSSARY: Record<string, Definition> = {
   BROAD_MONEY_GROWTH_PCT: {
     what: 'Cuánto creció el dinero en circulación, contando depósitos además de billetes.',
     howToRead:
-      'Crecer mucho más rápido que la producción es la vía clásica a la inflación. Se lee junto al crecimiento del PIB, no solo.',
+      'Un crecimiento muy superior al de la producción es la vía clásica hacia la inflación. Se lee junto al crecimiento del PIB, no de forma aislada.',
   },
   LENDING_RATE_PCT: {
     what: 'La tasa de interés promedio que cobran los bancos por prestar.',
@@ -144,7 +144,7 @@ export const GLOSSARY: Record<string, Definition> = {
   REAL_INTEREST_RATE_PCT: {
     what: 'La tasa de préstamo una vez descontada la inflación.',
     howToRead:
-      'Es el costo verdadero de endeudarse. Negativa significa que la inflación licúa la deuda más rápido de lo que corren los intereses.',
+      'Es el costo real de endeudarse. Un valor negativo indica que la inflación licúa la deuda más rápido de lo que corren los intereses.',
   },
   OFFICIAL_EXCHANGE_RATE_BOB_USD: {
     what: 'Cuántos bolivianos por dólar fija la autoridad monetaria.',
@@ -157,14 +157,14 @@ export const GLOSSARY: Record<string, Definition> = {
       'Dice si el país se volvió más caro o más barato para el resto del mundo. Subir significa perder competitividad aunque el tipo de cambio nominal no se mueva.',
   },
   PPP_CONVERSION_FACTOR: {
-    what: 'Cuántos bolivianos hacen falta acá para comprar lo que un dólar compra en Estados Unidos.',
+    what: 'Cuántos bolivianos hacen falta en Bolivia para comprar lo que un dólar compra en Estados Unidos.',
     howToRead:
       'Sirve para comparar niveles de vida entre países sin que el tipo de cambio distorsione. No es un tipo de cambio con el que se pueda operar.',
   },
   FDI_NET_INFLOWS_USD: {
     what: 'La inversión extranjera directa que entró al país en el año, neta de salidas.',
     howToRead:
-      'Capital que compra o monta empresas acá, no dinero que entra y sale de mercados financieros. Puede ser negativa si se retira más de lo que entra.',
+      'Capital que compra o crea empresas en el país, no dinero que entra y sale de mercados financieros. Puede ser negativa si se retira más de lo que entra.',
   },
   GROSS_CAPITAL_FORMATION_PCT_GDP: {
     what: 'Qué parte del PIB se destinó a invertir en vez de consumir.',
@@ -189,7 +189,7 @@ export const GLOSSARY: Record<string, Definition> = {
   NATURAL_GAS_RENTS_PCT_GDP: {
     what: 'Qué parte del PIB proviene de la renta del gas: lo que se cobra por encima del costo de extraerlo.',
     howToRead:
-      'Es la medida de cuánto depende la economía del gas. Cae cuando baja el precio internacional o cuando baja la producción, y arrastra al fisco con ella.',
+      'Mide cuánto depende la economía del gas. Cae cuando baja el precio internacional o la producción, y con ella bajan los ingresos fiscales ligados al gas.',
   },
   MINERAL_RENTS_PCT_GDP: {
     what: 'Qué parte del PIB proviene de la renta minera.',
@@ -208,12 +208,12 @@ export const GLOSSARY: Record<string, Definition> = {
   },
   EFW_LEGAL_SYSTEM_PROPERTY_RIGHTS: {
     what: 'Área 2 del índice de Fraser: independencia judicial, imparcialidad de los tribunales, protección de la propiedad y cumplimiento de contratos.',
-    howToRead: 'Es el área donde Bolivia puntúa más bajo. De 0 a 10.',
+    howToRead: 'De 0 a 10. Es el área en la que Bolivia obtiene el puntaje más bajo.',
   },
   EFW_SOUND_MONEY: {
     what: 'Área 3 del índice de Fraser: crecimiento monetario, inflación y libertad para tener cuentas en moneda extranjera.',
     howToRead:
-      'De 0 a 10. Es el área donde Bolivia puntúa más alto; un año de inflación alta la baja con retraso.',
+      'De 0 a 10. Es el área en la que Bolivia obtiene el puntaje más alto; un año de inflación alta la reduce con retraso.',
   },
   EFW_FREEDOM_TO_TRADE: {
     what: 'Área 4 del índice de Fraser: aranceles, barreras regulatorias al comercio, controles de capital y de tipo de cambio.',
@@ -239,7 +239,7 @@ export const GLOSSARY: Record<string, Definition> = {
   },
   FH_ELECTORAL_PROCESS_SCORE: {
     what: 'Subcategoría A de Freedom House: si el Ejecutivo y el Legislativo se eligen en elecciones libres y justas.',
-    howToRead: 'De 0 a 12. Leerla contra su techo, no contra 100.',
+    howToRead: 'De 0 a 12. Se lee contra su máximo, no contra 100.',
   },
   FH_POLITICAL_PLURALISM_SCORE: {
     what: 'Subcategoría B de Freedom House: derecho a organizar partidos, oposición con posibilidad real, libertad frente a poderes no electos.',
@@ -259,7 +259,7 @@ export const GLOSSARY: Record<string, Definition> = {
   },
   FH_RULE_OF_LAW_SCORE: {
     what: 'Subcategoría F de Freedom House: independencia judicial, debido proceso, protección frente a la fuerza ilegítima, igualdad ante la ley.',
-    howToRead: 'De 0 a 16. Es la subcategoría más baja de Bolivia frente a su techo.',
+    howToRead: 'De 0 a 16. Es la subcategoría de Bolivia más alejada de su máximo.',
   },
   FH_PERSONAL_AUTONOMY_SCORE: {
     what: 'Subcategoría G de Freedom House: movimiento, propiedad y empresa, libertades sociales, igualdad de oportunidades.',
@@ -295,7 +295,7 @@ export const GLOSSARY: Record<string, Definition> = {
   VDEM_JUDICIAL_CONSTRAINTS_INDEX: {
     what: 'Control judicial del Ejecutivo según V-Dem, de 0 a 1.',
     howToRead:
-      'Si el Ejecutivo acata a los tribunales y estos son independientes. Es el componente más bajo de la democracia boliviana.',
+      'Si el Ejecutivo acata a los tribunales y estos son independientes. Es el componente con el valor más bajo en Bolivia.',
   },
   VDEM_LEGISLATIVE_CONSTRAINTS_INDEX: {
     what: 'Control legislativo del Ejecutivo según V-Dem, de 0 a 1.',

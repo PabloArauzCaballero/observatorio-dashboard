@@ -29,14 +29,14 @@ import type { MacroStats } from './macro-stats';
  * lector y tiene que verse igual salga de donde salga.
  */
 const PALETTE: Record<string, string> = {
-  '--ink': '#14181f',
-  '--ink-soft': '#4a5464',
-  '--ink-faint': '#78839a',
-  '--rule': '#e2e6ed',
-  '--rule-soft': '#eef1f5',
-  '--paper': '#ffffff',
-  '--panel': '#ffffff',
-  '--panel-tint': '#f6f8fa',
+  '--ink': '#17191a',
+  '--ink-soft': '#4d4a44',
+  '--ink-faint': '#69655d',
+  '--rule': '#dcd5c8',
+  '--rule-soft': '#e8e2d6',
+  '--paper': '#fffefb',
+  '--panel': '#fffefb',
+  '--panel-tint': '#efe9dd',
 
   /*
    * Las casillas de identidad y los tres personajes del informe, en su versión
@@ -46,46 +46,46 @@ const PALETTE: Record<string, string> = {
    * todos los tokens de color que una figura pueda usar, no solo los cinco
    * primeros.
    */
-  '--series-1': '#2a78d6',
-  '--series-2': '#eb6834',
-  '--series-3': '#963b8c',
-  '--series-4': '#a87c00',
-  '--series-5': '#4a3aa7',
-  '--series-6': '#0f8f62',
-  '--series-rest': '#6b7688',
-  '--official': '#2a78d6',
-  '--parallel': '#eb6834',
-  '--gap': '#963b8c',
+  '--series-1': '#3963b2',
+  '--series-2': '#ba813d',
+  '--series-3': '#921e2c',
+  '--series-4': '#159ca9',
+  '--series-5': '#64378d',
+  '--series-6': '#388f66',
+  '--series-rest': '#7e7a73',
+  '--official': '#3963b2',
+  '--parallel': '#ba813d',
+  '--gap': '#921e2c',
 
-  '--up': '#d03b3b',
-  '--down': '#0d7f85',
-  '--mid': '#f0efec',
+  '--up': '#a83634',
+  '--down': '#00787d',
+  '--mid': '#e9e4da',
 
-  '--good': '#0ca30c',
-  '--warning': '#fab219',
-  '--serious': '#ec835a',
-  '--critical': '#d03b3b',
+  '--good': '#376a50',
+  '--warning': '#a97416',
+  '--serious': '#ae5528',
+  '--critical': '#9a3130',
 
-  '--seq-100': '#cde2fb',
-  '--seq-200': '#9ec5f4',
-  '--seq-300': '#6da7ec',
-  '--seq-400': '#3987e5',
-  '--seq-500': '#256abf',
-  '--seq-600': '#184f95',
-  '--seq-700': '#0d366b',
+  '--seq-100': '#dfecff',
+  '--seq-200': '#bbd3f6',
+  '--seq-300': '#90b3e7',
+  '--seq-400': '#6793d5',
+  '--seq-500': '#4071b9',
+  '--seq-600': '#295494',
+  '--seq-700': '#1a3a68',
 
-  '--ord-1': '#86b6ef',
-  '--ord-2': '#2a78d6',
-  '--ord-3': '#104281',
+  '--ord-1': '#6793d5',
+  '--ord-2': '#4071b9',
+  '--ord-3': '#1a3a68',
 
-  '--adv-0': '#6b7688',
-  '--adv-1': '#c04d44',
-  '--adv-2': '#a5332e',
-  '--adv-3': '#8a1616',
+  '--adv-0': '#7e7a73',
+  '--adv-1': '#ab413a',
+  '--adv-2': '#8c2d2b',
+  '--adv-3': '#6b1e21',
 
-  '--chart-surface': '#ffffff',
-  '--grid': '#e6e9ef',
-  '--axis-ink': '#6b7688',
+  '--chart-surface': '#fffefb',
+  '--grid': '#e6dfd2',
+  '--axis-ink': '#69655d',
 
   '--serif': "ui-serif, Georgia, 'Times New Roman', serif",
   '--sans':
@@ -640,15 +640,15 @@ function buildDocument(report: AnalysisReport): string {
 <html lang="es">
 <head>
 <meta charset="utf-8">
-<title>${escapeHtml(`${report.title} — Observatorio Económico`)}</title>
+<title>${escapeHtml(`${report.title} — DatosBolivia.com`)}</title>
 <style>${PRINT_CSS}</style>
 </head>
 <body>
-  <div class="watermark"><span>Observatorio\nEconómico</span></div>
+  <div class="watermark"><span>Datos\nBolivia</span></div>
 
   <div class="sheet">
     <div class="masthead">
-      <div class="brand">Observatorio Económico<small>Análisis de series macroeconómicas</small></div>
+      <div class="brand">DatosBolivia.com<small>Análisis de series macroeconómicas</small></div>
       <div class="issued">
         Emitido el ${escapeHtml(issued)}<br>
         <code>${escapeHtml(report.code)}</code>
@@ -681,11 +681,11 @@ function buildDocument(report: AnalysisReport): string {
       <b>Dato:</b> ${escapeHtml(report.publisher ?? 'fuente citada')}${
         report.sourceUrl ? ` · ${escapeHtml(report.sourceUrl)}` : ''
       }.<br>
-      <b>Cálculos:</b> el Observatorio Económico, sobre las ${report.stats.n} observaciones del
-      período ${escapeHtml(report.span)} tal como estaban filtradas en pantalla. La media recortada
+      <b>Cálculos:</b> DatosBolivia.com, sobre las ${report.stats.n} observaciones del
+      periodo ${escapeHtml(report.span)} tal como estaban filtradas en pantalla. La media recortada
       quita el 10 % de cada cola; los atípicos son los que caen fuera de los bigotes de Tukey
       (1,5 × RIC); la curtosis se reporta en exceso, de modo que cero es la normal.<br>
-      <b>Definición:</b> redactada por el ${escapeHtml(report.definitionAuthor)} a partir del
+      <b>Definición:</b> redactada por ${escapeHtml(report.definitionAuthor)} a partir del
       concepto estándar. No es la del publicador.<br>
       <b>Reproducibilidad:</b> el CSV y el JSON de esta misma selección se descargan desde el
       tablero, en el panel de macroeconomía.
@@ -693,8 +693,8 @@ function buildDocument(report: AnalysisReport): string {
   </div>
 
   <div class="footer">
-    <span>Observatorio Económico · ${escapeHtml(report.code)}</span>
-    <b>Observatorio Económico</b>
+    <span>DatosBolivia.com · ${escapeHtml(report.code)}</span>
+    <b>DatosBolivia.com</b>
     <span>${escapeHtml(issued)}</span>
   </div>
 </body>
@@ -734,7 +734,7 @@ export function printAnalysis(report: AnalysisReport): void {
     // El título del documento es lo que el diálogo propone como nombre de
     // archivo, así que el PDF sale llamándose como el indicador y no
     // «about:blank».
-    view.document.title = `observatorio-${slug(report.title)}-${report.code}`;
+    view.document.title = `datosbolivia-${slug(report.title)}-${report.code}`;
     window.addEventListener('focus', onFocus);
     view.focus();
     view.print();

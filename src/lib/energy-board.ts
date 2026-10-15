@@ -82,7 +82,7 @@ export const ENERGY_INDICATORS: readonly EnergyIndicator[] = [
   },
   {
     code: 'EG.ELC.RNWX.ZS',
-    label: 'Renovables sin hidro',
+    label: 'Renovables no hidroeléctricas',
     unit: '% de la generación',
     group: 'ELECTRICIDAD',
     decimals: 1,
@@ -147,10 +147,10 @@ export const ENERGY_INDICATORS: readonly EnergyIndicator[] = [
   {
     code: 'EG.EGY.PRIM.PP.KD',
     label: 'Intensidad energética',
-    unit: 'MJ por dólar de PIB (PPA 2021)',
+    unit: 'MJ por USD de PIB (PPA de 2021)',
     group: 'CONSUMO',
     decimals: 2,
-    what: 'Cuánta energía hace falta para producir un dólar. Baja cuando la economía se vuelve más eficiente o cambia de sectores.',
+    what: 'Energía necesaria para producir un dólar de PIB. Baja cuando la economía gana eficiencia o se desplaza hacia otros sectores.',
   },
   {
     code: 'EG.IMP.CONS.ZS',
@@ -158,7 +158,7 @@ export const ENERGY_INDICATORS: readonly EnergyIndicator[] = [
     unit: '% del uso',
     group: 'COMERCIO',
     decimals: 1,
-    what: 'Importaciones menos exportaciones de energía, como parte del uso. Negativo es un exportador neto.',
+    what: 'Importaciones menos exportaciones de energía, como porcentaje del uso. Un valor negativo indica un exportador neto.',
   },
   {
     code: 'TX.VAL.FUEL.ZS.UN',
@@ -194,7 +194,7 @@ export const ENERGY_INDICATORS: readonly EnergyIndicator[] = [
   },
   {
     code: 'NY.GDP.TOTL.RT.ZS',
-    label: 'Renta de todos los recursos',
+    label: 'Renta total de recursos naturales',
     unit: '% del PIB',
     group: 'RENTA',
     decimals: 2,
@@ -243,10 +243,10 @@ export const ENERGY_INDICATORS: readonly EnergyIndicator[] = [
   {
     code: 'EN.GHG.CO2.RT.GDP.PP.KD',
     label: 'Intensidad de carbono',
-    unit: 'kg de CO₂ por dólar (PPA 2021)',
+    unit: 'kg de CO₂ por USD (PPA de 2021)',
     group: 'EMISIONES',
     decimals: 3,
-    what: 'Cuánto CO₂ cuesta producir un dólar.',
+    what: 'CO₂ emitido por cada dólar de PIB producido.',
   },
   {
     code: 'EN.GHG.CO2.TR.MT.CE.AR5',
@@ -339,7 +339,7 @@ function electricityConclusion(series: EnergyBoard['series']): FxConclusion | nu
       `En ${gas.year}, ${say(gas.value)} % de la generación fue con gas natural y ${say(hydro.value)} % ` +
       `hidroeléctrica` +
       (other
-        ? `; las renovables sin hidro llegaban a ${say(other.value)} % en ${other.year}`
+        ? `; las renovables no hidroeléctricas llegaban a ${say(other.value)} % en ${other.year}`
         : '') +
       (oil ? ` y los derivados del petróleo a ${say(oil.value)} %` : '') +
       `.` +
@@ -363,7 +363,7 @@ function balanceConclusion(series: EnergyBoard['series']): FxConclusion | null {
   return {
     key: 'balance',
     claim: exporter
-      ? 'Bolivia todavía exporta más energía de la que importa, pero cada vez menos'
+      ? 'Bolivia todavía exporta más energía de la que importa'
       : 'Bolivia ya importa más energía de la que exporta',
     figure: `${say(Math.abs(net.value))} % ${exporter ? 'exportado' : 'importado'} neto`,
     detail:
@@ -373,7 +373,7 @@ function balanceConclusion(series: EnergyBoard['series']): FxConclusion | null {
         : `el país compró afuera ${say(net.value)} % de lo que consumió.`) +
       (deepest && deepest.year !== net.year
         ? ` En ${deepest.year} el excedente exportado llegó a ${say(Math.abs(deepest.value))} % del uso; ` +
-          `de ahí a ${net.year} se perdió ${say(Math.abs(deepest.value) - Math.abs(net.value))} puntos.`
+          `de ahí a ${net.year} se redujo en ${say(Math.abs(deepest.value) - Math.abs(net.value))} puntos porcentuales.`
         : ''),
     tone: exporter ? 'neutral' : 'adverse',
   };
@@ -406,7 +406,7 @@ function tradeConclusion(series: EnergyBoard['series']): FxConclusion | null {
     claim: heavierInImports
       ? 'El combustible ya pesa más en lo que Bolivia compra que en lo que vende'
       : 'El combustible sigue pesando más en lo que Bolivia vende que en lo que compra',
-    figure: `${say(exportsShare.value)} % vs ${say(importsShare.value)} %`,
+    figure: `${say(exportsShare.value)} % frente a ${say(importsShare.value)} %`,
     detail:
       `En ${exportsShare.year} el combustible fue ${say(exportsShare.value)} % de las mercancías ` +
       `exportadas y ${say(importsShare.value)} % de las importadas.` +
@@ -455,7 +455,11 @@ function energyUseConclusion(board: Pick<EnergyBoard, 'series' | 'latest'>): FxC
     ENERGY_PLACES.find((place) => place.code === code)?.label ?? code;
   return {
     key: 'consumo',
-    claim: 'Bolivia usa menos energía por habitante que casi todos sus vecinos',
+    claim: !neighbours.length
+      ? 'Energía por habitante en Bolivia'
+      : above === 0
+        ? 'Bolivia usa más energía por habitante que todos sus vecinos del panel'
+        : `Bolivia usa menos energía por habitante que ${above} de sus ${neighbours.length} vecinos del panel`,
     figure: `${say(perCapita.value, 0)} kg`,
     detail:
       `${say(perCapita.value, 0)} kilos de petróleo equivalente por persona en ${perCapita.year}` +
@@ -481,7 +485,7 @@ function accessConclusion(series: EnergyBoard['series']): FxConclusion | null {
   if (!electricity) return null;
   return {
     key: 'acceso',
-    claim: 'La red llega a casi todos; la cocina limpia todavía no llega al campo',
+    claim: 'La red eléctrica llega a casi toda la población; la cocina limpia, todavía no al campo',
     figure: `${say(electricity.value)} %`,
     detail:
       `${say(electricity.value)} % de la población tenía electricidad en ${electricity.year}` +

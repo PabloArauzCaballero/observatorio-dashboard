@@ -333,23 +333,24 @@ export function TradeRecordsExplorer({ catalogue }: { catalogue: TradeCodes }) {
     <>
       <header className="page-intro">
         <h3 className="page-intro-title">
-          Comercio exterior registro por registro: partida, país, departamento y mes
+          Comercio exterior por partida, país, departamento y mes
         </h3>
         <p className="page-intro-lede">
-          La base que el INE arma con cada declaración de aduana, que se cruza por producto, país,
-          departamento y mes.
+          Base de comercio exterior del INE, construida con las declaraciones de aduana. Cruza
+          producto, país, departamento y mes; los años más recientes son preliminares.
         </p>
         <details className="panel-note">
           <summary>Qué trae la base</summary>
           <p>
-            La base de datos que el INE arma con cada declaración de aduana: exportaciones desde{' '}
-            {coverage('X_DETAIL')?.first ?? 1992} por partida NANDINA de diez dígitos, país de
-            destino, departamento de origen y mes (valor FOB); importaciones desde{' '}
-            {coverage('M_DETAIL')?.first ?? 2010} por partida y país de origen cada año, y por uso
-            económico, capítulo y departamento cada mes (valor CIF en frontera). Los totales cuadran
-            al centavo con los cuadros oficiales del INE; los años más recientes son preliminares y
-            el INE los revisa. El mapa del mundo pinta a qué países va, o de cuáles viene, lo que
-            los filtros dejan, y tocar un país abre su ficha con los productos y los departamentos.
+            El INE construye la base con cada declaración de aduana: exportaciones desde{' '}
+            {coverage('X_DETAIL')?.first ?? 1992} por partida de diez dígitos de la Nomenclatura
+            Común Andina (NANDINA), país de destino, departamento de origen y mes (valor FOB, libre
+            a bordo); importaciones desde {coverage('M_DETAIL')?.first ?? 2010} por partida y país
+            de origen cada año, y por uso económico, capítulo y departamento cada mes (valor CIF en
+            frontera: costo, seguro y flete). Los totales coinciden al centavo con los cuadros
+            oficiales del INE; los años más recientes son preliminares y están sujetos a revisión.
+            El mapa del mundo muestra a qué países va, o de cuáles viene, el comercio que dejan los
+            filtros; al seleccionar un país se abre su ficha con productos y departamentos.
           </p>
         </details>
         <a className="jump-to-filters" href="#aduana-filtros">
@@ -392,21 +393,21 @@ export function TradeRecordsExplorer({ catalogue }: { catalogue: TradeCodes }) {
         >
           {failed ? (
             <div className="callout">
-              No se pudo leer la base aduanera. El resto del informe sigue al día.
+              No se pudo leer la base aduanera. Recargar la página o volver en unos minutos.
             </div>
           ) : null}
           {partialLast ? (
             <div className="callout">
-              <strong>{to} está incompleto:</strong> el INE publicó hasta {MONTHS[lastMonth - 1]}.
-              Para comparar con el año anterior sin esa trampa, marca «Mismo periodo de cada año» en
-              los filtros.
+              <strong>{to} está incompleto:</strong> el INE publicó datos hasta{' '}
+              {MONTHS[lastMonth - 1]}. La opción «Mismo periodo de cada año», en los filtros,
+              compara solo los mismos meses de cada año.
             </div>
           ) : null}
 
           <Panel
             id="aduana-cifras"
             title={`Cifras clave de ${verb.toLowerCase()} (millones de USD, toneladas y USD por kg)`}
-            lede="Seis lecturas de lo que dejan los filtros: el periodo, el último año, el peso, el valor unitario, el principal socio y el principal producto."
+            lede="Seis indicadores sobre la selección de los filtros: valor del periodo, valor del último año, peso, valor unitario, principal socio y principal producto."
             source={SOURCE_ADUANA}
             data={() => ({
               columnas: ['Cifra', 'Valor', 'Nota'],
@@ -433,7 +434,7 @@ export function TradeRecordsExplorer({ catalogue }: { catalogue: TradeCodes }) {
           <Panel
             id="aduana-serie"
             title={`${verb} de Bolivia por ${seriesBy === 'year' ? 'año' : 'mes'} (${measureUnit})`}
-            lede={`Con todos los filtros aplicados; el valor unitario divide el valor entre el peso (${weightName(flow)}) y sube por precio o por mezcla de productos.`}
+            lede={`Serie con todos los filtros aplicados. El valor unitario divide el valor entre el peso (${weightName(flow)}); sube por precio o por cambios en la mezcla de productos.`}
             source={SOURCE_ADUANA}
           >
             <div className="fx-filters">
@@ -471,9 +472,9 @@ export function TradeRecordsExplorer({ catalogue }: { catalogue: TradeCodes }) {
 
           <RankingPanel
             id="aduana-productos"
-            title={`Qué ${flow === 'X' ? 'exporta' : 'importa'} Bolivia, por ${LEVELS.find((entry) => entry.by === level)?.label.toLowerCase()} (millones de USD, ${from}-${to})`}
-            lede="Toca una barra para filtrar por ella y bajar un nivel; Ctrl/⌘ suma sin bajar."
-            note="Los niveles van de capítulo a partida, subpartida y NANDINA, y los niveles de arriba que elegiste siguen aplicados."
+            title={`${verb} por ${LEVELS.find((entry) => entry.by === level)?.label.toLowerCase()} (millones de USD, ${from}-${to})`}
+            lede="Productos ordenados por valor en el periodo, con todos los filtros aplicados."
+            note="Al seleccionar una barra se filtra por ella y se baja un nivel; con Ctrl/⌘ se suma sin bajar. Los niveles van de capítulo a partida, subpartida y NANDINA, y los niveles superiores ya elegidos siguen aplicados."
             view={views?.productos}
             chosen={level === 'section' ? filters.section : filters.product}
             onPick={pickProduct}
@@ -486,8 +487,9 @@ export function TradeRecordsExplorer({ catalogue }: { catalogue: TradeCodes }) {
           <div className="grid-pair">
             <RankingPanel
               id="aduana-paises"
-              title={`${flow === 'X' ? 'A quién le vende' : 'A quién le compra'} Bolivia (millones de USD, ${from}-${to})`}
-              lede={`Por ${geo === 'zone' ? 'zona económica' : `país de ${who}`}, con todos los filtros menos el de país; toca uno para filtrar.`}
+              title={`${verb} por ${geo === 'zone' ? 'zona económica' : `país de ${who}`} (millones de USD, ${from}-${to})`}
+              lede="Con todos los filtros aplicados salvo el de país."
+              note="Al seleccionar una barra se añade al filtro de país; con Ctrl/⌘ se suman varias."
               view={geoView}
               chosen={filters.country}
               onPick={pickGeo}
@@ -507,11 +509,11 @@ export function TradeRecordsExplorer({ catalogue }: { catalogue: TradeCodes }) {
             />
             <RankingPanel
               id="aduana-departamentos"
-              title={`${flow === 'X' ? 'De qué departamento sale' : 'A qué departamento entra'} (millones de USD, ${from}-${to})`}
+              title={`${verb} por departamento de ${flow === 'X' ? 'origen' : 'destino'} (millones de USD, ${from}-${to})`}
               lede={
                 flow === 'X'
-                  ? 'Departamento de origen de la mercancía, con todos los filtros menos el de departamento.'
-                  : 'Departamento de destino declarado: las importaciones por departamento no llevan país, así que con un país elegido esta vista no tiene respuesta.'
+                  ? 'Departamento de origen de la mercancía, con todos los filtros aplicados salvo el de departamento.'
+                  : 'Departamento de destino declarado. Las importaciones por departamento no incluyen el país, por lo que esta vista queda vacía cuando hay un país elegido.'
               }
               view={views?.deptos}
               chosen={filters.department}
@@ -527,8 +529,8 @@ export function TradeRecordsExplorer({ catalogue }: { catalogue: TradeCodes }) {
             title={`${verb} por ${CLASSES[flow].find((entry) => entry.by === shownClass)?.label.toLowerCase()} (millones de USD, ${from}-${to})`}
             lede={
               flow === 'X'
-                ? 'Las clasificaciones que el INE da a cada partida: tradicionales (minerales e hidrocarburos) frente a no tradicionales, y la actividad económica que la produce.'
-                : 'La CUODE del INE: bienes de consumo, materias primas y bienes intermedios, bienes de capital y combustibles.'
+                ? 'Clasificaciones que el INE asigna a cada partida: tradicionales (minerales e hidrocarburos) frente a no tradicionales, y la actividad económica que la produce.'
+                : 'Clasificación por Uso o Destino Económico (CUODE) del INE: bienes de consumo, materias primas y bienes intermedios, bienes de capital y combustibles.'
             }
             view={views?.clase}
             chosen={

@@ -7,11 +7,9 @@ import {
   useContext,
   useEffect,
   useRef,
-  useState,
   type ReactNode,
 } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { Icon } from '@/components/icons';
 import type { IconName } from '@/components/icons';
 import { PARAM_PAGINA, PARAM_PESTANA, hrefDe } from '@/lib/enlace-tablero';
 import { SITE, destinoDe, idDePagina, idDeSeccion } from '@/lib/site-map';
@@ -93,10 +91,10 @@ class BloqueSeguro extends Component<{ label: string; children: ReactNode }, { f
  */
 export function SubSections({
   labels,
-  icons,
   children,
 }: {
   labels: string[];
+  /** Compatibilidad: los íconos ya no se dibujan (un diario no titula con íconos). */
   icons: IconName[];
   children: ReactNode[];
   /** Compatibilidad con `SubTabs`: aquí todas las páginas siguen la dirección. */
@@ -118,10 +116,7 @@ export function SubSections({
         aria-label={label}
       >
         <BloqueSeguro label={label}>
-          <h3 className="sub-title">
-            <Icon name={icons[indice] ?? 'cajas'} size={16} />
-            {label}
-          </h3>
+          <h3 className="sub-title">{label}</h3>
           <div className="stack">{children[indice]}</div>
         </BloqueSeguro>
       </section>
@@ -129,29 +124,38 @@ export function SubSections({
   );
 }
 
-function Indice({
-  lugar,
-  abierto,
-  cerrar,
-}: {
-  lugar: Lugar;
-  abierto: boolean;
-  cerrar: () => void;
-}) {
+/**
+ * El índice, como en un diario: las secciones en una franja bajo la cabecera y, de la
+ * sección abierta, sus páginas en una columna a un lado (en el teléfono, en una segunda
+ * franja). Es un solo `<nav>`: la rejilla de `.site` coloca cada lista en su sitio.
+ */
+function Indice({ lugar }: { lugar: Lugar }) {
   const ir = (evento: React.MouseEvent, seccion: string, pagina: string | null) => {
     // Ctrl/⌘/Mayús+clic y clic central abren el enlace en otra ventana, como cualquier <a>.
     if (evento.button !== 0 || evento.ctrlKey || evento.metaKey || evento.shiftKey) return;
     evento.preventDefault();
-    cerrar();
     irA(seccion, pagina);
   };
+  const abierta = SITE.find((s) => s.label === lugar.seccion);
+  const paginas = abierta?.pages ?? [];
+
+  // En el teléfono las franjas se deslizan: la sección y la página abiertas quedan a la vista.
+  const franjaSecciones = useRef<HTMLUListElement>(null);
+  const franjaPaginas = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    for (const [franja, activo] of [
+      [franjaSecciones.current, '.site-link-on'],
+      [franjaPaginas.current, '.site-page-on'],
+    ] as const) {
+      const enlace = franja?.querySelector<HTMLElement>(activo);
+      if (!franja || !enlace || franja.scrollWidth <= franja.clientWidth) continue;
+      franja.scrollLeft = enlace.offsetLeft - (franja.clientWidth - enlace.offsetWidth) / 2;
+    }
+  }, [lugar.seccion, lugar.pagina]);
 
   return (
-    <nav
-      className={abierto ? 'site-index site-index-open' : 'site-index'}
-      aria-label="Secciones del informe"
-    >
-      <ul>
+    <nav className="site-index" aria-label="Secciones">
+      <ul className="site-sections" ref={franjaSecciones}>
         {SITE.map((seccion) => {
           const esActiva = lugar.seccion === seccion.label;
           const primera = seccion.pages[0]?.label ?? null;
@@ -160,38 +164,39 @@ function Indice({
               <a
                 href={hrefDe({ pestana: seccion.label })}
                 className={esActiva ? 'site-link site-link-on' : 'site-link'}
-                aria-current={esActiva && seccion.pages.length === 0 ? 'page' : undefined}
+                aria-current={esActiva ? (seccion.pages.length === 0 ? 'page' : 'location') : undefined}
                 onClick={(evento) => ir(evento, seccion.label, primera)}
               >
-                <Icon name={seccion.icon} size={15} />
                 {seccion.label}
               </a>
-              {esActiva && seccion.pages.length > 0 ? (
-                <ul
-                  className={
-                    seccion.pages.length > 6 ? 'site-pages site-pages-dense' : 'site-pages'
-                  }
-                >
-                  {seccion.pages.map((pagina) => (
-                    <li key={pagina.label}>
-                      <a
-                        href={hrefDe({ pestana: seccion.label, pagina: pagina.label })}
-                        className={
-                          lugar.pagina === pagina.label ? 'site-page site-page-on' : 'site-page'
-                        }
-                        aria-current={lugar.pagina === pagina.label ? 'page' : undefined}
-                        onClick={(evento) => ir(evento, seccion.label, pagina.label)}
-                      >
-                        {pagina.label}
-                      </a>
-                    </li>
-                  ))}
-                </ul>
-              ) : null}
             </li>
           );
         })}
       </ul>
+      {abierta && paginas.length > 0 ? (
+        <div className="site-pages-col" ref={franjaPaginas}>
+          <p className="site-pages-head" aria-hidden="true">
+            {abierta.label}
+          </p>
+          <ul
+            className={paginas.length > 6 ? 'site-pages site-pages-dense' : 'site-pages'}
+            aria-label={`Páginas de ${abierta.label}`}
+          >
+            {paginas.map((pagina) => (
+              <li key={pagina.label}>
+                <a
+                  href={hrefDe({ pestana: abierta.label, pagina: pagina.label })}
+                  className={lugar.pagina === pagina.label ? 'site-page site-page-on' : 'site-page'}
+                  aria-current={lugar.pagina === pagina.label ? 'page' : undefined}
+                  onClick={(evento) => ir(evento, abierta.label, pagina.label)}
+                >
+                  {pagina.label}
+                </a>
+              </li>
+            ))}
+          </ul>
+        </div>
+      ) : null}
     </nav>
   );
 }
@@ -205,7 +210,6 @@ function Indice({
 export function SiteLayout({ children }: { children: ReactNode[] }) {
   const parametros = useSearchParams();
   const lugar = lugarDe(parametros.get(PARAM_PESTANA), parametros.get(PARAM_PAGINA));
-  const [indiceAbierto, setIndiceAbierto] = useState(false);
   const secciones = Children.toArray(children);
   const indice = Math.max(
     0,
@@ -225,27 +229,10 @@ export function SiteLayout({ children }: { children: ReactNode[] }) {
     else window.scrollTo({ top: 0 });
   }, [clave]);
 
-  const donde = lugar.pagina ? `${lugar.seccion} · ${lugar.pagina}` : lugar.seccion;
-
   return (
-    <div className="site">
-      <div className="site-bar">
-        <button
-          type="button"
-          className="site-bar-btn"
-          aria-expanded={indiceAbierto}
-          onClick={() => setIndiceAbierto(!indiceAbierto)}
-        >
-          <Icon name="capas" size={15} />
-          <span>Secciones</span>
-        </button>
-        <span className="site-bar-here">{donde}</span>
-      </div>
-      <Indice lugar={lugar} abierto={indiceAbierto} cerrar={() => setIndiceAbierto(false)} />
-      {indiceAbierto ? (
-        <div className="site-scrim" onClick={() => setIndiceAbierto(false)} aria-hidden="true" />
-      ) : null}
-      <div className="site-content">
+    <div className="site" data-paginas={seccion && seccion.pages.length > 0 ? 'si' : 'no'}>
+      <Indice lugar={lugar} />
+      <div className="site-content" id="contenido" tabIndex={-1}>
         {seccion ? (
           <section
             key={seccion.label}

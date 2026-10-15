@@ -61,14 +61,14 @@ import type {
 
 const MARKS: Record<string, string> = {
   '2013':
-    'Depuración del registro (2013): el salto desde 2012 sale de la regularización de matrículas, no de empresas nuevas.',
+    'Depuración del registro (2013): el salto frente a 2012 responde a la regularización de matrículas, no a la creación de empresas.',
   '2025':
-    'Corte a noviembre de 2025 del reporte del SEPREC. El portal del Ministerio publica 470.077 para 2025, cifra que el propio registro no sostiene.',
+    'Corte a noviembre de 2025 del reporte del SEPREC. El portal del Ministerio publica 470.077 empresas para 2025, cifra que no coincide con el reporte del registro.',
 };
 
 /** De dónde sale el registro, dicho una vez para todos los paneles de la página. */
 const REGISTRY_SOURCE =
-  'SEPREC (antes FUNDEMPRESA), registro de comercio: servido por el SIIP del Ministerio de Desarrollo Productivo para 2008–2024 y por el reporte del propio SEPREC para 2025';
+  'Servicio Plurinacional de Registro de Comercio (SEPREC, antes FUNDEMPRESA): 2008–2024 según el Sistema Integrado de Información Productiva (SIIP) del Ministerio de Desarrollo Productivo; 2025 según el reporte del SEPREC';
 const OWNERS_SOURCE =
   'SEPREC, registro de comercio (titular o representante legal de cada empresa)';
 
@@ -365,7 +365,7 @@ export function BusinessFabricExplorer({ board }: { board: FabricBoard }) {
     (since !== null || until !== null ? 1 : 0);
 
   if (!board.firms.length) {
-    return <div className="callout">Todavía no hay base empresarial cargada.</div>;
+    return <div className="callout">Todavía no hay datos del registro de comercio.</div>;
   }
 
   return (
@@ -373,7 +373,7 @@ export function BusinessFabricExplorer({ board }: { board: FabricBoard }) {
       <Panel
         id="tejido-resumen"
         title={`Tejido empresarial de ${placeLabel(place)}: ${noun}, ${first}–${last} (cantidad de empresas)`}
-        lede={`Cuántas empresas hay en el registro de comercio de ${placeLabel(place)}. «Vigente» es toda matrícula que no se canceló, no una empresa que funciona.`}
+        lede={`${lastTotal === null ? `Registro de comercio de ${placeLabel(place)}.` : `${placeLabel(place)} registró ${say(lastTotal)} ${noun} en ${last}.`} Una matrícula vigente es la que no se canceló; no equivale a una empresa en operación.`}
         source={REGISTRY_SOURCE}
         data={() => ({
           unidad: 'empresas',
@@ -441,10 +441,11 @@ export function BusinessFabricExplorer({ board }: { board: FabricBoard }) {
         <details className="panel-note">
           <summary>Cómo leerlo</summary>
           <p>
-            Registro de comercio: SEPREC (antes FUNDEMPRESA), servido por el SIIP del Ministerio de
-            Desarrollo Productivo para 2008–2024 y por el reporte del propio SEPREC para 2025.
-            «Vigente» es toda matrícula que no se canceló, no una empresa que funciona: la parte que
-            renueva su matrícula cada año es mucho menor.
+            Registro de comercio del SEPREC (antes FUNDEMPRESA): 2008–2024 según el Sistema
+            Integrado de Información Productiva (SIIP) del Ministerio de Desarrollo Productivo;
+            2025 según el reporte del propio SEPREC. Una matrícula vigente es la que no se canceló,
+            no una empresa en operación: las renovaciones anuales de matrícula son bastante menos
+            numerosas (véase «Entradas al registro»).
           </p>
           <p>{MARKS['2013']}</p>
           <p>{MARKS['2025']}</p>
@@ -627,7 +628,7 @@ export function BusinessFabricExplorer({ board }: { board: FabricBoard }) {
           <Panel
             id="tejido-por-categoria"
             title={`${placeLabel(place)}: ${noun} por ${dimension === 'FORM' ? 'tipo societario' : 'actividad'}, ${first}–${last} (${mode === 'share' ? '% del total del año' : 'cantidad de empresas'})`}
-            lede={`${chosen.size ? `${visible.length} categorías elegidas.` : 'Todas las categorías; las que pasan de seis se pliegan en «Otros».'} Pasa el cursor por una columna para ver cada tramo; el rombo marca un quiebre de la serie.`}
+            lede={`${chosen.size ? `${visible.length} categorías seleccionadas.` : 'Todas las categorías; a partir de la séptima se agrupan en «Otros».'} El rombo marca un quiebre de la serie.`}
             source={REGISTRY_SOURCE}
           >
             <div className="chart-kind" role="group" aria-label="Escala">
@@ -656,8 +657,8 @@ export function BusinessFabricExplorer({ board }: { board: FabricBoard }) {
           <div className="grid-pair">
             <Panel
               id="tejido-mapa"
-              title={`${chosen.size ? 'Lo elegido' : 'Todas'} por departamento, ${placeYear} (cantidad de empresas)`}
-              lede="Toca un departamento para filtrar toda la página por él."
+              title={`${chosen.size ? 'Categorías seleccionadas' : 'Empresas'} por departamento, ${placeYear} (cantidad de empresas)`}
+              lede={`${noun.charAt(0).toLocaleUpperCase('es')}${noun.slice(1)} en cada departamento en ${placeYear}. Al seleccionar un departamento en el mapa se filtra toda la página.`}
               source={REGISTRY_SOURCE}
               data={() => ({
                 unidad: 'empresas',
@@ -682,8 +683,8 @@ export function BusinessFabricExplorer({ board }: { board: FabricBoard }) {
             </Panel>
             <Panel
               id="tejido-ranking"
-              title={`Ranking de departamentos, ${placeYear} (cantidad de empresas)`}
-              lede="Misma selección que el mapa, ordenada."
+              title={`Departamentos ordenados por cantidad de empresas, ${placeYear} (cantidad de empresas)`}
+              lede="La misma selección del mapa, de mayor a menor."
               source={REGISTRY_SOURCE}
             >
               <ShareBars
@@ -714,7 +715,7 @@ export function BusinessFabricExplorer({ board }: { board: FabricBoard }) {
             <Panel
               id="tejido-matriz"
               title={`${dimension === 'FORM' ? 'Tipo societario' : 'Actividad'} por departamento, ${placeYear} (cantidad de empresas)`}
-              lede="Una celda vacía es una combinación sin empresas registradas, no un cero estimado."
+              lede="Una celda vacía indica una combinación sin empresas registradas, no un cero estimado."
               source={REGISTRY_SOURCE}
             >
               <HeatGrid
@@ -729,8 +730,8 @@ export function BusinessFabricExplorer({ board }: { board: FabricBoard }) {
           <Panel
             id="tejido-crecimiento"
             title={`Crecimiento por categoría, ${first}–${last}, ${placeLabel(place)} (% anual compuesto)`}
-            lede="Tasa anual compuesta entre los dos extremos del rango elegido, calculada aquí sobre las cifras publicadas."
-            source={`${REGISTRY_SOURCE}; cálculo del Observatorio`}
+            lede="Tasa de crecimiento anual compuesta entre el primer y el último año del rango seleccionado, calculada sobre las cifras publicadas por el registro."
+            source={`${REGISTRY_SOURCE}; cálculo de DatosBolivia.com`}
             data={() => ({
               columnas: [
                 dimension === 'FORM' ? 'Tipo societario' : 'Actividad',
@@ -794,7 +795,7 @@ export function BusinessFabricExplorer({ board }: { board: FabricBoard }) {
                   </>
                 ) : (
                   <div className="callout">
-                    Ninguna categoría tiene cifra en los dos extremos del rango.
+                    Ninguna categoría tiene cifra en el primer y el último año del rango.
                   </div>
                 )
               }
@@ -836,7 +837,7 @@ export function BusinessFabricExplorer({ board }: { board: FabricBoard }) {
               <Panel
                 id="tejido-mujeres"
                 title={`Empresas encabezadas por mujeres, por departamento, ${ownerYear} (% de las que declaran género)`}
-                lede="Propietaria o representante legal según el SEPREC. Toca una barra para filtrar."
+                lede="Empresas cuya titular o representante legal es una mujer, según el SEPREC."
                 source={OWNERS_SOURCE}
               >
                 <ShareBars
@@ -850,11 +851,12 @@ export function BusinessFabricExplorer({ board }: { board: FabricBoard }) {
                     place !== 'BOLIVIA',
                   )}
                 />
+                <p className="chart-note">Al seleccionar una barra se filtra la página por ese departamento.</p>
               </Panel>
               <Panel
                 id="tejido-jovenes"
                 title={`Empresas encabezadas por jóvenes, por departamento, ${ownerYear} (% del total)`}
-                lede="Según el grupo etario que el SEPREC asigna al titular."
+                lede="Empresas cuyo titular pertenece al grupo de jóvenes, según el grupo etario que asigna el SEPREC."
                 source={OWNERS_SOURCE}
               >
                 <ShareBars
@@ -884,7 +886,7 @@ export function BusinessFabricExplorer({ board }: { board: FabricBoard }) {
                 <Panel
                   id="tejido-entradas"
                   title={`Entradas al registro en ${placeLabel(place)}: inscripciones y renovaciones por año (cantidad de empresas)`}
-                  lede="Un año parcial lo dice su fuente; pasa el cursor para ver la cifra."
+                  lede="Inscripciones de empresas nuevas y renovaciones de matrícula de cada año. Los años parciales se indican según la fuente."
                   source={REGISTRY_SOURCE}
                 >
                   <div className="stat-strip">
@@ -919,7 +921,7 @@ export function BusinessFabricExplorer({ board }: { board: FabricBoard }) {
                 <Panel
                   id="tejido-salidas"
                   title={`Salidas del registro en ${placeLabel(place)}: cancelaciones de matrícula por año (cantidad de matrículas)`}
-                  lede="No es quiebra: incluye fusiones, transformaciones y otras bajas registrales."
+                  lede="Una cancelación no equivale a una quiebra: incluye fusiones, transformaciones y otras bajas registrales."
                   source={REGISTRY_SOURCE}
                 >
                   <div className="stat-strip">

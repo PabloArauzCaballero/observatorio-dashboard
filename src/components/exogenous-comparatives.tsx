@@ -94,7 +94,7 @@ function Comparatives({ board }: { board: ExogenousBoard }) {
   const shownMode: FactorComparisonMode = mode === 'LEVEL' && !sameUnit ? 'BASE100' : mode;
 
   const outcome = useMemo(() => {
-    if (!a || !b || a.code === b.code) return { error: 'Elige dos lecturas distintas.' };
+    if (!a || !b || a.code === b.code) return { error: 'La comparación necesita dos lecturas distintas.' };
     const slice = (one: ExogenousSeries) => {
       const data = asFamilyData(one);
       return { ...data, points: data.points.filter((point) => yearOf(point.period) >= since) };
@@ -180,9 +180,9 @@ function Comparatives({ board }: { board: ExogenousBoard }) {
 
       <Panel
         id="comparativos-sugeridos"
-        title="Comparaciones con sentido, por pregunta"
-        lede="Toca una para dibujarla abajo. Todas ponen un precio de Bolivia junto al que debería moverlo."
-        source="Observatorio Económico de Bolivia, con las fuentes de cada lectura"
+        title="Comparaciones sugeridas, por pregunta (pares de series)"
+        lede="Cada comparación pone un precio de Bolivia junto al indicador que debería moverlo. Al seleccionar una, se dibuja en el gráfico de abajo."
+        source="Fuentes de cada lectura; selección de DatosBolivia.com"
       >
         <div className="compare-themes">
           {THEMES.map((theme) => {
@@ -225,7 +225,7 @@ function Comparatives({ board }: { board: ExogenousBoard }) {
             ? `${pair.question} ${pair.why}`
             : 'Comparación elegida a mano. La base 100 pone las dos lecturas en el mismo punto de partida para comparar su trayectoria, no su nivel.'
         }
-        source={a && b ? sourcesOf([a, b]) : 'Observatorio Económico de Bolivia'}
+        source={a && b ? sourcesOf([a, b]) : 'Fuentes de cada lectura (ver «Método»)'}
         data={() =>
           result && a && b
             ? {

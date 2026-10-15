@@ -4,4 +4,4 @@
  * lee, sin iniciar sesión (ADR 0027 del núcleo).
  */
 export const SOCIAL_SOURCE =
-  'Perfiles públicos de las empresas del ránking Merco en sus redes, leídos por el Observatorio sin iniciar sesión';
+  'Perfiles públicos en redes sociales de las empresas de la clasificación Merco; lectura de DatosBolivia.com sin iniciar sesión';

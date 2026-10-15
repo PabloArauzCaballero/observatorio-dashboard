@@ -285,7 +285,7 @@ export function ReputationExplorer({ board }: { board: ExportersBoard }) {
     }));
 
   if (!edition.seats.length) {
-    return <div className="callout">Todavía no hay ránking general de reputación cargado.</div>;
+    return <div className="callout">Todavía no hay datos de la clasificación general de reputación.</div>;
   }
 
   return (
@@ -294,8 +294,8 @@ export function ReputationExplorer({ board }: { board: ExportersBoard }) {
         <Panel
           id="empresas-reputacion-top"
           title={`Las ${topRows.length} empresas con mejor reputación, Merco ${editionLabel(year)} (puntos Merco)`}
-          lede={`Puesto entre las ${edition.seats.length} empresas que mide Merco, y cuánto se movió cada una frente a ${edition.previous === null ? 'la edición anterior' : editionLabel(edition.previous)}. Toca un nombre para resaltar su cinta.`}
-          ledeText={`Puesto entre las ${edition.seats.length} empresas que mide Merco en ${editionLabel(year)}.`}
+          lede={`Puesto de cada empresa entre las ${edition.seats.length} que mide Merco y su variación frente a ${edition.previous === null ? 'la edición anterior' : editionLabel(edition.previous)}.`}
+          ledeText={`Puesto de cada empresa entre las ${edition.seats.length} que mide Merco en ${editionLabel(year)}.`}
           source={SOURCE}
           data={() => ({
             unidad: 'puesto y puntos',
@@ -319,14 +319,15 @@ export function ReputationExplorer({ board }: { board: ExportersBoard }) {
             previous={edition.previous}
             selected={highlighted}
             onPick={(slug) => setHighlighted((current) => (current === slug ? null : slug))}
-            legend={`Puntos Merco por encima de ${points(FLOOR_SCORE)}, el centésimo (10.000 = primera)`}
+            legend={`Puntos Merco por encima de ${points(FLOOR_SCORE)}, puntaje de la centésima (10.000 = primera)`}
           />
           <details className="panel-note">
             <summary>Cómo leerlo</summary>
             <p>
-              La barra arranca en {points(FLOOR_SCORE)} puntos, lo que saca el centésimo, y llega a
-              10.000 con la primera. ▲ y ▼ dicen cuántos puestos subió o bajó frente a la edición
-              anterior; «nuevo», que no estaba entre las cien. Mide reputación percibida, no tamaño.
+              La barra parte de {points(FLOOR_SCORE)} puntos, el puntaje de la centésima empresa, y
+              llega a 10.000 con la primera. ▲ y ▼ indican cuántos puestos subió o bajó frente a la
+              edición anterior; «nuevo», que no estaba entre las cien. Mide reputación percibida, no
+              tamaño. Al seleccionar un nombre se resalta su cinta.
             </p>
           </details>
         </Panel>
@@ -336,8 +337,8 @@ export function ReputationExplorer({ board }: { board: ExportersBoard }) {
         <Panel
           id="empresas-reputacion-cintas"
           title={`Puesto de cada empresa entre las ${TOP_TEN} de mejor reputación, ${years[0] ?? ''}–${editionLabel(years.at(-1) ?? 0)} (puesto por edición)`}
-          lede="Cada cinta es una empresa: sube cuando mejora su puesto y se corta la edición en que queda fuera de las diez. Pasa por encima para ver la edición; toca una cinta para resaltarla."
-          ledeText="Cada cinta es una empresa; se corta la edición en que queda fuera de las diez."
+          lede="Posición de cada empresa, edición por edición, entre las diez de mejor reputación. Una línea interrumpida indica una edición fuera de las diez primeras."
+          ledeText="Posición de cada empresa, edición por edición, entre las diez de mejor reputación. Una línea interrumpida indica una edición fuera de las diez primeras."
           source={SOURCE}
           data={() => ({
             unidad: 'puesto',
@@ -379,8 +380,8 @@ export function ReputationExplorer({ board }: { board: ExportersBoard }) {
       <Panel
         id="empresas-reputacion-resumen"
         className="emp-hero rep-hero"
-        title={`Reputación empresarial: ránking Merco ${editionLabel(year)} (puesto y puntuación)`}
-        lede="Merco mide la reputación percibida de cien empresas cada año: no es tamaño, solvencia ni conducta."
+        title={`Reputación empresarial: clasificación Merco ${editionLabel(year)} (puesto y puntos)`}
+        lede={`${podium[0] ? `${podium[0].name} encabeza la edición ${editionLabel(year)} de Merco${podium[0].score !== null ? ` con ${points(podium[0].score)} puntos` : ''}. ` : ''}El monitor mide cada año la reputación percibida de cien empresas; no mide tamaño, solvencia ni conducta.`}
         source={SOURCE}
         data={() => ({
           unidad: 'puesto y puntos',
@@ -446,7 +447,7 @@ export function ReputationExplorer({ board }: { board: ExportersBoard }) {
             cinco evaluaciones, trece fuentes, más de mil seiscientas encuestas y revisión
             independiente de KPMG bajo norma ISAE 3000. Mide <strong>reputación percibida</strong>:
             no es tamaño, solvencia ni conducta. La puntuación va de 10.000 para la primera a 3.000
-            para la centésima y sólo se compara dentro de una misma edición.
+            para la centésima y solo se compara dentro de una misma edición.
           </p>
         </details>
       </Panel>
@@ -493,7 +494,7 @@ export function ReputationExplorer({ board }: { board: ExportersBoard }) {
             <div className="rail-field">
               <input
                 type="search"
-                placeholder="Buscar por nombre…"
+                placeholder="Buscar empresa"
                 aria-label="Buscar una empresa por su nombre"
                 value={query}
                 onChange={(event) => {
@@ -539,7 +540,7 @@ export function ReputationExplorer({ board }: { board: ExportersBoard }) {
                 }}
               />
               <span>
-                <Icon name="globo" size={13} /> Sólo las que también exportan
+                <Icon name="globo" size={13} /> Solo las que también exportan
               </span>
             </label>
           </div>
@@ -599,11 +600,11 @@ export function ReputationExplorer({ board }: { board: ExportersBoard }) {
         <div className="workspace-main">
           <Panel
             id="empresas-reputacion-ranking"
-            title={`Ránking general ${editionLabel(year)}: puesto y puntuación Merco (10.000 = primera)`}
+            title={`Clasificación general ${editionLabel(year)}: puesto y puntaje Merco (puntos; 10.000 = primera)`}
             lede={
               rows.length === edition.seats.length
                 ? `Las ${rows.length} empresas de la edición.`
-                : `${rows.length} de ${edition.seats.length} empresas con los filtros puestos.`
+                : `${rows.length} de ${edition.seats.length} empresas con los filtros aplicados.`
             }
             source={SOURCE}
             data={() => ({
@@ -633,9 +634,9 @@ export function ReputationExplorer({ board }: { board: ExportersBoard }) {
             <details className="panel-note">
               <summary>Cómo leerlo</summary>
               <p>
-                La barra es la puntuación sobre la escala de la edición; el marcador de la derecha,
-                el movimiento desde {edition.previous ?? 'la edición anterior'}. Pulsa{' '}
-                <Icon name="linea" size={12} /> para seguir una empresa en la trayectoria de abajo.
+                La barra representa el puntaje sobre la escala de la edición; el marcador de la
+                derecha, el movimiento desde {edition.previous ?? 'la edición anterior'}. El botón{' '}
+                <Icon name="linea" size={12} /> agrega la empresa a la trayectoria de abajo.
               </p>
             </details>
 
@@ -687,7 +688,7 @@ export function ReputationExplorer({ board }: { board: ExportersBoard }) {
                         title={
                           isFollowed
                             ? `Quitar ${seat.name} de la trayectoria`
-                            : `Seguir a ${seat.name} en la trayectoria`
+                            : `Agregar ${seat.name} a la trayectoria`
                         }
                       >
                         <Icon name="linea" size={14} />
@@ -698,7 +699,7 @@ export function ReputationExplorer({ board }: { board: ExportersBoard }) {
               </ol>
             ) : (
               <div className="callout">
-                Ninguna empresa de {editionLabel(year)} pasa estos filtros.{' '}
+                No hay empresas de {editionLabel(year)} para estos filtros.{' '}
                 <button type="button" className="chip" onClick={reset}>
                   Limpiar filtros
                 </button>
@@ -713,26 +714,27 @@ export function ReputationExplorer({ board }: { board: ExportersBoard }) {
               total={rows.length}
               pageSize={PAGE}
               onGo={setOffset}
-              where="ránking de reputación"
+              where="clasificación de reputación"
               noun="empresas"
             />
           </Panel>
 
           <Panel
             id="empresas-reputacion-trayectoria"
-            title={`Trayectoria en el ránking general, ${years[0] ?? '—'}–${years.at(-1) ?? '—'} (puesto, 1 = mejor)`}
+            title={`Puesto en la clasificación general, ${years[0] ?? '—'}–${years.at(-1) ?? '—'} (puesto; 1 = mejor)`}
             lede={
               followed.length
-                ? 'Las empresas que elegiste en el ránking.'
-                : `Las cinco primeras de ${editionLabel(year)}; elige otras con el botón de cada fila.`
+                ? 'Empresas seleccionadas de la clasificación.'
+                : `Las cinco primeras de ${editionLabel(year)}.`
             }
             source={SOURCE}
           >
             <details className="panel-note">
               <summary>Cómo leerlo</summary>
               <p>
-                El eje va invertido para que mejorar se lea como subir. Un hueco en la línea es una
-                edición en que la empresa no entró entre las cien.
+                El eje está invertido para que una mejora se lea como un ascenso. Un hueco en la
+                línea indica una edición en que la empresa no figuró entre las cien. El botón de
+                cada fila de la clasificación agrega o quita empresas.
               </p>
             </details>
             <div className="rep-followed">
@@ -765,7 +767,7 @@ export function ReputationExplorer({ board }: { board: ExportersBoard }) {
 
           <Panel
             id="empresas-reputacion-sectores"
-            title={`Ránking sectorial ${editionLabel(year)}: puesto dentro de cada sector (puesto)`}
+            title={`Clasificación sectorial ${editionLabel(year)}: puesto dentro de cada sector (puesto)`}
             lede="Merco publica el orden dentro de cada sector, no una puntuación."
             source={SOURCE}
             data={() => ({
@@ -784,9 +786,9 @@ export function ReputationExplorer({ board }: { board: ExportersBoard }) {
             <details className="panel-note">
               <summary>Cómo leerlo</summary>
               <p>
-                Vale más que el general para leer la economía: el general está dominado por marcas
-                de consumo, y aquí aparecen la primera minera, la primera aceitera, la primera
-                constructora y la primera aseguradora.
+                Complementa la clasificación general, en la que predominan las marcas de consumo:
+                aquí figuran la primera minera, la primera aceitera, la primera constructora y la
+                primera aseguradora.
               </p>
             </details>
             {sectorCards.length ? (
@@ -823,9 +825,9 @@ export function ReputationExplorer({ board }: { board: ExportersBoard }) {
 
           <Panel
             id="empresas-reputacion-cruce"
-            title={`Las que están en las dos listas: reputación Merco y ránking exportador ${board.exportYear ?? ''} (cantidad de empresas)`}
-            lede={`Son ${board.crossings.length} las que Merco midió en alguna edición y están entre las ${board.exporters.length} mayores exportadoras.`}
-            source={`${SOURCE}; ránking de exportadoras de «Comercio exterior»`}
+            title={`Empresas en las dos listas: reputación Merco y mayores exportadoras ${board.exportYear ?? ''} (cantidad de empresas)`}
+            lede={`${board.crossings.length} empresas medidas por Merco en alguna edición figuran entre las ${board.exporters.length} mayores exportadoras.`}
+            source={`${SOURCE}; clasificación de exportadoras de «Comercio exterior»`}
             data={() => ({
               unidad: 'puesto',
               columnas: [
@@ -851,7 +853,7 @@ export function ReputationExplorer({ board }: { board: ExportersBoard }) {
               <p>
                 Empresas que Merco midió en alguna edición y que además figuran entre las{' '}
                 {board.exporters.length} mayores exportadoras de «Comercio exterior». Son{' '}
-                <strong>{board.crossings.length}</strong>, y sólo{' '}
+                <strong>{board.crossings.length}</strong>, y solo{' '}
                 <strong>
                   {
                     board.crossings.filter((row) => row.reputationYear === board.reputationYear)
@@ -859,9 +861,9 @@ export function ReputationExplorer({ board }: { board: ExportersBoard }) {
                   }
                 </strong>{' '}
                 siguen en la edición{' '}
-                {board.reputationYear ? editionLabel(board.reputationYear) : ''}: lo que el país
-                vende afuera lo producen empresas que el público no reconoce, y lo que el público
-                reconoce se vende puertas adentro.
+                {board.reputationYear ? editionLabel(board.reputationYear) : ''}. Las grandes
+                exportadoras casi no figuran en el monitor, que encabezan sobre todo marcas
+                orientadas al mercado interno.
               </p>
             </details>
             {board.crossings.length ? (
@@ -897,8 +899,8 @@ export function ReputationExplorer({ board }: { board: ExportersBoard }) {
             ) : (
               <div className="callout">
                 {board.exporters.length
-                  ? 'Ninguna de las exportadoras del ránking aparece en el monitor de reputación con los datos cargados hoy.'
-                  : 'El cruce se llena cuando el núcleo haya sembrado también el registro de exportadoras.'}
+                  ? 'Ninguna de las mayores exportadoras figura en el monitor de reputación con los datos disponibles.'
+                  : 'El cruce se completa cuando se carga el registro de exportadoras.'}
               </div>
             )}
           </Panel>

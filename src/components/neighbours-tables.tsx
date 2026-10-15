@@ -269,8 +269,7 @@ export interface OpenedBoard<T> {
   failed: boolean;
 }
 
-const SOURCE =
-  'Banco Mundial, Indicadores del Desarrollo Mundial (WDI), leídos del panel de treinta economías del Observatorio';
+const SOURCE = 'Banco Mundial, Indicadores del Desarrollo Mundial';
 
 /**
  * Un panel de la sección: el cuadro, o el aviso de que no está.
@@ -316,8 +315,8 @@ function Block<T extends LatestByPlace>({
         <OnOpenNotice what={what} failed={opened.failed} />
       ) : empty ? (
         <div className="callout">
-          Todavía no hay series de este capítulo leídas del panel del Banco Mundial. El cuadro se
-          llena solo cuando el núcleo las tenga cargadas.
+          Todavía no hay series del Banco Mundial para este cuadro. Se completa en cuanto se
+          cargan.
         </div>
       ) : (
         <>
@@ -358,9 +357,9 @@ export function NeighboursSection({
       <div className="grid-three">
         <Block
           id="vecinos-energia"
-          title="Energía"
-          lede="Las series que distinguen una matriz de otra."
-          note="Cada columna lleva su unidad en la cabecera y el año del dato entre paréntesis. Una importación neta negativa es un exportador de energía."
+          title="Energía, Bolivia y vecinos (último dato de cada país)"
+          lede="Las series que mejor distinguen una matriz energética de otra: generación eléctrica por fuente, consumo por habitante y comercio de combustibles."
+          note="Cada columna lleva su unidad en la cabecera y el año del dato entre paréntesis. Una importación neta negativa corresponde a un exportador de energía."
           what="la matriz energética de los vecinos"
           opened={energy}
           places={ENERGY_PLACES}
@@ -368,9 +367,9 @@ export function NeighboursSection({
         />
         <Block
           id="vecinos-recursos"
-          title="Recursos naturales"
-          lede="Las series que distinguen un caso de otro."
-          note="Perú y Chile también viven de minerales; lo que cambia entre ellos y Bolivia está en las dos últimas columnas. Cada columna lleva su unidad en la cabecera y el año del dato entre paréntesis."
+          title="Recursos naturales, Bolivia y vecinos (último dato de cada país)"
+          lede="Rentas de los recursos, peso de los minerales en las exportaciones, manufactura, agotamiento y ahorro ajustado."
+          note="Perú y Chile también dependen de los minerales; la diferencia con Bolivia está en las dos últimas columnas, agotamiento y ahorro ajustado. Cada columna lleva su unidad en la cabecera y el año del dato entre paréntesis."
           what="los recursos naturales de los vecinos"
           opened={resources}
           places={RESOURCE_PLACES}
@@ -378,9 +377,9 @@ export function NeighboursSection({
         />
         <Block
           id="vecinos-ambiente"
-          title="Medio ambiente"
-          lede="Las series que distinguen un territorio de otro."
-          note="Un estrés hídrico bajo y un bosque alto son, los dos, herencia de la geografía; lo que compara de verdad es cómo se mueven. Cada columna lleva su unidad en la cabecera y el año del dato entre paréntesis."
+          title="Medio ambiente, Bolivia y vecinos (último dato de cada país)"
+          lede="Bosque, tierra agrícola, emisiones, calidad del aire, estrés hídrico y áreas protegidas."
+          note="Un estrés hídrico bajo y una cobertura forestal alta dependen sobre todo de la geografía; la comparación útil entre países está en su evolución. Cada columna lleva su unidad en la cabecera y el año del dato entre paréntesis."
           what="el medio ambiente de los vecinos"
           opened={environment}
           places={ENVIRONMENT_PLACES}
@@ -389,9 +388,8 @@ export function NeighboursSection({
       </div>
       <p className="guest-note">
         <Icon name="info" size={12} /> Series del Banco Mundial (Indicadores del Desarrollo
-        Mundial), leídas del panel de treinta economías que recoge el núcleo del observatorio. Las
-        historias completas de cada serie están en «Series de Bolivia», bajo Energía, Recursos
-        naturales y Medio ambiente.
+        Mundial), sobre un panel de treinta economías. La historia completa de cada serie está en
+        «Series de Bolivia», en los rubros Energía, Recursos naturales y Medio ambiente.
       </p>
     </section>
   );

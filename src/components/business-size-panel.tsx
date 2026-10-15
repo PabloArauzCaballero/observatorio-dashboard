@@ -41,7 +41,7 @@ const ROLL_DIMENSIONS: Record<string, string> = {
 };
 
 const SIZE_SOURCE =
-  'Ministerio de Desarrollo Productivo, foto del registro de comercio (SEPREC) de julio de 2025';
+  'Ministerio de Desarrollo Productivo, corte del registro de comercio (SEPREC) a julio de 2025';
 const TAX_SOURCE = 'Servicio de Impuestos Nacionales, Memoria anual';
 
 const say = (value: number, decimals = 0): string =>
@@ -168,9 +168,9 @@ export function BusinessSizePanel({ board, place }: { board: FabricBoard; place:
           <header className="panel-group-head">
             <h3 id="tejido-tamano-titulo">Tamaño de las empresas, julio de 2025</h3>
             <p>
-              Foto del registro publicada por el Ministerio de Desarrollo Productivo. De las{' '}
-              {say(allFirms)} {baseName}, {say(undeclared)} no declaran tamaño (
-              {allFirms ? say((undeclared / allFirms) * 100, 1) : '—'} %).
+              De las {say(allFirms)} empresas {baseName} del registro, {say(undeclared)} no
+              declaran tamaño ({allFirms ? say((undeclared / allFirms) * 100, 1) : '—'} %). Corte
+              de julio de 2025 publicado por el Ministerio de Desarrollo Productivo.
             </p>
             <details className="panel-note">
               <summary>Qué es el tamaño declarado</summary>
@@ -199,7 +199,7 @@ export function BusinessSizePanel({ board, place }: { board: FabricBoard; place:
                 aria-pressed={declaredOnly}
                 onClick={() => setDeclaredOnly((on) => !on)}
               >
-                Sólo con tamaño
+                Solo con tamaño declarado
               </button>
             </div>
           </header>
@@ -208,7 +208,7 @@ export function BusinessSizePanel({ board, place }: { board: FabricBoard; place:
             <Panel
               id="tejido-tamano-reparto"
               title={`Empresas ${baseName} por tamaño declarado, julio de 2025 (% de las ${declaredOnly ? 'que declaran tamaño' : 'empresas de la base'})`}
-              lede="Cuántas son micro, pequeñas, medianas y grandes según lo que cada una declara al registro."
+              lede="Reparto entre micro, pequeñas, medianas y grandes empresas según la categoría que cada una declara al registro."
               source={SIZE_SOURCE}
             >
               <ShareBars
@@ -231,7 +231,7 @@ export function BusinessSizePanel({ board, place }: { board: FabricBoard; place:
             <Panel
               id="tejido-tamano-empleo"
               title={`Empleo por empresa según el tamaño declarado, julio de 2025 (personas por empresa)`}
-              lede="Personas empleadas por empresa, según lo que cada empresa declara."
+              lede="Promedio de personas empleadas por empresa en cada tamaño, según lo declarado al registro."
               source={SIZE_SOURCE}
             >
               <ShareBars data={jobs} unit=" personas por empresa" decimals={1} height={230} />
@@ -244,7 +244,7 @@ export function BusinessSizePanel({ board, place }: { board: FabricBoard; place:
           <Panel
             id="tejido-tamano-cruce"
             title={`Tamaño por ${crossName}, julio de 2025 (cantidad de empresas)`}
-            lede={`Cuántas empresas ${baseName} hay en cada cruce de tamaño y ${crossName}.`}
+            lede={`Empresas ${baseName} en cada combinación de tamaño y ${crossName}.`}
             source={SIZE_SOURCE}
           >
             <div className="chart-kind" role="group" aria-label="Cruzar con">
@@ -272,7 +272,7 @@ export function BusinessSizePanel({ board, place }: { board: FabricBoard; place:
             <Panel
               id="tejido-tamano-departamento"
               title={`${placeName}: empresas ${baseName} por ${crossName}, julio de 2025 (cantidad de empresas)`}
-              lede="El registro no publica el tamaño abierto por departamento; aquí va lo que sí abre."
+              lede={`El registro no publica el tamaño por departamento; el panel muestra el desglose por ${crossName}, que sí publica.`}
               source={SIZE_SOURCE}
             >
               <ShareBars
@@ -303,13 +303,12 @@ export function BusinessSizePanel({ board, place }: { board: FabricBoard; place:
               Padrón de Impuestos por {rollName}, {year}
             </h3>
             <p>
-              Servicio de Impuestos Nacionales, Memoria anual.
               {taxpayers
-                ? ` ${say(taxpayers.count)} contribuyentes activos en ${taxpayers.year}.`
-                : ''}{' '}
-              PRICO y GRACO son las categorías que Impuestos asigna a sus principales y grandes
-              contribuyentes por volumen de operaciones e importancia fiscal: no son un tramo fijo
-              de ventas.
+                ? `${say(taxpayers.count)} contribuyentes activos en ${taxpayers.year}, según la Memoria anual del Servicio de Impuestos Nacionales (SIN).`
+                : 'Memoria anual del Servicio de Impuestos Nacionales (SIN).'}{' '}
+              Principales contribuyentes (PRICO) y grandes contribuyentes (GRACO) son categorías
+              que el SIN asigna por volumen de operaciones e importancia fiscal; no corresponden a
+              un tramo fijo de ventas.
             </p>
             <div className="chart-kind" role="group" aria-label="Abrir el padrón por">
               {dims.map((value) => (
@@ -342,7 +341,7 @@ export function BusinessSizePanel({ board, place }: { board: FabricBoard; place:
               <Panel
                 id="tejido-padron-contribuyentes"
                 title={`Parte del padrón por ${rollName}, ${year} (% de contribuyentes)`}
-                lede="Qué parte de los contribuyentes cae en cada grupo."
+                lede="Distribución de los contribuyentes entre los grupos del padrón."
                 source={TAX_SOURCE}
               >
                 <ShareBars
@@ -359,7 +358,7 @@ export function BusinessSizePanel({ board, place }: { board: FabricBoard; place:
               <Panel
                 id="tejido-padron-recaudacion"
                 title={`Parte de la recaudación por ${rollName}, ${year} (% de la recaudación)`}
-                lede="Qué parte de lo recaudado aporta cada grupo."
+                lede="Aporte de cada grupo a la recaudación total."
                 source={TAX_SOURCE}
               >
                 <ShareBars
@@ -377,7 +376,7 @@ export function BusinessSizePanel({ board, place }: { board: FabricBoard; place:
             </div>
           ) : (
             <div className="callout">
-              La memoria de {year} no abre el padrón por {rollName}.
+              La memoria de {year} no desglosa el padrón por {rollName}.
             </div>
           )}
 
@@ -385,7 +384,7 @@ export function BusinessSizePanel({ board, place }: { board: FabricBoard; place:
             <Panel
               id="tejido-padron-categorias"
               title={`Parte de la recaudación por categoría, ${catYears[0]}–${catYears.at(-1)} (% de la recaudación)`}
-              lede="Cómo cambió el aporte de cada categoría tributaria a lo largo de las memorias."
+              lede="Evolución del aporte de cada categoría tributaria a la recaudación, según las memorias anuales del SIN."
               source={TAX_SOURCE}
             >
               <WorldLines

@@ -20,7 +20,7 @@ import { LUGARES, SECCIONES, abrirTablero, bloque, irA, irALugar } from './suppo
  */
 async function settle(page: Page): Promise<void> {
   await expect(page.locator('.loading-note')).toHaveCount(0, { timeout: 120_000 });
-  await expect(page.locator('.callout').filter({ hasText: /^Armando / })).toHaveCount(0, {
+  await expect(page.locator('.callout').filter({ hasText: /^(Armando|Cargando) / })).toHaveCount(0, {
     timeout: 120_000,
   });
 }
@@ -92,7 +92,7 @@ test.describe('descargas de los paneles', () => {
       panel.getByRole('menuitem', { name: /^Datos\s*CSV/ }).click(),
     ]);
     expect(csv.suggestedFilename()).toMatch(
-      /^observatorio-cotizacion-dolar-\d{4}-\d{2}-\d{2}\.csv$/,
+      /^datosbolivia-cotizacion-dolar-\d{4}-\d{2}-\d{2}\.csv$/,
     );
     const stream = await csv.createReadStream();
     const chunks: Buffer[] = [];

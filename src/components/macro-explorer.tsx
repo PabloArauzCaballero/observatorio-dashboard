@@ -107,35 +107,39 @@ const CHAPTER: Record<'medidas' | 'catalogo', Chapter> = {
     title: 'Contexto macroeconómico',
     lead: (
       <>
-        series anuales que el observatorio sigue para Bolivia: Banco Mundial, Fondo Monetario,
-        Comtrade y Banco Central, desde 1960 hasta el último año publicado. Elegí un rubro a la
-        izquierda y las tarjetas siguen esa selección. Tocá el <b>ⓘ</b> de una tarjeta para saber
-        qué mide, y el <b>desplegar</b> para ver sus observaciones año por año. Al pie de la lista,
-        bajo «Paneles», hay capítulos enteros: <b>Departamentos</b>, <b>Cuentas públicas</b>,{' '}
-        <b>Energía</b>, <b>Recursos naturales</b> y <b>Medio ambiente</b>.
+        series anuales de Bolivia, del Banco Mundial, el Fondo Monetario Internacional (FMI),
+        Comtrade y el Banco Central de Bolivia (BCB), desde 1960 hasta el último año publicado. Las
+        tarjetas siguen el rubro elegido a la izquierda. El <b>ⓘ</b> de cada tarjeta explica qué
+        mide el indicador y el botón <b>desplegar</b> muestra sus observaciones año por año. Al pie
+        de la lista, bajo «Paneles», están los capítulos completos: <b>Departamentos</b>,{' '}
+        <b>Cuentas públicas</b>, <b>Energía</b>, <b>Recursos naturales</b> y{' '}
+        <b>Medio ambiente</b>.
       </>
     ),
     points: [
-      { title: 'Deuda por acreedor', detail: '14 series: BM, BIRF, AIF, plazo y servicio' },
+      {
+        title: 'Deuda por acreedor',
+        detail: '14 series: Banco Mundial, BIRF, AIF, plazo y servicio',
+      },
       { title: 'Desde 1960', detail: 'toda la historia que publica la fuente' },
-      { title: 'Cada tarjeta se baja sola', detail: 'imagen, datos y enlace desde «Descargar»' },
+      { title: 'Descarga por tarjeta', detail: 'imagen, datos y enlace desde «Descargar»' },
     ],
   },
   catalogo: {
     dataset: 'panel',
-    title: 'Social Info',
+    title: 'Indicadores sociales',
     lead: (
       <>
-        series del World Development Indicators, recortadas a Bolivia, con el nombre y la unidad que
-        les da el publicador: salud, educación, pobreza, empleo, población y todo lo demás que el
-        Banco Mundial mide del país. Es un catálogo de consulta —se entra buscando una cifra, no se
-        lee de corrido—, así que el buscador de la izquierda es el atajo corto y el rubro el largo.
-        Al pie de esa lista, bajo «Panel», está <b>Instituciones</b>: los índices que califican la
-        libertad económica y política, con las partes que los componen.
+        series de los Indicadores del Desarrollo Mundial del Banco Mundial, recortadas a Bolivia, con
+        el nombre y la unidad del publicador: salud, educación, pobreza, empleo, población y el resto
+        de lo que el Banco Mundial mide del país. Es un catálogo de consulta, para buscar una cifra
+        concreta y no para leerlo de corrido: el buscador de la izquierda es la vía corta y el rubro,
+        la larga. Al pie de esa lista, bajo «Panel», está <b>Instituciones</b>: los índices que
+        califican la libertad económica y política, con sus componentes.
       </>
     ),
     points: [
-      { title: 'Buscá por nombre', detail: 'el título es el del Banco Mundial, en inglés' },
+      { title: 'Búsqueda por nombre', detail: 'el título es el del Banco Mundial, en inglés' },
       {
         title: 'Solo Bolivia',
         detail: 'la comparación con otros países va en «Bolivia ante el mundo»',
@@ -526,7 +530,7 @@ export function MacroExplorer({
               <br />
               Desde <b>{from}</b>
               <br />
-              Elegí un rubro para volver a los indicadores
+              Al elegir un rubro se vuelve a los indicadores
             </>
           ) : (
             <>
@@ -776,7 +780,7 @@ function MacroCard({ point, series }: { point: MacroPoint; series: MacroPoint[] 
     <Panel
       id={`indicador-${point.indicatorCode.toLowerCase().replace(/[^a-z0-9]+/g, '-')}`}
       title={titleWithUnit(name, point.unit)}
-      source={point.publisher ?? 'Observatorio Económico de Bolivia (ver «Método»)'}
+      source={point.publisher ?? 'sin publicador declarado (ver «Método»)'}
       className="card"
     >
       <div className="card-head">
@@ -802,11 +806,11 @@ function MacroCard({ point, series }: { point: MacroPoint; series: MacroPoint[] 
               </>
             ) : (
               <p>
-                El observatorio no escribió una definición propia para esta serie. La publica{' '}
-                <b>{point.publisher ?? 'la fuente citada'}</b> bajo el nombre{' '}
-                <b>{point.name ?? point.indicatorCode}</b>, y se mide en{' '}
-                {UNIT_MEANING[point.unit] ?? unitName(point.unit)}. Preferimos admitir el hueco
-                antes que redactar una explicación que nadie verificó.
+                DatosBolivia no ha redactado una definición propia para esta serie. La publica{' '}
+                <b>{point.publisher ?? 'la fuente citada'}</b> con el nombre{' '}
+                <b>{point.name ?? point.indicatorCode}</b> y se mide en{' '}
+                {UNIT_MEANING[point.unit] ?? unitName(point.unit)}. No se ofrece una explicación que
+                no haya sido verificada.
               </p>
             )}
             {/*
@@ -827,8 +831,8 @@ function MacroCard({ point, series }: { point: MacroPoint; series: MacroPoint[] 
               ) : null}
             </p>
             <p className="card-note-source">
-              <b>Definición:</b> redactada por el {DEFINITION_AUTHOR} a partir del concepto
-              estándar. No es la del publicador.
+              <b>Definición:</b> redactada por {DEFINITION_AUTHOR} a partir del concepto estándar.
+              No es la del publicador.
             </p>
             <p className="card-note-source">
               <code>{point.indicatorCode}</code> ·{' '}
@@ -897,7 +901,7 @@ function sourcesOf(rows: readonly MacroPoint[]): string {
   const names = [
     ...new Set(rows.map((row) => row.publisher).filter((name): name is string => Boolean(name))),
   ];
-  if (names.length === 0) return 'Observatorio Económico de Bolivia (ver «Método»)';
+  if (names.length === 0) return 'sin publicador declarado (ver «Método»)';
   if (names.length <= 3) return names.join(', ');
   return `${names.slice(0, 3).join(', ')} y otras ${names.length - 3} fuentes`;
 }
@@ -1017,12 +1021,12 @@ function MacroTable({
       title="Estadísticos de cada serie (en la unidad de cada indicador)"
       lede={
         <>
-          Centro, dispersión, forma y extremos de la selección. <b>Tocá una fila</b> para ver su
-          distribución, sus atípicos y su correlación.
+          Centro, dispersión, forma y extremos de cada serie de la selección. Cada fila abre la
+          distribución, los años atípicos y la correlación del indicador.
         </>
       }
       meta={`${rows.length === total ? total : `${rows.length} de ${total}`} indicador${total === 1 ? '' : 'es'} · ${observations.toLocaleString('es-BO')} observaciones anuales`}
-      source={`${sourcesOf(rows)}; estadísticos calculados por el Observatorio`}
+      source={`${sourcesOf(rows)}; cálculo de DatosBolivia.com`}
       data={dataset}
     >
       {before}

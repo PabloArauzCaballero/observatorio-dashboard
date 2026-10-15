@@ -1,7 +1,7 @@
 /**
  * La figura de un panel como imagen: un «afiche» con su título, su gráfico, su
- * leyenda, su fuente y la marca del Observatorio, listo para pegar en un informe
- * o una red social.
+ * leyenda, su fuente y la marca de DatosBolivia.com, listo para pegar en un
+ * informe o una red social.
  *
  * Solo corre en el navegador, porque lo que compone es lo que hay dibujado.
  *
@@ -15,6 +15,9 @@
  *    gráfico lleva sus propiedades escritas, y las fuentes viajan incrustadas:
  *    sin eso el texto sale en la letra que tenga el visor, con otras medidas.
  */
+
+import { MONO_B, MONO_B_X, MONO_D, MONO_VIEWBOX } from '@/components/brand/monogram';
+import { DESCRIPTOR, MARCA, pieDeFuente } from '@/lib/export/pie';
 
 export interface MarcaLeyenda {
   label: string;
@@ -33,7 +36,7 @@ export interface EntradaAfiche {
   /** «3 de octubre de 2026». */
   fecha: string;
   /**
-   * Sin la marca del Observatorio al pie: dentro de un informe la lleva la
+   * Sin la marca de DatosBolivia.com al pie: dentro de un informe la lleva la
    * cabecera del documento, y repetirla en cada figura es ruido.
    */
   sinMarca?: boolean;
@@ -336,11 +339,13 @@ export async function componerAfiche(entrada: EntradaAfiche): Promise<Afiche> {
     const delClon = graficosDe(claro.panel);
     if (delClon.length === 0) throw new Error('El panel no tiene un gráfico que bajar.');
 
-    const tinta = varCss(claro.doc, '--ink', '#14181f');
-    const suave = varCss(claro.doc, '--ink-soft', '#4a5464');
-    const regla = varCss(claro.doc, '--rule', '#e2e6ed');
+    const tinta = varCss(claro.doc, '--ink', '#17191a');
+    const suave = varCss(claro.doc, '--ink-soft', '#4d4a44');
+    const regla = varCss(claro.doc, '--rule', '#dcd5c8');
+    const oro = varCss(claro.doc, '--gold', '#aa884d');
+    const papel = varCss(claro.doc, '--field', '#fffefb');
 
-    const letraTitulo = `600 32px ${familiaDePagina('--serif')}`;
+    const letraTitulo = `700 32px ${familiaDePagina('--serif')}`;
     const letraTexto = `400 16px ${familiaDePagina('--sans')}`;
     const letraLeyenda = `400 14px ${familiaDePagina('--sans')}`;
     const letraPie = `400 13px ${familiaDePagina('--sans')}`;
@@ -348,10 +353,13 @@ export async function componerAfiche(entrada: EntradaAfiche): Promise<Afiche> {
     let y = MARGEN;
     const partes: string[] = [];
 
+    // El filete de tinta que abre cada figura, como en pantalla.
+    partes.push(`<rect x="${MARGEN}" y="${y - 18}" width="${CONTENIDO}" height="2" fill="${tinta}"/>`);
+
     for (const renglon of envolver(entrada.titulo, letraTitulo, CONTENIDO)) {
       y += 38;
       partes.push(
-        `<text x="${MARGEN}" y="${y}" font-family="${SERIF}" font-size="32" font-weight="600" fill="${tinta}">${escapar(renglon)}</text>`,
+        `<text x="${MARGEN}" y="${y}" font-family="${SERIF}" font-size="32" font-weight="700" fill="${tinta}">${escapar(renglon)}</text>`,
       );
     }
     if (entrada.entradilla) {
@@ -422,7 +430,7 @@ export async function componerAfiche(entrada: EntradaAfiche): Promise<Afiche> {
     y += 10;
     partes.push(`<rect x="${MARGEN}" y="${y}" width="${CONTENIDO}" height="1" fill="${regla}"/>`);
     y += 12;
-    for (const renglon of envolver(`Fuente: ${entrada.fuente}`, letraPie, CONTENIDO)) {
+    for (const renglon of envolver(pieDeFuente(entrada.fuente), letraPie, CONTENIDO)) {
       y += 20;
       partes.push(
         `<text x="${MARGEN}" y="${y}" font-family="${SANS}" font-size="13" fill="${suave}">${escapar(renglon)}</text>`,
@@ -431,11 +439,21 @@ export async function componerAfiche(entrada: EntradaAfiche): Promise<Afiche> {
     if (entrada.sinMarca) {
       y += 18;
     } else {
-      y += 26;
+      // La firma: el monograma DB, el nombre y el descriptor, y a la derecha la fecha.
+      y += 30;
+      const alto = 30;
+      const [, , vbAncho, vbAlto] = MONO_VIEWBOX.split(' ').map(Number);
+      const anchoMono = Math.round((alto * (vbAncho ?? 1)) / (vbAlto ?? 1));
       partes.push(
-        `<text x="${MARGEN}" y="${y}" font-family="${SANS}" font-size="13" font-weight="600" fill="${tinta}">Observatorio Económico de Bolivia</text>`,
-        `<text x="${ANCHO - MARGEN}" y="${y}" font-family="${SANS}" font-size="13" text-anchor="end" fill="${suave}">datosbolivia.com · ${escapar(entrada.fecha)}</text>`,
+        `<svg x="${MARGEN}" y="${y}" width="${anchoMono}" height="${alto}" viewBox="${MONO_VIEWBOX}">` +
+          `<path d="${MONO_B}" transform="translate(${MONO_B_X} 0)" fill="${oro}"/>` +
+          `<path d="${MONO_D}" fill="${tinta}" stroke="${papel}" stroke-width="56" paint-order="stroke"/>` +
+          `</svg>`,
+        `<text x="${MARGEN + anchoMono + 12}" y="${y + 15}" font-family="${SERIF}" font-size="17" font-weight="800" fill="${tinta}">DatosBolivia<tspan fill="${oro}">.</tspan>com</text>`,
+        `<text x="${MARGEN + anchoMono + 12}" y="${y + 29}" font-family="${SERIF}" font-size="9.5" letter-spacing="2" fill="${suave}">${escapar(DESCRIPTOR.toUpperCase())}</text>`,
+        `<text x="${ANCHO - MARGEN}" y="${y + 21}" font-family="${SANS}" font-size="13" text-anchor="end" fill="${suave}">${escapar(MARCA.toLowerCase())} · ${escapar(entrada.fecha)}</text>`,
       );
+      y += alto;
     }
     const alto = entrada.sinMarca ? y + 24 : y + MARGEN - 18;
 
@@ -443,7 +461,7 @@ export async function componerAfiche(entrada: EntradaAfiche): Promise<Afiche> {
     const svg =
       `<svg xmlns="http://www.w3.org/2000/svg" width="${ANCHO}" height="${alto}" viewBox="0 0 ${ANCHO} ${alto}">` +
       (fuentes ? `<style>${fuentes}</style>` : '') +
-      `<rect width="${ANCHO}" height="${alto}" fill="#ffffff"/>` +
+      `<rect width="${ANCHO}" height="${alto}" fill="${papel}"/>` +
       partes.join('') +
       '</svg>';
     return { svg, ancho: ANCHO, alto };

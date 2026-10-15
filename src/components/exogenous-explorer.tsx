@@ -216,13 +216,13 @@ export function ExogenousExplorer({
       <header className="page-intro">
         <h3 className="page-intro-title">
           {fixedGroup === 'FREIGHT'
-            ? 'Fletes: cuánto cuesta mover carga'
-            : 'Variables exógenas: los precios que Bolivia no fija'}
+            ? 'Fletes: costo de transportar carga'
+            : 'Variables exógenas: precios que Bolivia no fija'}
         </h3>
         <p className="page-intro-lede">
-          {all.length} series; el último mes cerrado es{' '}
-          {board.latestMonth ? sayPeriod(board.latestMonth) : '—'}. Elegí una familia, un producto y
-          un ámbito en el riel de la izquierda; los filtros se recortan entre sí.
+          {all.length} series de precios, con datos hasta{' '}
+          {board.latestMonth ? sayPeriod(board.latestMonth) : '—'} (último mes cerrado). Los
+          filtros de familia, producto y ámbito se recortan entre sí.
         </p>
         <details className="panel-note">
           <summary>Qué hay en esta página</summary>
@@ -388,7 +388,8 @@ export function ExogenousExplorer({
               Lecturas ({shown.length} de {listed.length})
             </div>
             <FilterHint>
-              Quitá las que no quieras ver; se dibujan todas, de a seis por gráfico.
+              Al desmarcar una lectura se retira del gráfico; las marcadas se dibujan de seis en
+              seis.
             </FilterHint>
             <div className={listed.length > 9 ? 'rail-list rail-list-cut' : 'rail-list'}>
               {listed.map((one) => {
@@ -488,7 +489,8 @@ export function ExogenousExplorer({
         <div className="workspace-main stack">
           {shown.length === 0 ? (
             <div className="callout">
-              Ninguna lectura coincide con el recorte. Quitá un filtro de la izquierda.
+              No hay lecturas para estos filtros. Quitar alguno del riel izquierdo amplía la
+              selección.
             </div>
           ) : null}
           {group === 'FREIGHT' ? <FreightReferences /> : null}
@@ -509,7 +511,7 @@ export function ExogenousExplorer({
           ) : null}
           <details className="panel-note">
             <summary>
-              Lo que no tiene precio abierto en esta familia, y con qué se lo sustituye
+              Productos de esta familia sin precio abierto y la serie que los sustituye
             </summary>
             <ul>
               {MISSING[group].map((line) => (
@@ -522,8 +524,8 @@ export function ExogenousExplorer({
             FRED del Banco de la Reserva Federal de San Luis (EIA y Oficina de Estadísticas
             Laborales de EE. UU.), FAO/GIEWS (con datos del INE y del Ministerio de Desarrollo
             Productivo de Bolivia), Naciones Unidas (Comtrade), Freightos (contenedor y flete aéreo)
-            y la base aduanera del INE (flete implícito). Cada cifra guarda la celda o la fila de la
-            que salió.
+            y la base aduanera del INE (flete implícito). Cada cifra conserva la referencia a la
+            celda o la fila de origen.
           </p>
         </div>
       </div>
@@ -617,9 +619,9 @@ function MonthlyPanel({
   const where = scope ? `, ${SCOPE_LABEL.get(scope) ?? scope}` : '';
   const title =
     (measure === 'LEVEL'
-      ? `${drawn[0]?.productLabel ?? 'Precio'} y afines (${unit}), mensual`
+      ? `${drawn[0]?.productLabel ?? 'Precio'} y afines, mensual (${unit})`
       : measure === 'INDEX'
-        ? `Precios mensuales en índice${where} (base 100 = primer dato de cada serie desde ${from})`
+        ? `Precios mensuales${where} (índice, base 100 = primer dato de cada serie desde ${from})`
         : `Variación interanual de los precios mensuales${where} (%)`) +
     (part ? ` · gráfico ${part[0]} de ${part[1]}` : '');
   const notes = drawn
@@ -717,15 +719,15 @@ function AnnualPanel({
   const values = data.flatMap((row) =>
     drawn.map((one) => row[one.code]).filter((value): value is number => typeof value === 'number'),
   );
-  const unit = measureUnit(measure, 'US$/kg');
+  const unit = measureUnit(measure, 'USD/kg');
   const decimals = decimalsFor(values);
   return (
     <Panel
       id={`exogenas-aduana-anual${part && part[0] > 1 ? `-${part[0]}` : ''}`}
-      title={`Precio por kilo en la aduana de Bolivia (${unit}${
+      title={`Precio por kilo en la aduana de Bolivia, anual (${unit}${
         measure === 'INDEX' ? `, base 100 = primer dato de cada serie desde ${from}` : ''
-      }), anual${part ? ` · gráfico ${part[0]} de ${part[1]}` : ''}`}
-      lede="Valor declarado entre peso neto de lo que Bolivia exportó o importó, año por año."
+      })${part ? ` · gráfico ${part[0]} de ${part[1]}` : ''}`}
+      lede="Valor declarado dividido por el peso neto de lo que Bolivia exportó o importó, por año."
       meta={part ? `${drawn.length} lecturas` : undefined}
       source={sourcesOf(drawn)}
     >

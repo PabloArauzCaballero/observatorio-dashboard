@@ -74,8 +74,8 @@ const REFERENCES: readonly Reference[] = [
   {
     route: 'Santa Cruz – Arica (exportación)',
     what: 'Mercadería, por tonelada',
-    said: 'US$ 80 el año anterior; US$ 65 desde mediados de 2015 (−23 %)',
-    perTonne: 'US$ 65 – 80',
+    said: 'USD 80 el año anterior; USD 65 desde mediados de 2015 (−23 %)',
+    perTonne: 'USD 65 – 80',
     when: 'dic-2015',
     source: 'Transporte en Bolivia, sobre la Cámara de Transporte Pesado',
     url: 'https://transportesbolivia.blogspot.com/2015/12/transporte-pesado-redujo-sus-tarifas-de.html',
@@ -83,8 +83,8 @@ const REFERENCES: readonly Reference[] = [
   {
     route: 'Arica – Santa Cruz (importación)',
     what: 'Mercadería, por tonelada',
-    said: 'US$ 80 el año anterior; unos US$ 55 después (−48 %)',
-    perTonne: 'US$ 55 – 80',
+    said: 'USD 80 el año anterior; unos USD 55 después (−48 %)',
+    perTonne: 'USD 55 – 80',
     when: 'dic-2015',
     source: 'Transporte en Bolivia, sobre la Cámara de Transporte Pesado',
     url: 'https://transportesbolivia.blogspot.com/2015/12/transporte-pesado-redujo-sus-tarifas-de.html',
@@ -92,7 +92,7 @@ const REFERENCES: readonly Reference[] = [
   {
     route: 'Santa Cruz – Arica (soya)',
     what: 'Transporte de soya, por viaje (la fuente no dice la unidad)',
-    said: 'Costaba unos US$ 1.600; «ahora nadie paga ese monto». Caída general de fletes: 45 %',
+    said: 'Costaba unos USD 1.600; «ahora nadie paga ese monto». Caída general de fletes: 45 %',
     perTonne: null,
     when: '9-ene-2017',
     source: 'MundoMarítimo, sobre la Cámara de Transporte Pesado',
@@ -105,10 +105,10 @@ export function FreightReferences() {
     <Panel
       id="fletes-citados"
       className="transp"
-      title="Flete entre ciudades de Bolivia: tarifas citadas (Bs o US$ por viaje, tonelada o quintal)"
-      lede="No hay serie oficial del flete interior: el INE publica las toneladas transportadas, no lo que se cobra. Estas cifras son las que el transporte pesado y la prensa han dado, con su fuente y su fecha; no son una serie y no se comparan entre sí."
+      title="Flete entre ciudades de Bolivia: tarifas citadas (Bs o USD por viaje, tonelada o quintal)"
+      lede="No existe una serie oficial del flete interior: el INE publica las toneladas transportadas, no la tarifa. Estas cifras son las que han citado el transporte pesado y la prensa, cada una con su fuente y su fecha. No forman una serie ni son comparables entre sí."
       meta={`${REFERENCES.length} citas`}
-      source="la fuente citada en cada fila: Bolivia Empresas, Red Uno, Transporte en Bolivia y MundoMarítimo"
+      source="Bolivia Empresas, Red Uno, Transporte en Bolivia y MundoMarítimo (la fuente de cada fila)"
       data={{
         unidad: 'según la fuente',
         columnas: [
@@ -164,9 +164,9 @@ export function FreightReferences() {
       </div>
       <p className="panel-note">
         La columna «Por tonelada» solo se calcula donde la fuente da el viaje y la capacidad del
-        camión. <Icon name="info" size={12} /> Para tener una serie propia haría falta una fuente
-        que publique la tarifa cada mes (la Cámara de Transporte Pesado o la ABC); si aparece, entra
-        aquí en el mismo lugar.
+        camión. <Icon name="info" size={12} /> Una serie mensual exigiría una fuente que publique la
+        tarifa cada mes, como la Cámara de Transporte Pesado o la Administradora Boliviana de
+        Carreteras (ABC).
       </p>
     </Panel>
   );

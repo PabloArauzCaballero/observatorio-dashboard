@@ -148,15 +148,18 @@ export function AccountsRevenue({ accounts }: { accounts: AccountsPayload }) {
       <header className="page-intro">
         <h3 className="page-intro-title">Cuánto recauda el Estado y de qué impuestos</h3>
         <p className="page-intro-lede">
-          Tres lecturas de dos fuentes que no se pisan: la comparación con los vecinos, el reparto
-          por tipo de impuesto y lo que recaudan el SIN y la Aduana, impuesto por impuesto.
+          La recaudación tributaria según dos fuentes que no se superponen. Las estadísticas de la
+          Organización para la Cooperación y el Desarrollo Económicos (OCDE) y la Comisión
+          Económica para América Latina y el Caribe (CEPAL) comparan a Bolivia con sus vecinos con
+          una sola clasificación; el cuadro del Banco Central de Bolivia detalla, impuesto por
+          impuesto, lo que recaudan el Servicio de Impuestos Nacionales (SIN) y la Aduana Nacional.
         </p>
       </header>
 
       <Panel
         id="recaudacion-vecinos"
         title={`${oecdLabel}: Bolivia frente a sus vecinos (${oecdUnitName})`}
-        lede="Cuánto recauda cada país, medido igual en todos: la OCDE, la CEPAL, el CIAT y el BID usan una sola clasificación. Incluye la seguridad social y no cuenta el IDH ni las regalías, que son renta del subsuelo."
+        lede="Recaudación de cada país con la clasificación común de la OCDE, la CEPAL, el Centro Interamericano de Administraciones Tributarias (CIAT) y el Banco Interamericano de Desarrollo (BID). Incluye las contribuciones a la seguridad social y excluye el Impuesto Directo a los Hidrocarburos (IDH) y las regalías, que se tratan como renta del subsuelo."
         source={SOURCE.oecd}
       >
         <div className="slicer-row">
@@ -169,13 +172,13 @@ export function AccountsRevenue({ accounts }: { accounts: AccountsPayload }) {
             base={new Set(['BOL'])}
           />
           <SelectField
-            label="Qué impuesto"
+            label="Impuesto"
             value={oecdMeasure}
             options={OECD_MEASURES}
             onChange={setOecdMeasure}
           />
           <SelectField
-            label="Cómo se mide"
+            label="Medida"
             value={oecdUnit}
             options={MEASURE_UNITS}
             onChange={(next) => setOecdUnit(next === 'share' ? 'share' : 'pib')}
@@ -195,14 +198,14 @@ export function AccountsRevenue({ accounts }: { accounts: AccountsPayload }) {
             tick={tick}
           />
         ) : (
-          <div className="callout">Elegí al menos un país.</div>
+          <div className="callout">No hay países seleccionados.</div>
         )}
       </Panel>
 
       <Panel
         id="recaudacion-mezcla"
-        title="Qué tipo de impuestos cobra cada país (% del PIB)"
-        lede="Las partes de la recaudación total: renta, seguridad social, bienes y servicios (que incluye el IVA, los selectivos y las aduanas), propiedad y otros. Elegí el país para ver su mezcla y compararla con la de otro."
+        title="Recaudación por tipo de impuesto (% del PIB)"
+        lede="Partes de la recaudación total de un país: renta y utilidades, seguridad social, bienes y servicios (IVA, selectivos y aduanas), propiedad y otros."
         source={SOURCE.oecd}
       >
         <div className="slicer-row">
@@ -224,13 +227,13 @@ export function AccountsRevenue({ accounts }: { accounts: AccountsPayload }) {
 
       <Panel
         id="recaudacion-por-impuesto"
-        title={`Impuesto por impuesto, en bolivianos (${bcbUnit})`}
-        lede="Lo que recaudan el SIN y la Aduana Nacional. Elegí los impuestos que quieras comparar; el IDH está aquí aunque la OCDE no lo cuente."
+        title={`Recaudación por impuesto (${bcbUnit})`}
+        lede="Recaudación del Servicio de Impuestos Nacionales (SIN) y de la Aduana Nacional, por impuesto. Incluye el Impuesto Directo a los Hidrocarburos (IDH), que la OCDE no clasifica como tributo."
         source={SOURCE.bcb}
       >
         <div className="slicer-row">
           <ChipPicker
-            label="Impuestos"
+            label="Impuestos a comparar"
             options={BCB_TAXES}
             value={taxes}
             onChange={setTaxes}
@@ -261,14 +264,14 @@ export function AccountsRevenue({ accounts }: { accounts: AccountsPayload }) {
             tick={tick}
           />
         ) : (
-          <div className="callout">Elegí al menos un impuesto.</div>
+          <div className="callout">No hay impuestos seleccionados.</div>
         )}
       </Panel>
 
       <Panel
         id="recaudacion-reparto"
-        title={`De dónde sale lo que recauda el SIN y la Aduana (${bcbUnit})`}
-        lede="Cuánto pesa cada familia de impuestos y cómo cambia el reparto. La barra cierra con el total del cuadro: lo que no entra en las cinco partes queda en «Otros impuestos»."
+        title={`Recaudación del SIN y la Aduana Nacional por familia de impuestos (${bcbUnit})`}
+        lede="Peso de cada familia de impuestos en la recaudación y su evolución. Cada barra suma el total del cuadro del BCB; lo que no entra en las cinco familias se agrupa en «Otros impuestos»."
         source={SOURCE.bcb}
       >
         <StackedYearBars
@@ -280,7 +283,7 @@ export function AccountsRevenue({ accounts }: { accounts: AccountsPayload }) {
           format={bcbFormat}
           tick={tick}
           unit={bcbUnit}
-          note="Los años 2021 a 2024 son preliminares. Desde 2023 el cuadro reparte distinto las facilidades de pago: el IUE de 2024 es Bs 6.343 millones aquí y Bs 7.933 en el Boletín Económico de Ingresos Tributarios del Ministerio. Se cita el cuadro tal cual, sin mezclar las dos convenciones."
+          note="Los años 2021 a 2024 son preliminares. Desde 2023 el cuadro reparte distinto las facilidades de pago: el IUE de 2024 es Bs 6.343 millones aquí y Bs 7.933 millones en el Boletín Económico de Ingresos Tributarios del Ministerio. Se cita el cuadro tal cual, sin mezclar las dos convenciones."
         />
       </Panel>
     </>

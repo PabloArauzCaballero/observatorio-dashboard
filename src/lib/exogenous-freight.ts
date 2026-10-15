@@ -76,7 +76,7 @@ const seriesOf = (
   unit: 'US$/tonelada',
   kind: 'PRICE',
   frequency: 'MONTHLY',
-  publisher: 'INSTITUTO NACIONAL DE ESTADÍSTICA (ADUANA)',
+  publisher: 'Instituto Nacional de Estadística (INE), base aduanera',
   note: NOTE,
   sourceUrl: 'https://www.ine.gob.bo/index.php/estadisticas-economicas/comercio-exterior/importaciones-bases-de-datos/',
   points,

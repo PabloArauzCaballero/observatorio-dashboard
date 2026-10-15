@@ -35,7 +35,7 @@ const VERDICT_LABEL: Record<Verdict, string> = {
  */
 const VERDICT_TONE: Record<Verdict, string> = {
   favorable: 'var(--down)',
-  vigilar: 'var(--series-4)',
+  vigilar: 'var(--warning)',
   adverso: 'var(--up)',
   'sin-lectura': 'var(--ink-faint)',
 };
@@ -82,8 +82,8 @@ function Block({ block }: { block: BoardBlock }) {
       <details className="board-rule">
         <summary>
           {block.facts.length
-            ? 'Cifras de apoyo y por qué este veredicto'
-            : '¿Por qué este veredicto?'}
+            ? 'Cifras de apoyo y regla del veredicto'
+            : 'Regla del veredicto'}
         </summary>
         {block.facts.length ? (
           <dl className="board-facts">
@@ -110,7 +110,7 @@ function Block({ block }: { block: BoardBlock }) {
           <>
             {' · '}
             <a href={block.sourceUrl} target="_blank" rel="noreferrer noopener">
-              fuente
+              Fuente
             </a>
           </>
         ) : null}
@@ -134,12 +134,12 @@ export function BoardNews({ board }: { board: TodayBoard }) {
   return (
     <Panel
       id="lo-que-cambio"
-      title="Lo que cambió en la prensa (titulares del último día archivado)"
+      title="Titulares de la prensa boliviana (último día archivado)"
       meta={board.changesDate ? `día ${board.changesDate}` : undefined}
       source={
         outlets
-          ? `${outlets} medios de prensa boliviana, leídos por el Observatorio`
-          : 'prensa boliviana, leída por el Observatorio'
+          ? `${outlets} medios de prensa bolivianos; clasificación temática de DatosBolivia.com`
+          : 'Medios de prensa bolivianos; clasificación temática de DatosBolivia.com'
       }
       data={{
         unidad: 'titulares',
@@ -193,9 +193,9 @@ export function TodayBoardPanel({ board, lead }: { board: TodayBoard; lead?: Rea
         <Panel
           id="lecturas-economia"
           title="Cinco lecturas de la economía de Bolivia (último dato publicado)"
-          lede="Cada lectura lleva la cifra publicada, su fecha y una regla fija que decide su color; la regla se abre en cada tarjeta. El detalle está en las pestañas de arriba."
-          meta={`${adverse} de ${judged} lecturas en rojo`}
-          source={publishers.length ? publishers.join(', ') : 'las que cita cada tarjeta'}
+          lede="Cada lectura muestra la última cifra publicada, su fecha y la regla fija que decide su color. La regla y las cifras de apoyo se despliegan en cada tarjeta; el detalle está en la pestaña que se indica."
+          meta={`${adverse} de ${judged} lecturas en zona adversa`}
+          source={publishers.length ? publishers.join(', ') : 'Las fuentes que cita cada tarjeta'}
           data={{
             columnas: [
               'Lectura',

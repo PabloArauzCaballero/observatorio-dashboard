@@ -141,7 +141,7 @@ const BAR_TONE = 'var(--official)';
 
 /** Quién dice lo que se cuenta aquí: las notas son de los medios, el tema lo deriva el Observatorio. */
 const PRESS_SOURCE =
-  'archivo de prensa de medios bolivianos (cada nota enlaza a su medio); el tema lo deriva el Observatorio del titular (ver «Método»)';
+  'Medios de prensa bolivianos (cada nota enlaza a su medio); tema asignado por DatosBolivia.com a partir del titular (ver «Método»)';
 
 /** One page of the register; the API is asked for exactly this many. */
 const PAGE_SIZE = 60;
@@ -176,7 +176,7 @@ function chipsFor(selection: PressSelection, terms: PressCube['terms']): Chip[] 
 
   add(
     'topic',
-    (value) => (value === ECONOMIC_TOPICS ? 'Solo economicos' : (TOPIC_LABEL[value] ?? value)),
+    (value) => (value === ECONOMIC_TOPICS ? 'Solo económicos' : (TOPIC_LABEL[value] ?? value)),
     (value) => TOPIC_ICON[value] ?? 'cajas',
   );
   add(
@@ -468,7 +468,7 @@ export function PressExplorer({
               onClick={() => reset('topic')}
             >
               <Icon name="tendencia" size={16} />
-              <span className="rail-name">Sólo económicos</span>
+              <span className="rail-name">Solo económicos</span>
               <span className="rail-n">{economicTotal.toLocaleString('es-BO')}</span>
             </button>
             {topics.map(([key, count]) => {
@@ -563,7 +563,7 @@ export function PressExplorer({
           <Panel
             id="prensa-temas"
             title="Notas por tema (cantidad de notas)"
-            lede={`${topics.reduce((sum, [, count]) => sum + count, 0).toLocaleString('es-BO')} notas, sin filtrar por tema. Tocá una barra para elegir ese tema.`}
+            lede={`${topics.reduce((sum, [, count]) => sum + count, 0).toLocaleString('es-BO')} notas en la selección, repartidas por tema. El panel no aplica el filtro de tema, para que todos los temas puedan compararse.`}
             source={PRESS_SOURCE}
             data={() => ({
               unidad: 'notas',
@@ -618,7 +618,7 @@ export function PressExplorer({
             loading ? (
               <span className="strap-loading" role="status">
                 <span className="loading-spin" aria-hidden="true" />
-                buscando…
+                Buscando…
               </span>
             ) : null
           }
@@ -656,7 +656,7 @@ export function PressExplorer({
                 {bounded ? 'hasta ' : ''}
                 {total.toLocaleString('es-BO')}
               </b>{' '}
-              notas en esta selección. Los botones de arriba bajan la selección completa.
+              notas en esta selección. Los botones CSV y JSON descargan la selección completa.
               {bounded ? (
                 <>
                   {' '}
@@ -701,7 +701,7 @@ export function PressExplorer({
                       </button>
                       <span className="filing-domain">{article.domain}</span>
                       <a href={article.url} target="_blank" rel="noreferrer noopener">
-                        leer en el medio
+                        Leer en el medio
                       </a>
                     </p>
                   </article>
