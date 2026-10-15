@@ -446,6 +446,14 @@ a:hover {
   .stack > .workspace {
     order: 1;
   }
+  /*
+   * Lo que va DESPUÉS del espacio de trabajo en el código (las tarjetas de bancos de
+   * «Hoy») sigue después también en pantalla: sin esto quedaba con orden 0 y saltaba
+   * por delante de la cotización, que en el teléfono va primero.
+   */
+  .stack > .workspace ~ * {
+    order: 2;
+  }
   .stack > .briefcard {
     order: 2;
   }
@@ -10317,6 +10325,7 @@ progress {
 }
 
 .site-footer-legal {
+  max-width: none !important;
   padding: var(--s2) 0 var(--s4);
   border-top: 1px solid var(--rule);
   color: var(--ink-faint);
