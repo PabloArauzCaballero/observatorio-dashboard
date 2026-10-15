@@ -810,7 +810,7 @@ export interface MarketSeries {
 
 const MARKET_NAMES: Record<string, string> = {
   BTC_USD: 'Bitcoin',
-  USDT_USD: 'Estables USDT/USDC',
+  USDT_USD: 'Fichas estables USDT y USDC',
   XAU_USD: 'Oro (PAX Gold)',
 };
 

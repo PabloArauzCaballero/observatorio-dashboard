@@ -78,7 +78,7 @@ const TONE: Record<string, { label: string; colour: string; icon: IconName; note
   },
   DESINFORMACION: {
     label: 'Desinformación',
-    colour: 'var(--series-4)',
+    colour: 'var(--serious)',
     icon: 'escudo',
     note: 'verificado como falso o manipulado',
   },

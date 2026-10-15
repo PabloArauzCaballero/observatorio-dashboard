@@ -412,7 +412,7 @@
 .warn {
   margin: 0;
   padding: var(--s1) var(--s2);
-  border-left: 2px solid var(--series-4);
+  border-left: 2px solid var(--warning);
   background: var(--panel-tint);
   color: var(--ink-soft);
   font-size: var(--text-sm);

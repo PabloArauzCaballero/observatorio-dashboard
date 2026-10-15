@@ -211,7 +211,7 @@ function SECCIONES_PERDIDAS(perdidas: ReadonlySet<string>): string {
  * el capítulo llega detrás, por el mismo flujo, sin una petición más.
  */
 function Armando({ que }: { que: string }) {
-  return <div className="callout">Armando {que}…</div>;
+  return <div className="callout">Cargando {que}…</div>;
 }
 
 /**
@@ -631,7 +631,7 @@ export default function Page() {
           <TabHeader
             id="hoy"
             title="Bolivia hoy"
-            lede="Cotización del dólar y cinco indicadores clave de la economía boliviana, cada uno con su fecha, su fuente y el criterio con el que se evalúa."
+            lede="Cotización del dólar, cinco indicadores clave de la economía boliviana —cada uno con su fecha, su fuente y el criterio con el que se evalúa— y los titulares del último día archivado."
           />
           <Suspense fallback={<Armando que="el resumen de hoy" />}>
             <TodaySection />
@@ -650,7 +650,7 @@ export default function Page() {
             title="Tipo de cambio"
             lede="El dólar oficial del Banco Central de Bolivia y el paralelo de los mercados P2P, en bolivianos y descontada la inflación, y el boliviano frente a otras monedas. El paralelo es una medición de mercados abiertos, no una cotización oficial."
           />
-          <Suspense fallback={<Armando que="el capítulo del tipo de cambio" />}>
+          <Suspense fallback={<Armando que="la sección de tipo de cambio" />}>
             <FxSection />
           </Suspense>
           <FxEconometricsCard />

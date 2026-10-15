@@ -35,7 +35,7 @@ const VERDICT_LABEL: Record<Verdict, string> = {
  */
 const VERDICT_TONE: Record<Verdict, string> = {
   favorable: 'var(--down)',
-  vigilar: 'var(--series-4)',
+  vigilar: 'var(--warning)',
   adverso: 'var(--up)',
   'sin-lectura': 'var(--ink-faint)',
 };
