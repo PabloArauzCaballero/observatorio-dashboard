@@ -65,3 +65,7 @@ export function Monogram({
     </svg>
   );
 }
+
+/** La misma geometría para quien la dibuja fuera de React (la imagen que se descarga). */
+export { D as MONO_D, B as MONO_B, B_X as MONO_B_X };
+export const MONO_VIEWBOX = '-30 -1400 2743 1440';

@@ -34,14 +34,14 @@ import { deflateSync } from 'node:zlib';
  * escribe en claro por la misma razón: el papel no hereda el tema del lector.
  */
 export const INK = {
-  ink: '#14181f',
-  soft: '#4a5464',
-  faint: '#78839a',
-  rule: '#e2e6ed',
-  tint: '#f6f8fa',
-  paper: '#ffffff',
-  official: '#2a78d6',
-  parallel: '#eb6834',
+  ink: '#17191a',
+  soft: '#4d4a44',
+  faint: '#69655d',
+  rule: '#dcd5c8',
+  tint: '#efe9dd',
+  paper: '#fffefb',
+  official: '#3963b2',
+  parallel: '#ba813d',
 } as const;
 
 /* ----------------------------------------------------------------- fuentes */
@@ -699,7 +699,7 @@ export class Sheet {
     const infoId = add(
       `<< /Title ${pdfString(this.options.title)} /Author ${pdfString(this.options.author)}` +
         (this.options.subject ? ` /Subject ${pdfString(this.options.subject)}` : '') +
-        ` /Producer ${pdfString('Observatorio Económico')} /CreationDate (D:${stamp}Z) >>`,
+        ` /Producer ${pdfString('DatosBolivia.com')} /CreationDate (D:${stamp}Z) >>`,
     );
 
     // La segunda línea es la marca binaria que recomienda el formato: cuatro

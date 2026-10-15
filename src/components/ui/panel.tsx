@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, type ReactNode } from 'react';
 import { DownloadMenu } from '@/components/ui/download-menu';
+import { pieDeFuente } from '@/lib/export/pie';
 import { registrarPanel } from '@/lib/export/registro';
 import {
   ProveedorDePanel,
@@ -43,21 +44,6 @@ export interface PanelProps {
   downloadable?: boolean;
   children: ReactNode;
   className?: string;
-}
-
-/**
- * El pie de una figura como lo escribe un banco central: «Fuente: BCB.
- * Elaboración: DatosBolivia.com · actualizado 3-oct-2026». Si la fuente ya
- * declara el cálculo propio («INE; cálculo de DatosBolivia.com»), no se repite.
- */
-export function pieDeFuente(source: string, updated?: string): string {
-  const fuente = source.trim().replace(/\.\s*$/, '');
-  const propio = /datosbolivia/i.test(fuente);
-  return (
-    `Fuente: ${fuente}.` +
-    (propio ? '' : ' Elaboración: DatosBolivia.com.') +
-    (updated ? ` Actualizado el ${updated}.` : '')
-  );
 }
 
 /**

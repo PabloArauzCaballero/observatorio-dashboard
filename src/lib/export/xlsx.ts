@@ -263,7 +263,7 @@ export function aXlsx(
   if (conjuntos.length > 1) {
     pares.push(['Hojas', nombres.map((n, i) => `${n}: ${conjuntos[i]?.titulo ?? ''}`).join(' | ')]);
   }
-  pares.push(['Publica', 'Observatorio Económico de Bolivia · datosbolivia.com']);
+  pares.push(['Publica', 'DatosBolivia.com · Centro de Datos de Bolivia']);
 
   const xml = (parte: string): Uint8Array => encoder.encode(parte);
   const cabecera = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>';
