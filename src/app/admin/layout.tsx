@@ -2,8 +2,8 @@ import type { Metadata } from 'next';
 import './admin.css';
 
 export const metadata: Metadata = {
-  title: 'Portal administrativo — Observatorio económico',
-  description: 'Operación, ingesta, calidad, metadatos y sembradores del Observatorio.',
+  title: 'Portal administrativo — DatosBolivia.com',
+  description: 'Operación, ingesta, calidad, metadatos y sembradores de DatosBolivia.com.',
   robots: { index: false, follow: false },
 };
 

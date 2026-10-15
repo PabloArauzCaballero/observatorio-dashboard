@@ -12,146 +12,116 @@
  */
 
 :root {
-  --ink: #14181f;
-  --ink-soft: #4a5464;
-  --ink-faint: #78839a;
-  --rule: #e2e6ed;
-  --rule-soft: #eef1f5;
-  --paper: #ffffff;
-  --panel: #ffffff;
-  --panel-tint: #f6f8fa;
+  /*
+   * Identidad DatosBolivia.com: tinta, oro y marfil.
+   *
+   * Sale del manual de identidad (versión 1.0): base monocroma, acentos de oro
+   * envejecido y superficies de papel marfil. Los valores de texto están
+   * medidos contra el marfil, no elegidos a ojo: el gris piedra del manual
+   * (#77736B) daba 4,3:1 y no llegaba a AA, así que el texto secundario es un
+   * paso más oscuro; el oro numismático (#AA884D) da 3,0:1 y por eso es solo
+   * filete, monograma y adorno, nunca texto. El acento que sí escribe —enlaces,
+   * foco, página abierta— es el oro profundo (#806337, 5,1:1).
+   */
+  --ink: #17191a; /* tinta institucional — 16,1:1 sobre marfil */
+  --ink-soft: #4d4a44; /* 8,0:1 */
+  --ink-faint: #69655d; /* 5,3:1: el más claro que todavía es texto */
+  --rule: #dcd5c8; /* borde cálido del manual */
+  --rule-soft: #e8e2d6;
+  --paper: #f7f4ed; /* marfil: el fondo de la página */
+  --panel: #f7f4ed; /* los paneles no son tarjetas: comparten el papel */
+  --panel-tint: #efe9dd; /* arena clara: relleno de lo que se resalta */
+  --field: #fffefb; /* papel blanco: el interior de un campo o un menú */
+
+  /* Oro: el acento de la marca. Separado de las series a propósito. */
+  --gold: #aa884d; /* numismático: filetes, monograma; nunca texto */
+  --gold-light: #d7c39b;
+  --accent: #806337; /* oro profundo: enlaces, foco, página abierta — 5,1:1 */
+  --accent-strong: #5f4826; /* al pasar por encima — 7,8:1 */
+  --accent-soft: color-mix(in srgb, #806337 12%, #f7f4ed); /* fila o elemento elegido */
+  --accent-on: #fffefb; /* texto sobre un relleno de acento — 5,5:1 */
+  --masthead-ink: #17191a;
 
   /*
    * La escala de color de los gráficos, verificada y no elegida a ojo.
    *
-   * Cada color de una serie hace exactamente un trabajo —identidad, magnitud,
-   * polaridad o estado— y la escala categórica se validó con el comprobador de
-   * la disciplina (separación bajo protanopía y deuteranopía, piso de
-   * distinción a vista plena, banda de luminosidad, piso de croma y contraste
-   * contra la superficie) en los dos modos. Los valores anteriores no pasaban:
-   * el azul y el violeta se fundían en uno bajo daltonismo, el rojo y el
-   * naranja eran casi el mismo color incluso a vista plena, y el verde caía por
-   * debajo del piso de croma. Cambiarlos «porque se ven bien» es volver a ahí,
-   * así que cualquier valor nuevo se vuelve a pasar por el comprobador.
+   * Re-anclada a la marca el 15-oct-2026: azul tinta institucional para el
+   * oficial, ocre para el paralelo, burdeos para la brecha; después petróleo,
+   * ciruela y verde. Se buscó por programa —luminosidad y croma barridos dentro
+   * de cada tono— la combinación que maximiza la peor separación, y se pasó por
+   * `validate_palette.js` (skill dataviz) contra el marfil: banda de
+   * luminosidad, piso de croma, separación bajo protanopía y deuteranopía (peor
+   * vecina ΔE 20,6), piso a vista plena (ΔE 24,1) y contraste ≥ 3:1. Las tres
+   * primeras pasan además «todos contra todos» (mapas, dispersión).
    *
-   * ORDEN. El orden de las casillas ES el mecanismo de seguridad, no un
-   * capricho: se enumeraron las permutaciones y esta es la que maximiza la
-   * peor separación entre vecinas (ΔE 16,9 en claro y en oscuro, sin avisos).
-   * Las series se asignan en orden y NUNCA se ciclan: una séptima serie se
-   * pliega en «Otros», no inventa un color.
+   * ORDEN. El orden de las casillas ES el mecanismo de seguridad. Las series se
+   * asignan en orden y NUNCA se ciclan: una séptima se pliega en «Otros». Un
+   * valor nuevo se vuelve a pasar por el comprobador, en los dos modos.
    */
-  --series-1: #2a78d6; /* azul     — oficial */
-  --series-2: #eb6834; /* naranja  — paralelo */
-  --series-3: #963b8c; /* púrpura  — brecha */
-  --series-4: #a87c00; /* ámbar */
-  --series-5: #4a3aa7; /* violeta */
-  --series-6: #0f8f62; /* verde azulado */
-  --series-rest: #6b7688; /* el resto plegado, deliberadamente sin color */
+  --series-1: #3963b2; /* azul tinta — oficial */
+  --series-2: #ba813d; /* ocre — paralelo */
+  --series-3: #921e2c; /* burdeos — brecha */
+  --series-4: #159ca9; /* petróleo */
+  --series-5: #64378d; /* ciruela */
+  --series-6: #388f66; /* verde */
+  --series-rest: #7e7a73; /* el resto plegado: gris cálido, deliberadamente sin tono */
 
-  /*
-   * Los tres personajes del informe. Son las tres primeras casillas porque esas
-   * tres —y solo esas tres— pasan la prueba dura de «todos contra todos», que
-   * es la que aplica cuando dos marcas cualesquiera pueden quedar una al lado
-   * de la otra (dispersión, mapas, pequeños múltiplos).
-   */
   --official: var(--series-1);
   --parallel: var(--series-2);
   --gap: var(--series-3);
 
   /*
-   * Polaridad: los dos polos de una escala divergente y su punto neutro.
-   *
-   * Eran rojo contra verde, que es el par que un lector daltónico NO puede
-   * separar (ΔE 4,1: por debajo del piso, sin excusa posible). El polo frío
-   * pasa a verde azulado, que conserva la lectura «frío = a favor, cálido = en
-   * contra» del informe y separa limpio en los dos modos (ΔE 12,2 y 11,9).
+   * Polaridad: cálido adverso contra frío favorable, con un gris en el cero.
+   * Burdeos frente a petróleo: ΔE 11,2 bajo daltonismo, por encima del objetivo.
    */
-  --up: #d03b3b; /* por encima de la referencia, al alza, adverso */
-  --down: #0d7f85; /* por debajo, a la baja, a favor */
-  --mid: #f0efec; /* el cero de una escala divergente: gris, nunca un tono */
+  --up: #a83634; /* por encima de la referencia, al alza, adverso */
+  --down: #00787d; /* por debajo, a la baja, a favor */
+  --mid: #e9e4da; /* el cero de una escala divergente: gris cálido, nunca un tono */
 
   /*
-   * Estado. Escala fija, jamás tematizada y jamás reutilizada como «serie 4»;
-   * siempre acompañada de icono y etiqueta, nunca solo el color.
+   * Estado. Sobrio, como en un informe de banco central; siempre con icono y
+   * palabra, nunca solo el color, y jamás reutilizado como serie.
    */
-  --good: #0ca30c;
-  --warning: #fab219;
-  --serious: #ec835a;
-  --critical: #d03b3b;
+  --good: #376a50;
+  --warning: #a97416;
+  --serious: #ae5528;
+  --critical: #9a3130;
+
+  /* Magnitud: un solo tono —el azul tinta—, de claro a oscuro. */
+  --seq-100: #dfecff;
+  --seq-200: #bbd3f6;
+  --seq-300: #90b3e7;
+  --seq-400: #6793d5;
+  --seq-500: #4071b9;
+  --seq-600: #295494;
+  --seq-700: #1a3a68;
 
   /*
-   * Magnitud: un solo tono, de claro a oscuro. Un arcoíris para «cuánto» es
-   * ilegible; esta rampa es la que usan las retículas de calor y los pesos.
+   * La tinta que le toca a cada paso de la rampa (emparejadas con
+   * `--seq-200`…`--seq-600`), medida contra ese paso: el peor par es 4,9:1.
    */
-  --seq-100: #cde2fb;
-  --seq-200: #9ec5f4;
-  --seq-300: #6da7ec;
-  --seq-400: #3987e5;
-  --seq-500: #256abf;
-  --seq-600: #184f95;
-  --seq-700: #0d366b;
-
-  /*
-   * La tinta que le toca a cada paso de la rampa, medida contra ese paso.
-   *
-   * Un umbral fijo («blanco a partir del paso 3») no sirve, porque la rampa se
-   * ancla al revés en oscuro: ahí el paso 3 es CLARO y el blanco encima de él
-   * se quedaba en 3,2:1 — justo la celda con la cuenta más alta era la que no
-   * se leía. Emparejar tinta y paso uno a uno es lo único que aguanta el
-   * cambio de modo; el peor par de esta lista es 4,8:1.
-   */
-  --seq-ink-1: #14181f;
-  --seq-ink-2: #14181f;
-  --seq-ink-3: #14181f;
+  --seq-ink-1: #17191a;
+  --seq-ink-2: #17191a;
+  --seq-ink-3: #17191a;
   --seq-ink-4: #ffffff;
   --seq-ink-5: #ffffff;
 
-  /*
-   * Rampa ordinal: los pasos de una escala que SÍ tiene orden pero no es una
-   * magnitud —informal, mixto, formal—. Es un solo tono con la luminosidad
-   * escalonada, para que el orden se vea en el color; el paso más claro se
-   * queda por encima de 2:1 contra la superficie, que es donde un tramo de
-   * barra deja de confundirse con el fondo.
-   */
-  --ord-1: #86b6ef;
-  --ord-2: #2a78d6;
-  --ord-3: #104281;
+  /* Rampa ordinal: un tono, luminosidad escalonada; el paso claro ≥ 2:1. */
+  --ord-1: #6793d5;
+  --ord-2: #4071b9;
+  --ord-3: #1a3a68;
 
-  /*
-   * La rampa del tono adverso, la única escala de este informe que se pinta
-   * sobre TEXTO —la nube de temas—. Por eso sus tres pasos están elegidos para
-   * pasar 4,5:1 contra el papel, no solo el 3:1 de una marca: una palabra
-   * escrita en un rojo claro no es una marca pálida, es una palabra que no se
-   * lee. `--adv-0` es el gris de «no se midió», deliberadamente sin color.
-   */
+  /* La rampa del tono adverso se pinta sobre TEXTO: cada paso ≥ 4,5:1. */
   --adv-0: var(--series-rest);
-  --adv-1: #c04d44;
-  --adv-2: #a5332e;
-  --adv-3: #8a1616;
+  --adv-1: #ab413a;
+  --adv-2: #8c2d2b;
+  --adv-3: #6b1e21;
 
-  /*
-   * Cromo del gráfico.
-   *
-   * `--chart-surface` es el color con el que se separan dos marcas que se tocan
-   * —la rendija de 2 px de un apilado, el anillo de un punto— así que tiene que
-   * ser el fondo real del panel y no un gris parecido. `--axis-ink` sube el
-   * contraste de los rótulos de eje de 3,8:1 a 4,6:1, que es donde un número de
-   * 11 px deja de ser una sugerencia.
-   */
+  /* Cromo del gráfico: retícula que se ve y no se mira; rótulos que se leen. */
   --chart-surface: var(--panel);
-  --grid: #e6e9ef;
-  --axis-ink: #6b7688;
-
-  /*
-   * La raya del cero, que NO es el gris del rótulo.
-   *
-   * Al subir el contraste de los rótulos de eje se usó el mismo gris para las
-   * reglas del cero, y sobre un gráfico de retornos eso dibujaba un listón
-   * claro de lado a lado del panel que pesaba más que las propias barras: la
-   * referencia tapando el dato. Una regla se ve y no se mira, así que vive un
-   * paso por encima de la rejilla y bastante por debajo del texto.
-   */
-  --axis-rule: #c9d0da;
+  --grid: #e6dfd2;
+  --axis-ink: #69655d; /* 5,3:1 */
+  --axis-rule: #c9bfae;
 
   --serif: var(--font-newsreader), ui-serif, Georgia, 'Times New Roman', serif;
   --sans:
@@ -161,8 +131,7 @@
 
   /*
    * La escala tipográfica: siete pasos y ninguno más. Razón cercana a 1,2 sobre
-   * 16 px, con el piso en 12 px: por debajo de eso un rótulo deja de leerse en
-   * un teléfono. Una regla nueva elige un paso; no inventa un tamaño.
+   * 16 px, con el piso en 12 px.
    */
   --text-xs: 0.75rem;
   --text-sm: 0.875rem;
@@ -173,6 +142,10 @@
   --text-2xl: 2.25rem;
   --text-3xl: 3rem;
 
+  /* Antetítulos y barra de secciones: versalitas espaciadas, el único sitio. */
+  --kicker-size: 0.72rem;
+  --kicker-track: 0.16em;
+
   --s0: 0.25rem;
   --s1: 0.5rem;
   --s2: 0.85rem;
@@ -181,23 +154,26 @@
   --s5: 3rem;
   --s6: 4.5rem;
 
-  --radius-sm: 4px;
-  --radius-md: 8px;
-  --radius-lg: 12px;
+  /*
+   * Radios de periódico: casi rectos. Una tarjeta redondeada es una aplicación;
+   * un filete recto es un informe.
+   */
+  --radius-sm: 2px;
+  --radius-md: 3px;
+  --radius-lg: 4px;
   --radius-pill: 999px;
   --radius: var(--radius-md);
 
   --control-h-sm: 2rem;
   --control-h-md: 2.5rem;
   --shadow: none;
-  --shadow-float: 0 1px 2px rgb(16 24 40 / 0.06), 0 12px 32px -12px rgb(16 24 40 / 0.22);
+  --shadow-float: 0 1px 2px rgb(23 25 26 / 0.06), 0 12px 32px -12px rgb(23 25 26 / 0.22);
   --ease: cubic-bezier(0.22, 0.61, 0.36, 1);
   --fast: 160ms;
   --slow: 420ms;
 
   /*
    * Stacking order, named so two unrelated overlays never fight by accident.
-   * Values are unchanged from before this token existed — only the name is new.
    */
   --z-sticky: 1; /* a header or column pinned inside its own scroll container */
   --z-sticky-raised: 2; /* a sticky element that must sit above --z-sticky in the same table */
@@ -208,147 +184,156 @@
 
 /*
  * Breakpoint reference — there is no build-time preprocessor here (no
- * PostCSS), so this is documentation, not an enforced token: it exists so a
- * new media query reaches for one of these widths instead of inventing a
- * nearby one. Existing rules below keep the exact width each was tuned
- * against; see each rule's own comment for why that width and not another.
+ * PostCSS), so this is documentation, not an enforced token.
  *
  *   360px  — smallest phones this site is checked against
  *   640px  — phones, portrait ceiling
  *   768px  — small tablets / large phones, landscape
- *   900px  — the point most two-column layouts here (rail + content,
- *            admin grid) fold to one column
+ *   900px  — the point most two-column layouts here fold to one column
  *   1024px — tablets, landscape
+ *   1100px — the page index docks beside the content
  *   1180-1280px — the point paired charts/cards stop fitting side by side
  *   1600px — wide desktop, where the shell gets extra side padding
  */
 
+/*
+ * Modo oscuro: negro editorial, tinta marfil y oro claro. Es una escala
+ * elegida, no un volteo: las series se re-escalonaron contra #0e1011 y se
+ * validaron como conjunto (peor vecina ΔE 15,7 bajo daltonismo, 20,0 a vista
+ * plena; el trío pasa todos contra todos).
+ */
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme='light']) {
-    --ink: #eef1f6;
-    --ink-soft: #b3bccb;
-    --ink-faint: #7f8a9c;
-    --rule: #2a313d;
-    --rule-soft: #212833;
-    --paper: #151a21;
-    --panel: #151a21;
-    --panel-tint: #1a202a;
+    --ink: #f3efe6;
+    --ink-soft: #c8c1b3;
+    --ink-faint: #9b958a;
+    --rule: #2e2c28;
+    --rule-soft: #22211e;
+    --paper: #0e1011;
+    --panel: #0e1011;
+    --panel-tint: #1a1c1d;
+    --field: #17191a;
 
-    /*
-     * El modo oscuro es una escala elegida, no un volteo automático: son los
-     * mismos seis tonos escalonados contra la superficie oscura y validados
-     * como conjunto contra ella (los pasos claros, puestos aquí, se salen de la
-     * banda de luminosidad y el púrpura claro se funde con el azul).
-     */
-    --series-1: #3987e5;
-    --series-2: #d95926;
-    --series-3: #c06fb0;
-    --series-4: #c98500;
-    --series-5: #9085e9;
-    --series-6: #199e70;
-    --series-rest: #98a3b5;
+    --gold: #aa884d;
+    --gold-light: #d7c39b;
+    --accent: #d7c39b;
+    --accent-strong: #e8dabb;
+    --accent-soft: color-mix(in srgb, #d7c39b 14%, #0e1011);
+    --accent-on: #0e1011;
+    --masthead-ink: #f3efe6;
 
-    --up: #e66767;
-    --down: #2aa6ad;
-    --mid: #383835;
+    --series-1: #628ad3;
+    --series-2: #c48300;
+    --series-3: #9a4855;
+    --series-4: #25a4b1;
+    --series-5: #76529d;
+    --series-6: #40966d;
+    --series-rest: #96918a;
 
-    --good: #0ca30c;
-    --warning: #fab219;
-    --serious: #ec835a;
-    --critical: #d03b3b;
+    --up: #db6c66;
+    --down: #49a9ae;
+    --mid: #34322e;
+
+    --good: #6ab08b;
+    --warning: #d9a850;
+    --serious: #dc855d;
+    --critical: #db6c66;
 
     /* La rampa de magnitud se ancla al otro extremo: en oscuro «mucho» es claro. */
-    --seq-100: #0d366b;
-    --seq-200: #184f95;
-    --seq-300: #256abf;
-    --seq-400: #3987e5;
-    --seq-500: #6da7ec;
-    --seq-600: #9ec5f4;
-    --seq-700: #cde2fb;
+    --seq-100: #1a3a68;
+    --seq-200: #295494;
+    --seq-300: #4071b9;
+    --seq-400: #6793d5;
+    --seq-500: #90b3e7;
+    --seq-600: #bbd3f6;
+    --seq-700: #dfecff;
 
-    --seq-ink-1: #eef1f6;
-    --seq-ink-2: #eef1f6;
-    --seq-ink-3: #0e1116;
-    --seq-ink-4: #0e1116;
-    --seq-ink-5: #0e1116;
+    --seq-ink-1: #ffffff;
+    --seq-ink-2: #ffffff;
+    --seq-ink-3: #0e1011;
+    --seq-ink-4: #0e1011;
+    --seq-ink-5: #0e1011;
 
-    --ord-1: #9ec5f4;
-    --ord-2: #3987e5;
-    --ord-3: #184f95;
+    --ord-1: #bbd3f6;
+    --ord-2: #6793d5;
+    --ord-3: #295494;
 
-    --adv-1: #d55f56;
-    --adv-2: #f47c70;
-    --adv-3: #ff988b;
+    --adv-1: #dd766c;
+    --adv-2: #eb9288;
+    --adv-3: #f4b1a8;
 
-    --grid: #262d39;
-    --axis-ink: #98a3b5;
-    --axis-rule: #3c4553;
+    --grid: #262522;
+    --axis-ink: #a39d92;
+    --axis-rule: #45423c;
 
-    --shadow-float: 0 1px 2px rgb(0 0 0 / 0.4), 0 12px 32px -12px rgb(0 0 0 / 0.75);
+    --shadow-float: 0 1px 2px rgb(0 0 0 / 0.45), 0 12px 32px -12px rgb(0 0 0 / 0.8);
   }
 }
 
 :root[data-theme='dark'] {
-  --ink: #eef1f6;
-  --ink-soft: #b3bccb;
-  --ink-faint: #7f8a9c;
-  --rule: #2a313d;
-  --rule-soft: #212833;
-  --paper: #151a21;
-  --panel: #151a21;
-  --panel-tint: #1a202a;
+  --ink: #f3efe6;
+  --ink-soft: #c8c1b3;
+  --ink-faint: #9b958a;
+  --rule: #2e2c28;
+  --rule-soft: #22211e;
+  --paper: #0e1011;
+  --panel: #0e1011;
+  --panel-tint: #1a1c1d;
+  --field: #17191a;
 
-  /*
-     * El modo oscuro es una escala elegida, no un volteo automático: son los
-     * mismos seis tonos escalonados contra la superficie oscura y validados
-     * como conjunto contra ella (los pasos claros, puestos aquí, se salen de la
-     * banda de luminosidad y el púrpura claro se funde con el azul).
-     */
-  --series-1: #3987e5;
-  --series-2: #d95926;
-  --series-3: #c06fb0;
-  --series-4: #c98500;
-  --series-5: #9085e9;
-  --series-6: #199e70;
-  --series-rest: #98a3b5;
+  --gold: #aa884d;
+  --gold-light: #d7c39b;
+  --accent: #d7c39b;
+  --accent-strong: #e8dabb;
+  --accent-soft: color-mix(in srgb, #d7c39b 14%, #0e1011);
+  --accent-on: #0e1011;
+  --masthead-ink: #f3efe6;
 
-  --up: #e66767;
-  --down: #2aa6ad;
-  --mid: #383835;
+  --series-1: #628ad3;
+  --series-2: #c48300;
+  --series-3: #9a4855;
+  --series-4: #25a4b1;
+  --series-5: #76529d;
+  --series-6: #40966d;
+  --series-rest: #96918a;
 
-  --good: #0ca30c;
-  --warning: #fab219;
-  --serious: #ec835a;
-  --critical: #d03b3b;
+  --up: #db6c66;
+  --down: #49a9ae;
+  --mid: #34322e;
+
+  --good: #6ab08b;
+  --warning: #d9a850;
+  --serious: #dc855d;
+  --critical: #db6c66;
 
   /* La rampa de magnitud se ancla al otro extremo: en oscuro «mucho» es claro. */
-  --seq-100: #0d366b;
-  --seq-200: #184f95;
-  --seq-300: #256abf;
-  --seq-400: #3987e5;
-  --seq-500: #6da7ec;
-  --seq-600: #9ec5f4;
-  --seq-700: #cde2fb;
+  --seq-100: #1a3a68;
+  --seq-200: #295494;
+  --seq-300: #4071b9;
+  --seq-400: #6793d5;
+  --seq-500: #90b3e7;
+  --seq-600: #bbd3f6;
+  --seq-700: #dfecff;
 
-  --seq-ink-1: #eef1f6;
-  --seq-ink-2: #eef1f6;
-  --seq-ink-3: #0e1116;
-  --seq-ink-4: #0e1116;
-  --seq-ink-5: #0e1116;
+  --seq-ink-1: #ffffff;
+  --seq-ink-2: #ffffff;
+  --seq-ink-3: #0e1011;
+  --seq-ink-4: #0e1011;
+  --seq-ink-5: #0e1011;
 
-  --ord-1: #9ec5f4;
-  --ord-2: #3987e5;
-  --ord-3: #184f95;
+  --ord-1: #bbd3f6;
+  --ord-2: #6793d5;
+  --ord-3: #295494;
 
-  --adv-1: #d55f56;
-  --adv-2: #f47c70;
-  --adv-3: #ff988b;
+  --adv-1: #dd766c;
+  --adv-2: #eb9288;
+  --adv-3: #f4b1a8;
 
-  --grid: #262d39;
-  --axis-ink: #98a3b5;
-  --axis-rule: #3c4553;
+  --grid: #262522;
+  --axis-ink: #a39d92;
+  --axis-rule: #45423c;
 
-  --shadow-float: 0 1px 2px rgb(0 0 0 / 0.4), 0 12px 32px -12px rgb(0 0 0 / 0.75);
+  --shadow-float: 0 1px 2px rgb(0 0 0 / 0.45), 0 12px 32px -12px rgb(0 0 0 / 0.8);
 }
 
 :root {
@@ -1281,7 +1266,7 @@ code {
 
 .slicer input[type='search']:focus {
   outline: none;
-  border-color: var(--official);
+  border-color: var(--accent);
 }
 
 .slicer select {
@@ -1300,11 +1285,11 @@ code {
 
 .slicer select:focus {
   outline: none;
-  border-color: var(--official);
+  border-color: var(--accent);
 }
 
 .slicer input[type='range'] {
-  accent-color: var(--official);
+  accent-color: var(--accent);
   width: 100%;
   max-width: 200px;
 }
@@ -1353,7 +1338,7 @@ code {
 /* Section preamble ------------------------------------------------------- */
 
 .brief {
-  border-left: 3px solid var(--official);
+  border-left: 3px solid var(--accent);
   padding: var(--s2) 0 var(--s2) var(--s3);
   animation: rise var(--slow) var(--ease) both;
 }
@@ -1636,7 +1621,7 @@ code {
 
 .rail-item-on {
   background: var(--panel-tint);
-  border-left-color: var(--official);
+  border-left-color: var(--accent);
   color: var(--ink);
   font-weight: 600;
 }
@@ -1673,7 +1658,7 @@ code {
 }
 
 .rail-item-on .rail-n {
-  color: var(--official);
+  color: var(--accent);
 }
 
 /*
@@ -1738,7 +1723,7 @@ span.rail-twist {
 
 /* Algunas de sus familias elegidas, no todas: el filete a medio tono. */
 .rail-item-part {
-  border-left-color: color-mix(in srgb, var(--official) 45%, transparent);
+  border-left-color: color-mix(in srgb, var(--accent) 45%, transparent);
   color: var(--ink);
 }
 
@@ -1783,7 +1768,7 @@ span.rail-twist {
 }
 
 .rail-item-on .rail-n-word {
-  color: var(--official);
+  color: var(--accent);
 }
 
 .rail-foot {
@@ -1822,7 +1807,7 @@ span.rail-twist {
 .rail-field input:focus,
 .rail-field select:focus {
   outline: none;
-  border-color: var(--official);
+  border-color: var(--accent);
 }
 
 .rail-pills {
@@ -1928,14 +1913,14 @@ span.rail-twist {
   gap: var(--s2);
   background: var(--panel-tint);
   border: 1px solid var(--rule);
-  border-left: 3px solid var(--official);
+  border-left: 3px solid var(--accent);
   border-radius: var(--radius);
   padding: var(--s2) var(--s3);
   animation: rise var(--slow) var(--ease) both;
 }
 
 .briefcard-mark {
-  color: var(--official);
+  color: var(--accent);
   flex: none;
   margin-top: 2px;
 }
@@ -1989,7 +1974,7 @@ span.rail-twist {
 }
 
 .brief-point-mark {
-  color: var(--official);
+  color: var(--accent);
   flex: none;
   margin-top: 2px;
 }
@@ -2241,7 +2226,7 @@ span.rail-twist {
 /* Expanded cards leave the row and take the width they need to be read. */
 .filing-card-open {
   flex-basis: 100%;
-  border-color: var(--official);
+  border-color: var(--accent);
 }
 
 .filing-card-open .filing-summary {
@@ -2272,7 +2257,7 @@ span.rail-twist {
   padding: 0;
   font: inherit;
   font-size: var(--text-xs);
-  color: var(--official);
+  color: var(--accent);
   cursor: pointer;
   transition: color var(--fast) var(--ease);
 }
@@ -2299,7 +2284,7 @@ span.rail-twist {
 }
 
 .filing-foot a {
-  color: var(--official);
+  color: var(--accent);
   text-decoration-color: var(--rule);
   white-space: nowrap;
 }
@@ -2779,8 +2764,8 @@ span.rail-twist {
 }
 
 .card-toggle-on {
-  color: var(--official);
-  border-color: var(--official);
+  color: var(--accent);
+  border-color: var(--accent);
 }
 
 /* The day's reading, as points ------------------------------------------- */
@@ -3212,7 +3197,7 @@ button.term-chip:hover {
   border: none;
   padding: 0;
   font: inherit;
-  color: var(--official);
+  color: var(--accent);
   text-decoration: underline;
   text-underline-offset: 2px;
   cursor: pointer;
@@ -3416,7 +3401,7 @@ button.term-chip:hover {
  * that already carries a selection ring does not end up with two.
  */
 :where(button, a[href], input, select, summary, [tabindex]):focus-visible {
-  outline: 2px solid var(--official);
+  outline: 2px solid var(--accent);
   outline-offset: 2px;
   border-radius: var(--radius-md);
 }
@@ -3441,7 +3426,7 @@ button.term-chip:hover {
   padding: 0.55rem 0.9rem;
   background: var(--panel);
   color: var(--ink);
-  border: 1px solid var(--official);
+  border: 1px solid var(--accent);
   border-radius: var(--radius-md);
   font-size: var(--text-sm);
 }
@@ -3476,7 +3461,7 @@ button.term-chip:hover {
   padding: 0.7rem 0.8rem;
   background: var(--panel-tint);
   border: 1px solid var(--rule);
-  border-left: 3px solid var(--official);
+  border-left: 3px solid var(--accent);
   border-radius: var(--radius-md);
   animation: rise var(--fast) var(--ease) both;
 }
@@ -3839,12 +3824,12 @@ button.download-btn {
 
 .subtab-active,
 .subtab-active:hover {
-  background: var(--official);
-  color: #fff;
+  background: var(--accent);
+  color: var(--accent-on);
 }
 
 .subtab:focus-visible {
-  outline: 2px solid var(--official);
+  outline: 2px solid var(--accent);
   outline-offset: 2px;
 }
 
@@ -3990,12 +3975,12 @@ button.download-btn {
  */
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme='light']) .heat-cell-filled[data-ink='reverse'] {
-    color: #0e1116;
+    color: #0e1011;
   }
 }
 
 :root[data-theme='dark'] .heat-cell-filled[data-ink='reverse'] {
-  color: #0e1116;
+  color: #0e1011;
 }
 
 /*
@@ -4228,7 +4213,7 @@ button.download-btn {
 }
 
 .donate-btn:focus-visible {
-  outline: 2px solid var(--official);
+  outline: 2px solid var(--accent);
   outline-offset: 2px;
 }
 
@@ -4918,7 +4903,7 @@ button.download-btn {
  * acoplada del telefono y en la tabla si se pulsa.
  */
 .places-map-link {
-  color: var(--official);
+  color: var(--accent);
   text-decoration: underline;
   text-underline-offset: 2px;
   white-space: nowrap;
@@ -5048,7 +5033,7 @@ button.download-btn {
   width: 14px;
   height: 14px;
   border: 2px solid var(--rule);
-  border-top-color: var(--official);
+  border-top-color: var(--accent);
   border-radius: 50%;
   animation: spin 850ms linear infinite;
 }
@@ -5274,7 +5259,7 @@ button.download-btn {
 }
 
 .cloud-word:focus-visible {
-  outline: 2px solid var(--official);
+  outline: 2px solid var(--accent);
   outline-offset: 1px;
 }
 
@@ -5533,7 +5518,7 @@ button.download-btn {
 }
 
 .grid-table-macro .row-openable:focus-visible {
-  outline: 2px solid var(--official);
+  outline: 2px solid var(--accent);
   outline-offset: -2px;
 }
 
@@ -5594,7 +5579,7 @@ button.download-btn {
   margin-top: 0.15rem;
   font-size: var(--text-xs);
   letter-spacing: 0.04em;
-  color: var(--official);
+  color: var(--accent);
   visibility: hidden;
 }
 
@@ -5875,25 +5860,25 @@ button.download-btn {
  *
  * DOS COLORES POR VEREDICTO, y no uno. `--board-tone` pinta la banda y el punto,
  * que son formas; `--board-ink` escribe la palabra. Se separan porque el ámbar
- * de la paleta de series (#a87c00) da 3,79:1 sobre el panel claro: correcto
- * para una marca de 7 px, por debajo del piso para una palabra. El ámbar de
- * texto se oscureció hasta 5,01:1 sin salirse del tono. Medido, no estimado:
+ * de estado (`--warning`, #a97416) da 3,7:1 sobre el marfil: correcto para una
+ * marca de 7 px, por debajo del piso para una palabra. El ocre de texto se
+ * oscureció hasta 5,2:1 sin salirse del tono. Medido, no estimado:
  * cualquier valor nuevo se vuelve a medir contra `--panel` en los dos modos.
  */
 
 :root {
-  --verdict-ink-vigilar: #8f6900; /* 5,01:1 sobre #ffffff */
+  --verdict-ink-vigilar: #8a5e0f; /* 5,2:1 sobre el marfil #f7f4ed */
 }
 
-/* En oscuro el ámbar de la paleta ya pasa: 5,69:1 sobre #151a21. */
+/* En oscuro el ocre de estado ya pasa: 8,8:1 sobre #0e1011. */
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme='light']) {
-    --verdict-ink-vigilar: var(--series-4);
+    --verdict-ink-vigilar: var(--warning);
   }
 }
 
 :root[data-theme='dark'] {
-  --verdict-ink-vigilar: var(--series-4);
+  --verdict-ink-vigilar: var(--warning);
 }
 
 .board {
@@ -5929,7 +5914,7 @@ button.download-btn {
   --board-ink: var(--down);
 }
 .board-vigilar {
-  --board-tone: var(--series-4);
+  --board-tone: var(--warning);
   --board-ink: var(--verdict-ink-vigilar);
 }
 .board-adverso {
@@ -6679,7 +6664,7 @@ button.download-btn {
   font-size: var(--text-xs);
   letter-spacing: 0;
   text-transform: none;
-  color: var(--official);
+  color: var(--accent);
 }
 
 /* Ranked lists ----------------------------------------------------------- */
@@ -6869,7 +6854,7 @@ button.download-btn {
 }
 
 .roads-map-stage:focus-visible {
-  outline: 2px solid var(--official);
+  outline: 2px solid var(--accent);
   outline-offset: 2px;
 }
 
@@ -7148,7 +7133,7 @@ button.download-btn {
 }
 
 .table-link:focus-visible {
-  outline: 2px solid var(--official);
+  outline: 2px solid var(--accent);
   outline-offset: 2px;
   border-radius: var(--radius-sm);
 }
@@ -7188,7 +7173,7 @@ button.download-btn {
 }
 
 .roads-table th .roads-sort:focus-visible {
-  outline: 2px solid var(--series-1);
+  outline: 2px solid var(--accent);
   outline-offset: 2px;
 }
 
@@ -7234,7 +7219,7 @@ button.download-btn {
 }
 
 .roads-row-on td {
-  background: color-mix(in srgb, var(--series-1) 10%, var(--panel));
+  background: color-mix(in srgb, var(--accent) 10%, var(--panel));
 }
 
 .roads-share {
@@ -7494,8 +7479,8 @@ button.download-btn {
 }
 
 .rep-podium-1 {
-  border-color: color-mix(in srgb, var(--official) 55%, var(--panel));
-  background: color-mix(in srgb, var(--official) 7%, var(--panel));
+  border-color: color-mix(in srgb, var(--accent) 55%, var(--panel));
+  background: color-mix(in srgb, var(--accent) 7%, var(--panel));
 }
 
 .rep-podium-rank {
@@ -7510,7 +7495,7 @@ button.download-btn {
 }
 
 .rep-podium-1 .rep-podium-rank {
-  color: var(--official);
+  color: var(--accent);
 }
 
 .rep-podium-name {
@@ -7571,8 +7556,8 @@ button.download-btn {
 }
 
 .rep-move-new {
-  color: var(--official);
-  border-color: color-mix(in srgb, var(--official) 45%, var(--panel));
+  color: var(--accent);
+  border-color: color-mix(in srgb, var(--accent) 45%, var(--panel));
 }
 
 .rep-list {
@@ -7774,7 +7759,7 @@ button.download-btn {
 }
 
 .rep-sector li:first-child .rep-sector-rank {
-  color: var(--official);
+  color: var(--accent);
   font-weight: 700;
 }
 
@@ -7934,7 +7919,7 @@ button.download-btn {
 .asistente-lanzador:focus-visible,
 .asistente-panel button:focus-visible,
 .asistente-form textarea:focus-visible {
-  outline: 2px solid var(--official);
+  outline: 2px solid var(--accent);
   outline-offset: 2px;
 }
 
@@ -8384,7 +8369,7 @@ button.download-btn {
 
 .social-table th .roads-sort:focus-visible,
 .social-company:focus-visible {
-  outline: 2px solid var(--series-1);
+  outline: 2px solid var(--accent);
   outline-offset: 2px;
 }
 
@@ -8499,7 +8484,7 @@ button.download-btn {
 
 .slicer input[type='text']:focus {
   outline: none;
-  border-color: var(--official);
+  border-color: var(--accent);
 }
 
 .accounts-table tbody th,
@@ -8572,7 +8557,7 @@ button.download-btn {
 }
 
 .theme-btn:focus-visible {
-  outline: 2px solid var(--official);
+  outline: 2px solid var(--accent);
   outline-offset: 2px;
 }
 
@@ -8668,7 +8653,7 @@ button.download-btn {
 }
 
 .menu-btn:focus-visible {
-  outline: 2px solid var(--official);
+  outline: 2px solid var(--accent);
   outline-offset: 2px;
 }
 
@@ -8711,7 +8696,7 @@ button.download-btn {
 .menu-item:focus-visible {
   outline: none;
   background: var(--panel-tint);
-  box-shadow: inset 0 0 0 2px var(--official);
+  box-shadow: inset 0 0 0 2px var(--accent);
 }
 
 .menu-item:disabled {
@@ -9150,7 +9135,7 @@ button.download-btn {
 }
 
 .panel-note > summary:focus-visible {
-  outline: 2px solid var(--official);
+  outline: 2px solid var(--accent);
   outline-offset: 2px;
   border-radius: var(--radius-sm);
 }
@@ -9596,45 +9581,161 @@ button.download-btn {
   margin-top: var(--s3);
 }
 
-/* === Una sola página: el índice fijo y las secciones una debajo de otra === */
+/* === Una sección a la vez: la franja de secciones y la columna de páginas === */
 
+/*
+ * Como en un diario: bajo la cabecera, una franja con las secciones en versalitas
+ * (fija al hacer scroll) y, de la sección abierta, sus páginas en una columna a
+ * la izquierda. En el teléfono las páginas pasan a una segunda franja que se
+ * desliza. Es un solo `<nav>` con `display: contents`: la rejilla de `.site`
+ * coloca cada lista en su sitio sin duplicar enlaces.
+ */
 .site {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.site-index {
+  display: contents;
+}
+
+.site-index ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.site-sections {
+  position: sticky;
+  top: 0;
+  z-index: 30;
+  display: flex;
+  overflow-x: auto;
+  scrollbar-width: none;
+  margin: 0 calc(var(--s3) * -1) var(--s4) !important;
+  padding: 0 var(--s3) !important;
+  background: var(--paper);
+  border-top: 1px solid var(--ink);
+  border-bottom: 1px solid var(--rule);
+}
+
+.site-sections::-webkit-scrollbar {
+  display: none;
+}
+
+.site-sections > li {
+  flex: none;
+}
+
+.site-link {
   display: block;
+  padding: 0.85rem 0.85rem 0.75rem;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+  color: var(--ink-soft);
+  font-family: var(--sans);
+  font-size: var(--kicker-size);
+  font-weight: 600;
+  letter-spacing: var(--kicker-track);
+  text-transform: uppercase;
+  text-decoration: none;
+  white-space: nowrap;
+  transition:
+    color var(--fast) var(--ease),
+    border-color var(--fast) var(--ease);
+}
+
+.site-link:hover {
+  color: var(--ink);
+}
+
+.site-link-on,
+.site-link[aria-current] {
+  color: var(--ink);
+  border-bottom-color: var(--gold);
+}
+
+.site-link:focus-visible,
+.site-page:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+}
+
+.site-pages-col {
+  min-width: 0;
+}
+
+.site-pages-head {
+  display: none;
+}
+
+/* Teléfono y tableta: las páginas, en una segunda franja que se desliza. */
+.site-pages-col {
+  margin: calc(var(--s4) * -1) calc(var(--s3) * -1) var(--s3);
+  padding: 0 var(--s3);
+  overflow-x: auto;
+  scrollbar-width: none;
+  border-bottom: 1px solid var(--rule);
+}
+
+.site-pages {
+  display: flex;
+  gap: 0.15rem;
+}
+
+.site-page {
+  display: block;
+  padding: 0.6rem 0.65rem 0.55rem;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+  color: var(--ink-soft);
+  font-family: var(--serif);
+  font-size: var(--text-sm);
+  text-decoration: none;
+  white-space: nowrap;
+  transition:
+    color var(--fast) var(--ease),
+    border-color var(--fast) var(--ease);
+}
+
+.site-page:hover {
+  color: var(--ink);
+}
+
+.site-page-on {
+  color: var(--ink);
+  font-weight: 600;
+  border-bottom-color: var(--gold);
 }
 
 .site-content {
   min-width: 0;
 }
 
-/* Cada sección y cada página lleva su ancla; el borde alto se salta la barra de móvil. */
+/* Cada sección y cada página lleva su ancla; el borde alto se salta la franja fija. */
 .site-block {
-  scroll-margin-top: var(--s5);
+  scroll-margin-top: 4.5rem;
 }
 
 .site-block-pagina {
-  margin-top: var(--s5);
+  margin-top: var(--s4);
 }
 
 .sub-sections > .site-block-pagina:first-child {
   margin-top: var(--s4);
 }
 
+/* El título de la página: segundo nivel de lectura dentro de la sección. */
 .sub-title {
-  display: flex;
-  align-items: center;
-  gap: var(--s1);
   margin: 0 0 var(--s3);
   padding-bottom: var(--s1);
-  border-bottom: 1px solid var(--rule-soft);
+  border-bottom: 1px solid var(--rule);
   font-family: var(--serif);
-  font-size: var(--text-lg);
+  font-size: var(--text-xl);
   font-weight: 600;
   letter-spacing: -0.015em;
+  line-height: 1.15;
   color: var(--ink);
-}
-
-.sub-title .ic {
-  color: var(--ink-soft);
 }
 
 .site-wait {
@@ -9652,165 +9753,86 @@ button.download-btn {
   color: var(--ink-soft);
 }
 
-/* El índice: fijo a la izquierda en pantallas anchas; en estrechas, un cajón. */
-.site-bar {
-  position: sticky;
-  top: 0;
-  z-index: var(--z-sticky-corner);
-  display: flex;
-  align-items: center;
-  gap: var(--s2);
-  min-height: var(--control-h-md);
-  margin: 0 calc(var(--s3) * -1) var(--s3);
-  padding: 0 var(--s3);
-  background: var(--paper);
-  border-bottom: 1px solid var(--rule);
-}
-
-.site-bar-btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.4rem;
-  appearance: none;
-  border: 1px solid var(--rule);
-  border-radius: var(--radius-pill);
-  background: var(--panel);
-  color: var(--ink);
-  font: inherit;
-  font-size: var(--text-sm);
-  padding: 0.3rem 0.8rem;
-  cursor: pointer;
-}
-
-.site-bar-btn:focus-visible,
-.site-link:focus-visible,
-.site-page:focus-visible {
-  outline: 2px solid var(--official);
-  outline-offset: 2px;
-}
-
-.site-bar-here {
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  color: var(--ink-soft);
-  font-size: var(--text-sm);
-}
-
-.site-index {
-  display: none;
-}
-
-.site-index ul {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-}
-
-.site-link,
-.site-page {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  border-radius: var(--radius-sm);
-  color: var(--ink-soft);
-  font-size: var(--text-sm);
-  text-decoration: none;
-  transition:
-    color var(--fast) var(--ease),
-    background var(--fast) var(--ease);
-}
-
-.site-link {
-  padding: 0.4rem 0.6rem;
-}
-
-.site-page {
-  padding: 0.25rem 0.6rem 0.25rem 2.1rem;
-  font-size: var(--text-xs);
-}
-
-.site-link:hover,
-.site-page:hover {
-  color: var(--ink);
-  background: var(--rule-soft);
-}
-
-.site-link-on {
-  color: var(--ink);
-  font-weight: 600;
-}
-
-.site-link[aria-current='location'],
-.site-page-on {
-  color: var(--official);
-  font-weight: 600;
-}
-
-.site-pages {
-  margin: 0.1rem 0 0.4rem !important;
-  border-left: 1px solid var(--rule);
-  margin-left: 1.05rem !important;
-}
-
-.site-pages .site-page {
-  padding-left: 0.8rem;
-}
-
-/* Cajón de móvil. */
-.site-index-open {
-  display: block;
-  position: fixed;
-  top: 0;
-  bottom: 0;
-  left: 0;
-  z-index: var(--z-overlay);
-  width: min(19rem, 86vw);
-  overflow-y: auto;
-  padding: var(--s3);
-  background: var(--panel);
-  border-right: 1px solid var(--rule);
-  box-shadow: var(--shadow-float);
-}
-
-.site-scrim {
-  position: fixed;
-  inset: 0;
-  z-index: calc(var(--z-overlay) - 1);
-  background: rgb(0 0 0 / 0.35);
-}
-
 @media (min-width: 1100px) {
+  .site-sections {
+    justify-content: center;
+  }
+
   .site {
-    display: grid;
     grid-template-columns: 13.5rem minmax(0, 1fr);
     column-gap: var(--s4);
     align-items: start;
   }
 
-  .site-bar,
-  .site-scrim {
-    display: none;
+  .site-sections {
+    grid-column: 1 / -1;
+    grid-row: 1;
   }
 
-  .site-index,
-  .site-index-open {
-    display: block;
+  .site-content {
+    grid-column: 2;
+    grid-row: 2;
+  }
+
+  .site[data-paginas='no'] .site-content {
+    grid-column: 1 / -1;
+  }
+
+  /* Escritorio: las páginas en una columna, como el índice de un suplemento. */
+  .site-pages-col {
+    grid-column: 1;
+    grid-row: 2;
     position: sticky;
-    top: var(--s3);
-    z-index: auto;
-    width: auto;
-    max-height: calc(100vh - var(--s5));
+    top: calc(2.75rem + var(--s3));
+    max-height: calc(100vh - 2.75rem - var(--s5));
     overflow-y: auto;
+    margin: 0;
     padding: 0;
-    background: transparent;
-    border: 0;
-    box-shadow: none;
+    border-bottom: 0;
   }
 
-  .site-block {
-    scroll-margin-top: var(--s3);
+  .site-pages-head {
+    display: block;
+    margin: 0 0 var(--s1);
+    padding-bottom: var(--s1);
+    border-bottom: 1px solid var(--ink);
+    color: var(--accent);
+    font-size: var(--kicker-size);
+    font-weight: 600;
+    letter-spacing: var(--kicker-track);
+    text-transform: uppercase;
+  }
+
+  .site-pages {
+    flex-direction: column;
+    gap: 0;
+  }
+
+  .site-pages > li + li .site-page {
+    border-top: 1px solid var(--rule-soft);
+  }
+
+  .site-page {
+    padding: 0.55rem 0 0.55rem 0.75rem;
+    margin: 0;
+    border-bottom: 0;
+    border-left: 2px solid transparent;
+    white-space: normal;
+    line-height: 1.3;
+  }
+
+  .site-page-on {
+    border-left-color: var(--gold);
+  }
+
+  .site-pages-dense .site-page {
+    padding-top: 0.4rem;
+    padding-bottom: 0.4rem;
+  }
+
+  .site-block-pagina,
+  .sub-sections > .site-block-pagina:first-child {
+    margin-top: 0;
   }
 }
 
@@ -9820,8 +9842,8 @@ button.download-btn {
   }
 
   .site-index,
-  .site-bar,
-  .site-scrim,
+  .site-sections,
+  .site-pages-col,
   .site-wait {
     display: none !important;
   }
@@ -9873,7 +9895,7 @@ button.download-btn {
 }
 
 .transport-price-range input:focus-visible {
-  outline: 2px solid var(--official);
+  outline: 2px solid var(--accent);
   outline-offset: 2px;
 }
 
@@ -9993,8 +10015,8 @@ button.download-btn {
 
 .rail-list-find input:focus-visible {
   outline: none;
-  border-color: var(--series-1);
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--series-1) 22%, transparent);
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 22%, transparent);
 }
 
 /* Un teléfono hace zoom sobre todo campo por debajo de 16 px. */
@@ -10044,7 +10066,7 @@ button.download-btn {
 
 .chart-frame .recharts-wrapper:focus-visible,
 .chart-frame .recharts-surface:focus-visible {
-  outline: 2px solid color-mix(in srgb, var(--series-1) 45%, var(--panel));
+  outline: 2px solid color-mix(in srgb, var(--accent) 45%, var(--panel));
   outline-offset: 2px;
   border-radius: var(--radius-md);
 }
@@ -10054,21 +10076,371 @@ button.download-btn {
   transition: opacity var(--fast) var(--ease);
 }
 
-/* Índice lateral con muchas páginas (Transporte, 10): filas más juntas y sin aire de más. */
-.site-pages-dense {
-  margin-bottom: 0.2rem !important;
-}
-
-.site-pages-dense .site-page {
-  padding-top: 0.12rem;
-  padding-bottom: 0.12rem;
-  line-height: 1.3;
-}
-
 /* === Gráficos: aviso del eje cortado en series con espigas === */
 
 .chart-clip-note {
   margin: var(--s1) 0 0;
   font-size: var(--text-xs);
   color: var(--ink-soft);
+}
+
+/* ==========================================================================
+ * Identidad institucional DatosBolivia.com (rediseño del 15-oct-2026)
+ *
+ * La cabecera de diario, el antetítulo, la jerarquía de los paneles y el pie
+ * institucional; y el acabado común de los controles —esquinas casi rectas,
+ * filete en vez de sombra—, para que todo el sitio hable el mismo idioma que el
+ * manual de identidad: tinta, oro y marfil.
+ * ========================================================================== */
+
+/* --- Cabecera ------------------------------------------------------------ */
+
+.masthead {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding-bottom: var(--s2);
+}
+
+.masthead-strip {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s2);
+  width: 100%;
+  min-height: var(--control-h-sm);
+  padding-bottom: var(--s1);
+  border-bottom: 1px solid var(--rule);
+}
+
+.masthead-date {
+  color: var(--ink-soft);
+  font-family: var(--serif);
+  font-size: var(--text-sm);
+  font-style: italic;
+}
+
+.masthead-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--s1);
+}
+
+.masthead-brand {
+  display: flex;
+  align-items: center;
+  gap: var(--s3);
+  margin: var(--s4) 0 var(--s2);
+  color: var(--masthead-ink);
+  text-decoration: none;
+}
+
+.masthead-mono {
+  flex: none;
+  width: 4.5rem;
+  height: auto;
+}
+
+.masthead-lockup {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+}
+
+.masthead-word {
+  margin: 0;
+  font-family: var(--serif);
+  font-size: clamp(2rem, 5.4vw, 3.6rem);
+  font-weight: 800;
+  letter-spacing: -0.035em;
+  line-height: 1;
+  color: var(--masthead-ink);
+}
+
+.masthead-dot {
+  color: var(--gold);
+}
+
+.masthead-sub {
+  display: flex;
+  align-items: center;
+  gap: var(--s2);
+  margin-top: 0.55rem;
+  color: var(--ink);
+  font-family: var(--serif);
+  font-size: clamp(0.66rem, 1.15vw, 0.85rem);
+  font-weight: 500;
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.masthead-sub-rule {
+  flex: 1;
+  height: 1px;
+  min-width: 1rem;
+  background: var(--gold);
+}
+
+.masthead-stamp {
+  margin: var(--s1) 0 0;
+  color: var(--ink-soft);
+  font-size: var(--text-xs);
+  letter-spacing: 0.02em;
+  text-align: center;
+}
+
+@media (max-width: 640px) {
+  .masthead-brand {
+    gap: var(--s2);
+    margin: var(--s3) 0 var(--s1);
+  }
+
+  .masthead-mono {
+    width: 3.1rem;
+  }
+
+  .masthead-sub {
+    gap: 0.5rem;
+    letter-spacing: 0.16em;
+  }
+
+  .masthead-date {
+    font-size: var(--text-xs);
+  }
+}
+
+@media (max-width: 380px) {
+  .masthead-mono {
+    display: none;
+  }
+}
+
+/* --- Cabecera de sección: antetítulo, título y bajada --------------------- */
+
+.tab-head {
+  padding: var(--s1) 0 var(--s3);
+  border-bottom: 1px solid var(--rule);
+}
+
+.tab-kicker {
+  margin: 0 0 0.6rem;
+  color: var(--accent);
+  font-family: var(--sans);
+  font-size: var(--kicker-size);
+  font-weight: 700;
+  letter-spacing: var(--kicker-track);
+  text-transform: uppercase;
+}
+
+.tab-title {
+  font-size: clamp(var(--text-xl), 3.6vw, var(--text-3xl));
+  font-weight: 700;
+  letter-spacing: -0.025em;
+  line-height: 1.05;
+}
+
+.tab-lede {
+  max-width: 68ch;
+  margin-top: 0.75rem;
+  color: var(--ink-soft);
+  font-family: var(--serif);
+  font-size: var(--text-md);
+  line-height: 1.5;
+}
+
+/* --- Paneles: título de figura, entradilla y pie ---------------------------- */
+
+.panel,
+.panel-x {
+  border-top: 1px solid var(--ink);
+}
+
+.panel-top h3 {
+  font-weight: 650;
+  letter-spacing: -0.015em;
+}
+
+.panel-lede {
+  font-family: var(--serif);
+  font-size: 1.05rem;
+  line-height: 1.5;
+}
+
+.panel-source {
+  padding-top: var(--s1);
+  border-top: 1px solid var(--rule-soft);
+  color: var(--ink-faint);
+  font-size: var(--text-xs);
+}
+
+/* Un panel dentro de otro no repite el filete de tinta: basta el fino. */
+.panel .panel-x,
+.panel-x .panel-x,
+.panel-group > .panel-x {
+  border-top-color: var(--rule);
+}
+
+/* --- Controles: el mismo acabado en todo el sitio ------------------------- */
+
+.chip,
+.menu-btn,
+.donate-btn,
+.theme-btn,
+.view-toggle button,
+.slicer select,
+.slicer input[type='search'],
+.slicer input[type='text'] {
+  border-radius: var(--radius-sm);
+}
+
+.chip,
+.menu-btn,
+.donate-btn,
+.theme-btn {
+  background: var(--field);
+}
+
+.chip:hover,
+.menu-btn:hover,
+.donate-btn:hover,
+.theme-btn:hover {
+  border-color: var(--gold);
+  color: var(--ink);
+}
+
+.chip.chip-on,
+.chip.chip-on:hover,
+.chip-on,
+.chip-active,
+.chip-active:hover {
+  background: var(--ink);
+  border-color: var(--ink);
+  color: var(--paper);
+}
+
+.menu-list,
+.tooltip {
+  border-radius: var(--radius-md);
+  background: var(--field);
+}
+
+.tooltip {
+  border-top: 2px solid var(--ink);
+}
+
+/* Enlaces del texto: subrayado en oro, el color del acento al pasar. */
+.panel-lede a,
+.tab-lede a,
+.panel-source a,
+.callout a {
+  color: inherit;
+  text-decoration-color: var(--gold);
+  text-decoration-thickness: 1px;
+}
+
+.panel-lede a:hover,
+.tab-lede a:hover,
+.panel-source a:hover,
+.callout a:hover {
+  color: var(--accent);
+}
+
+::selection {
+  background: color-mix(in srgb, var(--gold) 32%, var(--paper));
+  color: var(--ink);
+}
+
+/* --- Pie institucional ---------------------------------------------------- */
+
+.site-footer {
+  margin-top: var(--s6);
+  padding-top: var(--s3);
+  border-top: 1px solid var(--ink);
+  color: var(--ink-soft);
+  font-size: var(--text-sm);
+}
+
+.site-footer-brand {
+  display: flex;
+  align-items: center;
+  gap: var(--s2);
+  padding-bottom: var(--s3);
+  border-bottom: 1px solid var(--rule);
+}
+
+.site-footer-word {
+  font-family: var(--serif);
+  font-size: var(--text-lg);
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  color: var(--ink);
+}
+
+.site-footer-word span {
+  color: var(--gold);
+}
+
+.site-footer-sub {
+  color: var(--ink-soft);
+  font-family: var(--serif);
+  font-size: var(--kicker-size);
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+}
+
+.site-footer-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(15rem, 100%), 1fr));
+  gap: var(--s3) var(--s4);
+  padding: var(--s3) 0;
+}
+
+.site-footer h2 {
+  margin: 0 0 0.5rem;
+  color: var(--ink);
+  font-family: var(--sans);
+  font-size: var(--kicker-size);
+  font-weight: 700;
+  letter-spacing: var(--kicker-track);
+  text-transform: uppercase;
+}
+
+.site-footer p {
+  margin: 0;
+  max-width: 46ch;
+  line-height: 1.55;
+}
+
+.site-footer ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.site-footer li + li {
+  margin-top: 0.3rem;
+}
+
+.site-footer a {
+  color: var(--ink-soft);
+  text-decoration-color: var(--gold);
+}
+
+.site-footer a:hover {
+  color: var(--accent);
+}
+
+.site-footer-legal {
+  padding: var(--s2) 0 var(--s4);
+  border-top: 1px solid var(--rule);
+  color: var(--ink-faint);
+  font-size: var(--text-xs);
+}
+
+@media print {
+  .masthead-strip,
+  .site-footer {
+    display: none;
+  }
 }

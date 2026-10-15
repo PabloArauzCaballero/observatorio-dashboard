@@ -93,7 +93,7 @@ export function AdminShell({
             <span className="admin-brand-mark" aria-hidden="true">
               <Icon name="barras" size={16} />
             </span>
-            <span>Portal del Observatorio</span>
+            <span>Portal de DatosBolivia.com</span>
           </Link>
           <button
             type="button"

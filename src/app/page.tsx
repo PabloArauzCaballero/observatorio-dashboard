@@ -1,18 +1,17 @@
 import { Suspense } from 'react';
 import { Asistente } from '@/components/asistente';
 import type { GapChartPoint, RatePoint } from '@/components/charts';
-import { Donate } from '@/components/donate';
 import { FxEconometricsCard } from '@/components/fx-econometrics-card';
 import { FxSection } from '@/components/fx-section';
 import { MarketCards } from '@/components/market-cards';
-import { Icon } from '@/components/icons';
 import { SummaryExplorer } from '@/components/summary-explorer';
 import { BankQuoteCards } from '@/components/bank-quote-cards';
 import { DollarQuotesCard } from '@/components/dollar-quotes';
 import { BoardNews, TodayBoardPanel } from '@/components/today-board';
 import type { SummaryFigure } from '@/components/summary-explorer';
 import { SiteLayout } from '@/components/site-layout';
-import { ThemeToggle } from '@/components/theme-toggle';
+import { Masthead } from '@/components/masthead';
+import { SiteFooter } from '@/components/site-footer';
 import { TabHeader } from '@/components/ui/tab-header';
 import { THEME_BOOT } from '@/lib/theme';
 // Las pestañas que se leen al abrirse, en su propio trozo de JavaScript.
@@ -616,35 +615,23 @@ export default function Page() {
       {/* Fija el tema elegido antes del primer pintado; solo existe en el tablero público. */}
       <script dangerouslySetInnerHTML={{ __html: THEME_BOOT }} />
       {/* The pane holds a hundred controls; this is the way past them. */}
-      <a className="skip-link" href="#tablero">
-        Saltar los filtros e ir al tablero
+      <a className="skip-link" href="#contenido">
+        Ir al contenido principal
       </a>
-      <header className="topbar">
-        <div className="brand">
-          <span className="brand-mark">
-            <Icon name="barras" size={19} />
-          </span>
-          <div>
-            <h1>Observatorio Económico de Bolivia</h1>
-            <div className="dateline">Situación económica y de los mercados</div>
-          </div>
-        </div>
-        <div className="topbar-stamp">
-          <Icon name="reloj" size={14} />
-          <Suspense fallback={<span>Leyendo la fecha del último dato…</span>}>
+      <Masthead
+        stamp={
+          <Suspense fallback={<span>Cargando la fecha del último dato…</span>}>
             <Stamp />
           </Suspense>
-        </div>
-        <ThemeToggle />
-        <Donate />
-      </header>
+        }
+      />
 
       <SiteLayout>
         <section className="stack">
           <TabHeader
             id="hoy"
             title="Bolivia hoy"
-            lede="La cotización del dólar y cinco lecturas de la economía, cada una con su fecha, su fuente y la regla que decide su veredicto."
+            lede="Cotización del dólar y cinco indicadores clave de la economía boliviana, cada uno con su fecha, su fuente y el criterio con el que se evalúa."
           />
           <Suspense fallback={<Armando que="el resumen de hoy" />}>
             <TodaySection />
@@ -661,7 +648,7 @@ export default function Page() {
           <TabHeader
             id="tipo-de-cambio"
             title="Tipo de cambio"
-            lede="El dólar oficial del Banco Central y el paralelo de los mercados P2P, en bolivianos y descontada la inflación, y el boliviano frente a otras monedas. El paralelo es una lectura de mercados abiertos, no una cotización oficial."
+            lede="El dólar oficial del Banco Central de Bolivia y el paralelo de los mercados P2P, en bolivianos y descontada la inflación, y el boliviano frente a otras monedas. El paralelo es una medición de mercados abiertos, no una cotización oficial."
           />
           <Suspense fallback={<Armando que="el capítulo del tipo de cambio" />}>
             <FxSection />
@@ -697,6 +684,8 @@ export default function Page() {
           <SourcesSection />
         </section>
       </SiteLayout>
+
+      <SiteFooter />
 
       {/* El chat que contesta con los datos de estas pestañas; no lee nada hasta que se abre. */}
       <Asistente />

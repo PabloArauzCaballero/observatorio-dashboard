@@ -55,16 +55,16 @@ export function Donate() {
 
       <dialog className="donate-dialog" ref={dialog} aria-labelledby="donate-title">
         <div className="donate-body">
-          <h2 id="donate-title">Dona para mantener este sitio</h2>
+          <h2 id="donate-title">Donaciones para sostener DatosBolivia.com</h2>
           <p className="donate-lead">
-            El observatorio es gratuito y sin publicidad. Lo que cuesta es la base de datos, el
-            alojamiento y el trabajo de mantener las series al día. Escanea el código con tu app
-            del banco.
+            DatosBolivia.com es gratuito y no tiene publicidad. Sus costos son la base de datos, el
+            alojamiento y el trabajo de mantener las series al día. Para donar, basta escanear el
+            código con la aplicación del banco.
           </p>
 
           <figure className="donate-qr">
             {/* eslint-disable-next-line @next/next/no-img-element -- a QR is served as-is: any resizing pass risks the modules. */}
-            <img src={QR_SRC} alt="Código QR para donar al observatorio" width={220} height={220} />
+            <img src={QR_SRC} alt="Código QR para donar a DatosBolivia.com" width={220} height={220} />
             {IS_TEST ? (
               <figcaption className="donate-test">
                 Código de prueba: todavía no recibe pagos.
@@ -73,8 +73,8 @@ export function Donate() {
           </figure>
 
           <p className="donate-note">
-            Una donación no compra cobertura ni cambia una cifra. Las fuentes y el método siguen
-            siendo los de la pestaña «Método».
+            Una donación no compra cobertura ni modifica ninguna cifra. Las fuentes y el método son
+            los que se describen en la sección «Método».
           </p>
 
           <button type="button" className="donate-close" onClick={() => dialog.current?.close()}>

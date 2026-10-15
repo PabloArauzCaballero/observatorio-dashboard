@@ -80,10 +80,10 @@ export function LoginForm() {
         <span className="admin-brand-mark" aria-hidden="true">
           <Icon name="barras" size={16} />
         </span>
-        <span>Observatorio Económico</span>
+        <span>DatosBolivia.com</span>
       </div>
       <h1>Portal administrativo</h1>
-      <p>Solo para personas autorizadas del Observatorio.</p>
+      <p>Acceso exclusivo para personal autorizado de DatosBolivia.com.</p>
       {problem ? (
         <p className="admin-error" role="alert">
           {problem}

@@ -46,6 +46,21 @@ export interface PanelProps {
 }
 
 /**
+ * El pie de una figura como lo escribe un banco central: «Fuente: BCB.
+ * Elaboración: DatosBolivia.com · actualizado 3-oct-2026». Si la fuente ya
+ * declara el cálculo propio («INE; cálculo de DatosBolivia.com»), no se repite.
+ */
+export function pieDeFuente(source: string, updated?: string): string {
+  const fuente = source.trim().replace(/\.\s*$/, '');
+  const propio = /datosbolivia/i.test(fuente);
+  return (
+    `Fuente: ${fuente}.` +
+    (propio ? '' : ' Elaboración: DatosBolivia.com.') +
+    (updated ? ` Actualizado el ${updated}.` : '')
+  );
+}
+
+/**
  * La unidad de composición del tablero: un panel con su anatomía fija.
  *
  *   título (magnitud y unidad)                         [Descargar ▾]
@@ -127,10 +142,7 @@ export function Panel({
       <ProveedorDePanel almacen={almacen}>
         <div className="panel-body">{children}</div>
       </ProveedorDePanel>
-      <p className="panel-source">
-        Fuente: {source}
-        {updated ? <> · actualizado {updated}</> : null}
-      </p>
+      <p className="panel-source">{pieDeFuente(source, updated)}</p>
     </section>
   );
 }
