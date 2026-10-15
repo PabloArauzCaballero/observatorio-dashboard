@@ -116,6 +116,59 @@ function useRowLabelMax(): { max: number; onResize: (width: number) => void } {
 }
 
 /**
+ * Un rótulo partido en a lo sumo dos líneas de `max` letras, por palabras.
+ *
+ * Recortar a 19 letras dejaba «Gasolina Especial…» sobre tres filas distintas
+ * («Gasolina Especial», «…+ Internacional» y «…Internacional»): en un panel angosto
+ * el recorte borra justo lo que distingue una fila de otra. Partido por
+ * palabras, cada una se lee entera y lo que no cabe en dos líneas se corta con «…».
+ */
+function wrapLabel(text: string, max: number): string[] {
+  if (text.length <= max) return [text];
+  const lines: string[] = [];
+  let current = '';
+  for (const word of text.split(/\s+/u)) {
+    const joined = current ? `${current} ${word}` : word;
+    if (joined.length <= max || !current) current = joined;
+    else {
+      lines.push(current);
+      current = word;
+    }
+  }
+  if (current) lines.push(current);
+  if (lines.length <= 2) return lines.map((line) => clipLabel(line, max));
+  return [clipLabel(lines[0] ?? '', max), clipLabel(lines.slice(1).join(' '), max)];
+}
+
+/** El rótulo de una fila: una línea en panel ancho, hasta dos en panel angosto. */
+function RowTick({
+  x = 0,
+  y = 0,
+  payload,
+  max,
+}: {
+  x?: number;
+  y?: number;
+  payload?: { value?: unknown };
+  max: number;
+}) {
+  const lines = max < ROW_LABEL_MAX ? wrapLabel(String(payload?.value ?? ''), max) : [clipLabel(payload?.value)];
+  return (
+    <text x={x} y={y} textAnchor="end" fill={ROW_TICK.fill} fontSize={ROW_TICK.fontSize}>
+      {lines.map((line, index) => (
+        <tspan
+          key={line + index}
+          x={x}
+          dy={index === 0 ? (lines.length > 1 ? '-0.2em' : '0.35em') : '1.15em'}
+        >
+          {line}
+        </tspan>
+      ))}
+    </text>
+  );
+}
+
+/**
  * El tono de una barra de ránking según cuánto pesa frente a la primera.
  *
  * La primera lleva EXACTAMENTE el azul de la serie (`--series-1`), el mismo que
@@ -1880,7 +1933,7 @@ export function ShareBars({
             dataKey="name"
             width="auto"
             tickFormatter={(value: unknown) => clipLabel(value, labelMax.max)}
-            tick={ROW_TICK}
+            tick={(props: object) => <RowTick {...props} max={labelMax.max} />}
             {...AXIS}
           />
           <Tooltip content={renderTooltip} cursor={{ fill: 'var(--rule-soft)', opacity: 0.6 }} />
@@ -2283,7 +2336,7 @@ export function DivergingBars({
               dataKey="name"
               width="auto"
               tickFormatter={(value: unknown) => clipLabel(value, labelMax.max)}
-              tick={ROW_TICK}
+              tick={(props: object) => <RowTick {...props} max={labelMax.max} />}
               {...AXIS}
             />
             <Tooltip content={renderTooltip} cursor={{ fill: 'var(--rule-soft)', opacity: 0.6 }} />
