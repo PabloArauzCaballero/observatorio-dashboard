@@ -11207,3 +11207,11 @@ a {
   border-radius: 0;
   box-shadow: none;
 }
+
+/*
+ * Las cifras de cabecera caben de a cuatro: sin marco, una cuarta cifra sola en otra fila
+ * parece un bloque distinto y no la última del grupo.
+ */
+.figures > .figure {
+  flex: 1 1 11rem;
+}
