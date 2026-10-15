@@ -1068,7 +1068,7 @@ export function PlacesMap({ places }: { places: Place[] }) {
             <i className="places-map-swatch places-map-swatch-reg" /> Actividad regulada
           </span>
           <span className="places-map-zoom-read">
-            {zoom < 1.05 ? 'Toda la ciudad' : `×${zoom.toFixed(1)}`}
+            {zoom < 1.05 ? 'Toda la ciudad' : `×${zoom.toLocaleString('es-BO', { minimumFractionDigits: 1, maximumFractionDigits: 1 })}`}
           </span>
         </div>
 

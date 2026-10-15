@@ -444,11 +444,11 @@ export function CompanySocialExplorer({ board }: { board: CompanySocialBoard }) 
             {breakdown ? (
               <div className="social-sentiment-breakdown">
                 <div><strong>{count(breakdown.analyzed)}</strong><span>comentarios analizados</span></div>
-                <div><strong>{breakdown.positivePct.toFixed(1)} %</strong><span>positivos</span></div>
-                <div><strong>{breakdown.neutralPct.toFixed(1)} %</strong><span>neutros</span></div>
-                <div><strong>{breakdown.negativePct.toFixed(1)} %</strong><span>negativos</span></div>
+                <div><strong>{breakdown.positivePct.toLocaleString('es-BO', { minimumFractionDigits: 1, maximumFractionDigits: 1 })} %</strong><span>positivos</span></div>
+                <div><strong>{breakdown.neutralPct.toLocaleString('es-BO', { minimumFractionDigits: 1, maximumFractionDigits: 1 })} %</strong><span>neutros</span></div>
+                <div><strong>{breakdown.negativePct.toLocaleString('es-BO', { minimumFractionDigits: 1, maximumFractionDigits: 1 })} %</strong><span>negativos</span></div>
                 {breakdown.ironyPct !== null ? (
-                  <div><strong>{breakdown.ironyPct.toFixed(1)} %</strong><span>irónicos</span></div>
+                  <div><strong>{breakdown.ironyPct.toLocaleString('es-BO', { minimumFractionDigits: 1, maximumFractionDigits: 1 })} %</strong><span>irónicos</span></div>
                 ) : null}
               </div>
             ) : <div className="callout">No hay comentarios visibles para estos filtros.</div>}
