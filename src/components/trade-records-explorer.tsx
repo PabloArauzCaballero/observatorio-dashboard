@@ -180,6 +180,29 @@ export function TradeRecordsExplorer({ catalogue }: { catalogue: TradeCodes }) {
 
   const { views, loading, failed } = useTradeViews(url);
 
+  /**
+   * Para el mapa de crecimiento: un solo año por país, con los mismos filtros.
+   * Si el año está incompleto, los dos años se recortan a los meses publicados
+   * —enero-julio contra enero-julio—, porque comparar siete meses con doce
+   * pinta de rojo al mundo entero. Las importaciones por país no tienen mes:
+   * ahí sólo se recorta si el lector lo pidió (y la vista lo dirá).
+   */
+  const growthMonths =
+    (sameMonths || (flow === 'X' && to === last)) && lastMonth < 12 ? lastMonth : null;
+  const yearUrl = (year: number): string => {
+    const params = new URLSearchParams({
+      flow,
+      from: String(year),
+      to: String(year),
+      views: 'mapa:country:300',
+    });
+    if (growthMonths) params.set('months', `1-${growthMonths}`);
+    for (const [key, choice] of Object.entries(filters)) {
+      if (choice.size) params.set(key, list(choice).join(','));
+    }
+    return `/api/comercio-exterior/aduana?${params.toString()}`;
+  };
+
   const pickInto = (key: FilterKey, values: readonly string[], add: boolean, label?: string) => {
     setFilters((current) => {
       let next = current[key];
@@ -425,6 +448,11 @@ export function TradeRecordsExplorer({ catalogue }: { catalogue: TradeCodes }) {
             from={from}
             to={to}
             period={period}
+            growth={{
+              url: yearUrl,
+              first,
+              period: growthMonths ? `enero-${MONTHS[growthMonths - 1]}` : null,
+            }}
             country={filters.country}
             focus={focus}
             nameOf={countryName}

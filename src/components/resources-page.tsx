@@ -15,8 +15,7 @@ import { FilterHint, PickedCount } from './filters';
 import { Icon } from './icons';
 import type { IconName } from './icons';
 import { OnOpenNotice, useOnOpen } from './on-open';
-import { ResourcesGrowthMap } from './resources-growth-map';
-import type { GrowthRow } from './resources-growth-map';
+import { EXPORT_WORDS, GrowthWorldMap, growthRows } from './growth-world-map';
 import { ResourcesSection } from './resources-section';
 import { useTradeViews } from './trade-records-fetch';
 import { Headlines, SOURCE_ADUANA, say, useLabelRoom } from './trade-records-panels';
@@ -150,34 +149,6 @@ function outlines(
     rows: map.rows.map((row) => ({ ...row, value: row.value * 1000 })),
     unplaced: map.unplaced.map((row) => ({ ...row, value: row.value * 1000 })),
   };
-}
-
-/** El mismo país en dos años, para el mapa de crecimiento. */
-function growthRows(now: readonly MapTrade[], before: readonly MapTrade[]): GrowthRow[] {
-  const prior = new Map(before.map((row) => [row.iso3, row]));
-  const rows: GrowthRow[] = now.map((row) => ({
-    token: row.token,
-    members: [
-      ...new Set([...(row.members ?? [row.token]), ...(prior.get(row.iso3)?.members ?? [])]),
-    ],
-    iso3: row.iso3,
-    label: row.label,
-    now: row.value,
-    before: prior.get(row.iso3)?.value ?? 0,
-  }));
-  const seen = new Set(now.map((row) => row.iso3));
-  for (const row of before) {
-    if (seen.has(row.iso3)) continue;
-    rows.push({
-      token: row.token,
-      members: row.members ?? [row.token],
-      iso3: row.iso3,
-      label: row.label,
-      now: 0,
-      before: row.value,
-    });
-  }
-  return rows;
 }
 
 /** Una fila de ránking: el nivel, el año anterior y la variación. */
@@ -998,10 +969,11 @@ function CustomsResources({ catalogue }: { catalogue: TradeCodes }) {
                 <div className="callout">No hay exportaciones declaradas con estos filtros.</div>
               )
             ) : growthMap.length ? (
-              <ResourcesGrowthMap
+              <GrowthWorldMap
                 rows={growthMap}
                 unit={unit.short}
                 year={year}
+                words={EXPORT_WORDS}
                 label={`crecimiento de las exportaciones de recursos naturales por país, ${year} frente a ${year - 1}`}
                 picked={countries}
                 onPick={pickOutline}
