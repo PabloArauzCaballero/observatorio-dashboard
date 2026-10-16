@@ -15,11 +15,11 @@
  *   · sin nada de eso → título, entradilla y fuente, para que el informe no
  *     calle que ese panel existe.
  */
-import { MONO_B, MONO_B_X, MONO_D, MONO_VIEWBOX } from '@/components/brand/monogram';
 import { componerAfiche, hojaDeFuentes, puedeComponerImagen } from './afiche';
 import type { Celda } from './datos';
+import { PAPEL, cssPapel, papelHtml } from './membrete';
 import { cifrasDelPanel } from './registro';
-import { DESCRIPTOR, MARCA, pieDeFuente } from './pie';
+import { pieDeFuente } from './pie';
 import { leerTablas } from './tablas';
 
 export interface EntradaInforme {
@@ -60,7 +60,7 @@ function tablaHtml(
       : '';
   return (
     (etiqueta ? `<p class="etiqueta">${escapar(etiqueta)}</p>` : '') +
-    '<table><thead><tr>' +
+    '<table class="datos"><thead><tr>' +
     columnas.map((c) => `<th>${escapar(c)}</th>`).join('') +
     '</tr></thead><tbody>' +
     visibles
@@ -114,39 +114,59 @@ async function seccionDe(panel: HTMLElement, fecha: string): Promise<string> {
   );
 }
 
+/** Lo propio del informe; la hoja, la orla y el membrete vienen de `membrete.ts`. */
 const CSS_INFORME = `
-  @page { size: A4; margin: 15mm 14mm 18mm; }
   * { box-sizing: border-box; }
-  html, body { margin: 0; padding: 0; background: #fffefb; color: #17191a;
-    font-family: 'ObsSans', system-ui, sans-serif; font-size: 10pt; line-height: 1.5;
-    -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-  .cabecera { border-bottom: 1.5pt solid #17191a; padding-bottom: 8pt; margin-bottom: 14pt; }
-  .marca { display: flex; align-items: center; gap: 7pt; padding-bottom: 6pt;
-    border-bottom: 0.6pt solid #aa884d; margin-bottom: 8pt; }
-  .marca svg { width: 30pt; height: auto; }
-  .marca-nombre { font-family: 'ObsSerif', Georgia, serif; font-size: 13pt; font-weight: 800;
-    letter-spacing: -0.03em; color: #17191a; line-height: 1; }
-  .marca-nombre i { font-style: normal; color: #aa884d; }
-  .marca-desc { font-family: 'ObsSerif', Georgia, serif; font-size: 6.5pt; letter-spacing: 0.2em;
-    color: #4d4a44; text-transform: uppercase; margin-top: 2pt; }
-  h1 { font-family: 'ObsSerif', Georgia, serif; font-size: 24pt; line-height: 1.12; font-weight: 700;
-    letter-spacing: -0.015em; margin: 6pt 0 2pt; }
-  .fecha { font-size: 9pt; color: #4d4a44; }
+  body { color: ${PAPEL.tinta}; font-family: 'ObsSans', 'Libre Franklin', system-ui, sans-serif;
+    font-size: 9.5pt; line-height: 1.5; }
+  .volanta { font-size: 6.8pt; font-weight: 700; letter-spacing: 0.18em; text-transform: uppercase;
+    color: ${PAPEL.oroProfundo}; margin: 0 0 4pt; }
+  h1 { font-family: 'ObsSerif', Georgia, serif; font-size: 25pt; line-height: 1.1; font-weight: 700;
+    letter-spacing: -0.015em; margin: 0 0 4pt; }
+  .fecha { font-size: 8.5pt; color: ${PAPEL.suave}; margin: 0 0 16pt; }
   .figura { margin: 0 0 9mm; break-inside: avoid; }
   .figura svg { display: block; width: 100%; height: auto; }
   .seccion { margin: 0 0 8mm; break-inside: avoid-page; }
-  .seccion h3 { font-family: 'ObsSerif', Georgia, serif; font-size: 14pt; font-weight: 600;
+  .seccion h3 { font-family: 'ObsSerif', Georgia, serif; font-size: 13.5pt; font-weight: 700;
     margin: 0 0 2pt; letter-spacing: -0.01em; }
-  .entradilla { margin: 0 0 6pt; color: #4d4a44; font-family: 'ObsSerif', Georgia, serif; }
-  .etiqueta { margin: 8pt 0 3pt; font-weight: 600; font-size: 9pt; }
-  table { width: 100%; border-collapse: collapse; font-size: 8pt; margin: 0 0 4pt; }
-  th, td { text-align: left; padding: 2.5pt 5pt; border-bottom: 0.5pt solid #dcd5c8; vertical-align: top; }
-  th { border-bottom: 0.8pt solid #17191a; font-weight: 600; }
-  td.num { text-align: right; font-variant-numeric: tabular-nums; }
-  .recorte, .pie { margin: 3pt 0 0; font-size: 8pt; color: #4d4a44; }
-  .pie-doc { position: fixed; left: 0; right: 0; bottom: 0; display: flex; justify-content: space-between;
-    font-size: 7.5pt; color: #4d4a44; border-top: 0.5pt solid #aa884d; padding-top: 3pt; background: #fffefb; }
+  .entradilla { margin: 0 0 6pt; color: ${PAPEL.suave}; font-family: 'ObsSerif', Georgia, serif; }
+  .etiqueta { margin: 8pt 0 3pt; font-weight: 600; font-size: 8.5pt; }
+  table.datos { width: 100%; border-collapse: collapse; font-size: 7.8pt; margin: 0 0 4pt; }
+  table.datos th, table.datos td { text-align: left; padding: 2.5pt 5pt; border-bottom: 0.5pt solid ${PAPEL.filete};
+    vertical-align: top; }
+  table.datos th { border-bottom: 0.8pt solid ${PAPEL.tinta}; font-weight: 600; font-size: 7pt;
+    letter-spacing: 0.04em; color: ${PAPEL.suave}; }
+  table.datos tbody tr:nth-child(even) td { background: ${PAPEL.marfil}; }
+  table.datos td.num { text-align: right; font-variant-numeric: tabular-nums; }
+  .recorte, .pie { margin: 3pt 0 0; font-size: 7.5pt; color: ${PAPEL.suave}; }
 `;
+
+/**
+ * El documento a partir de las secciones ya compuestas. Separado de
+ * `componerInforme` para poder verlo sin un tablero delante.
+ */
+export function documentoInforme(
+  titulo: string,
+  fecha: string,
+  secciones: readonly string[],
+  fuentes: string,
+): string {
+  const [seccion, ...resto] = titulo.split(' · ');
+  return (
+    '<!doctype html><html lang="es-BO"><head><meta charset="utf-8">' +
+    `<title>${escapar(`datosbolivia-${titulo}`)}</title>` +
+    `<style>${fuentes}${cssPapel()}${CSS_INFORME}</style></head><body>` +
+    papelHtml(
+      { documento: 'Informe del tablero', fecha, referencia: 'datosbolivia.com' },
+      (resto.length ? `<p class="volanta">${escapar(seccion ?? '')}</p>` : '') +
+        `<h1>${escapar(resto.length ? resto.join(' · ') : titulo)}</h1>` +
+        `<p class="fecha">Cifras al ${escapar(fecha)}, con los filtros que estaban puestos en pantalla.</p>` +
+        secciones.join(''),
+      titulo,
+    ) +
+    '</body></html>'
+  );
+}
 
 /** Compone el documento completo del informe. */
 export async function componerInforme(entrada: EntradaInforme): Promise<string> {
@@ -165,19 +185,7 @@ export async function componerInforme(entrada: EntradaInforme): Promise<string> 
     }
   }
   entrada.progreso?.(total, total);
-  const fuentes = await hojaDeFuentes();
-  return (
-    '<!doctype html><html lang="es-BO"><head><meta charset="utf-8">' +
-    `<title>${escapar(`datosbolivia-${entrada.titulo}`)}</title>` +
-    `<style>${fuentes}${CSS_INFORME}</style></head><body>` +
-    '<header class="cabecera"><div class="marca">' +
-    `<svg viewBox="${MONO_VIEWBOX}" aria-hidden="true"><path d="${MONO_B}" transform="translate(${MONO_B_X} 0)" fill="#aa884d"/><path d="${MONO_D}" fill="#17191a" stroke="#fffefb" stroke-width="56" paint-order="stroke"/></svg>` +
-    `<div><div class="marca-nombre">DatosBolivia<i>.</i>com</div><div class="marca-desc">${escapar(DESCRIPTOR)}</div></div></div>` +
-    `<h1>${escapar(entrada.titulo)}</h1><div class="fecha">${escapar(entrada.fecha)} · datosbolivia.com</div></header>` +
-    secciones.join('') +
-    `<div class="pie-doc"><span>${escapar(MARCA)} · ${escapar(DESCRIPTOR)}</span><span>${escapar(entrada.fecha)}</span></div>` +
-    '</body></html>'
-  );
+  return documentoInforme(entrada.titulo, entrada.fecha, secciones, await hojaDeFuentes());
 }
 
 /**

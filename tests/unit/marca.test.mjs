@@ -48,6 +48,7 @@ const PALETA_IMPRESA = new Set([
   'src/lib/analysis-pdf.ts',
   'src/lib/pdf-sheet.ts',
   'src/lib/export/informe.ts',
+  'src/lib/export/membrete.ts',
   'src/lib/export/afiche.ts',
   'src/app/layout.tsx',
   'src/app/manifest.ts',

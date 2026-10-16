@@ -19,6 +19,9 @@
  * bloqueador de ventanas emergentes se coma la descarga sin avisar.
  */
 
+import { hojaDeFuentes } from './export/afiche';
+import { imprimirDocumento } from './export/informe';
+import { cssPapel, papelHtml } from './export/membrete';
 import type { MacroStats } from './macro-stats';
 
 /**
@@ -87,11 +90,18 @@ const PALETTE: Record<string, string> = {
   '--grid': '#e6dfd2',
   '--axis-ink': '#69655d',
 
-  '--serif': "ui-serif, Georgia, 'Times New Roman', serif",
-  '--sans':
-    "ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif",
-  '--mono': "ui-monospace, 'SF Mono', Menlo, Consolas, monospace",
+  /*
+   * Gelasio y Libre Franklin, incrustadas por `hojaDeFuentes()`. Las cifras van
+   * siempre en Franklin con cifras tabulares: en papel tampoco hay monoespaciada.
+   */
+  '--serif': "'ObsSerif', Georgia, 'Times New Roman', serif",
+  '--sans': "'ObsSans', 'Libre Franklin', system-ui, -apple-system, 'Segoe UI', Arial, sans-serif",
+  '--mono': "'ObsSans', 'Libre Franklin', system-ui, -apple-system, 'Segoe UI', Arial, sans-serif",
 };
+
+/** El oro del membrete: filetes y volantas, como en `export/membrete.ts`. */
+const GOLD = '#aa884d';
+const GOLD_DEEP = '#806337';
 
 /** `var(--x)` y `var(--x, respaldo)` sustituidos por su valor impreso. */
 function resolveTokens(markup: string): string {
@@ -220,145 +230,56 @@ export interface AnalysisReport {
 }
 
 const PRINT_CSS = `
-  @page { size: A4; margin: 16mm 14mm 20mm; }
-
   * { box-sizing: border-box; }
 
-  html, body {
-    margin: 0;
-    padding: 0;
-    background: ${PALETTE['--paper']};
+  /* La hoja, la orla, el membrete y el pie vienen de membrete.ts. */
+  body {
     color: ${PALETTE['--ink']};
     font-family: ${PALETTE['--sans']};
-    font-size: 10.5pt;
+    font-size: 10pt;
     line-height: 1.55;
-    -webkit-print-color-adjust: exact;
-    print-color-adjust: exact;
   }
-
-  /*
-   * La marca de agua y el pie van fijos, que es lo que hace que el navegador
-   * los repita en cada página impresa sin tener que saber cuántas hay.
-   */
-  .watermark {
-    position: fixed;
-    inset: 0;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    z-index: 0;
-    pointer-events: none;
-  }
-  .watermark span {
-    font-family: ${PALETTE['--serif']};
-    font-size: 58pt;
-    font-weight: 700;
-    letter-spacing: 0.06em;
-    line-height: 1.05;
-    text-align: center;
-    text-transform: uppercase;
-    color: ${PALETTE['--official']};
-    opacity: 0.045;
-    transform: rotate(-28deg);
-    white-space: pre-line;
-  }
-
-  .footer {
-    position: fixed;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    z-index: 2;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 1rem;
-    padding-top: 4pt;
-    border-top: 0.6pt solid ${PALETTE['--rule']};
-    background: ${PALETTE['--paper']};
-    font-size: 7.5pt;
-    letter-spacing: 0.05em;
-    text-transform: uppercase;
-    color: ${PALETTE['--ink-faint']};
-  }
-  .footer b {
-    font-family: ${PALETTE['--serif']};
-    font-size: 9pt;
-    letter-spacing: 0.1em;
-    color: ${PALETTE['--official']};
-    text-transform: none;
-  }
-
-  .sheet { position: relative; z-index: 1; padding-bottom: 10mm; }
-
-  /* Cabecera --------------------------------------------------------- */
-
-  .masthead {
-    display: flex;
-    align-items: flex-end;
-    justify-content: space-between;
-    gap: 1.2rem;
-    border-bottom: 2pt solid ${PALETTE['--ink']};
-    padding-bottom: 6pt;
-  }
-  .brand {
-    font-family: ${PALETTE['--serif']};
-    font-size: 13pt;
-    font-weight: 700;
-    letter-spacing: 0.12em;
-    text-transform: uppercase;
-    color: ${PALETTE['--official']};
-  }
-  .brand small {
-    display: block;
-    font-family: ${PALETTE['--sans']};
-    font-size: 7pt;
-    font-weight: 500;
-    letter-spacing: 0.16em;
-    color: ${PALETTE['--ink-faint']};
-  }
-  .issued { text-align: right; font-size: 8pt; color: ${PALETTE['--ink-faint']}; }
 
   h1 {
     font-family: ${PALETTE['--serif']};
-    font-size: 21pt;
-    line-height: 1.18;
-    font-weight: 600;
-    margin: 12pt 0 2pt;
-    letter-spacing: -0.01em;
+    font-size: 24pt;
+    line-height: 1.12;
+    font-weight: 700;
+    margin: 3pt 0 4pt;
+    letter-spacing: -0.015em;
   }
   .kicker {
-    font-size: 7.5pt;
-    letter-spacing: 0.16em;
+    font-size: 6.8pt;
+    letter-spacing: 0.18em;
     text-transform: uppercase;
-    color: ${PALETTE['--parallel']};
-    font-weight: 600;
-    margin-top: 12pt;
+    color: ${GOLD_DEEP};
+    font-weight: 700;
   }
   .subtitle {
     display: flex;
     flex-wrap: wrap;
-    gap: 0 10pt;
+    gap: 0 6pt;
     font-size: 8.5pt;
     color: ${PALETTE['--ink-faint']};
-    font-family: ${PALETTE['--mono']};
+    font-variant-numeric: tabular-nums;
   }
+  .subtitle span + span::before { content: '·'; margin-right: 6pt; }
   .lede {
-    margin: 10pt 0 0;
+    margin: 12pt 0 0;
     font-family: ${PALETTE['--serif']};
     font-size: 11.5pt;
     line-height: 1.55;
     color: ${PALETTE['--ink-soft']};
-    border-left: 2pt solid ${PALETTE['--rule']};
-    padding-left: 9pt;
+    border-left: 1.5pt solid ${GOLD};
+    padding-left: 10pt;
   }
 
   /* Estadísticos ------------------------------------------------------ */
 
   h2 {
     font-family: ${PALETTE['--serif']};
-    font-size: 12pt;
-    font-weight: 600;
+    font-size: 13pt;
+    font-weight: 700;
     margin: 16pt 0 6pt;
     padding-bottom: 3pt;
     border-bottom: 0.6pt solid ${PALETTE['--rule']};
@@ -378,10 +299,8 @@ const PRINT_CSS = `
     gap: 5pt;
   }
   .stat {
-    border: 0.6pt solid ${PALETTE['--rule']};
-    border-radius: 3pt;
-    padding: 5pt 6pt;
-    background: ${PALETTE['--panel-tint']};
+    border-top: 0.8pt solid ${PALETTE['--ink']};
+    padding: 4pt 2pt 5pt;
     break-inside: avoid;
   }
   .stat span {
@@ -393,8 +312,9 @@ const PRINT_CSS = `
   }
   .stat b {
     display: block;
-    font-family: ${PALETTE['--mono']};
-    font-size: 11.5pt;
+    font-family: ${PALETTE['--sans']};
+    font-variant-numeric: tabular-nums;
+    font-size: 12pt;
     font-weight: 600;
     letter-spacing: -0.01em;
     margin-top: 1pt;
@@ -434,10 +354,9 @@ const PRINT_CSS = `
     margin-bottom: 4pt;
   }
   figure .plot {
-    border: 0.6pt solid ${PALETTE['--rule']};
-    border-radius: 3pt;
-    padding: 6pt;
-    background: ${PALETTE['--panel']};
+    border-top: 0.6pt solid ${PALETTE['--rule']};
+    border-bottom: 0.6pt solid ${PALETTE['--rule']};
+    padding: 6pt 0;
   }
   figure .plot svg { display: block; width: 100%; height: auto; font-family: ${PALETTE['--sans']}; }
 
@@ -465,7 +384,8 @@ const PRINT_CSS = `
   .heat-scroll { overflow: visible; }
   .heat-grid { display: grid; gap: 1.5pt; font-size: 7pt; }
   .heat-head, .heat-row {
-    font-family: ${PALETTE['--mono']};
+    font-family: ${PALETTE['--sans']};
+    font-variant-numeric: tabular-nums;
     font-size: 6.5pt;
     color: ${PALETTE['--ink-faint']};
     text-align: center;
@@ -476,7 +396,8 @@ const PRINT_CSS = `
     border-radius: 2pt;
     padding: 3pt 1pt;
     text-align: center;
-    font-family: ${PALETTE['--mono']};
+    font-family: ${PALETTE['--sans']};
+    font-variant-numeric: tabular-nums;
     font-size: 6.5pt;
     color: ${PALETTE['--ink']};
     background: ${PALETTE['--rule-soft']};
@@ -502,14 +423,14 @@ const PRINT_CSS = `
 
   /* Tablas ------------------------------------------------------------ */
 
-  table {
+  table.datos {
     width: 100%;
     border-collapse: collapse;
     font-size: 8.5pt;
     margin-top: 4pt;
     break-inside: avoid;
   }
-  thead th {
+  table.datos thead th {
     text-align: left;
     font-size: 6.8pt;
     letter-spacing: 0.1em;
@@ -520,16 +441,17 @@ const PRINT_CSS = `
     border-bottom: 0.8pt solid ${PALETTE['--ink']};
     white-space: nowrap;
   }
-  tbody td {
+  table.datos tbody td {
     padding: 3pt 5pt;
     border-bottom: 0.4pt solid ${PALETTE['--rule']};
     color: ${PALETTE['--ink-soft']};
     vertical-align: top;
   }
-  tbody tr:nth-child(even) td { background: ${PALETTE['--panel-tint']}; }
-  .num {
+  table.datos tbody tr:nth-child(even) td { background: ${PALETTE['--panel-tint']}; }
+  table.datos th.num,
+  table.datos td.num {
     text-align: right;
-    font-family: ${PALETTE['--mono']};
+    font-family: ${PALETTE['--sans']};
     font-variant-numeric: tabular-nums;
     white-space: nowrap;
     color: ${PALETTE['--ink']};
@@ -549,8 +471,9 @@ const PRINT_CSS = `
   }
   .colophon b { color: ${PALETTE['--ink-soft']}; }
   code {
-    font-family: ${PALETTE['--mono']};
+    font-family: ${PALETTE['--sans']};
     font-size: 7.5pt;
+    letter-spacing: 0.02em;
     color: ${PALETTE['--ink']};
   }
 `;
@@ -583,14 +506,18 @@ function renderTable(table: PdfTable): string {
     .join('');
   return `
     <h3>${escapeHtml(table.caption)}</h3>
-    <table><thead><tr>${head}</tr></thead><tbody>${body}</tbody></table>
+    <table class="datos"><thead><tr>${head}</tr></thead><tbody>${body}</tbody></table>
     ${table.note ? `<p class="chart-note">${escapeHtml(table.note)}</p>` : ''}
   `;
 }
 
-function buildDocument(report: AnalysisReport): string {
-  const issued = new Date().toLocaleDateString('es-BO', {
-    day: '2-digit',
+/**
+ * El documento entero sobre el papel de la casa. `fuentes` son las
+ * declaraciones `@font-face` con Gelasio y Libre Franklin incrustadas.
+ */
+export function documentoAnalisis(report: AnalysisReport, fuentes: string, emitido?: Date): string {
+  const issued = (emitido ?? new Date()).toLocaleDateString('es-BO', {
+    day: 'numeric',
     month: 'long',
     year: 'numeric',
   });
@@ -636,25 +563,7 @@ function buildDocument(report: AnalysisReport): string {
       </div>`
     : '';
 
-  return `<!doctype html>
-<html lang="es">
-<head>
-<meta charset="utf-8">
-<title>${escapeHtml(`${report.title} — DatosBolivia.com`)}</title>
-<style>${PRINT_CSS}</style>
-</head>
-<body>
-  <div class="watermark"><span>Datos\nBolivia</span></div>
-
-  <div class="sheet">
-    <div class="masthead">
-      <div class="brand">DatosBolivia.com<small>Análisis de series macroeconómicas</small></div>
-      <div class="issued">
-        Emitido el ${escapeHtml(issued)}<br>
-        <code>${escapeHtml(report.code)}</code>
-      </div>
-    </div>
-
+  const cuerpo = `
     <div class="kicker">${escapeHtml(report.sector)} · análisis de distribución</div>
     <h1>${escapeHtml(report.title)}</h1>
     <div class="subtitle">
@@ -689,63 +598,36 @@ function buildDocument(report: AnalysisReport): string {
       concepto estándar. No es la del publicador.<br>
       <b>Reproducibilidad:</b> el CSV y el JSON de esta misma selección se descargan desde el
       tablero, en el panel de macroeconomía.
-    </div>
-  </div>
+    </div>`;
 
-  <div class="footer">
-    <span>DatosBolivia.com · ${escapeHtml(report.code)}</span>
-    <b>DatosBolivia.com</b>
-    <span>${escapeHtml(issued)}</span>
-  </div>
-</body>
+  return `<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>${escapeHtml(`${report.title} — DatosBolivia.com`)}</title>
+<style>${fuentes}${cssPapel()}${PRINT_CSS}</style>
+</head>
+<body>${papelHtml(
+    { documento: 'Análisis de serie', fecha: issued, referencia: `Serie ${report.code}` },
+    cuerpo,
+    `${report.sector} · ${report.code}`,
+  )}</body>
 </html>`;
 }
 
 /**
  * Compone el informe y abre el diálogo de impresión sobre él.
  *
- * El `iframe` se queda en el documento mientras dura el diálogo —quitarlo antes
- * cancela la impresión en Chrome— y se retira cuando la ventana devuelve el
- * foco, que es lo más parecido a «el lector ya terminó» que expone la API.
+ * Primero se incrustan las fuentes —sin ellas el papel sale en Georgia— y
+ * después el documento va al `iframe` oculto de `imprimirDocumento`, que lo
+ * retira cuando el lector vuelve del diálogo.
  */
 export function printAnalysis(report: AnalysisReport): void {
   if (typeof document === 'undefined') return;
-
-  const frame = document.createElement('iframe');
-  frame.setAttribute('aria-hidden', 'true');
-  frame.setAttribute('title', 'Informe para imprimir');
-  frame.style.cssText = 'position:fixed;right:0;bottom:0;width:0;height:0;border:0;opacity:0';
-  document.body.appendChild(frame);
-
-  const remove = (): void => {
-    if (frame.parentNode) frame.parentNode.removeChild(frame);
-    window.removeEventListener('focus', onFocus);
-  };
-  const onFocus = (): void => {
-    window.setTimeout(remove, 800);
-  };
-
-  frame.onload = () => {
-    const view = frame.contentWindow;
-    if (!view) {
-      remove();
-      return;
-    }
-    // El título del documento es lo que el diálogo propone como nombre de
-    // archivo, así que el PDF sale llamándose como el indicador y no
-    // «about:blank».
-    view.document.title = `datosbolivia-${slug(report.title)}-${report.code}`;
-    window.addEventListener('focus', onFocus);
-    view.focus();
-    view.print();
-  };
-
-  const document_ = frame.contentDocument;
-  if (!document_) {
-    remove();
-    return;
-  }
-  document_.open();
-  document_.write(buildDocument(report));
-  document_.close();
+  // El título del documento es lo que el diálogo propone como nombre de
+  // archivo, así que el PDF sale llamándose como el indicador.
+  const nombre = `datosbolivia-${slug(report.title)}-${report.code}`;
+  void hojaDeFuentes()
+    .catch(() => '')
+    .then((fuentes) => imprimirDocumento(documentoAnalisis(report, fuentes), nombre));
 }

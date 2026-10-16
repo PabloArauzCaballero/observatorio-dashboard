@@ -33,6 +33,7 @@ import type { TestFamily } from './fx-econometrics-table';
 import type { FxConclusion } from './fx-snapshot';
 import { INK, Sheet } from './pdf-sheet';
 import type { TableColumn, TextStyle } from './pdf-sheet';
+import { HOJA, PAPEL, fondoPdf, membretePdf, orlaPdf, prepararPapelPdf } from './export/membrete';
 
 /* ---------------------------------------------------------------- entrada */
 
@@ -80,18 +81,20 @@ const longDate = (value: string): string =>
     timeZone: 'UTC',
   }).format(new Date(`${value}T12:00:00Z`));
 
+/*
+ * La voz del tablero con las fuentes que todo lector de PDF trae: Times hace de
+ * Gelasio en títulos y entradillas, Helvetica de Libre Franklin en todo lo
+ * demás. Ninguna cifra va en serifa ni en monoespaciada.
+ */
 const STYLE = {
-  brand: { font: 'serif-bold', size: 13, color: INK.official, tracking: 1.4 },
-  brandSmall: { font: 'sans', size: 6.5, color: INK.faint, tracking: 1 },
-  issued: { font: 'sans', size: 7.5, color: INK.faint, align: 'right' },
-  kicker: { font: 'sans-bold', size: 7, color: INK.parallel, tracking: 1.1 },
-  title: { font: 'serif-bold', size: 20, color: INK.ink, leading: 24 },
-  subtitle: { font: 'mono', size: 7.5, color: INK.faint },
-  lede: { font: 'serif', size: 10.5, color: INK.soft, leading: 15 },
-  h2: { font: 'serif-bold', size: 12, color: INK.ink, leading: 15 },
+  kicker: { font: 'sans-bold', size: 7, color: PAPEL.oroProfundo, tracking: 1.1 },
+  title: { font: 'serif-bold', size: 22, color: INK.ink, leading: 26 },
+  subtitle: { font: 'sans', size: 8, color: INK.faint, leading: 11.5 },
+  lede: { font: 'serif', size: 11, color: INK.soft, leading: 15.5 },
+  h2: { font: 'serif-bold', size: 13, color: INK.ink, leading: 16 },
   h3: { font: 'sans-bold', size: 7, color: INK.faint, tracking: 0.9, leading: 11 },
   claim: { font: 'serif-bold', size: 10.5, color: INK.ink, leading: 13.5 },
-  figure: { font: 'mono', size: 8.5, color: INK.official, leading: 11 },
+  figure: { font: 'sans-bold', size: 8, color: PAPEL.oroProfundo, leading: 11 },
   body: { font: 'sans', size: 8.5, color: INK.soft, leading: 12.3 },
   note: { font: 'sans', size: 7.5, color: INK.faint, leading: 10.5 },
 } satisfies Record<string, TextStyle>;
@@ -228,59 +231,39 @@ export function econometricsReport(
   }).format(options.issuedAt ?? new Date());
   const asOf = result.asOf ? longDate(result.asOf) : 'sin fecha';
 
+  // La caja de texto, dentro de la orla del papel (ver `export/membrete.ts`).
+  const mm = 72 / 25.4;
   const sheet = new Sheet({
     title: 'Análisis econométrico del tipo de cambio — DatosBolivia.com',
     author,
     subject: `Pruebas formales sobre el dólar en Bolivia, último dato del ${asOf}`,
+    margin: {
+      top: (HOJA.orla + HOJA.franja + HOJA.arriba) * mm,
+      right: (HOJA.orla + HOJA.franja + HOJA.lado) * mm,
+      bottom: (HOJA.orla + HOJA.franja + HOJA.abajo) * mm,
+      left: (HOJA.orla + HOJA.franja + HOJA.lado) * mm,
+    },
   });
 
   /*
-   * La marca de agua y el pie, en cada página. Se dibujan al cerrar el
-   * documento porque solo entonces se sabe cuántas páginas hay.
+   * El papel en cada página: fondo y marca de agua debajo del texto; orla,
+   * microtexto, pie y folio encima. Se dibujan al cerrar el documento porque
+   * solo entonces se sabe cuántas páginas hay.
    */
-  sheet.decorate((page, index, count) => {
-    const centre = { x: page.width / 2 - 195, y: page.height / 2 - 120 };
-    page.text(
-      'DATOS',
-      centre.x,
-      centre.y + 60,
-      { font: 'serif-bold', size: 58, color: INK.official, tracking: 3 },
-      { rotate: 28, opacity: true },
-    );
-    page.text(
-      'BOLIVIA',
-      centre.x + 30,
-      centre.y - 6,
-      { font: 'serif-bold', size: 58, color: INK.official, tracking: 3 },
-      { rotate: 28, opacity: true },
-    );
-
-    const base = page.margin.bottom - 22;
-    page.line(page.left, base + 11, page.right, base + 11, INK.rule, 0.6);
-    const foot: TextStyle = { font: 'sans', size: 6.5, color: INK.faint, tracking: 0.5 };
-    page.text('DATOSBOLIVIA.COM · TIPO DE CAMBIO', page.left, base, foot);
-    page.text('DatosBolivia.com', page.width / 2, base, {
-      font: 'serif-bold',
-      size: 8.5,
-      color: INK.official,
-      tracking: 0.8,
-      align: 'center',
-    });
-    page.text(`${issued.toUpperCase()} · ${index} / ${count}`, page.right, base, {
-      ...foot,
-      align: 'right',
-    });
-  });
+  const membrete = {
+    documento: 'Pruebas econométricas',
+    fecha: issued,
+    referencia: `Último dato: ${asOf}`,
+  };
+  prepararPapelPdf(sheet);
+  sheet.underlay((page) => fondoPdf(page));
+  sheet.decorate((page, index, count) =>
+    orlaPdf(page, membrete, index, count, 'Tipo de cambio · pruebas formales'),
+  );
 
   /* Cabecera ----------------------------------------------------------- */
 
-  const top = sheet.y;
-  sheet.text('DATOSBOLIVIA.COM', sheet.left, top - 13, STYLE.brand);
-  sheet.text('PRUEBAS ECONOMÉTRICAS DEL TIPO DE CAMBIO', sheet.left, top - 23, STYLE.brandSmall);
-  sheet.text(`Emitido el ${issued}`, sheet.right, top - 12, STYLE.issued);
-  sheet.text(`Último dato: ${asOf}`, sheet.right, top - 22, STYLE.issued);
-  sheet.space(28);
-  sheet.rule(INK.ink, 2, 0, 14);
+  membretePdf(sheet, membrete);
 
   sheet.paragraph('TIPO DE CAMBIO · PRUEBAS FORMALES', STYLE.kicker, { after: 2 });
   sheet.paragraph('Análisis econométrico del tipo de cambio', STYLE.title, { after: 2 });
@@ -290,7 +273,7 @@ export function econometricsReport(
     result.moving ? `${number(result.moving.n, 0)} con el oficial en movimiento` : null,
     'Bs por USD',
   ].filter((entry): entry is string => entry !== null);
-  sheet.paragraph(facts.join('   ·   '), STYLE.subtitle, { after: 8 });
+  sheet.paragraph(facts.join('  ·  '), STYLE.subtitle, { after: 9 });
 
   // La entradilla con su barra a la izquierda, como en el informe macro.
   const ledeTop = sheet.y;
@@ -302,7 +285,7 @@ export function econometricsReport(
     STYLE.lede,
     { x: sheet.left + 10 },
   );
-  sheet.line(sheet.left + 1, ledeTop, sheet.left + 1, sheet.y - 2, INK.rule, 2);
+  sheet.line(sheet.left + 1, ledeTop, sheet.left + 1, sheet.y - 2, PAPEL.oro, 1.5);
 
   const heading = (text: string): void => {
     sheet.ensure(60);

@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from 'next';
 import localFont from 'next/font/local';
 import { RailListSearch } from '@/components/rail-list-search';
+import { RailSticky } from '@/components/rail-sticky';
 import { VisitReporter } from '@/components/visit-reporter';
 import './globals.css';
 import './automotive.css';
@@ -85,6 +86,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <VisitReporter />
         {/* Un buscador para toda lista larga del carril de filtros; no pinta marcado propio. */}
         <RailListSearch />
+        {/* El carril de filtros se pega sin barra propia: publica su altura y la de la franja. */}
+        <RailSticky />
       </body>
     </html>
   );

@@ -102,9 +102,14 @@ export function WorldTradeMap({
   /** Cómo se escribe la cifra de un país en el emergente. */
   exact?: (value: number) => string;
 }) {
-  const [hover, setHover] = useState<{ name: string; said: string; x: number; y: number } | null>(
-    null,
-  );
+  const [hover, setHover] = useState<{
+    name: string;
+    said: string;
+    x: number;
+    y: number;
+    /** En la mitad derecha el emergente se abre hacia la izquierda: si no, se corta. */
+    flip: boolean;
+  } | null>(null);
   const byIso = new Map(rows.filter((row) => row.value > 0).map((row) => [row.iso3, row]));
   const values = [...byIso.values()].map((row) => row.value);
   const low = values.length ? Math.min(...values) : 0;
@@ -163,6 +168,7 @@ export function WorldTradeMap({
         said,
         x: event.clientX - box.left,
         y: event.clientY - box.top,
+        flip: event.clientX - box.left > box.width / 2,
       });
     };
     return {
@@ -223,28 +229,34 @@ export function WorldTradeMap({
               </g>
             );
           })}
-          {WORLD_POINTS.filter((point) => byIso.has(point.iso3) && insideBox(point)).map((point) => {
-            const row = byIso.get(point.iso3);
-            return (
-              <g
-                key={point.iso3}
-                className={classOf(row, point.iso3)}
-                {...handlers(row, point.name)}
-              >
-                <circle
-                  cx={Math.min(Math.max(point.x, DOT_RADIUS), WORLD_BOX.width - DOT_RADIUS)}
-                  cy={point.y}
-                  r={DOT_RADIUS}
-                  style={{ fill: row ? fillOf(row.value) : NONE }}
-                />
-              </g>
-            );
-          })}
+          {WORLD_POINTS.filter((point) => byIso.has(point.iso3) && insideBox(point)).map(
+            (point) => {
+              const row = byIso.get(point.iso3);
+              return (
+                <g
+                  key={point.iso3}
+                  className={classOf(row, point.iso3)}
+                  {...handlers(row, point.name)}
+                >
+                  <circle
+                    cx={Math.min(Math.max(point.x, DOT_RADIUS), WORLD_BOX.width - DOT_RADIUS)}
+                    cy={point.y}
+                    r={DOT_RADIUS}
+                    style={{ fill: row ? fillOf(row.value) : NONE }}
+                  />
+                </g>
+              );
+            },
+          )}
         </svg>
         {hover ? (
           <div
             className="tooltip world-map-tip"
-            style={{ left: hover.x, top: hover.y }}
+            style={{
+              left: hover.x,
+              top: hover.y,
+              ...(hover.flip ? { transform: 'translate(calc(-100% - 12px), -110%)' } : {}),
+            }}
             aria-hidden="true"
           >
             <div className="t-date">{hover.name}</div>

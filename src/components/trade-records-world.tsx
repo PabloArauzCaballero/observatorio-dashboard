@@ -1,7 +1,9 @@
 'use client';
 
 import { useMemo, useState } from 'react';
+import { EXPORT_WORDS, GrowthWorldMap, IMPORT_WORDS, growthRows } from './growth-world-map';
 import { TradeCountryCard } from './trade-country-card';
+import { useTradeViews } from './trade-records-fetch';
 import { SOURCE_ADUANA, say } from './trade-records-panels';
 import { WorldTradeMap } from './world-trade-map';
 import { Panel } from '@/components/ui/panel';
@@ -22,6 +24,10 @@ import type { TradeView } from '@/lib/trade-records';
  *   a quién se le vende litio.
  * - **Valor o peso.** Cada declaración trae el peso, y un país que compra poco
  *   valor y mucha carga —minerales a granel— se ve distinto en toneladas.
+ * - **Nivel o crecimiento.** El mismo mundo, pintado por cuánto se comerció
+ *   en el periodo o por cuánto cambió el último año frente al anterior. Sólo
+ *   se compara el año final del rango con el previo: «2016-2025 frente a
+ *   2006-2015» no lo pide nadie, y un «2025 frente a 2016» esconde el camino.
  * - **Lo que no se puede dibujar se dice.** Importaciones por país no traen
  *   departamento ni mes: con esos filtros la vista no tiene respuesta y se da
  *   el motivo en vez de un mapa vacío. La «Zona Franca de Bolivia» y los «No
@@ -29,6 +35,7 @@ import type { TradeView } from '@/lib/trade-records';
  */
 
 type Measure = 'usd' | 'kg';
+type Mode = 'level' | 'growth';
 
 /** Más decimales donde la cifra es chica: un país de 0,004 MM USD no es «0». */
 const smart = (value: number): string => say(value, value >= 100 ? 0 : value >= 1 ? 1 : 3);
@@ -45,6 +52,7 @@ export function TradeWorld({
   from,
   to,
   period,
+  growth,
   country,
   focus,
   nameOf,
@@ -58,6 +66,14 @@ export function TradeWorld({
   to: number;
   /** «enero-julio» cuando el lector comparó el mismo periodo de cada año. */
   period: string | null;
+  /** Para el modo crecimiento: la dirección de un año con los mismos filtros. */
+  growth: {
+    url: (year: number) => string;
+    /** El primer año con datos: antes no hay con qué comparar. */
+    first: number;
+    /** «enero-julio» cuando los dos años se recortan a los meses publicados. */
+    period: string | null;
+  };
   country: Choice;
   /** El país cuya ficha se abre debajo, o `null` si no hay ninguno elegido. */
   focus: string | null;
@@ -65,7 +81,24 @@ export function TradeWorld({
   onPick: (members: string[], additive: boolean, label: string) => void;
 }) {
   const [measure, setMeasure] = useState<Measure>('usd');
+  const [mode, setMode] = useState<Mode>('level');
   const map = useMemo(() => countryMap(view?.items ?? [], measure), [view, measure]);
+
+  const comparable = to - 1 >= growth.first;
+  const showGrowth = mode === 'growth' && comparable;
+  const now = useTradeViews(showGrowth ? growth.url(to) : null);
+  const before = useTradeViews(showGrowth ? growth.url(to - 1) : null);
+  const nowView = now.views?.mapa;
+  const beforeView = before.views?.mapa;
+  const growthMap = useMemo(
+    () =>
+      growthRows(
+        countryMap(nowView?.items ?? [], measure).rows,
+        countryMap(beforeView?.items ?? [], measure).rows,
+      ),
+    [nowView, beforeView, measure],
+  );
+  const growthUnavailable = nowView?.unavailable ?? beforeView?.unavailable;
 
   const subject =
     flow === 'X' ? 'exportaciones por país de destino' : 'importaciones por país de origen';
@@ -73,21 +106,38 @@ export function TradeWorld({
   const unit = measure === 'usd' ? 'MM USD' : 'mil t';
   const what = measure === 'usd' ? `valor ${value}` : flow === 'X' ? 'peso neto' : 'peso bruto';
   const years = `${from}-${to}${period ? `, ${period}` : ''}`;
+  const compared = `${to} frente a ${to - 1}${growth.period ? `, ${growth.period}` : ''}`;
   const unplaced = map.unplaced.reduce((sum, row) => sum + row.value, 0);
 
   const pick = (token: string, additive: boolean) => {
-    const row = map.rows.find((entry) => entry.token === token);
-    onPick(row?.members ?? [token], additive, row?.label ?? nameOf(token));
+    const row =
+      map.rows.find((entry) => entry.token === token) ??
+      growthMap.find((entry) => entry.token === token);
+    onPick(row ? [...row.members] : [token], additive, row?.label ?? nameOf(token));
   };
 
   return (
     <>
       <Panel
         id="aduana-mapa"
-        title={`Mapa de ${subject} (${
-          measure === 'usd' ? 'millones de USD' : 'miles de toneladas'
-        }, ${years})`}
-        lede={`Cuanto más intenso el tono, mayor el ${what} acumulado en el periodo con cada país.`}
+        title={
+          showGrowth
+            ? `Crecimiento de las ${subject} (variación % del ${
+                measure === 'usd' ? 'valor' : 'peso'
+              }, ${compared})`
+            : `Mapa de ${subject} (${
+                measure === 'usd' ? 'millones de USD' : 'miles de toneladas'
+              }, ${years})`
+        }
+        lede={
+          showGrowth
+            ? `Cada país según ${
+                flow === 'X' ? 'compró' : 'le vendió a Bolivia'
+              } más o menos en ${to} que en ${to - 1}, en ${what}${
+                growth.period ? ` de ${growth.period} (los meses publicados de ${to})` : ''
+              }. Rayados, los que aparecen o desaparecen. La cifra exacta, al pasar sobre el país.`
+            : `Cuanto más intenso el tono, mayor el ${what} acumulado en el periodo con cada país.`
+        }
         source={SOURCE_ADUANA}
       >
         <div className="fx-filters">
@@ -109,6 +159,26 @@ export function TradeWorld({
               </button>
             ))}
           </div>
+          {comparable ? (
+            <div className="chart-kind" role="group" aria-label="Qué pinta el mapa">
+              {(
+                [
+                  ['level', 'Nivel'],
+                  ['growth', `Crecimiento ${to} frente a ${to - 1}`],
+                ] as const
+              ).map(([key, label]) => (
+                <button
+                  key={key}
+                  type="button"
+                  className={mode === key ? 'chip chip-on' : 'chip'}
+                  aria-pressed={mode === key}
+                  onClick={() => setMode(key)}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+          ) : null}
           <div className="chart-kind" role="group" aria-label="Medida del mapa">
             {MEASURES.map((option) => (
               <button
@@ -124,7 +194,34 @@ export function TradeWorld({
           </div>
         </div>
 
-        {view?.unavailable ? (
+        {showGrowth ? (
+          growthUnavailable ? (
+            <div className="callout">{growthUnavailable}</div>
+          ) : now.failed || before.failed ? (
+            <div className="callout">No fue posible leer los dos años que compara el mapa.</div>
+          ) : !nowView || !beforeView ? (
+            <div className="callout">
+              Leyendo {to} y {to - 1}…
+            </div>
+          ) : !growthMap.length ? (
+            <div className="callout">
+              Sin comercio declarado con estos filtros ni en {to} ni en {to - 1}.
+            </div>
+          ) : (
+            <GrowthWorldMap
+              rows={growthMap}
+              unit={unit}
+              year={to}
+              words={flow === 'X' ? EXPORT_WORDS : IMPORT_WORDS}
+              label={`crecimiento de las ${
+                flow === 'X' ? 'exportaciones' : 'importaciones'
+              } de Bolivia por país, ${compared}`}
+              picked={country}
+              onPick={pick}
+              exact={smart}
+            />
+          )
+        ) : view?.unavailable ? (
           <div className="callout">{view.unavailable}</div>
         ) : !map.rows.length ? (
           <div className="callout">Sin comercio declarado con estos filtros.</div>
@@ -142,7 +239,7 @@ export function TradeWorld({
           />
         )}
 
-        {map.unplaced.length ? (
+        {!showGrowth && map.unplaced.length ? (
           <p className="chart-note">
             No figura en el mapa por no ser un territorio con contorno:{' '}
             {map.unplaced
@@ -164,6 +261,12 @@ export function TradeWorld({
 
         <details className="panel-note">
           <summary>Cómo leerlo</summary>
+          <p>
+            En «Crecimiento», cada país va en una de dos clases —creció o cayó frente al año
+            anterior— y no en una escala, porque en porcentajes los países chicos dominarían el
+            mapa. Un país rayado no tenía comercio en uno de los dos años: su variación no se
+            expresa en porcentaje.
+          </p>
           <p>
             La escala bajo el mapa indica qué extremo corresponde al mayor valor. Figuran todos los
             países que nombra la declaración aduanera, no solo los principales: el gris significa

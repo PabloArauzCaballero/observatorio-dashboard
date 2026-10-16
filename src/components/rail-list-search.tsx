@@ -43,14 +43,29 @@ interface Enhanced {
 
 const enhanced = new WeakMap<HTMLElement, Enhanced>();
 
+/**
+ * Las opciones de una lista: sus `.rail-item`, o en un árbol (`.rail-tree`, el rubro de
+ * Ciudades) sus filas de primer nivel, cada una con sus hijas desplegadas detrás.
+ */
 function optionsOf(list: HTMLElement): HTMLElement[] {
-  return [...list.children].filter((child): child is HTMLElement =>
-    child.classList.contains('rail-item'),
-  );
+  const kind = list.classList.contains('rail-tree') ? 'rail-tree-row' : 'rail-item';
+  return [...list.children].filter((child): child is HTMLElement => child.classList.contains(kind));
 }
 
+/** La fila elegida (o elegida en parte) no se esconde nunca. */
+const isPicked = (option: HTMLElement): boolean =>
+  option.getAttribute('aria-pressed') === 'true' ||
+  Boolean(option.querySelector('[aria-pressed="true"], .rail-item-part'));
+
 function labelOf(option: HTMLElement): string {
-  return fold((option.querySelector('.rail-name') ?? option).textContent ?? '');
+  const own = (option.querySelector('.rail-name') ?? option).textContent ?? '';
+  // En un árbol, también lo que cuelga de la fila si está desplegado.
+  const kids = option.classList.contains('rail-tree-row') ? option.nextElementSibling : null;
+  const below =
+    kids instanceof HTMLElement && kids.classList.contains('rail-tree-kids')
+      ? [...kids.querySelectorAll('.rail-name')].map((name) => name.textContent ?? '').join(' ')
+      : '';
+  return fold(`${own} ${below}`);
 }
 
 function apply(list: HTMLElement, state: Enhanced): void {
@@ -60,7 +75,11 @@ function apply(list: HTMLElement, state: Enhanced): void {
     const matched = !query || labelOf(option).includes(query);
     if (matched) matches += 1;
     // La opción elegida no se esconde, aunque no coincida: sería un filtro activo que no se ve.
-    option.hidden = !matched && option.getAttribute('aria-pressed') !== 'true';
+    option.hidden = !matched && !isPicked(option);
+    const kids = option.nextElementSibling;
+    if (option.classList.contains('rail-tree-row') && kids instanceof HTMLElement) {
+      if (kids.classList.contains('rail-tree-kids')) kids.hidden = option.hidden;
+    }
   }
   state.empty.hidden = !query || matches > 0;
 }
@@ -145,11 +164,14 @@ function scan(): void {
   for (const section of document.querySelectorAll('.rail-sec')) {
     const parents = new Set<HTMLElement>();
     for (const option of section.querySelectorAll('.rail-item')) {
-      if (option.parentElement) parents.add(option.parentElement);
+      // Una opción dentro de un árbol cuenta para el árbol entero, no para su rama.
+      const tree = option.closest('.rail-tree');
+      if (tree instanceof HTMLElement) parents.add(tree);
+      else if (option.parentElement) parents.add(option.parentElement);
     }
     for (const list of parents) {
       // Las opciones colgadas de la propia sección no tienen dónde llevar el campo: se envuelven en `.rail-list`.
-      if (enhanced.has(list) || list === section || list.classList.contains('rail-tree')) continue;
+      if (enhanced.has(list) || list === section) continue;
       if (optionsOf(list).length < MIN_OPTIONS || hasOwnSearch(section)) continue;
       if (!hydrated(list)) {
         pending = true;

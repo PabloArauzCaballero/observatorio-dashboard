@@ -16,6 +16,8 @@ import { TOP_TEN, TopTen } from './top-ten';
 import { BarsKey, ChartKindSwitch, ShareSquares } from './chart-kind';
 import type { ChartKind } from './chart-kind';
 import { WorldTradeMap } from './world-trade-map';
+import { EXPORT_WORDS, GrowthWorldMap, IMPORT_WORDS } from './growth-world-map';
+import type { GrowthRow } from './growth-world-map';
 import { DerivedReading } from './derived-reading';
 import { FilterHint, PickedCount } from './filters';
 import { Icon } from './icons';
@@ -336,9 +338,7 @@ function ComtradeChapter({
         )}
         <details className="panel-note">
           <summary>Cómo leerlo</summary>
-          <p>
-            La clasificación de exportadoras, más abajo, no cubre esta mitad del comercio.
-          </p>
+          <p>La clasificación de exportadoras, más abajo, no cubre esta mitad del comercio.</p>
         </details>
       </Panel>
     </div>
@@ -552,9 +552,7 @@ function PartnerChapter({
 
   if (!board || !board.partners.length) {
     return (
-      <div className="callout">
-        Aún no está disponible el desglose de Comtrade por país socio.
-      </div>
+      <div className="callout">Aún no está disponible el desglose de Comtrade por país socio.</div>
     );
   }
 
@@ -659,7 +657,11 @@ type Partner = ForeignTradeBoard['partners'][number];
 /**
  * El mapa de socios y, debajo, la ficha del país que se tocó.
  *
- * El mapa pinta un flujo en un año: el último del rango con dato. La ficha
+ * El mapa pinta un flujo en un año: el último del rango con dato, o cuánto
+ * cambió frente al anterior. Comtrade publica sólo los veinte primeros socios
+ * de cada año, así que en crecimiento entra únicamente el país publicado en los
+ * dos años: el que sale de la lista no «dejó de comprar», dejó de estar entre
+ * los veinte, y pintarlo como una caída del 100 % mentiría. La ficha
  * contesta lo que el mapa no puede —cómo fue ese comercio en el tiempo, qué
  * parte del total es y si Bolivia le vende más de lo que le compra— y dice lo
  * que no hay: Comtrade no publica, para Bolivia, qué productos van a qué país.
@@ -680,6 +682,7 @@ function WorldChapter({
   to: number;
 }) {
   const [flow, setFlow] = useState<'X' | 'M'>('X');
+  const [mode, setMode] = useState<'level' | 'growth'>('level');
 
   const inRange = useMemo(
     () =>
@@ -709,12 +712,44 @@ function WorldChapter({
   const subject =
     flow === 'X' ? 'exportaciones por país de destino' : 'importaciones por país de origen';
 
+  /* Crecimiento: el mismo socio en el año del mapa y en el anterior, ambos publicados. */
+  const growth: GrowthRow[] =
+    year === null
+      ? []
+      : (board.partners ?? []).flatMap((entry) => {
+          if (entry.flow !== flow || !entry.iso3) return [];
+          const now = entry.points.find((point) => point.year === year)?.value ?? 0;
+          const before = entry.points.find((point) => point.year === year - 1)?.value ?? 0;
+          if (!(now > 0 && before > 0)) return [];
+          return [
+            {
+              token: entry.country,
+              members: [entry.country],
+              iso3: entry.iso3,
+              label: entry.label,
+              now: now / 1_000_000,
+              before: before / 1_000_000,
+            },
+          ];
+        });
+  const showGrowth = mode === 'growth' && year !== null && growth.length > 0;
+
   return (
     <>
       <Panel
         id="comercio-mapa"
-        title={`Mapa de ${subject} (millones de USD, ${year ?? to})`}
-        lede="Cuanto más intenso el tono, mayor el valor comerciado con ese país en el último año del rango con datos."
+        title={
+          showGrowth
+            ? `Crecimiento de las ${subject} (variación % del valor, ${year} frente a ${
+                (year ?? to) - 1
+              })`
+            : `Mapa de ${subject} (millones de USD, ${year ?? to})`
+        }
+        lede={
+          showGrowth
+            ? `Cada socio según ${flow === 'X' ? 'compró' : 'le vendió a Bolivia'} más o menos que el año anterior. Sólo los países que Comtrade publica entre los veinte primeros en los dos años.`
+            : 'Cuanto más intenso el tono, mayor el valor comerciado con ese país en el último año del rango con datos.'
+        }
         source={SOURCE_COMTRADE}
       >
         <div className="fx-filters">
@@ -736,14 +771,54 @@ function WorldChapter({
               </button>
             ))}
           </div>
+          {year !== null ? (
+            <div className="chart-kind" role="group" aria-label="Qué pinta el mapa">
+              {(
+                [
+                  ['level', 'Nivel'],
+                  ['growth', `Crecimiento ${year} frente a ${year - 1}`],
+                ] as const
+              ).map(([key, label]) => (
+                <button
+                  key={key}
+                  type="button"
+                  className={mode === key ? 'chip chip-on' : 'chip'}
+                  aria-pressed={mode === key}
+                  onClick={() => setMode(key)}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+          ) : null}
         </div>
-        <WorldTradeMap
-          rows={rows}
-          unit="MM USD"
-          label={`${flow === 'X' ? 'exportaciones' : 'importaciones'} de Bolivia por país en ${year ?? to}`}
-          picked={country}
-          onPick={onPick}
-        />
+        {mode === 'growth' && !showGrowth ? (
+          <div className="callout">
+            Ningún socio figura entre los publicados en los dos años que compara el mapa.
+          </div>
+        ) : showGrowth && year !== null ? (
+          <GrowthWorldMap
+            rows={growth}
+            unit="MM USD"
+            year={year}
+            words={flow === 'X' ? EXPORT_WORDS : IMPORT_WORDS}
+            absent={`Fuera de los socios publicados en ${year - 1} o en ${year}`}
+            label={`crecimiento de las ${
+              flow === 'X' ? 'exportaciones' : 'importaciones'
+            } de Bolivia por país, ${year} frente a ${year - 1}`}
+            picked={country}
+            onPick={onPick}
+            exact={(value) => number(value, 1)}
+          />
+        ) : (
+          <WorldTradeMap
+            rows={rows}
+            unit="MM USD"
+            label={`${flow === 'X' ? 'exportaciones' : 'importaciones'} de Bolivia por país en ${year ?? to}`}
+            picked={country}
+            onPick={onPick}
+          />
+        )}
         {focus ? null : (
           <p className="chart-note">
             Al seleccionar un país en el mapa o en el filtro se abre su ficha, con el comercio
@@ -881,9 +956,7 @@ function CountryCard({
           </dd>
           {balance !== null ? (
             <dd className="country-aside">
-              {balance >= 0
-                ? 'Superávit bilateral de Bolivia'
-                : 'Déficit bilateral de Bolivia'}
+              {balance >= 0 ? 'Superávit bilateral de Bolivia' : 'Déficit bilateral de Bolivia'}
             </dd>
           ) : (
             <dd className="country-aside">Requiere el dato de ambos flujos</dd>
@@ -977,11 +1050,10 @@ function ExportersRanking({ board }: { board: ExportersBoard }) {
           producto, departamento y país de destino —el panorama de arriba—. La Aduana Nacional
           publica agregados, y el <em>Anuario de Minería</em> separa por actor productivo (estatal,
           privado, cooperativo), nunca por razón social: la declaración aduanera individual está
-          amparada por reserva. Esta lista procede de un agregador comercial de registros
-          aduaneros, y de ella se publican{' '}
-          <strong>el puesto y la cuota, no los montos en USD</strong>: el total que esa fuente
-          declara para {board.exportYear ?? 'la gestión'} no coincide con el del INE y no indica
-          sobre qué base se calcula.
+          amparada por reserva. Esta lista procede de un agregador comercial de registros aduaneros,
+          y de ella se publican <strong>el puesto y la cuota, no los montos en USD</strong>: el
+          total que esa fuente declara para {board.exportYear ?? 'la gestión'} no coincide con el
+          del INE y no indica sobre qué base se calcula.
         </div>
         <ShareBars data={bars} unit="%" height={520} />
         <ChartLegend
@@ -1074,9 +1146,9 @@ export function ForeignTradeExplorer({
       <header className="page-intro">
         <h3 className="page-intro-title">Comercio exterior: productos, socios y exportadoras</h3>
         <p className="page-intro-lede">
-          Exportaciones e importaciones de bienes por producto y país socio, según el INE y
-          Naciones Unidas, y la clasificación de las principales exportadoras. Las cifras oficiales
-          están en USD; la clasificación por empresa publica solo puesto y cuota.
+          Exportaciones e importaciones de bienes por producto y país socio, según el INE y Naciones
+          Unidas, y la clasificación de las principales exportadoras. Las cifras oficiales están en
+          USD; la clasificación por empresa publica solo puesto y cuota.
         </p>
         <details className="panel-note">
           <summary>Qué cubre esta página y qué no</summary>
@@ -1303,10 +1375,10 @@ export function ForeignTradeExplorer({
           {crossFilterGap ? (
             <div className="callout">
               <strong>En esta página, país y producto no se cruzan.</strong> Comtrade publica el
-              comercio boliviano por socio y por capítulo del arancel como dos recortes separados del
-              mismo total. El cruce —cuánto de ese comercio corresponde al capítulo elegido— existe
-              en la base del INE, en la pestaña «Detalle aduanero (INE)». Abajo, cada filtro se
-              aplica por separado: el país, en los paneles por país de destino y de origen; el
+              comercio boliviano por socio y por capítulo del arancel como dos recortes separados
+              del mismo total. El cruce —cuánto de ese comercio corresponde al capítulo elegido—
+              existe en la base del INE, en la pestaña «Detalle aduanero (INE)». Abajo, cada filtro
+              se aplica por separado: el país, en los paneles por país de destino y de origen; el
               producto, en los paneles por capítulo del arancel.
             </div>
           ) : null}
@@ -1357,9 +1429,7 @@ export function ForeignTradeExplorer({
           ) : exportersBoard && exportersBoard.exporters.length ? (
             <ExportersRanking board={exportersBoard} />
           ) : (
-            <div className="callout">
-              Aún no está disponible la clasificación de exportadoras.
-            </div>
+            <div className="callout">Aún no está disponible la clasificación de exportadoras.</div>
           )}
         </div>
       </div>
