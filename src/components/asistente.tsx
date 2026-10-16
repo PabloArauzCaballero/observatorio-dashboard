@@ -214,6 +214,15 @@ function Burbuja() {
 
 export function Asistente() {
   const [abierto, setAbierto] = useState(false);
+  // Al bajar por la página el lanzador se pliega a su icono: la píldora con texto tapaba
+  // la última cifra de cada franja. Al pasar el puntero o enfocarlo, recupera el texto.
+  const [plegado, setPlegado] = useState(false);
+  useEffect(() => {
+    const medir = () => setPlegado(window.scrollY > 160);
+    medir();
+    window.addEventListener('scroll', medir, { passive: true });
+    return () => window.removeEventListener('scroll', medir);
+  }, []);
   const [turnos, setTurnos] = useState<Turno[]>([]);
   const [borrador, setBorrador] = useState('');
   const [esperando, setEsperando] = useState(false);
@@ -315,7 +324,13 @@ export function Asistente() {
   return (
     <>
       {!abierto ? (
-        <button type="button" className="asistente-lanzador" onClick={() => setAbierto(true)} aria-haspopup="dialog">
+        <button
+          type="button"
+          className="asistente-lanzador"
+          data-plegado={plegado ? '' : undefined}
+          onClick={() => setAbierto(true)}
+          aria-haspopup="dialog"
+        >
           <Burbuja />
           <span>Consultar al asistente de DatosBolivia</span>
         </button>
