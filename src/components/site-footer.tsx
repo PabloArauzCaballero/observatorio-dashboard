@@ -1,3 +1,4 @@
+import Link from 'next/link';
 import { Monogram } from '@/components/brand/monogram';
 import { hrefDe } from '@/lib/enlace-tablero';
 import { SITE } from '@/lib/site-map';
@@ -18,7 +19,7 @@ export function SiteFooter() {
   return (
     <footer className="site-footer">
       <div className="site-footer-brand">
-        <a className="site-footer-lockup" href="/" aria-label="DatosBolivia.com, portada">
+        <Link className="site-footer-lockup" href="/" aria-label="DatosBolivia.com, portada">
           <Monogram size={48} title="" />
           <span>
             <span className="site-footer-word">
@@ -26,7 +27,7 @@ export function SiteFooter() {
             </span>
             <span className="site-footer-sub">Centro de Datos de Bolivia</span>
           </span>
-        </a>
+        </Link>
         <p className="site-footer-motto">Cada cifra, con su fuente y su fecha.</p>
       </div>
 
