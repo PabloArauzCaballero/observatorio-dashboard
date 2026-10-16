@@ -909,9 +909,9 @@ export function SubjectsExplorer({ months, totals }: { months: TermMonth[]; tota
           <p className="panel-sub">
             El tamaño indica cuántas veces la prensa nombró cada tema —en raíz cuadrada, porque el
             ojo compara áreas— y el color, qué parte de esa cobertura fue adversa: del azul (casi
-            ninguna) al rojo (casi toda). El orden es alfabético para facilitar la búsqueda; el
-            dato es el tamaño, no la posición. Al seleccionar una palabra se abre el análisis de
-            ese tema.
+            ninguna) al rojo (casi toda). El orden es alfabético para facilitar la búsqueda; el dato
+            es el tamaño, no la posición. Al seleccionar una palabra se abre el análisis de ese
+            tema.
           </p>
         </Panel>
 

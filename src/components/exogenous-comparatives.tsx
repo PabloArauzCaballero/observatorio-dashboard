@@ -112,7 +112,8 @@ function Comparatives({ board }: { board: ExogenousBoard }) {
   const shownMode: FactorComparisonMode = mode === 'LEVEL' && !sameUnit ? 'BASE100' : mode;
 
   const outcome = useMemo(() => {
-    if (!a || !b || a.code === b.code) return { error: 'La comparación necesita dos lecturas distintas.' };
+    if (!a || !b || a.code === b.code)
+      return { error: 'La comparación necesita dos lecturas distintas.' };
     const slice = (one: ExogenousSeries) => {
       const data = asFamilyData(one);
       return { ...data, points: data.points.filter((point) => yearOf(point.period) >= since) };
@@ -241,8 +242,7 @@ function Comparatives({ board }: { board: ExogenousBoard }) {
             const members = pairs
               .filter((one) => one.theme === theme.key)
               .sort(
-                (x, y) =>
-                  Math.abs(verdicts.get(y.key) ?? -1) - Math.abs(verdicts.get(x.key) ?? -1),
+                (x, y) => Math.abs(verdicts.get(y.key) ?? -1) - Math.abs(verdicts.get(x.key) ?? -1),
               );
             if (!members.length) return null;
             return (

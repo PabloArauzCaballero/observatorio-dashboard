@@ -11420,10 +11420,7 @@ a {
  * dentro, y todas llevan buscador.
  */
 .rail {
-  top: min(
-    calc(var(--nav-h, 2.75rem) + var(--s2)),
-    calc(100vh - var(--rail-h, 0px) - var(--s2))
-  );
+  top: min(calc(var(--nav-h, 2.75rem) + var(--s2)), calc(100vh - var(--rail-h, 0px) - var(--s2)));
   max-height: none;
   overflow: visible;
 }
