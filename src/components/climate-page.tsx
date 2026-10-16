@@ -30,7 +30,6 @@ import { Icon } from './icons';
 import type { IconName } from './icons';
 import { OnOpenNotice, useOnOpen } from './on-open';
 import { Panel } from '@/components/ui/panel';
-import { TabHeader } from '@/components/ui/tab-header';
 import { ANY, additive, toggle, type Choice } from '@/lib/choice';
 import {
   DEPARTMENTS,
@@ -616,12 +615,15 @@ function ClimateBoard({ bundle }: { bundle: ClimateBundle }) {
 
   return (
     <div className="stack guest-board clima-page">
-      <TabHeader
-        id="clima"
-        kicker="Territorio · Clima y ambiente"
-        title="Clima y ambiente"
-        lede={`El clima de los nueve departamentos desde ${bundle.capitales.inicio.slice(0, 4)}, el aire de las capitales, los focos de calor y la pérdida de bosque, con cinco fuentes abiertas: el reanálisis ERA5 de Copernicus, NASA POWER, el servicio atmosférico CAMS, NASA FIRMS y Global Forest Watch. Al final, los indicadores ambientales nacionales del Banco Mundial.`}
-      />
+      {/* Entrada de página, como las demás: la sección ya lleva su título y su informe. */}
+      <header className="page-intro">
+        <h3 className="page-intro-title">
+          El clima, el aire y el bosque, departamento por departamento
+        </h3>
+        <p className="page-intro-lede">
+          {`El clima de los nueve departamentos desde ${bundle.capitales.inicio.slice(0, 4)}, el aire de las capitales, los focos de calor y la pérdida de bosque, con cinco fuentes abiertas: el reanálisis ERA5 de Copernicus, NASA POWER, el servicio atmosférico CAMS, NASA FIRMS y Global Forest Watch. Al final, los indicadores ambientales nacionales del Banco Mundial.`}
+        </p>
+      </header>
       <DerivedReading
         id="clima-lectura"
         title="Lo esencial"

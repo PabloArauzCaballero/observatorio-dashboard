@@ -139,9 +139,11 @@ function Comparatives({ board }: { board: ExogenousBoard }) {
   }, [a, b, since, shownMode]);
 
   /*
-   * Cuánto se mueven juntos los dos precios de cada par, en los años elegidos: el lector ve la
-   * respuesta antes de abrir la comparación y las de cada tema se ordenan de la más fuerte a la
-   * más débil. La correlación es de variaciones, así que no depende de la escala.
+   * Cuánto se mueven juntos los dos precios de cada par, en toda la historia común: el lector ve
+   * la respuesta antes de abrir la comparación y las de cada tema se ordenan de la más fuerte a la
+   * más débil. Con los años del gráfico, las series anuales (urea, diésel, fierro, cemento) no
+   * llegaban a ocho variaciones y salían «sin dato». La correlación es de variaciones, así que no
+   * depende de la escala.
    */
   const verdicts = useMemo(() => {
     const found = new Map<string, number | null>();
@@ -149,12 +151,8 @@ function Comparatives({ board }: { board: ExogenousBoard }) {
       const x = byCode.get(one.left);
       const y = byCode.get(one.right);
       if (!x || !y) continue;
-      const slice = (series: ExogenousSeries) => {
-        const data = asFamilyData(series);
-        return { ...data, points: data.points.filter((point) => yearOf(point.period) >= since) };
-      };
-      const X = slice(x);
-      const Y = slice(y);
+      const X = asFamilyData(x);
+      const Y = asFamilyData(y);
       try {
         const compared = compareFactorSeries({
           leftSeries: X.series,
@@ -170,7 +168,7 @@ function Comparatives({ board }: { board: ExogenousBoard }) {
       }
     }
     return found;
-  }, [pairs, byCode, since]);
+  }, [pairs, byCode]);
 
   const choose = (next: ExogenousPair) => {
     setLeft(next.left);
@@ -234,7 +232,7 @@ function Comparatives({ board }: { board: ExogenousBoard }) {
       <Panel
         id="comparativos-sugeridos"
         title="Comparaciones sugeridas, por pregunta (pares de series)"
-        lede="Cada comparación pone un precio de Bolivia junto al indicador que debería moverlo. A la derecha, cuánto se mueven juntos en los años elegidos; las de cada tema van de la relación más fuerte a la más débil. Al elegir una, se dibuja abajo."
+        lede="Cada comparación pone un precio de Bolivia junto al indicador que debería moverlo. A la derecha, cuánto se mueven juntos en toda su historia común; las de cada tema van de la relación más fuerte a la más débil. Al elegir una, se dibuja abajo."
         source="Fuentes de cada lectura; selección de DatosBolivia.com"
       >
         <div className="compare-themes">
