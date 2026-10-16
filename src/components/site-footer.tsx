@@ -7,39 +7,57 @@ import { SITE } from '@/lib/site-map';
  * para un sitio que se parece a un banco central— que DatosBolivia.com no es
  * una entidad del Estado. El propio manual de identidad lo advierte: la marca
  * es una propuesta original, no una identidad gubernamental.
+ *
+ * Se lee como el directorio de un diario: la marca sobre un filete doble (tinta
+ * y oro, el mismo de la cabecera), el mapa del sitio con cada sección y sus
+ * páginas en columnas, y debajo las tres notas institucionales separadas por
+ * filetes verticales. Los enlaces no van subrayados: lo están al pasar.
  */
 export function SiteFooter() {
   const anio = new Date().getFullYear();
   return (
     <footer className="site-footer">
       <div className="site-footer-brand">
-        <Monogram size={44} title="" />
-        <div>
-          <div className="site-footer-word">
-            DatosBolivia<span>.</span>com
-          </div>
-          <div className="site-footer-sub">Centro de Datos de Bolivia</div>
-        </div>
+        <a className="site-footer-lockup" href="/" aria-label="DatosBolivia.com, portada">
+          <Monogram size={48} title="" />
+          <span>
+            <span className="site-footer-word">
+              DatosBolivia<span>.</span>com
+            </span>
+            <span className="site-footer-sub">Centro de Datos de Bolivia</span>
+          </span>
+        </a>
+        <p className="site-footer-motto">Cada cifra, con su fuente y su fecha.</p>
       </div>
 
-      <div className="site-footer-grid">
+      <nav className="site-footer-map" aria-label="Mapa del sitio">
+        {SITE.map((seccion) => (
+          <section key={seccion.label} className="site-footer-group">
+            <h2>
+              <a href={hrefDe({ pestana: seccion.label })}>{seccion.label}</a>
+            </h2>
+            {seccion.pages.length ? (
+              <ul>
+                {seccion.pages.map((pagina) => (
+                  <li key={pagina.label}>
+                    <a href={hrefDe({ pestana: seccion.label, pagina: pagina.label })}>
+                      {pagina.label}
+                    </a>
+                  </li>
+                ))}
+              </ul>
+            ) : null}
+          </section>
+        ))}
+      </nav>
+
+      <div className="site-footer-notes">
         <section>
           <h2>Quiénes somos</h2>
           <p>
             Centro de datos independiente que reúne, ordena y publica estadísticas económicas,
             sociales y territoriales de Bolivia, con la fuente y la fecha de cada cifra.
           </p>
-        </section>
-
-        <section>
-          <h2>Secciones</h2>
-          <ul>
-            {SITE.map((seccion) => (
-              <li key={seccion.label}>
-                <a href={hrefDe({ pestana: seccion.label })}>{seccion.label}</a>
-              </li>
-            ))}
-          </ul>
         </section>
 
         <section>
@@ -61,10 +79,13 @@ export function SiteFooter() {
         </section>
       </div>
 
-      <p className="site-footer-legal">
-        © {anio} DatosBolivia.com · Los datos pertenecen a sus fuentes; su reutilización debe
-        citarlas.
-      </p>
+      <div className="site-footer-legal">
+        <span>© {anio} DatosBolivia.com</span>
+        <span>Los datos pertenecen a sus fuentes; su reutilización debe citarlas.</span>
+        <a href="#top" className="site-footer-top">
+          Volver arriba <span aria-hidden="true">↑</span>
+        </a>
+      </div>
     </footer>
   );
 }

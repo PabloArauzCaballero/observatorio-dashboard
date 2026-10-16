@@ -46,6 +46,24 @@ const figure = (value: number, decimals = 1): string =>
 const signed = (value: number | null): string =>
   value === null ? 'sin dato' : `${value > 0 ? '+' : ''}${figure(value, 0)} %`;
 
+/** De la correlación a los cuatro puntos del medidor: 0 sin dato, 4 relación fuerte. */
+const strengthOf = (r: number | null): number =>
+  r === null ? 0 : r >= 0.7 ? 4 : r >= 0.4 ? 3 : r >= 0.2 ? 2 : 1;
+
+/** La palabra que acompaña al medidor; una relación en sentido contrario no es «débil». */
+const wordOf = (r: number | null): string =>
+  r === null
+    ? 'sin dato'
+    : r <= -0.2
+      ? 'contraria'
+      : r >= 0.7
+        ? 'fuerte'
+        : r >= 0.4
+          ? 'moderada'
+          : r >= 0.2
+            ? 'débil'
+            : 'casi nula';
+
 /** El nombre de una lectura con su plaza cuando el nombre no la dice. */
 const nameOf = (one: ExogenousSeries): string =>
   one.name.includes(one.market) ? one.name : `${one.name} (${one.market})`;
@@ -119,6 +137,40 @@ function Comparatives({ board }: { board: ExogenousBoard }) {
     }
   }, [a, b, since, shownMode]);
 
+  /*
+   * Cuánto se mueven juntos los dos precios de cada par, en los años elegidos: el lector ve la
+   * respuesta antes de abrir la comparación y las de cada tema se ordenan de la más fuerte a la
+   * más débil. La correlación es de variaciones, así que no depende de la escala.
+   */
+  const verdicts = useMemo(() => {
+    const found = new Map<string, number | null>();
+    for (const one of pairs) {
+      const x = byCode.get(one.left);
+      const y = byCode.get(one.right);
+      if (!x || !y) continue;
+      const slice = (series: ExogenousSeries) => {
+        const data = asFamilyData(series);
+        return { ...data, points: data.points.filter((point) => yearOf(point.period) >= since) };
+      };
+      const X = slice(x);
+      const Y = slice(y);
+      try {
+        const compared = compareFactorSeries({
+          leftSeries: X.series,
+          rightSeries: Y.series,
+          leftPoints: X.points,
+          rightPoints: Y.points,
+          mode: 'BASE100',
+        });
+        const monthly = compared.frequency === 'MONTHLY';
+        found.set(one.key, readPair(compared.points, 0, monthly ? 12 : 1).together);
+      } catch {
+        found.set(one.key, null);
+      }
+    }
+    return found;
+  }, [pairs, byCode, since]);
+
   const choose = (next: ExogenousPair) => {
     setLeft(next.left);
     setRight(next.right);
@@ -181,33 +233,57 @@ function Comparatives({ board }: { board: ExogenousBoard }) {
       <Panel
         id="comparativos-sugeridos"
         title="Comparaciones sugeridas, por pregunta (pares de series)"
-        lede="Cada comparación pone un precio de Bolivia junto al indicador que debería moverlo. Al seleccionar una, se dibuja en el gráfico de abajo."
+        lede="Cada comparación pone un precio de Bolivia junto al indicador que debería moverlo. A la derecha, cuánto se mueven juntos en los años elegidos; las de cada tema van de la relación más fuerte a la más débil. Al elegir una, se dibuja abajo."
         source="Fuentes de cada lectura; selección de DatosBolivia.com"
       >
         <div className="compare-themes">
           {THEMES.map((theme) => {
-            const members = pairs.filter((one) => one.theme === theme.key);
+            const members = pairs
+              .filter((one) => one.theme === theme.key)
+              .sort(
+                (x, y) =>
+                  Math.abs(verdicts.get(y.key) ?? -1) - Math.abs(verdicts.get(x.key) ?? -1),
+              );
             if (!members.length) return null;
             return (
-              <div key={theme.key} className="compare-theme">
+              <section key={theme.key} className="compare-theme" aria-label={theme.label}>
                 <h4 className="compare-theme-title">{theme.label}</h4>
-                <div className="chips">
+                <ul className="compare-list">
                   {members.map((one) => {
                     const on = one === pair;
+                    const r = verdicts.get(one.key) ?? null;
+                    const level = strengthOf(r);
                     return (
-                      <button
-                        key={one.key}
-                        type="button"
-                        className={on ? 'chip chip-on' : 'chip'}
-                        aria-pressed={on}
-                        onClick={() => choose(one)}
-                      >
-                        {one.question}
-                      </button>
+                      <li key={one.key}>
+                        <button
+                          type="button"
+                          className={on ? 'compare-row compare-row-on' : 'compare-row'}
+                          aria-pressed={on}
+                          onClick={() => choose(one)}
+                        >
+                          <span className="compare-q">{one.question}</span>
+                          <span
+                            className="compare-v"
+                            title={
+                              r === null
+                                ? 'Sin variaciones suficientes para medirlo'
+                                : `Correlación de las variaciones: ${figure(r, 2)}`
+                            }
+                          >
+                            <span className="compare-meter" data-level={level} aria-hidden="true">
+                              <i />
+                              <i />
+                              <i />
+                              <i />
+                            </span>
+                            <span className="compare-v-word">{wordOf(r)}</span>
+                          </span>
+                        </button>
+                      </li>
                     );
                   })}
-                </div>
-              </div>
+                </ul>
+              </section>
             );
           })}
         </div>

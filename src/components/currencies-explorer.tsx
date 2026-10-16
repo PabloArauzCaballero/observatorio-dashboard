@@ -313,8 +313,6 @@ export function CurrenciesExplorer({ board }: { board: CurrencyBoard }) {
 
   return (
     <>
-      <CurrencyConverter rows={coinRows} />
-
       <Panel
         id="monedas-principales"
         title="Cuántos bolivianos cuestan las monedas de los principales socios (Bs)"
@@ -591,6 +589,9 @@ export function CurrenciesExplorer({ board }: { board: CurrencyBoard }) {
           </Panel>
         </div>
       </div>
+
+      {/* La herramienta va al final: primero la respuesta, la noticia y la historia. */}
+      <CurrencyConverter rows={coinRows} />
     </>
   );
 }
