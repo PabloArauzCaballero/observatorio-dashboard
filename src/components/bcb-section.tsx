@@ -256,6 +256,7 @@ export function BcbSection() {
   const [sheet, setSheet] = useState('');
   const [frequency, setFrequency] = useState('');
   const [text, setText] = useState('');
+  const [familyFind, setFamilyFind] = useState('');
   const query = useDebounced(text, 350);
   const [page, setPage] = useState<BcbCatalogPage | null>(null);
   const [extra, setExtra] = useState<BcbSeriesInfo[]>([]);
@@ -327,8 +328,8 @@ export function BcbSection() {
   if (!page.families.length && !page.results.length && !family && !workbook && !text) {
     return (
       <div className="callout">
-        Las estadísticas del Banco Central aún no están disponibles. La página se completará
-        cuando se cargue su catálogo.
+        Las estadísticas del Banco Central aún no están disponibles. La página se completará cuando
+        se cargue su catálogo.
       </div>
     );
   }
@@ -356,6 +357,11 @@ export function BcbSection() {
   const active =
     Number(!!family) + Number(!!workbook) + Number(!!sheet) + Number(!!frequency) + Number(!!text);
   const totalSeries = page.families.reduce((sum, one) => sum + one.count, 0);
+  // La familia elegida queda a la vista aunque el texto no la nombre.
+  const familyNeedle = slug(familyFind);
+  const familiesShown = page.families.filter(
+    (one) => !familyNeedle || one.key === family || slug(one.label).includes(familyNeedle),
+  );
 
   const toggle = (code: string) => {
     setManual(true);
@@ -401,6 +407,16 @@ export function BcbSection() {
             de origen.
           </p>
         </details>
+        <div className="rail-list-find bcb-family-find">
+          <input
+            type="search"
+            placeholder="Buscar familia…"
+            autoComplete="off"
+            aria-label="Buscar familia de series"
+            value={familyFind}
+            onChange={(event) => setFamilyFind(event.target.value)}
+          />
+        </div>
         <div className="chips" role="tablist" aria-label="Familia">
           <button
             type="button"
@@ -414,7 +430,7 @@ export function BcbSection() {
           >
             Todas <span className="chip-count">{totalSeries.toLocaleString('es-BO')}</span>
           </button>
-          {page.families.map((one) => (
+          {familiesShown.map((one) => (
             <button
               key={one.key}
               type="button"
@@ -429,6 +445,9 @@ export function BcbSection() {
               {one.label} <span className="chip-count">{one.count.toLocaleString('es-BO')}</span>
             </button>
           ))}
+          {familyNeedle && !familiesShown.length ? (
+            <p className="rail-list-empty">Ninguna familia coincide con «{familyFind}».</p>
+          ) : null}
         </div>
         <div className="stat-strip">
           <div className="stat">
@@ -443,12 +462,14 @@ export function BcbSection() {
           </div>
           <div className="stat">
             <span className="stat-label">Dato más reciente</span>
-            <span className="stat-value">{page.latest
+            <span className="stat-value">
+              {page.latest
                 ? sayPeriod(
                     page.latest,
                     page.frequencies.length === 1 ? page.frequencies[0]?.key : undefined,
                   )
-                : '—'}</span>
+                : '—'}
+            </span>
             <span className="stat-hint">entre las series a la vista</span>
           </div>
         </div>
@@ -464,7 +485,8 @@ export function BcbSection() {
             </span>
           </div>
           <p className="rail-hint-top">
-            Una opción por filtro; al seleccionarla de nuevo, se quita. Cada filtro recorta los de abajo.
+            Una opción por filtro; al seleccionarla de nuevo, se quita. Cada filtro recorta los de
+            abajo.
           </p>
 
           <div className="rail-sec">

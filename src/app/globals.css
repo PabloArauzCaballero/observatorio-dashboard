@@ -11755,3 +11755,10 @@ a {
 .fx-convert > button {
   min-height: 2.25rem;
 }
+
+/* Series del BCB: el buscador de la fila de familias, a la medida del carril. */
+.bcb-family-find {
+  max-width: 22rem;
+  margin-top: var(--s2);
+  padding: 0;
+}
