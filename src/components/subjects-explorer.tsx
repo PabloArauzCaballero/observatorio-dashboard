@@ -752,6 +752,16 @@ export function SubjectsExplorer({ months, totals }: { months: TermMonth[]; tota
             <Icon name="etiqueta" size={13} />
             Tema ({ranked.length})
           </div>
+          {/* El buscador va encima de la lista que acota: antes estaba en otra sección, debajo. */}
+          <div className="rail-field">
+            <input
+              type="search"
+              value={search}
+              aria-label="Buscar entre los temas vigilados"
+              placeholder="Buscar: diésel, dólar, contrabando…"
+              onChange={(event) => setSearch(event.target.value)}
+            />
+          </div>
           <div className="rail-field">
             <select
               value={term}
@@ -771,22 +781,6 @@ export function SubjectsExplorer({ months, totals }: { months: TermMonth[]; tota
             seleccionarla otra vez. Se abre un tema a la vez: es el que se analiza abajo, no un
             recorte más del archivo.
           </p>
-        </div>
-
-        <div className="rail-sec">
-          <div className="rail-head">
-            <Icon name="buscar" size={13} />
-            Buscar un tema
-          </div>
-          <div className="rail-field">
-            <input
-              type="search"
-              value={search}
-              aria-label="Buscar entre los temas vigilados"
-              placeholder="diésel, dólar, contrabando…"
-              onChange={(event) => setSearch(event.target.value)}
-            />
-          </div>
         </div>
 
         <div className="rail-sec">

@@ -11729,3 +11729,9 @@ a {
     columns: 2 9rem;
   }
 }
+
+/* El buscador también filtra el árbol de rubros de Ciudades: fila y rama se esconden juntas. */
+[data-rail-find] > .rail-tree-row[hidden],
+[data-rail-find] > .rail-tree-kids[hidden] {
+  display: none;
+}
