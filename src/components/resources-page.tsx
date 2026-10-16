@@ -22,7 +22,6 @@ import { Headlines, SOURCE_ADUANA, say, useLabelRoom } from './trade-records-pan
 import { WorldTradeMap } from './world-trade-map';
 import type { MapTrade } from './world-trade-map';
 import { Panel } from '@/components/ui/panel';
-import { TabHeader } from '@/components/ui/tab-header';
 import { ViewToggle } from '@/components/ui/view-toggle';
 import { ANY, additive, choiceOf, list, toggle, without } from '@/lib/choice';
 import type { Choice } from '@/lib/choice';
@@ -1360,11 +1359,18 @@ export function ResourcesPage() {
   const { payload, failed } = useOnOpen<TradeCodes>(`${API}/catalogo`);
   return (
     <div className="stack">
-      <TabHeader
-        id="recursos"
-        title="Recursos naturales"
-        lede="Lo que Bolivia saca de su suelo y vende afuera —minerales, gas, petróleo, litio y boratos—, a dónde va y cómo cambia de un año a otro. El mapa y los ránkings salen de la base aduanera del INE, con cada exportación por producto, país de destino y departamento de origen desde 1992. Debajo, la renta y el patrimonio natural que mide el Banco Mundial."
-      />
+      {/* Entrada de página, como las demás: la sección ya lleva su título y su informe. */}
+      <header className="page-intro">
+        <h3 className="page-intro-title">
+          Lo que Bolivia saca de su suelo: a dónde va y cómo crece
+        </h3>
+        <p className="page-intro-lede">
+          Lo que Bolivia saca de su suelo y vende afuera —minerales, gas, petróleo, litio y
+          boratos—, a dónde va y cómo cambia de un año a otro. El mapa y los ránkings salen de la
+          base aduanera del INE, con cada exportación por producto, país de destino y departamento
+          de origen desde 1992. Debajo, la renta y el patrimonio natural que mide el Banco Mundial.
+        </p>
+      </header>
       {payload ? (
         payload.coverage.some((entry) => entry.grain === 'X_DETAIL') ? (
           <CustomsResources catalogue={payload} />

@@ -11732,3 +11732,26 @@ a {
 [data-rail-find] > .rail-tree-kids[hidden] {
   display: none;
 }
+
+/* El conversor de monedas, con el mismo trazo que los demás campos y el botón a su altura. */
+.fx-convert-field :is(input, select) {
+  min-height: 2.25rem;
+  padding: 0.35rem 0.65rem;
+  border: 1px solid var(--rule-strong);
+  border-radius: var(--radius-sm);
+  background: var(--field);
+  color: var(--ink);
+  font-family: var(--sans);
+  font-size: var(--text-base);
+  font-variant-numeric: tabular-nums;
+}
+
+.fx-convert-field :is(input, select):focus-visible {
+  outline: none;
+  border-color: var(--ink);
+  box-shadow: 0 0 0 1px var(--ink);
+}
+
+.fx-convert > button {
+  min-height: 2.25rem;
+}
