@@ -11762,3 +11762,24 @@ a {
   margin-top: var(--s2);
   padding: 0;
 }
+
+/* El lanzador del asistente, plegado a su icono en cuanto se baja por la página. */
+@media (min-width: 721px) {
+  .asistente-lanzador[data-plegado]:not(:hover, :focus-visible) {
+    width: 2.75rem;
+    height: 2.75rem;
+    padding: 0;
+    justify-content: center;
+    gap: 0;
+    border-radius: var(--radius-pill);
+  }
+
+  .asistente-lanzador[data-plegado]:not(:hover, :focus-visible) > span {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+  }
+}
