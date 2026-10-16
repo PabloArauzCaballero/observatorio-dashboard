@@ -420,6 +420,15 @@ export interface SheetOptions {
   title: string;
   author: string;
   subject?: string;
+  /** Márgenes en puntos; por defecto, los del informe macro. */
+  margin?: { top: number; right: number; bottom: number; left: number };
+}
+
+/** Un dibujo que se guarda una vez y se repite: un formulario o la tesela de un patrón. */
+interface Reusable {
+  width: number;
+  height: number;
+  ops: string;
 }
 
 /**
@@ -431,14 +440,18 @@ export class Sheet {
   readonly width = 595.28;
   readonly height = 841.89;
   /** 16 mm arriba, 14 mm a los lados y 20 mm abajo, como `@page` del informe macro. */
-  readonly margin = { top: 45.35, right: 39.69, bottom: 56.69, left: 39.69 };
+  readonly margin: { top: number; right: number; bottom: number; left: number };
 
   private readonly pages: Page[] = [];
   private page: Page = { ops: [] };
   private cursor = 0;
   private decorator: ((sheet: Sheet, index: number, count: number) => void) | null = null;
+  private underlayer: ((sheet: Sheet, index: number, count: number) => void) | null = null;
+  private readonly forms = new Map<string, Reusable>();
+  private readonly tilings = new Map<string, Reusable>();
 
   constructor(private readonly options: SheetOptions) {
+    this.margin = options.margin ?? { top: 45.35, right: 39.69, bottom: 56.69, left: 39.69 };
     this.newPage();
   }
 
@@ -465,6 +478,31 @@ export class Sheet {
   /** Se dibuja en cada página al cerrar el documento, cuando ya se sabe cuántas hay. */
   decorate(draw: (sheet: Sheet, index: number, count: number) => void): void {
     this.decorator = draw;
+  }
+
+  /** Como `decorate`, pero lo que dibuja queda DEBAJO del contenido: fondos y marcas de agua. */
+  underlay(draw: (sheet: Sheet, index: number, count: number) => void): void {
+    this.underlayer = draw;
+  }
+
+  /** Un dibujo que se guarda una vez y se pinta con `/nombre Do`. */
+  defineForm(name: string, form: Reusable): void {
+    this.forms.set(name, form);
+  }
+
+  /** Una tesela que rellena con `/Pattern cs /nombre scn`. */
+  defineTiling(name: string, tile: Reusable): void {
+    this.tilings.set(name, tile);
+  }
+
+  /** Operadores de contenido tal cual, para quien dibuja trazados propios. */
+  raw(ops: string): void {
+    this.page.ops.push(ops);
+  }
+
+  /** El ancho de una línea en puntos con este estilo. */
+  measureText(text: string, style: TextStyle): number {
+    return measure(text, style);
   }
 
   newPage(): void {
@@ -572,7 +610,8 @@ export class Sheet {
   table(spec: TableSpec): void {
     const size = spec.size ?? 8;
     const body: TextStyle = { font: 'sans', size, color: INK.soft, leading: size * 1.35 };
-    const numeric: TextStyle = { ...body, font: 'mono', color: INK.ink };
+    // Helvetica escribe todas las cifras al mismo ancho: las columnas cuadran sin monoespaciada.
+    const numeric: TextStyle = { ...body, color: INK.ink };
     const head: TextStyle = {
       font: 'sans-bold',
       size: size - 1.2,
@@ -640,14 +679,21 @@ export class Sheet {
 
   /** El documento entero, listo para enviarse. */
   bytes(): Uint8Array<ArrayBuffer> {
-    if (this.decorator) {
+    {
       const count = this.pages.length;
       const current = this.page;
       const cursor = this.cursor;
-      const decorator = this.decorator;
+      const { decorator, underlayer } = this;
       this.pages.forEach((page, index) => {
-        this.page = page;
-        decorator(this, index + 1, count);
+        if (underlayer) {
+          this.page = { ops: [] };
+          underlayer(this, index + 1, count);
+          page.ops.unshift(...this.page.ops);
+        }
+        if (decorator) {
+          this.page = page;
+          decorator(this, index + 1, count);
+        }
       });
       this.page = current;
       this.cursor = cursor;
@@ -676,7 +722,26 @@ export class Sheet {
       .map((font, index) => `/${font.resource} ${fontIds[index]} 0 R`)
       .join(' ');
     const stateId = add('<< /Type /ExtGState /ca 0.045 /CA 0.045 >>');
-    const resources = `<< /Font << ${fontEntries} >> /ExtGState << /GS1 ${stateId} 0 R >> >>`;
+    const box = (item: Reusable): string => `/BBox [0 0 ${pt(item.width)} ${pt(item.height)}]`;
+    const formEntries = [...this.forms].map(
+      ([name, form]) =>
+        `/${name} ${add(streamObject(form.ops, `/Type /XObject /Subtype /Form ${box(form)} /Resources << >>`))} 0 R`,
+    );
+    const tilingEntries = [...this.tilings].map(
+      ([name, tile]) =>
+        `/${name} ${add(
+          streamObject(
+            tile.ops,
+            `/Type /Pattern /PatternType 1 /PaintType 1 /TilingType 1 ${box(tile)} ` +
+              `/XStep ${pt(tile.width)} /YStep ${pt(tile.height)} /Resources << >>`,
+          ),
+        )} 0 R`,
+    );
+    const resources =
+      `<< /Font << ${fontEntries} >> /ExtGState << /GS1 ${stateId} 0 R >>` +
+      (formEntries.length ? ` /XObject << ${formEntries.join(' ')} >>` : '') +
+      (tilingEntries.length ? ` /Pattern << ${tilingEntries.join(' ')} >>` : '') +
+      ' >>';
 
     // Los números de objeto se reservan antes de escribir las páginas, porque
     // cada página apunta a la lista y la lista a cada página.
@@ -745,10 +810,11 @@ function pdfString(value: string): string {
 }
 
 /** Un objeto de flujo comprimido, con su diccionario delante. */
-function streamObject(content: string): Buffer {
+function streamObject(content: string, dictionary = ''): Buffer {
   const stream = deflateSync(Buffer.from(content, 'latin1'));
+  const extra = dictionary ? `${dictionary} ` : '';
   return Buffer.concat([
-    Buffer.from(`<< /Length ${stream.length} /Filter /FlateDecode >>\nstream\n`, 'latin1'),
+    Buffer.from(`<< ${extra}/Length ${stream.length} /Filter /FlateDecode >>\nstream\n`, 'latin1'),
     stream,
     Buffer.from('\nendstream', 'latin1'),
   ]);
