@@ -17,7 +17,7 @@ import s from './people.module.css';
 const SOURCE =
   'Comentarios públicos de YouTube; clasificación de DatosBolivia.com con el modelo abierto pysentimiento';
 const SOURCE_CHANNEL =
-  'Comentarios públicos de YouTube y TikTok; clasificación de DatosBolivia.com con el modelo abierto pysentimiento';
+  'Comentarios públicos de YouTube, TikTok e Instagram; clasificación de DatosBolivia.com con el modelo abierto pysentimiento';
 
 /**
  * «Conversación»: qué reacción generan en YouTube las personas con muestra suficiente.
@@ -128,8 +128,8 @@ export function ConversationPage() {
       {channelNet.length ? (
         <Panel
           id="personalidades-canal"
-          title="Saldo de sentimiento en su propio canal de YouTube y TikTok (puntos porcentuales)"
-          lede="Positivos menos negativos en los comentarios de sus últimos videos en YouTube y TikTok: es su público, no quienes hablan de él."
+          title="Saldo de sentimiento en su propio canal de YouTube, TikTok e Instagram (puntos porcentuales)"
+          lede="Positivos menos negativos en los comentarios de sus últimas publicaciones en YouTube, TikTok e Instagram: es su público, no quienes hablan de él."
           meta={`${num(channelNet.length)} personas`}
           source={SOURCE_CHANNEL}
           updated={updated}
@@ -142,9 +142,9 @@ export function ConversationPage() {
           />
           <p className={s.footnote}>
             Es la audiencia que ya sigue al creador y comenta en su canal: suele ser más favorable
-            que la conversación sobre la persona y no mide a toda Bolivia. Se leyeron los últimos
-            videos de cada perfil de YouTube y de TikTok; Instagram no está incluido todavía, así que
-            los creadores que publican solo allí no aparecen.
+            que la conversación sobre la persona y no mide a toda Bolivia. Se leyeron las últimas
+            publicaciones de cada perfil de YouTube, TikTok e Instagram; quien no tiene comentarios
+            legibles en español, o los tiene en muy pocas publicaciones, no aparece.
           </p>
         </Panel>
       ) : null}
