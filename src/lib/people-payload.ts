@@ -122,8 +122,8 @@ export interface RawPeopleData {
 
 const WORDS_PER_PERSON = 25;
 const WORDS_ALL = 60;
-// El panel del canal muestra 15 en total: con 12 por persona alcanza y el resumen no engorda.
-const CHANNEL_WORDS_PER_PERSON = 12;
+// El panel del canal muestra 15 en total: con 6 por persona alcanza y el resumen no engorda.
+const CHANNEL_WORDS_PER_PERSON = 6;
 
 /** Quita el enlace pegado en medio de la frase: la ficha de la encuesta lo muestra aparte. */
 export function splitUrl(text: string): { text: string; url: string | null } {
@@ -147,6 +147,16 @@ const topWords = (
     .slice(0, limit)
     .map((row) => ({ term: row.term, count: row.count }));
 
+/** El gráfico del canal usa solo el saldo; emociones e ironía quedan en la ficha de la persona. */
+const slimSentiment = (s: Sentiment): Sentiment => ({
+  analyzed: s.analyzed,
+  positivePct: s.positivePct,
+  neutralPct: s.neutralPct,
+  negativePct: s.negativePct,
+  ironyPct: s.ironyPct,
+  netScore: s.netScore,
+});
+
 export function buildSummary(raw: RawPeopleData): PeopleSummary {
   const ipsos = new Map(raw.ranking.people.map((row) => [row.slug, row.rank]));
   const own = new Set(raw.pilot.people.map((row) => row.slug));
@@ -165,7 +175,7 @@ export function buildSummary(raw: RawPeopleData): PeopleSummary {
                 videos: entry.own.videosRead,
                 read: entry.own.commentsRead,
                 analyzed: entry.own.commentsAnalyzed,
-                sentiment: entry.own.sentiment,
+                sentiment: entry.own.sentiment ? slimSentiment(entry.own.sentiment) : null,
                 words: entry.own.sentiment ? topWords(entry.own.words, CHANNEL_WORDS_PER_PERSON) : [],
               }
             : null,

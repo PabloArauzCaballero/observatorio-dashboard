@@ -47,7 +47,8 @@ const bySlug = new Map(summary.people.map((p) => [p.slug, p]));
 test('el resumen trae a todas las personas y pesa una fracción de lo que pesaba', () => {
   assert.equal(summary.people.length, raw.top300.people.length);
   const kb = Buffer.byteLength(JSON.stringify(summary)) / 1024;
-  assert.ok(kb < 200, `el resumen pesa ${kb.toFixed(0)} KB`);
+  // 230 y no 200: 67 creadores publican ya el saldo y las palabras de su canal (YouTube y TikTok).
+  assert.ok(kb < 230, `el resumen pesa ${kb.toFixed(0)} KB`);
   // Las direcciones de cuentas no verificadas y la evidencia larga no viajan en el resumen.
   assert.ok(!JSON.stringify(summary).includes('unverifiedAccounts'));
   assert.ok(!JSON.stringify(summary).includes('wikidata.org/entity'));

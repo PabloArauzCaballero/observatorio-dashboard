@@ -16,6 +16,8 @@ import s from './people.module.css';
 
 const SOURCE =
   'Comentarios públicos de YouTube; clasificación de DatosBolivia.com con el modelo abierto pysentimiento';
+const SOURCE_CHANNEL =
+  'Comentarios públicos de YouTube y TikTok; clasificación de DatosBolivia.com con el modelo abierto pysentimiento';
 
 /**
  * «Conversación»: qué reacción generan en YouTube las personas con muestra suficiente.
@@ -126,10 +128,10 @@ export function ConversationPage() {
       {channelNet.length ? (
         <Panel
           id="personalidades-canal"
-          title="Saldo de sentimiento en su propio canal de YouTube (puntos porcentuales)"
-          lede="Positivos menos negativos en los comentarios de los últimos videos del canal de cada creador: es su público, no quienes hablan de él."
+          title="Saldo de sentimiento en su propio canal de YouTube y TikTok (puntos porcentuales)"
+          lede="Positivos menos negativos en los comentarios de sus últimos videos en YouTube y TikTok: es su público, no quienes hablan de él."
           meta={`${num(channelNet.length)} personas`}
-          source={SOURCE}
+          source={SOURCE_CHANNEL}
           updated={updated}
         >
           <DivergingBars
@@ -140,9 +142,9 @@ export function ConversationPage() {
           />
           <p className={s.footnote}>
             Es la audiencia que ya sigue al creador y comenta en su canal: suele ser más favorable
-            que la conversación sobre la persona y no mide a toda Bolivia. Los creadores cuyo
-            contenido está solo en TikTok o Instagram no aparecen: sin sesión iniciada esas
-            plataformas no entregan comentarios.
+            que la conversación sobre la persona y no mide a toda Bolivia. Se leyeron los últimos
+            videos de cada perfil de YouTube y de TikTok; Instagram no está incluido todavía, así que
+            los creadores que publican solo allí no aparecen.
           </p>
         </Panel>
       ) : null}
@@ -153,7 +155,7 @@ export function ConversationPage() {
           title="Palabras más repetidas en el público de su canal (apariciones)"
           lede="Sumadas entre los creadores con muestra suficiente en su canal. Incluye apodos del creador y expresiones comunes («gaby», «soy», «tik tok»): no se filtran a mano."
           meta={`${num(channelRows.length)} personas`}
-          source={SOURCE}
+          source={SOURCE_CHANNEL}
           updated={updated}
         >
           <ShareBars
