@@ -185,6 +185,7 @@ export function EnvironmentExplorer({
         />
       )}
       <DerivedReading
+        id="ambiente-lectura"
         title="Qué dicen estos datos"
         note="Cada frase se calcula con las series de este capítulo y se actualiza con cada carga. Indica el nivel y la referencia con que se compara; no explica causas ni anticipa tendencias."
         conclusions={board.conclusions}

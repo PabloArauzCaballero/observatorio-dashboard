@@ -28,9 +28,14 @@ async function settle(page: Page): Promise<void> {
 async function openMenu(panel: Locator): Promise<string[]> {
   await panel.scrollIntoViewIfNeeded();
   await panel.locator('.menu-btn[aria-haspopup="menu"]').first().click();
-  const items = await panel.getByRole('menuitem').allInnerTexts();
+  // La lista se dibuja en el <body>, fuera del panel: se busca en la página.
+  const items = await panel.page().getByRole('menu').getByRole('menuitem').allInnerTexts();
   return items.map((text) => text.replace(/\s+/g, ' ').trim());
 }
+
+/** Una opción del menú abierto: la lista vive en el <body>, fuera del panel. */
+const itemDelMenu = (page: Page, name: RegExp): Locator =>
+  page.getByRole('menu').getByRole('menuitem', { name });
 
 async function closeMenu(page: Page): Promise<void> {
   await page.keyboard.press('Escape');
@@ -89,7 +94,7 @@ test.describe('descargas de los paneles', () => {
 
     const [csv] = await Promise.all([
       page.waitForEvent('download'),
-      panel.getByRole('menuitem', { name: /^Datos\s*CSV/ }).click(),
+      itemDelMenu(page, /^Datos\s*CSV/).click(),
     ]);
     expect(csv.suggestedFilename()).toMatch(
       /^datosbolivia-cotizacion-dolar-\d{4}-\d{2}-\d{2}\.csv$/,
@@ -106,7 +111,7 @@ test.describe('descargas de los paneles', () => {
     await openMenu(panel);
     const [xlsx] = await Promise.all([
       page.waitForEvent('download'),
-      panel.getByRole('menuitem', { name: /^Datos para Excel/ }).click(),
+      itemDelMenu(page, /^Datos para Excel/).click(),
     ]);
     expect(xlsx.suggestedFilename()).toMatch(/\.xlsx$/);
     const libro: Buffer[] = [];
@@ -128,7 +133,7 @@ test.describe('descargas de los paneles', () => {
 
     const [png] = await Promise.all([
       page.waitForEvent('download'),
-      panel.getByRole('menuitem', { name: /^Imagen\s*PNG/ }).click(),
+      itemDelMenu(page, /^Imagen\s*PNG/).click(),
     ]);
     expect(png.suggestedFilename()).toMatch(/\.png$/);
     const bytes: Buffer[] = [];
@@ -140,7 +145,7 @@ test.describe('descargas de los paneles', () => {
     await openMenu(panel);
     const [svg] = await Promise.all([
       page.waitForEvent('download'),
-      panel.getByRole('menuitem', { name: /^Imagen vectorial/ }).click(),
+      itemDelMenu(page, /^Imagen vectorial/).click(),
     ]);
     const markup: Buffer[] = [];
     for await (const chunk of await svg.createReadStream()) markup.push(chunk as Buffer);

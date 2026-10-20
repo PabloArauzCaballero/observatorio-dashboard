@@ -531,6 +531,7 @@ export function RoadsExplorer({ board }: { board: RoadBoard }) {
       </Panel>
 
       <DerivedReading
+        id="red-vial-lectura"
         title="Lectura de la red vial"
         note="Cada conclusión se calcula a partir de los tramos trazados y de la serie del INE. Indica cuánta red hay y dónde se concentra; no informa del estado de transitabilidad del día."
         conclusions={board.conclusions}

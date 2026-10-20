@@ -24,10 +24,10 @@ import type { FxConclusion } from '@/lib/fx-snapshot';
  * (`FxConclusions`). Ninguna vista pasa `defaultOpen`; la prop queda para que
  * abrir sea una decisión explícita y justificada, no un olvido.
  *
- * Con `id` se dibuja como un `Panel` del tablero —título con su cuenta, botón
- * para plegar a la derecha y menú «Descargar» con las lecturas—. Sin `id` sigue
- * dibujándose como antes: los capítulos que aún no migraron lo usan dentro de su
- * propia cabecera, y un panel dentro de otro panel no es lo que buscan.
+ * Se dibuja siempre como un `Panel` del tablero —título con su cuenta, botón para
+ * plegar a la derecha y menú «Descargar» con las lecturas—. La caja marfil de antes
+ * (sin `id`) quedó en seis capítulos sin migrar y se retiró el 20-oct-2026: el `id`
+ * es obligatorio.
  */
 
 const toneClass = (tone: FxConclusion['tone']): string =>
@@ -51,8 +51,8 @@ export function DerivedReading({
   defaultOpen?: boolean;
   /** The noun the folded header counts: «6 lecturas», «7 pruebas». */
   unit?: string;
-  /** Clave estable del panel; con ella la lectura se dibuja como `Panel`. */
-  id?: string;
+  /** Clave estable del panel (ancla, enlace y nombre de archivo de la descarga). */
+  id: string;
   /** Quién publica las cifras de las que salen las frases. */
   source?: string;
 }) {
@@ -81,59 +81,30 @@ export function DerivedReading({
     </ul>
   );
 
-  if (id) {
-    return (
-      <Panel
-        id={id}
-        title={`${title} (${conclusions.length} ${plural})`}
-        lede={open ? note : undefined}
-        meta={
-          <button
-            type="button"
-            className="menu-btn"
-            onClick={() => setOpen(!open)}
-            aria-expanded={open}
-          >
-            {open ? 'Plegar' : `Ver ${conclusions.length} ${plural}`}
-          </button>
-        }
-        source={source}
-        data={{
-          columnas: ['Lectura', 'Cifra', 'Detalle'],
-          filas: conclusions.map((one) => [one.claim, one.figure, one.detail]),
-          nota: 'Derivado de las observaciones, no redactado: cada frase se recalcula con cada carga.',
-        }}
-        className="derived-reading"
-      >
-        {open ? bullets : null}
-      </Panel>
-    );
-  }
-
   return (
-    <div className={open ? 'analysis' : 'analysis analysis-folded'}>
-      <div className="tile-head card-head">
-        <Icon name="sigma" size={17} />
-        <h2>{title}</h2>
-        <span className="tile-hint">
-          {open ? 'derivado de las series' : `${conclusions.length} ${plural}`}
-        </span>
+    <Panel
+      id={id}
+      title={`${title} (${conclusions.length} ${plural})`}
+      lede={open ? note : undefined}
+      meta={
         <button
           type="button"
-          className={open ? 'card-toggle card-toggle-on' : 'card-toggle'}
+          className="menu-btn"
           onClick={() => setOpen(!open)}
-          title={open ? 'Plegar la lectura' : 'Ver la lectura'}
           aria-expanded={open}
         >
-          <Icon name={open ? 'plegar' : 'desplegar'} size={16} />
+          {open ? 'Plegar' : `Ver ${conclusions.length} ${plural}`}
         </button>
-      </div>
-      {!open ? null : (
-        <>
-          <p className="analysis-note">{note}</p>
-          {bullets}
-        </>
-      )}
-    </div>
+      }
+      source={source}
+      data={{
+        columnas: ['Lectura', 'Cifra', 'Detalle'],
+        filas: conclusions.map((one) => [one.claim, one.figure, one.detail]),
+        nota: 'Derivado de las observaciones, no redactado: cada frase se recalcula con cada carga.',
+      }}
+      className="derived-reading"
+    >
+      {open ? bullets : null}
+    </Panel>
   );
 }

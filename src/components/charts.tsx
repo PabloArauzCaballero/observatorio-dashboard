@@ -51,6 +51,16 @@ export type TooltipRender = TooltipContentProps<ValueType, NameType>;
 export const MOTION = { duration: 900, easing: 'ease-out' } as const;
 
 /**
+ * El trazo de toda línea y área del tablero (pedido del usuario, 20-oct-2026: líneas suaves).
+ *
+ * «monotone» es la curva monótona en x (Fritsch-Carlson): pasa exactamente por cada dato y,
+ * entre dos datos, nunca sube por encima del mayor ni baja por debajo del menor. Así suaviza
+ * los quiebres sin inventar un pico ni un valle que la serie no tiene. Las curvas «natural»,
+ * «basis» o «cardinal» sí los inventan (o ni siquiera pasan por los datos): no se usan.
+ */
+export const CURVA = 'monotone' as const;
+
+/**
  * Los rótulos del eje son texto, y se leían a 3,8:1.
  *
  * `--ink-faint` es el gris de una nota al margen; en una cifra de 11 px pegada
@@ -749,7 +759,7 @@ export function RateChart({
           />
           <Tooltip content={renderTooltip} cursor={{ stroke: 'var(--rule)', strokeWidth: 1 }} />
           <Area
-            type="linear"
+            type={CURVA}
             dataKey="official"
             name="Oficial"
             stroke="var(--official)"
@@ -761,7 +771,7 @@ export function RateChart({
             animationEasing={MOTION.easing}
           />
           <Line
-            type="linear"
+            type={CURVA}
             dataKey="parallelBuy"
             name="Paralelo compra"
             stroke="var(--parallel)"
@@ -772,7 +782,7 @@ export function RateChart({
             animationEasing={MOTION.easing}
           />
           <Line
-            type="linear"
+            type={CURVA}
             dataKey="parallelSell"
             name="Paralelo venta"
             stroke="var(--parallel)"
@@ -853,7 +863,7 @@ export function GapChart({ data, tall }: { data: GapChartPoint[]; tall?: boolean
            */}
           <ReferenceLine y={0} stroke="var(--axis-rule)" strokeWidth={1} />
           <Area
-            type="linear"
+            type={CURVA}
             dataKey="gapPercent"
             name="Brecha"
             stroke="var(--gap)"
@@ -907,7 +917,7 @@ export function SpreadChart({ data }: { data: SpreadPoint[] }) {
         <YAxis width={54} tickFormatter={(value) => number(value, 2)} {...AXIS} />
         <Tooltip content={renderTooltip} cursor={{ stroke: 'var(--rule)', strokeWidth: 1 }} />
         <Area
-          type="linear"
+          type={CURVA}
           dataKey="spread"
           name="Dispersión"
           stroke="var(--parallel)"
@@ -984,10 +994,19 @@ export function MacroChart({
    * En el eje, los decimales son los del paso y no uno fijo: con un paso de 1.000 se
    * leía «4.000,0 · 5.000,0», y con uno de 1 «1,0 · 2,0». El emergente conserva el decimal.
    */
+  // Una sola escala para todo el eje, decidida por su tope: antes cada marca elegía la suya y
+  // un eje que llegaba al millón se leía «800.000 · 1 M».
+  const tope = Math.max(Math.abs(domain[0]), Math.abs(domain[1]));
+  const escala = tope >= 1e10 ? 1e9 : unit === 'USD' || tope >= 1e6 ? 1e6 : 1;
+  const sufijo = escala === 1e9 ? ' MM' : ' M';
+  const paso = (domain[1] - domain[0]) / Math.max(1, tickCountOf(domain) - 1);
+  const decimalesEscalados = [0, 1, 2].find(
+    (d) => Math.abs((paso / escala) * 10 ** d - Math.round((paso / escala) * 10 ** d)) < 1e-6,
+  );
   const axisTick = (value: number): string =>
-    unit === 'USD' || Math.abs(value) >= 1_000_000
-      ? compact(value)
-      : number(value, axisDecimals(domain, 1));
+    escala === 1
+      ? number(value, axisDecimals(domain, 1))
+      : `${number(value / escala, decimalesEscalados ?? 2)}${sufijo}`;
 
   const renderTooltip = ({ active, payload, label }: TooltipRender) => {
     if (!active || !payload?.length || typeof label !== 'string') return null;
@@ -1031,7 +1050,7 @@ export function MacroChart({
               <ReferenceLine y={0} stroke="var(--axis-rule)" strokeWidth={1} />
             ) : null}
             <Line
-              type="linear"
+              type={CURVA}
               dataKey="value"
               stroke={tone}
               strokeWidth={2}
@@ -1064,7 +1083,7 @@ export function Sparkline({ data, tone }: { data: number[]; tone: string }) {
         <ComposedChart data={points} margin={{ top: 2, right: 0, bottom: 0, left: 0 }}>
           <YAxis domain={fittedDomain(data)} hide />
           <Line
-            type="linear"
+            type={CURVA}
             dataKey="value"
             stroke={tone}
             strokeWidth={1.6}
@@ -1285,7 +1304,7 @@ export function SeriesChart({
               </Bar>
             ) : kind === 'area' ? (
               <Area
-                type="linear"
+                type={CURVA}
                 dataKey="value"
                 stroke={tone}
                 strokeWidth={2}
@@ -1296,7 +1315,7 @@ export function SeriesChart({
               />
             ) : (
               <Line
-                type="linear"
+                type={CURVA}
                 dataKey="value"
                 stroke={tone}
                 strokeWidth={2}
@@ -2302,6 +2321,7 @@ export function DivergingBars({
     above: row.value >= 0 ? row.value : null,
     below: row.value < 0 ? row.value : null,
   }));
+  const axisDomain = fittedDomain([0, ...data.map((row) => row.value)]);
   const renderTooltip = ({ active, payload }: TooltipRender) => {
     if (!active || !payload?.length) return null;
     const point = payload[0]?.payload as DivergingRow | undefined;
@@ -2355,7 +2375,13 @@ export function DivergingBars({
             <CartesianGrid {...GRID} horizontal={false} vertical />
             <XAxis
               type="number"
-              tickFormatter={(value: number) => `${value > 0 ? '+' : ''}${number(value, 0)}`}
+              /* Marcas redondas y con los decimales del paso: con el paso de 0,5 y sin
+                 decimales, la tendencia del clima rotulaba «0 · +1 · +1 · +2 · +2». */
+              domain={axisDomain}
+              tickCount={tickCountOf(axisDomain)}
+              tickFormatter={(value: number) =>
+                `${value > 0 ? '+' : ''}${number(value, axisDecimals(axisDomain, 0))}`
+              }
               /* La cifra de la barra negativa más larga va a la izquierda de su punta: sitio para ella. */
               padding={{ left: hasMinus ? 52 : 0, right: 0 }}
               {...AXIS}
@@ -3102,7 +3128,7 @@ export function WorldLines({
             {series.map((one, index) => (
               <Line
                 key={one.key}
-                type="linear"
+                type={CURVA}
                 dataKey={one.key}
                 name={one.label}
                 stroke={one.tone}
@@ -3382,7 +3408,7 @@ export function DatedLines({
             {series.map((one, index) => (
               <Line
                 key={one.key}
-                type="linear"
+                type={CURVA}
                 dataKey={one.key}
                 name={one.label}
                 stroke={one.tone}
@@ -3509,7 +3535,7 @@ export function RankLines({
             {lines.map((line, index) => (
               <Line
                 key={line.key}
-                type="linear"
+                type={CURVA}
                 dataKey={line.key}
                 name={line.label}
                 stroke={line.tone}

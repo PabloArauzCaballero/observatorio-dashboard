@@ -345,6 +345,16 @@ export async function componerAfiche(entrada: EntradaAfiche): Promise<Afiche> {
     const oro = varCss(claro.doc, '--gold', '#aa884d');
     const papel = varCss(claro.doc, '--field', '#fffefb');
 
+    // El afiche toma el ancho de su gráfico (hasta el doble de su tamaño real): una tarjeta de
+    // media columna ya no deja una franja vacía a la derecha de un lienzo de 1.200 px.
+    const medidas = delClon.map((clon, i) => {
+      const { ancho, alto } = dimensionesDe(delOriginal[i] ?? clon);
+      return { ancho, alto, anchoFigura: Math.round(Math.min(CONTENIDO, ancho * 2)) };
+    });
+    const masAncha = Math.max(...medidas.map((m) => m.anchoFigura));
+    const contenido = Math.max(640, Math.min(CONTENIDO, masAncha));
+    const anchoAfiche = contenido + MARGEN * 2;
+
     const letraTitulo = `700 32px ${familiaDePagina('--serif')}`;
     const letraTexto = `400 16px ${familiaDePagina('--sans')}`;
     const letraLeyenda = `400 14px ${familiaDePagina('--sans')}`;
@@ -354,9 +364,11 @@ export async function componerAfiche(entrada: EntradaAfiche): Promise<Afiche> {
     const partes: string[] = [];
 
     // El filete de tinta que abre cada figura, como en pantalla.
-    partes.push(`<rect x="${MARGEN}" y="${y - 18}" width="${CONTENIDO}" height="2" fill="${tinta}"/>`);
+    partes.push(
+      `<rect x="${MARGEN}" y="${y - 18}" width="${contenido}" height="2" fill="${tinta}"/>`,
+    );
 
-    for (const renglon of envolver(entrada.titulo, letraTitulo, CONTENIDO)) {
+    for (const renglon of envolver(entrada.titulo, letraTitulo, contenido)) {
       y += 38;
       partes.push(
         `<text x="${MARGEN}" y="${y}" font-family="${SERIF}" font-size="32" font-weight="700" fill="${tinta}">${escapar(renglon)}</text>`,
@@ -364,7 +376,7 @@ export async function componerAfiche(entrada: EntradaAfiche): Promise<Afiche> {
     }
     if (entrada.entradilla) {
       y += 6;
-      for (const renglon of envolver(entrada.entradilla, letraTexto, CONTENIDO)) {
+      for (const renglon of envolver(entrada.entradilla, letraTexto, contenido)) {
         y += 24;
         partes.push(
           `<text x="${MARGEN}" y="${y}" font-family="${SANS}" font-size="16" fill="${suave}">${escapar(renglon)}</text>`,
@@ -372,15 +384,13 @@ export async function componerAfiche(entrada: EntradaAfiche): Promise<Afiche> {
       }
     }
     y += 22;
-    partes.push(`<rect x="${MARGEN}" y="${y}" width="${CONTENIDO}" height="1" fill="${regla}"/>`);
+    partes.push(`<rect x="${MARGEN}" y="${y}" width="${contenido}" height="1" fill="${regla}"/>`);
     y += 24;
 
     delClon.forEach((clon, i) => {
-      const original = delOriginal[i] ?? clon;
-      const { ancho, alto } = dimensionesDe(original);
       // Hasta el doble de su tamaño real: ampliar una tarjeta de 280 px a todo el ancho del afiche
       // multiplicaba por cuatro las etiquetas de los ejes y las dejaba desproporcionadas.
-      const anchoFigura = Math.round(Math.min(CONTENIDO, ancho * 2));
+      const { ancho, alto, anchoFigura } = medidas[i]!;
       const altoFigura = Math.round((anchoFigura * alto) / ancho);
       const figura = clon.cloneNode(true) as SVGSVGElement;
       // Los estilos salen del clon, que está en tema claro; del original saldrían los de la pantalla.
@@ -403,7 +413,7 @@ export async function componerAfiche(entrada: EntradaAfiche): Promise<Afiche> {
       let linea = y + 14;
       for (const marca of leyenda) {
         const ancho = medir(marca.label, letraLeyenda) + (marca.forma === 'linea' ? 26 : 20) + 22;
-        if (x > MARGEN && x + ancho > MARGEN + CONTENIDO) {
+        if (x > MARGEN && x + ancho > MARGEN + contenido) {
           x = MARGEN;
           linea += 26;
         }
@@ -428,9 +438,9 @@ export async function componerAfiche(entrada: EntradaAfiche): Promise<Afiche> {
     }
 
     y += 10;
-    partes.push(`<rect x="${MARGEN}" y="${y}" width="${CONTENIDO}" height="1" fill="${regla}"/>`);
+    partes.push(`<rect x="${MARGEN}" y="${y}" width="${contenido}" height="1" fill="${regla}"/>`);
     y += 12;
-    for (const renglon of envolver(pieDeFuente(entrada.fuente), letraPie, CONTENIDO)) {
+    for (const renglon of envolver(pieDeFuente(entrada.fuente), letraPie, contenido)) {
       y += 20;
       partes.push(
         `<text x="${MARGEN}" y="${y}" font-family="${SANS}" font-size="13" fill="${suave}">${escapar(renglon)}</text>`,
@@ -451,7 +461,7 @@ export async function componerAfiche(entrada: EntradaAfiche): Promise<Afiche> {
           `</svg>`,
         `<text x="${MARGEN + anchoMono + 12}" y="${y + 15}" font-family="${SERIF}" font-size="17" font-weight="800" fill="${tinta}">DatosBolivia<tspan fill="${oro}">.</tspan>com</text>`,
         `<text x="${MARGEN + anchoMono + 12}" y="${y + 29}" font-family="${SERIF}" font-size="9.5" letter-spacing="2" fill="${suave}">${escapar(DESCRIPTOR.toUpperCase())}</text>`,
-        `<text x="${ANCHO - MARGEN}" y="${y + 21}" font-family="${SANS}" font-size="13" text-anchor="end" fill="${suave}">${escapar(MARCA.toLowerCase())} · ${escapar(entrada.fecha)}</text>`,
+        `<text x="${anchoAfiche - MARGEN}" y="${y + 21}" font-family="${SANS}" font-size="13" text-anchor="end" fill="${suave}">${escapar(MARCA.toLowerCase())} · ${escapar(entrada.fecha)}</text>`,
       );
       y += alto;
     }
@@ -459,12 +469,59 @@ export async function componerAfiche(entrada: EntradaAfiche): Promise<Afiche> {
 
     const fuentes = entrada.sinFuentes ? '' : await hojaDeFuentes();
     const svg =
-      `<svg xmlns="http://www.w3.org/2000/svg" width="${ANCHO}" height="${alto}" viewBox="0 0 ${ANCHO} ${alto}">` +
+      `<svg xmlns="http://www.w3.org/2000/svg" width="${anchoAfiche}" height="${alto}" viewBox="0 0 ${anchoAfiche} ${alto}">` +
       (fuentes ? `<style>${fuentes}</style>` : '') +
-      `<rect width="${ANCHO}" height="${alto}" fill="${papel}"/>` +
+      `<rect width="${anchoAfiche}" height="${alto}" fill="${papel}"/>` +
       partes.join('') +
       '</svg>';
-    return { svg, ancho: ANCHO, alto };
+    return { svg, ancho: anchoAfiche, alto };
+  } finally {
+    claro.liberar();
+  }
+}
+
+/** Un gráfico del panel listo para ir suelto en un documento, en tema claro y con sus estilos. */
+export interface FiguraSuelta {
+  svg: string;
+  /** La parte del ancho del panel que ocupa en pantalla (0–1): dos gráficos lado a lado, ½ cada uno. */
+  fraccion: number;
+}
+
+/**
+ * Los gráficos del panel y su leyenda, sin componer afiche: el informe pone el título, la
+ * leyenda y la fuente con su propia tipografía, y cada gráfico a su tamaño de pantalla
+ * proporcional. Así un rótulo de eje mide en el papel lo mismo en todas las figuras, y nada
+ * queda en una caja blanca sobre el marfil.
+ */
+export async function figurasDelPanel(
+  panel: HTMLElement,
+): Promise<{ figuras: FiguraSuelta[]; leyenda: MarcaLeyenda[] }> {
+  const claro = await clonarEnClaro(panel);
+  try {
+    const delOriginal = graficosDe(panel);
+    const delClon = graficosDe(claro.panel);
+    if (delClon.length === 0) throw new Error('El panel no tiene un gráfico que bajar.');
+    const anchoPanel = panel.getBoundingClientRect().width || 1;
+    const figuras = delClon.map((clon, i) => {
+      const original = delOriginal[i] ?? clon;
+      const { ancho, alto } = dimensionesDe(original);
+      const enPantalla = original.getBoundingClientRect().width || ancho;
+      const figura = clon.cloneNode(true) as SVGSVGElement;
+      fijarEstilos(clon, figura);
+      figura.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
+      figura.setAttribute('viewBox', `0 0 ${ancho} ${alto}`);
+      figura.setAttribute('width', String(Math.round(ancho)));
+      figura.setAttribute('height', String(Math.round(alto)));
+      figura.setAttribute('preserveAspectRatio', 'xMidYMid meet');
+      figura.setAttribute('overflow', 'visible');
+      // `fijarEstilos` deja un `style` con medidas de pantalla en la raíz: el informe manda.
+      figura.removeAttribute('style');
+      return {
+        svg: new XMLSerializer().serializeToString(figura),
+        fraccion: Math.min(1, Math.max(0.2, enPantalla / anchoPanel)),
+      };
+    });
+    return { figuras, leyenda: leyendaDe(claro.panel) };
   } finally {
     claro.liberar();
   }

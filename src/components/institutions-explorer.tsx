@@ -173,6 +173,7 @@ export function InstitutionsExplorer({ board: entire }: { board: InstitutionsBoa
         lede={`Cuatro instituciones califican, con métodos publicados, la libertad económica y política del país, la calidad de su democracia y el funcionamiento del Estado. Cada índice se muestra con sus componentes, porque el total oculta qué parte se movió. El dato más reciente es de ${board.asOfYear ?? '—'}.`}
       />
       <DerivedReading
+        id="instituciones-lectura"
         title="Qué dicen estos índices"
         note="Cada frase se calcula a partir de las series de esta sección y se actualiza con cada carga. Indica el nivel, el techo de la escala y desde cuándo; no atribuye causas ni hace proyecciones."
         conclusions={board.conclusions}

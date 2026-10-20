@@ -15,10 +15,11 @@ import {
   XAxis,
   YAxis,
 } from 'recharts';
-import { AXIS, ChartLegend, GRID, MOTION, TooltipShell } from './charts';
+import { AXIS, ChartLegend, CURVA, GRID, MOTION, TooltipShell } from './charts';
 import type { LegendItem, TooltipRender } from './charts';
 import { UNIT_LABEL } from './macro-vocabulary';
 import { celda, useDatosDeFigura } from '@/components/ui/panel-data';
+import { trazoMonotono } from '@/lib/curva';
 import type { DensityPoint, Fit, HistoBin, LagPoint, MacroStats } from '@/lib/macro-stats';
 
 /**
@@ -212,7 +213,7 @@ export function DensityHistogram({
               ))}
             </Bar>
             <Line
-              type="linear"
+              type={CURVA}
               dataKey="curve"
               stroke="var(--gap)"
               strokeWidth={2.2}
@@ -948,15 +949,16 @@ export function TrendSpark({
   const x = (index: number): number => (index / (values.length - 1)) * (W - 2) + 1;
   const y = (value: number): number => H - 2 - ((value - low) / span) * (H - 5);
 
-  const path = values.map((value, index) => `${x(index)},${y(value)}`).join(' L');
+  // La misma curva monótona que las líneas de Recharts (`CURVA`): pasa por cada dato sin inventar picos.
+  const path = trazoMonotono(values.map((value, index) => [x(index), y(value)] as const));
   const marks = new Set(outlierAt);
   const last = values.length - 1;
   const rising = (values.at(-1) ?? 0) >= (values[0] ?? 0);
 
   return (
     <svg className="spark" viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none" aria-hidden="true">
-      <path d={`M${path} L${W - 1},${H} L1,${H} Z`} fill={tone} fillOpacity={0.1} stroke="none" />
-      <path d={`M${path}`} fill="none" stroke={tone} strokeWidth={1.4} strokeLinejoin="round" />
+      <path d={`${path} L${W - 1},${H} L1,${H} Z`} fill={tone} fillOpacity={0.1} stroke="none" />
+      <path d={path} fill="none" stroke={tone} strokeWidth={1.4} strokeLinejoin="round" />
       {[...marks].map((at) =>
         values[at] === undefined ? null : (
           <circle key={at} cx={x(at)} cy={y(values[at])} r={1.9} fill="var(--up)" />

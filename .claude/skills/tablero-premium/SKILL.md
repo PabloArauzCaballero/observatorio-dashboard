@@ -86,8 +86,11 @@ nueva se añade ahí. La cabecera del sitio es `Masthead` y el pie, `SiteFooter`
   blanco (campos, menús, tooltip), `--panel-tint` marfil #f7f4ed (notas de contexto, fila elegida).
 - Una sola sombra, solo para capas flotantes (menús, popovers). Los paneles se separan por un
   filete claro arriba; la tinta abre una página (`.sub-title`) y el carril de filtros.
-- Gráficos: líneas rectas (`type="linear"`), nunca curvas suavizadas: una curva inventa valores
-  entre dos años. Ejes en Franklin de 12 px con los decimales del paso (`axisDecimals`).
+- Gráficos: líneas suaves con la curva monótona (`type={CURVA}`, de `charts.tsx`; pedido del
+  usuario, 20-oct-2026). Pasa por cada dato y nunca sube ni baja más allá de dos datos vecinos,
+  así que no inventa picos; `natural`, `basis` o `cardinal` sí los inventan y no se usan. Lo que
+  se dibuja a mano usa `trazoMonotono` (`src/lib/curva.ts`). Ejes en Franklin de 12 px con los
+  decimales del paso (`axisDecimals`), y una sola escala por eje (todo en «M» o nada).
 - Un solo acento de interfaz: **`--accent`** (oro profundo #806337, 5,1:1): página abierta,
   foco, enlaces, selección. `--gold` (#aa884d, 3,0:1) es solo filete, monograma y adorno,
   **nunca texto**. `--series-*` es solo para datos. Los colores de estado son solo estado.
