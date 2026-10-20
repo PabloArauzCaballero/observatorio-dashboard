@@ -1,6 +1,16 @@
 'use client';
 
-import { useCallback, useEffect, useId, useRef, useState, type RefObject } from 'react';
+import {
+  useCallback,
+  useEffect,
+  useId,
+  useLayoutEffect,
+  useRef,
+  useState,
+  type CSSProperties,
+  type RefObject,
+} from 'react';
+import { createPortal } from 'react-dom';
 import { Icon } from '@/components/icons';
 import type { DatosDeFigura, ProveedorDeImagen } from '@/components/ui/panel-data';
 import { afichePng, componerAfiche, puedeComponerImagen } from '@/lib/export/afiche';
@@ -31,6 +41,33 @@ type Accion = { tipo: 'png' | 'svg' | 'xlsx' | 'enlace' } | { tipo: 'csv'; indic
 const clave = (accion: Accion): string =>
   accion.tipo === 'csv' ? `csv-${accion.indice}` : accion.tipo;
 
+/** Aire entre la lista y el borde de la pantalla, y entre la lista y el botón (px). */
+const MARGEN = 8;
+const SEPARACION = 6;
+
+/**
+ * Dónde va la lista, en coordenadas de pantalla. Prefiere caer bajo el botón y alineada a su
+ * borde derecho; si por la izquierda no cabe (el botón quedó a la izquierda en un móvil), se
+ * alinea a su borde izquierdo, y en todo caso se encierra dentro de la pantalla. Si abajo no
+ * cabe y arriba hay más sitio, se abre hacia arriba. Exportada para probarla sin navegador.
+ */
+export function colocarLista(
+  boton: { top: number; bottom: number; left: number; right: number },
+  lista: { ancho: number; alto: number },
+  pantalla: { ancho: number; alto: number },
+): { top: number; left: number; maxHeight: number } {
+  let left = boton.right - lista.ancho;
+  if (left < MARGEN) left = boton.left;
+  left = Math.max(MARGEN, Math.min(left, pantalla.ancho - lista.ancho - MARGEN));
+  const abajo = pantalla.alto - boton.bottom - SEPARACION - MARGEN;
+  const arriba = boton.top - SEPARACION - MARGEN;
+  if (lista.alto > abajo && arriba > abajo) {
+    const alto = Math.min(lista.alto, arriba);
+    return { top: boton.top - SEPARACION - alto, left, maxHeight: arriba };
+  }
+  return { top: boton.bottom + SEPARACION, left, maxHeight: Math.max(abajo, 160) };
+}
+
 /**
  * «Descargar» de un panel: imagen, datos y enlace.
  *
@@ -57,6 +94,8 @@ export function DownloadMenu({
   const [conjuntos, setConjuntos] = useState<DatosDeFigura[]>([]);
   const raiz = useRef<HTMLDivElement>(null);
   const boton = useRef<HTMLButtonElement>(null);
+  const lista = useRef<HTMLDivElement>(null);
+  const [lugar, setLugar] = useState<CSSProperties | null>(null);
   const menuId = useId();
 
   const cerrar = useCallback((devolverFoco: boolean) => {
@@ -83,15 +122,50 @@ export function DownloadMenu({
     setAbierto(!abierto);
   };
 
+  // La lista se dibuja en el <body> (ningún `overflow` de la página la recorta) y se coloca
+  // contra el botón: dentro de la pantalla siempre, y de nuevo al desplazar o redimensionar.
+  const colocar = useCallback(() => {
+    const b = boton.current?.getBoundingClientRect();
+    const l = lista.current;
+    if (!b || !l) return;
+    const { top, left, maxHeight } = colocarLista(
+      b,
+      { ancho: l.offsetWidth, alto: l.scrollHeight },
+      { ancho: document.documentElement.clientWidth, alto: window.innerHeight },
+    );
+    setLugar({ top, left, maxHeight });
+  }, []);
+
+  // El foco va a la primera opción cuando la lista ya está colocada (oculta no lo acepta).
+  useEffect(() => {
+    if (!abierto || !lugar || lista.current?.contains(document.activeElement)) return;
+    lista.current?.querySelector<HTMLElement>('[role="menuitem"]')?.focus({ preventScroll: true });
+  }, [abierto, lugar]);
+
+  useLayoutEffect(() => {
+    if (!abierto) {
+      setLugar(null);
+      return;
+    }
+    colocar();
+  }, [abierto, colocar, conjuntos, aviso]);
+
   useEffect(() => {
     if (!abierto) return;
-    raiz.current?.querySelector<HTMLElement>('[role="menuitem"]')?.focus();
     const fuera = (evento: PointerEvent) => {
-      if (raiz.current && !raiz.current.contains(evento.target as Node)) setAbierto(false);
+      const objetivo = evento.target as Node;
+      if (raiz.current?.contains(objetivo) || lista.current?.contains(objetivo)) return;
+      setAbierto(false);
     };
     document.addEventListener('pointerdown', fuera);
-    return () => document.removeEventListener('pointerdown', fuera);
-  }, [abierto]);
+    window.addEventListener('scroll', colocar, true);
+    window.addEventListener('resize', colocar);
+    return () => {
+      document.removeEventListener('pointerdown', fuera);
+      window.removeEventListener('scroll', colocar, true);
+      window.removeEventListener('resize', colocar);
+    };
+  }, [abierto, colocar]);
 
   const alTeclear = (evento: React.KeyboardEvent) => {
     if (evento.key === 'Escape') {
@@ -100,7 +174,7 @@ export function DownloadMenu({
       return;
     }
     if (evento.key !== 'ArrowDown' && evento.key !== 'ArrowUp') return;
-    const items = [...(raiz.current?.querySelectorAll<HTMLElement>('[role="menuitem"]') ?? [])];
+    const items = [...(lista.current?.querySelectorAll<HTMLElement>('[role="menuitem"]') ?? [])];
     if (items.length === 0) return;
     evento.preventDefault();
     const actual = items.indexOf(document.activeElement as HTMLElement);
@@ -221,51 +295,61 @@ export function DownloadMenu({
         <span>Descargar</span>
         <Icon name="desplegar" size={14} />
       </button>
-      {abierto ? (
-        <div className="menu-list" role="menu" id={menuId} aria-label={`Descargar «${titulo}»`}>
-          {conImagen ? (
-            <>
-              {item({ tipo: 'png' }, 'Imagen', 'PNG')}
-              {conImagenPropia ? null : item({ tipo: 'svg' }, 'Imagen vectorial', 'SVG')}
-            </>
-          ) : null}
-          {conjuntos.length > 0 ? (
-            <>
-              {item(
-                { tipo: 'xlsx' },
-                varias ? `Datos para Excel (${conjuntos.length} hojas)` : 'Datos para Excel',
-                'XLSX',
-              )}
-              {varias
-                ? conjuntos.map((figura, indice) =>
-                    item(
-                      { tipo: 'csv', indice },
-                      `Datos · ${figura.etiqueta ?? `figura ${indice + 1}`}`,
-                      'CSV',
-                    ),
-                  )
-                : item({ tipo: 'csv', indice: 0 }, 'Datos', 'CSV')}
-            </>
-          ) : null}
-          {(extra ?? []).map((descarga) => (
-            <a
-              key={descarga.href}
-              role="menuitem"
-              className="menu-item"
-              href={descarga.href}
-              download
-              onClick={() => cerrar(false)}
+      {abierto && typeof document !== 'undefined'
+        ? createPortal(
+            <div
+              ref={lista}
+              className="menu-list menu-list-flotante"
+              role="menu"
+              id={menuId}
+              aria-label={`Descargar «${titulo}»`}
+              style={lugar ?? { visibility: 'hidden' }}
             >
-              <span>{descarga.etiqueta}</span>
-              <span className="menu-item-note">{descarga.nota ?? ''}</span>
-            </a>
-          ))}
-          {item({ tipo: 'enlace' }, 'Copiar enlace al panel', '')}
-          <p className="menu-aviso" role="status">
-            {aviso ?? ''}
-          </p>
-        </div>
-      ) : null}
+              {conImagen ? (
+                <>
+                  {item({ tipo: 'png' }, 'Imagen', 'PNG')}
+                  {conImagenPropia ? null : item({ tipo: 'svg' }, 'Imagen vectorial', 'SVG')}
+                </>
+              ) : null}
+              {conjuntos.length > 0 ? (
+                <>
+                  {item(
+                    { tipo: 'xlsx' },
+                    varias ? `Datos para Excel (${conjuntos.length} hojas)` : 'Datos para Excel',
+                    'XLSX',
+                  )}
+                  {varias
+                    ? conjuntos.map((figura, indice) =>
+                        item(
+                          { tipo: 'csv', indice },
+                          `Datos · ${figura.etiqueta ?? `figura ${indice + 1}`}`,
+                          'CSV',
+                        ),
+                      )
+                    : item({ tipo: 'csv', indice: 0 }, 'Datos', 'CSV')}
+                </>
+              ) : null}
+              {(extra ?? []).map((descarga) => (
+                <a
+                  key={descarga.href}
+                  role="menuitem"
+                  className="menu-item"
+                  href={descarga.href}
+                  download
+                  onClick={() => cerrar(false)}
+                >
+                  <span>{descarga.etiqueta}</span>
+                  <span className="menu-item-note">{descarga.nota ?? ''}</span>
+                </a>
+              ))}
+              {item({ tipo: 'enlace' }, 'Copiar enlace al panel', '')}
+              <p className="menu-aviso" role="status">
+                {aviso ?? ''}
+              </p>
+            </div>,
+            document.body,
+          )
+        : null}
     </div>
   );
 }

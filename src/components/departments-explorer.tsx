@@ -526,6 +526,7 @@ export function DepartmentsExplorer({ board: entire }: { board: DepartmentBoard 
         lede={`Cuentas regionales oficiales del INE —seis medidas para los nueve departamentos, de 1988 a ${board.accountsYear ?? '—'}— y exportaciones por departamento y producto, de 2010 a ${board.tradeYear ?? '—'}. El total nacional puede ocultar caídas y alzas de signo opuesto entre departamentos.`}
       />
       <DerivedReading
+        id="departamentos-lectura"
         title="Qué dicen estos datos"
         note="Cada lectura se calcula con las series de esta sección y se actualiza con cada carga. Describe niveles y comparaciones; no atribuye causas ni hace proyecciones."
         conclusions={board.conclusions}

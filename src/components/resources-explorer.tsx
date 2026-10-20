@@ -242,6 +242,7 @@ export function ResourcesExplorer({
         />
       )}
       <DerivedReading
+        id="recursos-renta-lectura"
         title="Qué dicen estos datos"
         note="Cada frase se calcula a partir de las series de esta sección y se actualiza con cada carga. Indica el nivel y la referencia de comparación; no atribuye causas ni hace proyecciones."
         conclusions={board.conclusions}

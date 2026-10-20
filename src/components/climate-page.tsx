@@ -3,6 +3,7 @@
 import { useMemo, useState } from 'react';
 import {
   DatedLines,
+  ChartLegend,
   DivergingBars,
   HeatGrid,
   ShareBars,
@@ -1279,7 +1280,14 @@ function ExtremesBlock({
         source={credit}
         updated={updated}
       >
-        {records.length ? <ShareBars data={records} unit="mm" decimals={0} /> : null}
+        {records.length ? (
+          <>
+            <ShareBars data={records} unit="mm" decimals={0} />
+            <ChartLegend
+              items={[{ color: 'var(--series-1)', label: 'Lluvia del día más lluvioso, en mm' }]}
+            />
+          </>
+        ) : null}
         <HowTo>
           cada barra es el récord de lluvia de un día; entre paréntesis, cuándo ocurrió.
         </HowTo>
@@ -1541,7 +1549,14 @@ function AirBlock({
           source={credit}
           updated={updated}
         >
-          {bars.length ? <ShareBars data={bars} unit="días" decimals={0} /> : null}
+          {bars.length ? (
+            <>
+              <ShareBars data={bars} unit="días" decimals={0} />
+              <ChartLegend
+                items={[{ color: 'var(--series-1)', label: 'Días sobre 15 µg/m³ de PM2,5' }]}
+              />
+            </>
+          ) : null}
           <HowTo>cada barra cuenta los días de aire malo de una ciudad en ese año completo.</HowTo>
         </Panel>
       </div>
@@ -1765,7 +1780,16 @@ function FireBlock({
           source={forestCredit}
           updated={updated}
         >
-          {shares.length ? <ShareBars data={shares} unit="%" decimals={1} /> : null}
+          {shares.length ? (
+            <>
+              <ShareBars data={shares} unit="%" decimals={1} />
+              <ChartLegend
+                items={[
+                  { color: 'var(--series-1)', label: 'Cobertura perdida, en % de la de 2000' },
+                ]}
+              />
+            </>
+          ) : null}
           <HowTo>
             una barra larga quiere decir que el departamento perdió buena parte de los árboles que
             tenía. Parte de lo perdido puede volver a crecer.

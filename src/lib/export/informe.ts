@@ -8,19 +8,25 @@
  * (el mismo camino que ya usa el informe de una serie macro).
  *
  * Qué entra de cada panel:
- *   · con un gráfico → su afiche (título, figura, leyenda y fuente), sin la marca
- *     repetida;
- *   · sin gráfico pero con cifras o con una tabla → el título y una tabla de las
- *     primeras filas (el archivo completo se baja desde el menú del panel);
+ *   · con un gráfico → su título, el gráfico en vector, su leyenda y su fuente, con la
+ *     tipografía del informe y a la parte del ancho que ocupa en pantalla: dos gráficos
+ *     que en pantalla van lado a lado, en el papel también. (Hasta el 20-oct-2026 iba el
+ *     afiche entero: una caja blanca sobre el marfil, los ejes al doble de tamaño que la
+ *     leyenda y dos figuras por hoja.)
+ *   · sin gráfico pero con cifras o con una tabla → el título y la tabla puesta para
+ *     leer (ver `tabla-impresa.ts`); el archivo completo se baja desde el menú del panel;
  *   · sin nada de eso → título, entradilla y fuente, para que el informe no
  *     calle que ese panel existe.
+ *
+ * Los bloques se parten entre páginas por filas, no enteros: un bloque que se negaba a
+ * partirse saltaba a la hoja siguiente y dejaba media página en blanco.
  */
-import { componerAfiche, hojaDeFuentes, puedeComponerImagen } from './afiche';
-import type { Celda } from './datos';
+import { figurasDelPanel, hojaDeFuentes, puedeComponerImagen, type MarcaLeyenda } from './afiche';
 import { PAPEL, cssPapel, papelHtml } from './membrete';
 import { cifrasDelPanel } from './registro';
 import { pieDeFuente } from './pie';
 import { leerTablas } from './tablas';
+import { escapar, tablaImpresa } from './tabla-impresa';
 
 export interface EntradaInforme {
   /** «Macroeconomía · Series de Bolivia». */
@@ -32,71 +38,80 @@ export interface EntradaInforme {
   progreso?: ((hecho: number, total: number) => void) | undefined;
 }
 
-const MAX_FILAS = 40;
-
-const escapar = (texto: string): string =>
-  texto.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
-
 const textoDe = (elemento: Element | null | undefined): string =>
   (elemento?.textContent ?? '').replace(/\s+/g, ' ').trim();
 
-function celda(valor: Celda): string {
-  if (valor === null) return '—';
-  if (typeof valor === 'number') {
-    return valor.toLocaleString('es-BO', { maximumFractionDigits: 4 });
-  }
-  return escapar(valor);
-}
-
-function tablaHtml(
-  etiqueta: string | undefined,
-  columnas: ReadonlyArray<string>,
-  filas: ReadonlyArray<ReadonlyArray<Celda>>,
-): string {
-  const visibles = filas.slice(0, MAX_FILAS);
-  const recorte =
-    filas.length > MAX_FILAS
-      ? `<p class="recorte">Primeras ${MAX_FILAS} de ${filas.length.toLocaleString('es-BO')} filas; el archivo completo se baja desde el panel.</p>`
-      : '';
+function leyendaHtml(leyenda: readonly MarcaLeyenda[]): string {
+  if (leyenda.length === 0) return '';
   return (
-    (etiqueta ? `<p class="etiqueta">${escapar(etiqueta)}</p>` : '') +
-    '<table class="datos"><thead><tr>' +
-    columnas.map((c) => `<th>${escapar(c)}</th>`).join('') +
-    '</tr></thead><tbody>' +
-    visibles
-      .map(
-        (fila) =>
-          '<tr>' +
-          columnas
-            .map((_, j) => {
-              const valor = fila[j] ?? null;
-              return `<td${typeof valor === 'number' ? ' class="num"' : ''}>${celda(valor)}</td>`;
-            })
-            .join('') +
-          '</tr>',
-      )
+    '<ul class="leyenda">' +
+    leyenda
+      .map((m) => {
+        const marca =
+          m.forma === 'linea'
+            ? `<i class="marca linea${m.discontinua ? ' discontinua' : ''}" style="border-color:${escapar(m.color)}"></i>`
+            : `<i class="marca cuadro" style="background:${escapar(m.color)}"></i>`;
+        return `<li>${marca}${escapar(m.label)}</li>`;
+      })
       .join('') +
-    '</tbody></table>' +
-    recorte
+    '</ul>'
   );
 }
 
-async function seccionDe(panel: HTMLElement, fecha: string): Promise<string> {
+/**
+ * La parte de la columna de contenido que ocupa el panel en pantalla (0–1).
+ *
+ * La columna es la de los paneles, junto al carril de filtros si la página lo tiene; no
+ * el panel más ancho: en «Series de Bolivia» todos son tarjetas de media columna, y medidos
+ * entre sí salían todos a ancho completo.
+ */
+function fraccionDe(panel: HTMLElement): number {
+  const ancho = panel.getBoundingClientRect().width;
+  const mesa = panel.closest('.workspace');
+  const columna =
+    (mesa &&
+      [...mesa.children].find(
+        (hijo) => !hijo.classList.contains('rail') && hijo.contains(panel),
+      )) ||
+    panel.closest('[data-site-kind="pagina"], [data-site-kind="seccion"]');
+  const total = columna?.getBoundingClientRect().width ?? ancho;
+  return total > 0 ? Math.min(1, ancho / total) : 1;
+}
+
+/**
+ * El ancho en el papel. El flujo es 6 mm más ancho que la hoja y cada pieza deja 6 mm a su
+ * derecha: así dos medias columnas suman exactamente la hoja, con su calle en medio.
+ * Más de tres cuartos es ancho completo; menos, se redondea a la mitad o al tercio.
+ */
+function anchoDe(fraccion: number): string {
+  const pct = fraccion > 0.75 ? 100 : fraccion > 0.4 ? 50 : 33.33;
+  return ` style="width:calc(${pct}% - 6mm)"`;
+}
+
+async function seccionDe(panel: HTMLElement, fraccion: number): Promise<string> {
   const titulo = textoDe(panel.querySelector('.panel-top h3'));
   const entradilla = textoDe(panel.querySelector('.panel-lede'));
   const fuente = textoDe(panel.querySelector('.panel-source')).replace(/^Fuente:\s*/, '');
+  const pie = fuente ? `<p class="pie">${escapar(pieDeFuente(fuente))}</p>` : '';
 
   if (puedeComponerImagen(panel)) {
-    const afiche = await componerAfiche({
-      panel,
-      titulo,
-      entradilla: entradilla || undefined,
-      fuente,
-      fecha,
-      sinMarca: true,
-      sinFuentes: true,
-    });
-    return `<figure class="figura">${afiche.svg}</figure>`;
+    const { figuras, leyenda } = await figurasDelPanel(panel);
+    return (
+      `<figure class="figura"${anchoDe(fraccion)}>` +
+      `<h3>${escapar(titulo)}</h3>` +
+      (entradilla ? `<p class="entradilla">${escapar(entradilla)}</p>` : '') +
+      '<div class="laminas">' +
+      figuras
+        .map(
+          (f) =>
+            `<div class="lamina" style="width:${Math.round(f.fraccion * 100)}%">${f.svg}</div>`,
+        )
+        .join('') +
+      '</div>' +
+      leyendaHtml(leyenda) +
+      pie +
+      '</figure>'
+    );
   }
 
   const conjuntos = cifrasDelPanel(panel).filter((c) => c.filas.length > 0);
@@ -107,9 +122,9 @@ async function seccionDe(panel: HTMLElement, fecha: string): Promise<string> {
     `<h3>${escapar(titulo)}</h3>` +
     (entradilla ? `<p class="entradilla">${escapar(entradilla)}</p>` : '') +
     tablas
-      .map((t) => tablaHtml(tablas.length > 1 ? t.etiqueta : undefined, t.columnas, t.filas))
+      .map((t) => tablaImpresa(tablas.length > 1 ? t.etiqueta : undefined, t.columnas, t.filas))
       .join('') +
-    (fuente ? `<p class="pie">${escapar(pieDeFuente(fuente))}</p>` : '') +
+    pie +
     '</section>'
   );
 }
@@ -123,22 +138,54 @@ const CSS_INFORME = `
     color: ${PAPEL.oroProfundo}; margin: 0 0 4pt; }
   h1 { font-family: 'ObsSerif', Georgia, serif; font-size: 25pt; line-height: 1.1; font-weight: 700;
     letter-spacing: -0.015em; margin: 0 0 4pt; }
-  .fecha { font-size: 8.5pt; color: ${PAPEL.suave}; margin: 0 0 16pt; }
-  .figura { margin: 0 0 9mm; break-inside: avoid; }
-  .figura svg { display: block; width: 100%; height: auto; }
-  .seccion { margin: 0 0 8mm; break-inside: avoid-page; }
-  .seccion h3 { font-family: 'ObsSerif', Georgia, serif; font-size: 13.5pt; font-weight: 700;
-    margin: 0 0 2pt; letter-spacing: -0.01em; }
-  .entradilla { margin: 0 0 6pt; color: ${PAPEL.suave}; font-family: 'ObsSerif', Georgia, serif; }
-  .etiqueta { margin: 8pt 0 3pt; font-weight: 600; font-size: 8.5pt; }
+  .fecha { font-size: 8.5pt; color: ${PAPEL.suave}; margin: 0 0 14pt; }
+  /*
+   * Las figuras guardan su parte del ancho de pantalla: dos medias columnas comparten renglón.
+   * Bloques en línea y no flex: Chrome parte mal un flex dentro de la tabla del membrete (dejaba
+   * la primera hoja en blanco y mandaba la primera figura a la segunda).
+   */
+  .flujo { display: block; margin-right: -6mm; }
+  .flujo > * { display: inline-block; vertical-align: top; width: calc(100% - 6mm);
+    margin: 0 6mm 7mm 0; }
+  .figura, .seccion { padding-top: 5pt; border-top: 0.8pt solid ${PAPEL.tinta}; }
+  .seccion { display: block; }
+  .figura h3, .seccion h3 { font-family: 'ObsSerif', Georgia, serif; font-size: 11pt; font-weight: 700;
+    line-height: 1.25; letter-spacing: -0.005em; margin: 0 0 2pt; break-after: avoid; }
+  .entradilla { margin: 0 0 5pt; color: ${PAPEL.suave}; font-size: 8.3pt; line-height: 1.4;
+    break-after: avoid; }
+  .laminas { display: flex; flex-wrap: wrap; align-items: flex-start; }
+  .lamina svg { display: block; width: 100%; height: auto; }
+  .leyenda { list-style: none; margin: 4pt 0 0; padding: 0; display: flex; flex-wrap: wrap;
+    gap: 2pt 10pt; font-size: 7.5pt; line-height: 1.35; }
+  .leyenda li { display: inline-flex; align-items: center; gap: 4pt; }
+  .marca { display: inline-block; flex: none; }
+  .marca.linea { width: 12pt; border-top: 1.6pt solid; }
+  .marca.linea.discontinua { border-top-style: dashed; }
+  .marca.cuadro { width: 7pt; height: 7pt; border-radius: 1pt; }
+  .etiqueta { margin: 8pt 0 3pt; font-weight: 600; font-size: 8.5pt; break-after: avoid; }
   table.datos { width: 100%; border-collapse: collapse; font-size: 7.8pt; margin: 0 0 4pt; }
-  table.datos th, table.datos td { text-align: left; padding: 2.5pt 5pt; border-bottom: 0.5pt solid ${PAPEL.filete};
-    vertical-align: top; }
+  table.datos.corta { break-inside: avoid; }
+  /* Una tabla corta viaja entera con su título: el título solo al pie de una hoja no sirve. */
+  .seccion:has(table.corta) { break-inside: avoid; }
+  /* Las direcciones sí se parten donde haga falta; las palabras y las fechas, no. */
+  td a, dd a { overflow-wrap: anywhere; }
+  .nw { white-space: nowrap; }
+  table.datos tr { break-inside: avoid; }
+  table.datos th, table.datos td { text-align: left; padding: 2.5pt 5pt;
+    border-bottom: 0.5pt solid ${PAPEL.filete}; vertical-align: top; overflow-wrap: break-word; }
   table.datos th { border-bottom: 0.8pt solid ${PAPEL.tinta}; font-weight: 600; font-size: 7pt;
-    letter-spacing: 0.04em; color: ${PAPEL.suave}; }
+    letter-spacing: 0.04em; color: ${PAPEL.suave}; overflow-wrap: normal; }
   table.datos tbody tr:nth-child(even) td { background: ${PAPEL.marfil}; }
-  table.datos td.num { text-align: right; font-variant-numeric: tabular-nums; }
-  .recorte, .pie { margin: 3pt 0 0; font-size: 7.5pt; color: ${PAPEL.suave}; }
+  table.datos .num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+  a { color: inherit; text-decoration: underline; text-decoration-color: ${PAPEL.fileteFuerte}; }
+  .ficha { break-inside: avoid; padding: 5pt 0 6pt; border-bottom: 0.5pt solid ${PAPEL.filete}; }
+  .ficha h4 { margin: 0 0 3pt; font-size: 9pt; font-weight: 700; }
+  .ficha dl { margin: 0; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 3pt 10pt; }
+  .ficha .par { min-width: 0; }
+  .ficha .par.ancho { grid-column: 1 / -1; }
+  .ficha dt { font-size: 6.8pt; font-weight: 600; letter-spacing: 0.04em; color: ${PAPEL.suave}; }
+  .ficha dd { margin: 0; font-size: 8pt; overflow-wrap: break-word; }
+  .recorte, .pie { margin: 3pt 0 0; font-size: 7pt; color: ${PAPEL.suave}; line-height: 1.4; }
 `;
 
 /**
@@ -161,7 +208,7 @@ export function documentoInforme(
       (resto.length ? `<p class="volanta">${escapar(seccion ?? '')}</p>` : '') +
         `<h1>${escapar(resto.length ? resto.join(' · ') : titulo)}</h1>` +
         `<p class="fecha">Cifras al ${escapar(fecha)}, con los filtros que estaban puestos en pantalla.</p>` +
-        secciones.join(''),
+        `<div class="flujo">${secciones.join('')}</div>`,
       titulo,
     ) +
     '</body></html>'
@@ -175,7 +222,7 @@ export async function componerInforme(entrada: EntradaInforme): Promise<string> 
   for (const [i, panel] of entrada.paneles.entries()) {
     entrada.progreso?.(i, total);
     try {
-      secciones.push(await seccionDe(panel, entrada.fecha));
+      secciones.push(await seccionDe(panel, fraccionDe(panel)));
     } catch (error) {
       // Un panel que no se pudo componer no tira el informe entero: se nombra y se sigue.
       console.error('Informe: panel omitido', error);

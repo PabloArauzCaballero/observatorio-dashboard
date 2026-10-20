@@ -162,6 +162,7 @@ export function EnergyExplorer({ board: entire }: { board: EnergyBoard }) {
         lede={`Las fuentes de la energía que usa Bolivia, cuánta vende y compra, y qué renta deja el subsuelo. Todas las cifras son del Banco Mundial, con una definición común para Bolivia y sus vecinos. El dato más reciente es de ${board.asOfYear ?? '—'}: las series de energía se publican con dos o tres años de retraso.`}
       />
       <DerivedReading
+        id="energia-lectura"
         title="Qué dicen estos datos"
         note="Cada frase se calcula con las series de este capítulo y se actualiza con cada carga. Indica el nivel y la referencia con que se compara; no explica causas ni anticipa tendencias."
         conclusions={board.conclusions}
