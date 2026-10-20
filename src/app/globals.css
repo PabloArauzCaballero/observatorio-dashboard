@@ -11878,3 +11878,10 @@ a {
   border-radius: 0;
   background: none;
 }
+
+/* Seis cifras van de tres en tres: con la rejilla automática quedaban cinco y una sola debajo. */
+@media (min-width: 640px) {
+  .stat-strip:has(> .stat:nth-child(6):last-child) {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
