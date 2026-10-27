@@ -469,6 +469,48 @@ export default function ApiPage() {
               ]}
             />
           </Ruta>
+
+          <Ruta id="empresas" ruta="/api/v1/empresas">
+            <div className={api.prosa}>
+              <p>
+                El directorio de empresas que publica el tablero: un subconjunto público del registro
+                del SEPREC, no la base completa del Registro de Comercio. Ordenado por departamento,
+                municipio y nombre; <code>actualizado</code> es la fecha de corte.
+              </p>
+            </div>
+            <Parametros
+              filas={[
+                ['departamento', 'Un departamento, como aparece en la tabla de Empresas.'],
+                ['municipio', 'Un municipio.'],
+                ['buscar', 'Texto en el nombre.'],
+                ...PAGINA,
+              ]}
+            />
+          </Ruta>
+
+          <Ruta id="aduana" ruta="/api/v1/aduana">
+            <div className={api.prosa}>
+              <p>
+                La base aduanera del INE sumada por una dimensión, con la misma lectura que «Detalle
+                aduanero»: valor en dólares, peso y el valor del último año del tramo y del anterior.
+                Como en el panel, el filtro de la misma dimensión no recorta su propio desglose, y una
+                combinación que el INE no publica (importaciones por país y departamento a la vez)
+                responde 400 con el motivo.
+              </p>
+            </div>
+            <Parametros
+              filas={[
+                ['por', 'Obligatorio: year, month, section, chapter, heading, subheading, nandina, country, zone, department, activity, activityGroup, traditional, traditionalGroup, use, useGroup o kind.'],
+                ['flujo', '«X» exportaciones (por omisión) o «M» importaciones.'],
+                ['desde, hasta', 'Años inicial y final, AAAA.'],
+                ['meses', 'Tramo de meses de cada año, p. ej. 1-7 para comparar enero a julio.'],
+                ['producto', 'Códigos NANDINA de 2 a 10 dígitos, separados por coma.'],
+                ['pais, departamento', 'Códigos del INE, separados por coma.'],
+                ['seccion, actividad, tradicional, uso, tipo', 'Los demás filtros del panel, por código.'],
+                ...PAGINA,
+              ]}
+            />
+          </Ruta>
         </section>
 
         <section className={styles.bloque} id="ejemplos" aria-labelledby="ejemplos-titulo">
