@@ -13,13 +13,16 @@ export const dynamic = 'force-dynamic';
 export { OPTIONS };
 
 export function GET(request: Request): Promise<Response> {
-  return serve(request, 'lugares', async ({ params, offset, pageSize }) => {
+  return serve(request, 'lugares', async ({ caller, params, offset, pageSize }) => {
     const cities = parseList(params.get('ciudad'), 12, 60);
     if (cities.length === 0) {
       throw new BadParam('Falta ciudad: una o varias, separadas por coma (p. ej. «La Paz,El Alto»).');
     }
     const families = parseList(params.get('familia'), 60, 60);
-    const places = await readPlacesForExport(cities, families);
+    const todos = await readPlacesForExport(cities, families);
+    // El plan fija cuántos lugares da una misma consulta, también recorrida por cursor.
+    const tope = caller.plan.lugaresPorDescarga;
+    const places = tope === null ? todos : todos.slice(0, tope);
     const data = places.slice(offset, offset + pageSize).map((place) => ({
       id: place.placeId,
       ciudad: place.city,
