@@ -12,9 +12,22 @@ import 'server-only';
 
 const ventanas = new Map<string, Map<string, number[]>>();
 
-/** La dirección del lector detrás del proxy de Coolify. */
+/**
+ * La dirección del lector detrás del proxy de Coolify.
+ *
+ * No la primera de `X-Forwarded-For`: esa la escribe quien pide, y bastaba
+ * cambiarla en cada pedido para saltarse todos los topes. Cada proxy agrega la
+ * dirección de quien le habló al final de la lista, así que la confiable es la
+ * que agregó el último proxy propio. `PROXY_SALTOS` dice cuántos hay delante
+ * del tablero (uno en Coolify).
+ */
 export function clientIp(request: Request): string {
-  const reenviada = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim();
+  const saltos = Math.max(1, Number.parseInt(process.env.PROXY_SALTOS ?? '1', 10) || 1);
+  const cadena = (request.headers.get('x-forwarded-for') ?? '')
+    .split(',')
+    .map((parte) => parte.trim())
+    .filter(Boolean);
+  const reenviada = cadena.length >= saltos ? cadena[cadena.length - saltos] : undefined;
   return reenviada || request.headers.get('x-real-ip')?.trim() || 'sin-ip';
 }
 
@@ -47,6 +60,36 @@ export function admit(nombre: string, ip: string, maximo: number, ventanaMs: num
     for (const [clave, tiempos] of cupo) if (tiempos.every((t) => ahora - t >= ventanaMs)) cupo.delete(clave);
   }
   return { ok: true, retryAfter: 0 };
+}
+
+const gastos = new Map<string, Map<string, Array<{ t: number; n: number }>>>();
+
+/**
+ * Lo que le queda a `ip` de un presupuesto de `maximo` unidades en `ventanaMs`.
+ * Para los cupos que se miden en filas servidas y no en pedidos: cuántos
+ * pedidos hace alguien importa menos que cuánto se lleva.
+ */
+export function remaining(nombre: string, ip: string, maximo: number, ventanaMs: number): number {
+  const ahora = Date.now();
+  const cupo = gastos.get(nombre);
+  const recientes = (cupo?.get(ip) ?? []).filter((g) => ahora - g.t < ventanaMs);
+  cupo?.set(ip, recientes);
+  return Math.max(0, maximo - recientes.reduce((suma, g) => suma + g.n, 0));
+}
+
+/** Anota que `ip` gastó `cantidad` unidades del presupuesto `nombre`. */
+export function spend(nombre: string, ip: string, cantidad: number, ventanaMs: number): void {
+  if (cantidad <= 0) return;
+  const ahora = Date.now();
+  let cupo = gastos.get(nombre);
+  if (!cupo) {
+    cupo = new Map();
+    gastos.set(nombre, cupo);
+  }
+  cupo.set(ip, [...(cupo.get(ip) ?? []), { t: ahora, n: cantidad }]);
+  if (cupo.size > 10_000) {
+    for (const [clave, lista] of cupo) if (lista.every((g) => ahora - g.t >= ventanaMs)) cupo.delete(clave);
+  }
 }
 
 export const HOUR_MS = 60 * 60 * 1000;
