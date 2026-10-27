@@ -446,6 +446,29 @@ export default function ApiPage() {
             />
             <Codigo etiqueta="Respuesta de ejemplo" texto={LUGARES} />
           </Ruta>
+
+          <Ruta id="prensa" ruta="/api/v1/prensa">
+            <div className={api.prosa}>
+              <p>
+                Las notas del archivo de prensa, de la más nueva a la más vieja, con el mismo
+                recorte que el panel de Prensa. Cada fila trae el enlace a la nota original. Como
+                la lectura no cuenta el total, una página llena trae <code>siguiente</code> aunque
+                la próxima resulte vacía.
+              </p>
+            </div>
+            <Parametros
+              filas={[
+                ['anio', 'Uno o varios años, separados por coma.'],
+                ['tono', 'Uno o varios tonos, como en el panel de Prensa.'],
+                ['tema', 'Uno o varios temas.'],
+                ['region', 'Una o varias regiones.'],
+                ['medio', 'Uno o varios medios.'],
+                ['termino', 'Uno o varios términos vigilados.'],
+                ['buscar', 'Texto que tiene que aparecer en la nota.'],
+                ...PAGINA,
+              ]}
+            />
+          </Ruta>
         </section>
 
         <section className={styles.bloque} id="ejemplos" aria-labelledby="ejemplos-titulo">

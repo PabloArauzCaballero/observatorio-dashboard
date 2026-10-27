@@ -120,9 +120,13 @@ export async function authorize(
     return { ok: false as const, status: 503, code: 'CORE_UNAVAILABLE', message: '' };
   });
 
-  const verify = result.ok
-    ? { status: 200 as const, account: result.body.data.account, used: result.body.data.used }
-    : { status: result.status };
+  // Un 200 sin la forma pactada se trata como un núcleo que no respondió bien,
+  // no como una llave válida.
+  const answered = result.ok ? result.body?.data : undefined;
+  const verify =
+    answered?.account && typeof answered.used === 'number'
+      ? { status: 200 as const, account: answered.account, used: answered.used }
+      : { status: result.ok ? 503 : result.status };
   const plan = verify.account ? PLANS.find((one) => one.code === verify.account.planCode) : undefined;
   const limit = plan?.apiPorMes ?? 0;
   const used = verify.used ?? 0;

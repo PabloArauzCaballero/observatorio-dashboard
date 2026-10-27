@@ -206,6 +206,43 @@ const DOCUMENT = {
         responses: { '200': pageOf({ $ref: '#/components/schemas/Lugar' }), ...errors },
       },
     },
+    '/api/v1/prensa': {
+      get: {
+        summary: 'Notas del archivo de prensa',
+        description: 'De la más nueva a la más vieja. Cada filtro acepta varios valores separados por coma.',
+        parameters: [
+          { name: 'anio', in: 'query', schema: { type: 'string' } },
+          { name: 'tono', in: 'query', schema: { type: 'string' } },
+          { name: 'tema', in: 'query', schema: { type: 'string' } },
+          { name: 'region', in: 'query', schema: { type: 'string' } },
+          { name: 'medio', in: 'query', schema: { type: 'string' } },
+          { name: 'termino', in: 'query', schema: { type: 'string' } },
+          { name: 'buscar', in: 'query', description: 'Texto que tiene que aparecer en la nota.', schema: { type: 'string' } },
+          page.pageSize,
+          page.cursor,
+          page.formato,
+        ],
+        responses: {
+          '200': pageOf({
+            type: 'object',
+            properties: {
+              fecha: { type: 'string', format: 'date' },
+              medio: { type: 'string' },
+              seccion: { type: 'string' },
+              tema: { type: 'string' },
+              tono: { type: 'string' },
+              region: { type: 'string' },
+              titular: { type: 'string' },
+              entradilla: { type: ['string', 'null'] },
+              enlace: { type: 'string' },
+              obtencion: { type: ['string', 'null'] },
+              evidencia_sha256: { type: ['string', 'null'] },
+            },
+          }),
+          ...errors,
+        },
+      },
+    },
   },
   components: {
     securitySchemes: {
