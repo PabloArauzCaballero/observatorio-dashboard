@@ -1,0 +1,391 @@
+/*
+ * La cuenta del cliente, con la misma línea editorial que Servicios: papel,
+ * filetes en vez de tarjetas, Gelasio para la voz y Libre Franklin para todo lo
+ * que es dato o control. Solo tokens de `globals.css`; ningún tamaño ni color
+ * literal.
+ */
+
+.pagina {
+  width: min(64rem, 100%);
+  margin: 0 auto;
+  padding: var(--s4, 2rem) 1rem var(--s5, 3rem);
+  color: var(--ink);
+}
+
+.estrecha {
+  width: min(28rem, 100%);
+}
+
+.cabecera {
+  max-width: 46rem;
+  margin-bottom: 2rem;
+}
+
+.antetitulo {
+  margin: 0 0 0.5rem;
+  font-family: var(--sans);
+  font-size: var(--kicker-size);
+  letter-spacing: var(--kicker-track);
+  text-transform: uppercase;
+  color: var(--accent);
+}
+
+.titulo {
+  margin: 0 0 0.75rem;
+  font-family: var(--serif);
+  font-size: var(--text-2xl, 2.125rem);
+  font-weight: 700;
+  line-height: 1.15;
+}
+
+.entradilla {
+  margin: 0;
+  font-family: var(--serif);
+  font-size: var(--text-lede);
+  line-height: 1.5;
+  color: var(--ink-soft);
+}
+
+.bloque {
+  margin-bottom: 2.5rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--rule);
+}
+
+.bloquePrincipal {
+  border-top: 2px solid var(--ink);
+}
+
+.subtitulo {
+  margin: 0 0 1rem;
+  font-family: var(--serif);
+  font-size: var(--text-xl);
+  font-weight: 700;
+}
+
+/* Plan, estado y vigencia: tres datos en fila, separados por filetes verticales. */
+.resumen {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr));
+  gap: 1rem 0;
+  margin: 0;
+  font-family: var(--sans);
+}
+
+.resumen > div {
+  padding: 0 1.25rem;
+  border-left: 1px solid var(--rule);
+}
+
+.resumen > div:first-child {
+  padding-left: 0;
+  border-left: 0;
+}
+
+.resumen dt {
+  font-size: var(--text-xs);
+  color: var(--ink-faint);
+}
+
+.resumen dd {
+  margin: 0.25rem 0 0;
+  font-size: var(--text-lg);
+  font-weight: 700;
+}
+
+.resumen dd small {
+  display: block;
+  font-size: var(--text-sm);
+  font-weight: 400;
+  color: var(--ink-soft);
+}
+
+.aviso {
+  margin: 1rem 0 0;
+  padding: 0.75rem 0 0;
+  border-top: 2px solid var(--warning);
+  font-family: var(--sans);
+  font-size: var(--text-sm);
+  color: var(--ink-soft);
+}
+
+/* El consumo: una línea por tipo, cifra a la derecha y una barra fina cuando hay cupo mensual. */
+.consumo {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-family: var(--sans);
+}
+
+.consumo li {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 0.25rem 1rem;
+  padding: 0.75rem 0;
+  border-bottom: 1px solid var(--rule);
+}
+
+.consumoNombre {
+  font-size: var(--text-base);
+}
+
+.consumoCifra {
+  font-size: var(--text-base);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+.consumoCupo {
+  grid-column: 1 / -1;
+  font-size: var(--text-sm);
+  color: var(--ink-soft);
+}
+
+.barra {
+  grid-column: 1 / -1;
+  height: 2px;
+  background: var(--rule);
+}
+
+.barra span {
+  display: block;
+  height: 100%;
+  background: var(--accent);
+}
+
+/* Las llaves: tabla sin marco, igual que la comparación de planes. */
+.tablaScroll {
+  overflow-x: auto;
+}
+
+.tabla {
+  width: 100%;
+  min-width: 34rem;
+  border-collapse: collapse;
+  font-family: var(--sans);
+  font-size: var(--text-sm);
+  font-variant-numeric: tabular-nums;
+}
+
+.tabla th,
+.tabla td {
+  padding: 0.6rem 0.75rem 0.6rem 0;
+  border-bottom: 1px solid var(--rule);
+  text-align: left;
+  vertical-align: middle;
+}
+
+.tabla thead th {
+  border-bottom: 2px solid var(--ink);
+  font-weight: 700;
+}
+
+.tabla code,
+.llaveNueva code {
+  font-family: var(--mono);
+  font-size: var(--text-sm);
+}
+
+.revocada {
+  color: var(--ink-faint);
+}
+
+.llaveNueva {
+  display: grid;
+  gap: 0.5rem;
+  margin: 0 0 1.5rem;
+  padding: 1rem 0;
+  border-top: 2px solid var(--good);
+  border-bottom: 1px solid var(--rule);
+  font-family: var(--sans);
+  font-size: var(--text-sm);
+}
+
+.llaveNueva code {
+  display: block;
+  padding: 0.5rem 0;
+  overflow-wrap: anywhere;
+  user-select: all;
+}
+
+.form {
+  display: grid;
+  gap: 1rem;
+  max-width: 28rem;
+}
+
+.formLinea {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+  gap: 0.75rem 1rem;
+  margin-top: 1.25rem;
+}
+
+.formLinea .campo {
+  flex: 1 1 14rem;
+}
+
+.campo {
+  display: grid;
+  gap: 0.35rem;
+  font-family: var(--sans);
+  font-size: var(--text-sm);
+}
+
+.campo input {
+  width: 100%;
+  min-height: var(--control-h-md);
+  padding: 0.5rem 0.65rem;
+  border: 1px solid var(--rule-strong);
+  border-radius: var(--radius-sm);
+  background: var(--field);
+  color: var(--ink);
+  font: inherit;
+  font-size: var(--text-base);
+}
+
+.campo input:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
+.casilla {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+  font-family: var(--sans);
+  font-size: var(--text-sm);
+  line-height: 1.45;
+}
+
+.casilla input {
+  margin-top: 0.2em;
+}
+
+.casilla a,
+.enlace {
+  color: var(--accent);
+}
+
+.primario,
+.secundario,
+.discreto {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: var(--control-h-md);
+  padding: 0 1rem;
+  border-radius: var(--radius-sm);
+  font-family: var(--sans);
+  font-size: var(--text-sm);
+  font-weight: 600;
+  text-decoration: none;
+  cursor: pointer;
+  transition:
+    background var(--fast) var(--ease),
+    border-color var(--fast) var(--ease),
+    color var(--fast) var(--ease);
+}
+
+.primario {
+  border: 1px solid var(--ink);
+  background: var(--ink);
+  color: var(--paper);
+}
+
+.primario:hover:not(:disabled) {
+  background: var(--accent-strong);
+  border-color: var(--accent-strong);
+}
+
+.secundario {
+  border: 1px solid var(--rule-strong);
+  background: transparent;
+  color: var(--ink);
+}
+
+.secundario:hover:not(:disabled) {
+  border-color: var(--ink);
+}
+
+.discreto {
+  min-height: auto;
+  padding: 0.25rem 0;
+  border: 0;
+  background: transparent;
+  color: var(--accent);
+  font-weight: 600;
+}
+
+.primario:focus-visible,
+.secundario:focus-visible,
+.discreto:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.primario:disabled,
+.secundario:disabled,
+.discreto:disabled {
+  opacity: 0.6;
+  cursor: progress;
+}
+
+.acciones {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem 1rem;
+}
+
+.nota {
+  margin: 0;
+  font-family: var(--sans);
+  font-size: var(--text-sm);
+  color: var(--ink-soft);
+}
+
+.separada {
+  margin-bottom: 1.25rem;
+}
+
+.error {
+  margin: 0;
+  font-family: var(--sans);
+  font-size: var(--text-sm);
+  color: var(--critical);
+}
+
+.hecho {
+  margin: 0;
+  font-family: var(--sans);
+  font-size: var(--text-sm);
+  color: var(--good);
+}
+
+.pie {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--rule);
+  font-family: var(--sans);
+  font-size: var(--text-sm);
+}
+
+@media (max-width: 640px) {
+  .resumen > div {
+    padding: 0.75rem 0 0;
+    border-left: 0;
+    border-top: 1px solid var(--rule);
+  }
+
+  .resumen > div:first-child {
+    padding-top: 0;
+    border-top: 0;
+  }
+}

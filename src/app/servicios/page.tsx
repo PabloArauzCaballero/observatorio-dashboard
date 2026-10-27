@@ -12,6 +12,7 @@ import {
   type InquiryPlan,
   type Plan,
 } from '@/lib/plans';
+import { currentCustomer } from '@/lib/cuenta/servidor';
 import { salesContacts } from '@/lib/servicios';
 import { THEME_BOOT } from '@/lib/theme';
 import styles from './servicios.module.css';
@@ -115,6 +116,7 @@ export default async function ServiciosPage({
   const pedido = typeof parametros['plan'] === 'string' ? parametros['plan'] : '';
   const planInicial: InquiryPlan = isInquiryPlan(pedido) ? pedido : 'analista';
   const { whatsapp, correo } = salesContacts();
+  const cliente = await currentCustomer();
   const mensajeWhatsapp = encodeURIComponent(
     'Hola, quiero información sobre los planes de datos de DatosBolivia.com.',
   );
@@ -216,6 +218,15 @@ export default async function ServiciosPage({
         </section>
 
         <section className={styles.bloque} id="contacto" aria-labelledby="contacto-titulo">
+          <p className={styles.legal}>
+            {cliente ? (
+              <Link href="/cuenta">Mi cuenta</Link>
+            ) : (
+              <>
+                ¿Ya hay una cuenta? <Link href="/cuenta/ingresar">Ingresar</Link>
+              </>
+            )}
+          </p>
           <h2 id="contacto-titulo" className={styles.subtitulo}>
             Pedir un plan o un informe
           </h2>
@@ -256,6 +267,10 @@ export default async function ServiciosPage({
               </details>
             ))}
           </div>
+          <p className={styles.legal}>
+            Cómo se consulta la API, con ejemplos en curl, Python y Excel:{' '}
+            <Link href="/servicios/api">documentación de la API</Link>.
+          </p>
           <p className={styles.legal}>
             El uso de los datos y de la API se rige por los <Link href="/terminos">términos de uso</Link>.
           </p>

@@ -109,6 +109,13 @@ function admitirIp(ip: string): void {
   }
 }
 
+/** El cupo diario de una cuenta con plan vigente, y qué hacer cuando una pregunta cuenta. */
+export interface CupoDePlan {
+  cuenta: string;
+  porDia: number;
+  alContar?: () => void;
+}
+
 /**
  * Cuántas preguntas por IP en veinticuatro horas, sin un plan.
  *
@@ -117,13 +124,22 @@ function admitirIp(ip: string): void {
  * el asistente en serio. Los saludos y las preguntas fuera de tema no cuentan:
  * se contestan antes de llegar aquí y no gastan nada.
  */
-function admitirDia(ip: string): void {
+function admitirDia(ip: string, cupo?: CupoDePlan): void {
   const ahora = Date.now();
-  const limite = entero('ASISTENTE_POR_IP_DIA', FREE_CHAT_PER_DAY);
-  const recientes = (porIpDia.get(ip) ?? []).filter((t) => ahora - t < DIA_MS);
+  // Con un plan el contador es de la cuenta, no de la conexión, y el tope es el del plan.
+  const clave = cupo ? `cuenta:${cupo.cuenta}` : ip;
+  const limite = cupo ? cupo.porDia : entero('ASISTENTE_POR_IP_DIA', FREE_CHAT_PER_DAY);
+  const recientes = (porIpDia.get(clave) ?? []).filter((t) => ahora - t < DIA_MS);
   if (recientes.length >= limite) {
     const espera = Math.ceil((DIA_MS - (ahora - (recientes[0] ?? ahora))) / 1000);
-    porIpDia.set(ip, recientes);
+    porIpDia.set(clave, recientes);
+    if (cupo) {
+      throw new AsistenteError(
+        `Se alcanzaron las ${limite} preguntas de hoy que incluye el plan. El cupo se renueva en 24 horas.`,
+        429,
+        espera,
+      );
+    }
     throw new AsistenteError(
       `Se alcanzaron las ${limite} preguntas gratuitas de hoy desde esta conexión. Con un plan de DatosBolivia.com el asistente contesta 100 o más por día.`,
       429,
@@ -132,7 +148,8 @@ function admitirDia(ip: string): void {
     );
   }
   recientes.push(ahora);
-  porIpDia.set(ip, recientes);
+  porIpDia.set(clave, recientes);
+  cupo?.alContar?.();
   if (porIpDia.size > 20_000) {
     for (const [clave, tiempos] of porIpDia) if (tiempos.every((t) => ahora - t >= DIA_MS)) porIpDia.delete(clave);
   }
@@ -263,7 +280,12 @@ export async function estado(): Promise<{
   };
 }
 
-export async function responder(pregunta: string, historial: readonly Turno[], ip: string): Promise<Respuesta> {
+export async function responder(
+  pregunta: string,
+  historial: readonly Turno[],
+  ip: string,
+  cupo?: CupoDePlan,
+): Promise<Respuesta> {
   const inicio = performance.now();
   const texto = pregunta.trim();
 
@@ -275,7 +297,7 @@ export async function responder(pregunta: string, historial: readonly Turno[], i
   if (previo.tipo === 'FUERA') return fija(RESPUESTA_FUERA, inicio);
 
   admitirIp(ip);
-  admitirDia(ip);
+  admitirDia(ip, cupo);
   // Sin modelo disponible no se deja de contestar: se contesta sin IA.
   let sinIa: Motivo | null = !configurado() ? 'sin-proveedor' : !quedaPresupuesto() ? 'presupuesto' : null;
   if (enCurso >= entero('ASISTENTE_SIMULTANEAS', 4)) {

@@ -1,3 +1,4 @@
+import { entitledPlan, recordUsage } from '@/lib/cuenta/servidor';
 import { HOUR_MS, admit, clientIp, remaining, reserve } from '@/lib/ip-limit';
 import { readPlaces } from '@/lib/places';
 import { FREE_MAP_PER_HOUR, FREE_MAP_PLACES_PER_HOUR, MAP_VIEW_CAP, SERVICES_PATH } from '@/lib/plans';
@@ -17,6 +18,13 @@ import { jsonResponse } from '@/lib/respond';
  */
 
 export const dynamic = 'force-dynamic';
+
+/**
+ * «Todos» para un plan sin tope de lugares. No es infinito a propósito: es más
+ * que cualquier selección de doce ciudades, y un número fijo impide que una
+ * consulta mal armada pida la tabla entera.
+ */
+const ALL_PLACES_CAP = 100_000;
 
 /** Las categorías de una dimensión tal como viajan: separadas por coma. */
 function many(raw: string | null, limit: number): string[] {
@@ -45,14 +53,18 @@ export async function GET(request: Request): Promise<Response> {
    * ciudad y de familia, y muchas menos de las que hacen falta para recorrer
    * las setenta y dos mil fichas.
    */
+  // Con un plan vigente el mapa no tiene el tope por hora, ni el de lugares, ni la puerta de «todos».
+  const subscriber = await entitledPlan(request);
   const ip = clientIp(request);
-  const admission = admit('lugares', ip, FREE_MAP_PER_HOUR, HOUR_MS);
+  const admission = subscriber ? { ok: true, retryAfter: 0 } : admit('lugares', ip, FREE_MAP_PER_HOUR, HOUR_MS);
   /*
    * Contar pedidos no alcanza: cuatro mil por pedido, el tope de pedidos
    * dejaba llevarse la base varias veces por hora. Se cuentan también los
    * lugares servidos.
    */
-  const presupuesto = remaining('lugares-filas', ip, FREE_MAP_PLACES_PER_HOUR, HOUR_MS);
+  const presupuesto = subscriber
+    ? Number.POSITIVE_INFINITY
+    : remaining('lugares-filas', ip, FREE_MAP_PLACES_PER_HOUR, HOUR_MS);
   if (!admission.ok || presupuesto === 0) {
     return Response.json(
       {
@@ -68,7 +80,8 @@ export async function GET(request: Request): Promise<Response> {
    * la descarga. Ahora es parte de los planes: sin uno, la respuesta lo dice en
    * vez de servir un recorte que parezca completo.
    */
-  if (parameters.get('todos') === '1') {
+  const todos = parameters.get('todos') === '1';
+  if (todos && !subscriber) {
     return Response.json(
       {
         error: 'Ver todos los lugares de una selección grande es parte de los planes de DatosBolivia.com.',
@@ -84,6 +97,12 @@ export async function GET(request: Request): Promise<Response> {
      * El mapa pide cuatro mil: son varios megas en cada cambio de ciudad, y
      * este tablero comparte servidor.
      */
+    if (subscriber) {
+      const limit = todos ? (subscriber.plan.lugaresPorDescarga ?? ALL_PLACES_CAP) : MAP_VIEW_CAP;
+      const { places, total } = await readPlaces(cities, families, limit);
+      if (todos) recordUsage(subscriber.customer.accountId, 'MAP');
+      return jsonResponse(request, { places, total }, { headers: { 'Cache-Control': 'private, max-age=600' } });
+    }
     // Reservado antes de esperar la base, en el mismo paso que la consulta del saldo.
     const tope = Math.min(MAP_VIEW_CAP, presupuesto);
     const reserva = reserve('lugares-filas', ip, tope, HOUR_MS);

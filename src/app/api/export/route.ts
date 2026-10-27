@@ -1,5 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import { reportExport } from '@/lib/admin/telemetry';
+import { entitledPlan, recordUsage } from '@/lib/cuenta/servidor';
 import { readPlacesForExport } from '@/lib/places';
 import { FREE_ROW_CAP, cutOrder, freeCut, freeCutNote } from '@/lib/plans';
 import {
@@ -556,8 +557,20 @@ export async function GET(request: Request): Promise<Response> {
      * encabezado de la respuesta, porque quien lo abre después no lo ve: un
      * archivo recortado que no avisa se lee como la base entera.
      */
-    const cut = freeCut(everything, cutOrder(everything.map((row) => Object.values(row))));
-    const note = cut.recortado ? freeCutNote(cut.total) : null;
+    /*
+     * Con un plan vigente no hay recorte de quinientas filas. La única
+     * excepción es el mapa de lugares de Analista, que tiene su propio tope por
+     * descarga; Profesional e Institucional se lo llevan completo.
+     */
+    const subscriber = await entitledPlan(request);
+    const tope = !subscriber
+      ? FREE_ROW_CAP
+      : dataset === 'lugares'
+        ? (subscriber.plan.lugaresPorDescarga ?? Number.POSITIVE_INFINITY)
+        : Number.POSITIVE_INFINITY;
+    const cut = freeCut(everything, cutOrder(everything.map((row) => Object.values(row))), tope);
+    const note = cut.recortado ? freeCutNote(cut.total, tope) : null;
+    if (subscriber) recordUsage(subscriber.customer.accountId, dataset === 'lugares' ? 'MAP' : 'DOWNLOAD');
     const rows = note ? cut.filas.map((row) => ({ ...row, aviso: note })) : cut.filas;
     const ceiling = ROW_CEILING[dataset];
     const atCeiling = ceiling !== undefined && everything.length >= ceiling;
@@ -576,7 +589,7 @@ export async function GET(request: Request): Promise<Response> {
               ...(note
                 ? {
                     plan_gratuito: {
-                      tope: FREE_ROW_CAP,
+                      tope,
                       filas_en_la_seleccion: cut.total,
                       aviso: note,
                     },
@@ -612,13 +625,13 @@ export async function GET(request: Request): Promise<Response> {
       headers: {
         'Content-Type':
           format === 'json' ? 'application/json; charset=utf-8' : 'text/csv; charset=utf-8',
-        'Content-Disposition': `attachment; filename="datosbolivia-${dataset}${note ? `-primeras-${FREE_ROW_CAP}` : ''}.${format}"`,
+        'Content-Disposition': `attachment; filename="datosbolivia-${dataset}${note ? `-primeras-${tope}` : ''}.${format}"`,
         'Cache-Control': 'no-store',
         'X-Export-Request': requestId,
         'X-Export-Rows': String(rows.length),
         'X-Export-Truncated': truncated ? 'true' : 'false',
         'X-Export-Total': String(cut.total),
-        ...(note ? { 'X-Plan-Limit': String(FREE_ROW_CAP) } : {}),
+        ...(note ? { 'X-Plan-Limit': String(tope) } : {}),
       },
     });
   } catch (error) {

@@ -25,6 +25,7 @@ const GROUPS: ReadonlyArray<{ readonly title: string; readonly items: readonly S
       { href: '/admin/traffic', label: 'Tráfico', icon: 'tendencia' },
       { href: '/admin/downloads', label: 'Descargas', icon: 'descarga' },
       { href: '/admin/pedidos', label: 'Pedidos', icon: 'maletin' },
+      { href: '/admin/clientes', label: 'Clientes', icon: 'personas' },
     ],
   },
   {

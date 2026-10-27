@@ -139,7 +139,16 @@ export default async function InquiriesPage({
                           </>
                         ),
                       },
-                      { header: 'Plan', cell: (row) => planName(row.planCode) },
+                      {
+                        header: 'Plan',
+                        cell: (row) => (
+                          <>
+                            {planName(row.planCode)}
+                            <br />
+                            <Link href={`/admin/clientes?pedido=${row.serviceInquiryId}`}>Crear cuenta</Link>
+                          </>
+                        ),
+                      },
                       { header: 'Mensaje', wrap: true, cell: (row) => row.message },
                       {
                         header: 'Estado',
