@@ -39,8 +39,22 @@ export interface NewAccountInput {
   serviceInquiryId?: string;
 }
 
-export const listAccounts = (session: AdminSession, search: URLSearchParams) =>
-  callCore<AccountPage>(`${ADMIN_BASE}/accounts`, session, { search });
+/**
+ * El núcleo lista cada cuenta como `{ account, usage }`; el portal la quiere
+ * plana. Se aplana aquí para que la página no dependa de la forma del núcleo.
+ */
+export async function listAccounts(session: AdminSession, search: URLSearchParams) {
+  const result = await callCore<{
+    items: Array<AdminAccount | { account: AccountSummary; usage?: UsageRow[] }>;
+    nextCursor: string | null;
+  }>(`${ADMIN_BASE}/accounts`, session, { search });
+  if (!result.ok) return result;
+  const items: AdminAccount[] = (result.body.data?.items ?? []).map((item) =>
+    'account' in item ? { ...item.account, ...(item.usage ? { usage: item.usage } : {}) } : item,
+  );
+  const page: AccountPage = { items, nextCursor: result.body.data?.nextCursor ?? null };
+  return { ...result, body: { ...result.body, data: page } };
+}
 
 export const createAccount = (session: AdminSession, input: NewAccountInput) =>
   callCore<{ account: AccountSummary; activationToken: string; activationExpiresAt: string }>(
