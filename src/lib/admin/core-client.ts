@@ -93,6 +93,10 @@ export async function callCore<T>(
         message: body.error?.message ?? body.message ?? 'El núcleo rechazó la petición',
       };
     }
+    // Un 204 no trae cuerpo, y leerlo como JSON lo convertía en «el núcleo no respondió».
+    if (response.status === 204) {
+      return { ok: true, body: { data: undefined as T, meta: null as unknown as CoreEnvelope<T>['meta'] } };
+    }
     return { ok: true, body: (await response.json()) as CoreEnvelope<T> };
   } catch (error) {
     // The detail belongs in the server log: a connection message can carry the

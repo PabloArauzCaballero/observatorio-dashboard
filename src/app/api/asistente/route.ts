@@ -1,4 +1,5 @@
 import { AsistenteError, estado, responder, type Turno } from '@/lib/asistente/asistente';
+import { entitledPlan, recordUsage } from '@/lib/cuenta/servidor';
 import { SERVICES_PATH } from '@/lib/plans';
 
 /**
@@ -57,11 +58,20 @@ export async function POST(request: Request): Promise<Response> {
     return Response.json({ error: `La pregunta puede tener hasta ${MAX_PREGUNTA} caracteres.` }, { status: 400 });
   }
 
+  // Con un plan vigente rige su cupo diario, y cada pregunta que cuenta se anota en la cuenta.
+  const suscripcion = await entitledPlan(request);
   try {
     const respuesta = await responder(
       pregunta,
       leerHistorial((cuerpo as { historial?: unknown }).historial),
       ipDe(request),
+      suscripcion
+        ? {
+            cuenta: suscripcion.customer.accountId,
+            porDia: suscripcion.plan.chatPorDia,
+            alContar: () => recordUsage(suscripcion.customer.accountId, 'CHAT'),
+          }
+        : undefined,
     );
     return Response.json(respuesta, { headers: { 'Cache-Control': 'no-store' } });
   } catch (error) {

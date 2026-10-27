@@ -1,3 +1,4 @@
+import { entitledPlan, recordUsage } from '@/lib/cuenta/servidor';
 import { HOUR_MS, admit, clientIp } from '@/lib/ip-limit';
 import { readPlaces } from '@/lib/places';
 import { FREE_MAP_PER_HOUR, MAP_VIEW_CAP, SERVICES_PATH } from '@/lib/plans';
@@ -17,6 +18,13 @@ import { jsonResponse } from '@/lib/respond';
  */
 
 export const dynamic = 'force-dynamic';
+
+/**
+ * «Todos» para un plan sin tope de lugares. No es infinito a propósito: es más
+ * que cualquier selección de doce ciudades, y un número fijo impide que una
+ * consulta mal armada pida la tabla entera.
+ */
+const ALL_PLACES_CAP = 100_000;
 
 /** Las categorías de una dimensión tal como viajan: separadas por coma. */
 function many(raw: string | null, limit: number): string[] {
@@ -45,7 +53,11 @@ export async function GET(request: Request): Promise<Response> {
    * ciudad y de familia, y muchas menos de las que hacen falta para recorrer
    * las setenta y dos mil fichas.
    */
-  const admission = admit('lugares', clientIp(request), FREE_MAP_PER_HOUR, HOUR_MS);
+  // Con un plan vigente el mapa no tiene el tope por hora ni la puerta de «todos».
+  const subscriber = await entitledPlan(request);
+  const admission = subscriber
+    ? { ok: true, retryAfter: 0 }
+    : admit('lugares', clientIp(request), FREE_MAP_PER_HOUR, HOUR_MS);
   if (!admission.ok) {
     return Response.json(
       {
@@ -61,7 +73,8 @@ export async function GET(request: Request): Promise<Response> {
    * la descarga. Ahora es parte de los planes: sin uno, la respuesta lo dice en
    * vez de servir un recorte que parezca completo.
    */
-  if (parameters.get('todos') === '1') {
+  const todos = parameters.get('todos') === '1';
+  if (todos && !subscriber) {
     return Response.json(
       {
         error: 'Ver todos los lugares de una selección grande es parte de los planes de DatosBolivia.com.',
@@ -77,7 +90,9 @@ export async function GET(request: Request): Promise<Response> {
      * El mapa pide cuatro mil: son varios megas en cada cambio de ciudad, y
      * este tablero comparte servidor.
      */
-    const { places, total } = await readPlaces(cities, families, MAP_VIEW_CAP);
+    const limit = todos && subscriber ? (subscriber.plan.lugaresPorDescarga ?? ALL_PLACES_CAP) : MAP_VIEW_CAP;
+    const { places, total } = await readPlaces(cities, families, limit);
+    if (todos && subscriber) recordUsage(subscriber.customer.accountId, 'MAP');
     /*
      * Comprimido aquí y sostenido diez minutos en el navegador, como las demás
      * rutas de pestaña. Una ciudad grande son 1,5 MB de JSON: en pablo-h310
