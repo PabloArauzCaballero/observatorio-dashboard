@@ -42,24 +42,32 @@ export async function POST(request: Request): Promise<Response> {
   }
 
   /*
-   * Un segundo freno por correo, que cuenta solo los intentos fallidos: cinco
-   * cada quince minutos. Rotar direcciones no sirve para probar contraseñas
-   * contra una misma cuenta. El mensaje es el mismo que el del freno por IP.
+   * Un segundo freno por correo y dirección, que cuenta solo los intentos
+   * fallidos: cinco cada quince minutos. Va atado a la dirección para que nadie
+   * pueda bloquear a un cliente fallando con su correo desde otra parte. El
+   * intento se reserva en el mismo paso que se consulta el saldo, antes de
+   * esperar al núcleo, para que intentos simultáneos no pasen todos; se
+   * devuelve si el ingreso salió bien o si el núcleo falló. El mensaje es el
+   * mismo que el del freno por IP.
+   * El contador por cuenta, sin importar la dirección, corresponde al núcleo y está pendiente.
    */
-  if (remaining('cuenta-ingresar-correo', email, 5, QUINCE_MINUTOS) === 0) {
+  const clave = `${email}|${clientIp(request)}`;
+  if (remaining('cuenta-ingresar-correo', clave, 5, QUINCE_MINUTOS) === 0) {
     return refuse(429, 'RATE_LIMITED', 'Demasiados intentos. Intentar de nuevo en unos minutos.', {
       'Retry-After': '900',
     });
   }
+  const intento = reserve('cuenta-ingresar-correo', clave, 1, QUINCE_MINUTOS);
 
   const result = await signIn(email, password);
   if (!result.ok) {
     if (result.status >= 400 && result.status < 500) {
-      reserve('cuenta-ingresar-correo', email, 1, QUINCE_MINUTOS);
       return refuse(401, 'UNAUTHORIZED', 'El correo o la contraseña no son correctos.');
     }
+    intento.saldar(0);
     return refuse(503, 'CORE_UNAVAILABLE', 'No se pudo verificar el ingreso. Intentar de nuevo en unos minutos.');
   }
+  intento.saldar(0);
   await startCustomerSession(request, result.body.data.account);
   return Response.json({ volver: safeReturnPath(body?.volver) }, { headers: { 'cache-control': 'no-store' } });
 }
