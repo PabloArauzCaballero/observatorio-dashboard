@@ -1,4 +1,4 @@
-import { admit, clientIp, remaining, reserve } from '@/lib/ip-limit';
+import { HOUR_MS, admit, clientIp, remaining, reserve } from '@/lib/ip-limit';
 import { normalizeEmail, safeReturnPath } from '@/lib/cuenta/puro';
 import {
   accountsAreConfigured,
@@ -51,23 +51,31 @@ export async function POST(request: Request): Promise<Response> {
    * mismo que el del freno por IP.
    * El contador por cuenta, sin importar la dirección, corresponde al núcleo y está pendiente.
    */
+  // Además, un techo por correo solo (30 fallos por hora) frena la fuerza bruta repartida entre muchas direcciones.
   const clave = `${email}|${clientIp(request)}`;
-  if (remaining('cuenta-ingresar-correo', clave, 5, QUINCE_MINUTOS) === 0) {
+  if (
+    remaining('cuenta-ingresar-correo', clave, 5, QUINCE_MINUTOS) === 0 ||
+    remaining('cuenta-ingresar-cuenta', email, 30, HOUR_MS) === 0
+  ) {
     return refuse(429, 'RATE_LIMITED', 'Demasiados intentos. Intentar de nuevo en unos minutos.', {
       'Retry-After': '900',
     });
   }
-  const intento = reserve('cuenta-ingresar-correo', clave, 1, QUINCE_MINUTOS);
+  const intentos = [
+    reserve('cuenta-ingresar-correo', clave, 1, QUINCE_MINUTOS),
+    reserve('cuenta-ingresar-cuenta', email, 1, HOUR_MS),
+  ];
+  const devolver = (): void => intentos.forEach((intento) => intento.saldar(0));
 
   const result = await signIn(email, password);
   if (!result.ok) {
     if (result.status >= 400 && result.status < 500) {
       return refuse(401, 'UNAUTHORIZED', 'El correo o la contraseña no son correctos.');
     }
-    intento.saldar(0);
+    devolver();
     return refuse(503, 'CORE_UNAVAILABLE', 'No se pudo verificar el ingreso. Intentar de nuevo en unos minutos.');
   }
-  intento.saldar(0);
+  devolver();
   await startCustomerSession(request, result.body.data.account);
   return Response.json({ volver: safeReturnPath(body?.volver) }, { headers: { 'cache-control': 'no-store' } });
 }
