@@ -243,6 +243,83 @@ const DOCUMENT = {
         },
       },
     },
+    '/api/v1/empresas': {
+      get: {
+        summary: 'Directorio de empresas (subconjunto público del SEPREC)',
+        parameters: [
+          { name: 'departamento', in: 'query', schema: { type: 'string' } },
+          { name: 'municipio', in: 'query', schema: { type: 'string' } },
+          { name: 'buscar', in: 'query', description: 'Texto en el nombre.', schema: { type: 'string' } },
+          page.pageSize,
+          page.cursor,
+          page.formato,
+        ],
+        responses: {
+          '200': pageOf({
+            type: 'object',
+            properties: {
+              registro: { type: 'string' },
+              nombre: { type: 'string' },
+              departamento: { type: ['string', 'null'] },
+              municipio: { type: ['string', 'null'] },
+              direccion: { type: ['string', 'null'] },
+              actividad: { type: ['string', 'null'] },
+              licencia: { type: ['string', 'null'] },
+              fecha_de_corte: { type: ['string', 'null'] },
+            },
+          }),
+          ...errors,
+        },
+      },
+    },
+    '/api/v1/aduana': {
+      get: {
+        summary: 'Base aduanera del INE sumada por una dimensión',
+        description:
+          'Como en el panel, el filtro de la misma dimensión no recorta su propio desglose. Una combinación que el INE no publica vuelve como 400 con el motivo.',
+        parameters: [
+          {
+            name: 'por',
+            in: 'query',
+            required: true,
+            schema: {
+              type: 'string',
+              enum: ['year', 'month', 'section', 'chapter', 'heading', 'subheading', 'nandina', 'country', 'zone', 'department', 'activity', 'activityGroup', 'traditional', 'traditionalGroup', 'use', 'useGroup', 'kind'],
+            },
+          },
+          { name: 'flujo', in: 'query', schema: { type: 'string', enum: ['X', 'M'], default: 'X' } },
+          { name: 'desde', in: 'query', description: 'Año inicial (AAAA).', schema: { type: 'integer' } },
+          { name: 'hasta', in: 'query', description: 'Año final (AAAA).', schema: { type: 'integer' } },
+          { name: 'meses', in: 'query', description: 'Tramo de meses de cada año, p. ej. 1-7.', schema: { type: 'string' } },
+          { name: 'producto', in: 'query', description: 'Códigos NANDINA de 2 a 10 dígitos, separados por coma.', schema: { type: 'string' } },
+          { name: 'seccion', in: 'query', schema: { type: 'string' } },
+          { name: 'pais', in: 'query', description: 'Códigos de país del INE.', schema: { type: 'string' } },
+          { name: 'departamento', in: 'query', description: 'Códigos de departamento del INE.', schema: { type: 'string' } },
+          { name: 'actividad', in: 'query', schema: { type: 'string' } },
+          { name: 'tradicional', in: 'query', schema: { type: 'string' } },
+          { name: 'uso', in: 'query', schema: { type: 'string' } },
+          { name: 'tipo', in: 'query', schema: { type: 'string' } },
+          page.pageSize,
+          page.cursor,
+          page.formato,
+        ],
+        responses: {
+          '200': pageOf({
+            type: 'object',
+            properties: {
+              codigo: { type: ['string', 'null'] },
+              nombre: { type: 'string' },
+              usd: { type: 'number' },
+              kg: { type: 'number' },
+              kg_finos: { type: ['number', 'null'] },
+              usd_ultimo_anio: { type: ['number', 'null'] },
+              usd_anio_anterior: { type: ['number', 'null'] },
+            },
+          }),
+          ...errors,
+        },
+      },
+    },
   },
   components: {
     securitySchemes: {
