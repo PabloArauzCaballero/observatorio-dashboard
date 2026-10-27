@@ -17,7 +17,7 @@ export async function GET(request: NextRequest) {
     // Sin un plan, quinientas filas, y una columna `aviso` que lo dice.
     const cut = freeCut(rows as Record<string, unknown>[]);
     const note = cut.recortado ? freeCutNote(cut.total) : null;
-    const records = note ? cut.filas.map(row => ({ ...row, aviso: note })) : cut.filas;
+    const records: Record<string, unknown>[] = note ? cut.filas.map(row => ({ ...row, aviso: note })) : cut.filas;
     const columns = Object.keys(records[0] ?? {});
     const safe = (value: unknown) => {
       const text = value == null ? '' : String(value);
