@@ -1,5 +1,6 @@
 import { AsistenteError, estado, responder, type Turno } from '@/lib/asistente/asistente';
 import { entitledPlan, recordUsage } from '@/lib/cuenta/servidor';
+import { clientIp } from '@/lib/ip-limit';
 import { SERVICES_PATH } from '@/lib/plans';
 
 /**
@@ -25,8 +26,7 @@ export async function GET(): Promise<Response> {
 }
 
 function ipDe(request: Request): string {
-  const reenviada = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim();
-  return reenviada || request.headers.get('x-real-ip')?.trim() || 'sin-ip';
+  return clientIp(request);
 }
 
 function leerHistorial(valor: unknown): Turno[] {

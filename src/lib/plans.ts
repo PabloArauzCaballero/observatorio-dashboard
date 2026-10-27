@@ -48,6 +48,14 @@ export const FREE_CHAT_PER_DAY = 10;
 /** Pedidos al mapa de lugares por hora y por dirección, sin un plan. */
 export const FREE_MAP_PER_HOUR = 120;
 
+/**
+ * Lugares que el mapa sirve por hora y por dirección, sin un plan: unas cinco
+ * vistas llenas. Ciento veinte vistas de cuatro mil eran casi siete veces la
+ * base entera; con este techo recorrerla toma más de tres horas a una misma
+ * conexión, y una persona mirando ciudades no lo toca.
+ */
+export const FREE_MAP_PLACES_PER_HOUR = 20_000;
+
 /** Lugares que el mapa dibuja por vista. Pasado eso un dibujo es una mancha. */
 export const MAP_VIEW_CAP = 4_000;
 
