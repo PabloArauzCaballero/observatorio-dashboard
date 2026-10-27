@@ -84,6 +84,7 @@ export function SiteFooter() {
         <span>© {anio} DatosBolivia.com</span>
         <span>Los datos pertenecen a sus fuentes; su reutilización debe citarlas.</span>
         <a href="/servicios">Planes y servicios</a>
+        <a href="/cuenta">Mi cuenta</a>
         <a href="/terminos">Términos de uso</a>
         <a href="#top" className="site-footer-top">
           Volver arriba <span aria-hidden="true">↑</span>

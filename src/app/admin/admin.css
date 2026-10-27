@@ -1639,3 +1639,81 @@ a.pg-stat:hover {
 .admin-more {
   margin: 0.75rem 0 0;
 }
+
+/* Clientes: el alta de una cuenta, las acciones por fila y el enlace para copiar. */
+.admin-cliente-form {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr));
+  gap: 0.75rem;
+  align-items: end;
+}
+
+.admin-cliente-form label {
+  display: grid;
+  gap: 0.25rem;
+}
+
+.admin-cliente-form input,
+.admin-cliente-form select,
+.admin-cliente-form button,
+.admin-cliente-enlace input,
+.admin-cliente-enlace button {
+  min-height: 2rem;
+  padding: 0.25rem 0.5rem;
+  border: 1px solid var(--rule-strong);
+  border-radius: 6px;
+  background: var(--field);
+  color: var(--ink);
+  font: inherit;
+}
+
+.admin-cliente-form .admin-cliente-check {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.admin-cliente-form .admin-cliente-check input {
+  min-height: auto;
+}
+
+.admin-cliente-form button,
+.admin-cliente-enlace button {
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.admin-cliente-form .admin-inquiry-problem {
+  grid-column: 1 / -1;
+}
+
+.admin-cliente-enlace {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 0.75rem;
+  padding-top: 0.75rem;
+  border-top: 2px solid var(--state-ok, var(--rule-strong));
+}
+
+.admin-cliente-enlace p {
+  flex-basis: 100%;
+  margin: 0;
+}
+
+.admin-cliente-enlace input {
+  flex: 1 1 20rem;
+  min-width: 0;
+}
+
+.admin-cliente-acciones summary {
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.admin-cliente-acciones[open] {
+  display: grid;
+  gap: 0.5rem;
+  min-width: 22rem;
+}
