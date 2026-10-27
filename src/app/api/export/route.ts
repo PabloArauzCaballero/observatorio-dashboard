@@ -1,6 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import { reportExport } from '@/lib/admin/telemetry';
 import { readPlacesForExport } from '@/lib/places';
+import { FREE_ROW_CAP, cutOrder, freeCut, freeCutNote } from '@/lib/plans';
 import {
   readBoliviaPanel,
   readCompanyFilings,
@@ -533,7 +534,7 @@ export async function GET(request: Request): Promise<Response> {
     const from = url.searchParams.get('desde')?.trim();
     const until = url.searchParams.get('hasta')?.trim();
     const many = (name: string): string[] | undefined => manyOf(url.searchParams.get(name));
-    const rows = await collect(dataset, {
+    const everything = await collect(dataset, {
       sector: many('sector'),
       topic: many('tema'),
       outlet: many('medio'),
@@ -549,8 +550,18 @@ export async function GET(request: Request): Promise<Response> {
       until: until && dated.test(until) ? until : undefined,
       search: url.searchParams.get('buscar') ?? undefined,
     });
+    /*
+     * Sin un plan, el archivo lleva quinientas filas. Lo dice el archivo mismo
+     * —una columna `aviso` en el CSV, `plan_gratuito` en el JSON— y no solo el
+     * encabezado de la respuesta, porque quien lo abre después no lo ve: un
+     * archivo recortado que no avisa se lee como la base entera.
+     */
+    const cut = freeCut(everything, cutOrder(everything.map((row) => Object.values(row))));
+    const note = cut.recortado ? freeCutNote(cut.total) : null;
+    const rows = note ? cut.filas.map((row) => ({ ...row, aviso: note })) : cut.filas;
     const ceiling = ROW_CEILING[dataset];
-    const truncated = ceiling !== undefined && rows.length >= ceiling;
+    const atCeiling = ceiling !== undefined && everything.length >= ceiling;
+    const truncated = cut.recortado || atCeiling;
     const body =
       format === 'json'
         ? `${JSON.stringify(
@@ -561,8 +572,17 @@ export async function GET(request: Request): Promise<Response> {
               // Stated in the file itself and not only in the register: whoever
               // opens it later may never see the register.
               truncado: truncated,
-              ...(truncated ? { techo: ceiling } : {}),
-              datos: rows,
+              ...(atCeiling ? { techo: ceiling } : {}),
+              ...(note
+                ? {
+                    plan_gratuito: {
+                      tope: FREE_ROW_CAP,
+                      filas_en_la_seleccion: cut.total,
+                      aviso: note,
+                    },
+                  }
+                : {}),
+              datos: cut.filas,
             },
             null,
             2,
@@ -592,11 +612,13 @@ export async function GET(request: Request): Promise<Response> {
       headers: {
         'Content-Type':
           format === 'json' ? 'application/json; charset=utf-8' : 'text/csv; charset=utf-8',
-        'Content-Disposition': `attachment; filename="datosbolivia-${dataset}.${format}"`,
+        'Content-Disposition': `attachment; filename="datosbolivia-${dataset}${note ? `-primeras-${FREE_ROW_CAP}` : ''}.${format}"`,
         'Cache-Control': 'no-store',
         'X-Export-Request': requestId,
         'X-Export-Rows': String(rows.length),
         'X-Export-Truncated': truncated ? 'true' : 'false',
+        'X-Export-Total': String(cut.total),
+        ...(note ? { 'X-Plan-Limit': String(FREE_ROW_CAP) } : {}),
       },
     });
   } catch (error) {

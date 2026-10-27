@@ -5,6 +5,7 @@ import {
   factorCsv,
   historyQuery,
 } from '@/lib/exogenous-factor-query';
+import { freeCut, freeCutNote } from '@/lib/plans';
 import { jsonResponse } from '@/lib/respond';
 export const dynamic = 'force-dynamic';
 export async function GET(request: Request): Promise<Response> {
@@ -22,15 +23,19 @@ export async function GET(request: Request): Promise<Response> {
     const csv = params.get('format') === 'csv';
     const result = await readFactorHistory(historyQuery(params), csv);
     if (!result) return Response.json({ error: 'Serie no encontrada.' }, { status: 404 });
-    if (csv)
-      return new Response(factorCsv(result.series, result.points, result.asOf, result.warnings), {
+    if (csv) {
+      // Sin un plan, los quinientos puntos más recientes, y el archivo lo avisa.
+      const cut = freeCut(result.points, 'cola');
+      const warnings = cut.recortado ? [freeCutNote(cut.total), ...result.warnings] : result.warnings;
+      return new Response(factorCsv(result.series, cut.filas, result.asOf, warnings), {
         headers: {
           'Content-Type': 'text/csv; charset=utf-8',
           'Content-Disposition': `attachment; filename="${result.series.code}.csv"`,
           'Cache-Control': 'no-store',
-          'X-Data-Warnings': encodeURIComponent(result.warnings.join(' ')),
+          'X-Data-Warnings': encodeURIComponent(warnings.join(' ')),
         },
       });
+    }
     return jsonResponse(request, result, { headers: { 'Cache-Control': 'private, max-age=60' } });
   } catch (error) {
     const invalid = error instanceof FactorQueryError;

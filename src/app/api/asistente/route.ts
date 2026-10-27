@@ -1,4 +1,5 @@
 import { AsistenteError, estado, responder, type Turno } from '@/lib/asistente/asistente';
+import { SERVICES_PATH } from '@/lib/plans';
 
 /**
  * El asistente del Observatorio.
@@ -66,7 +67,7 @@ export async function POST(request: Request): Promise<Response> {
   } catch (error) {
     if (error instanceof AsistenteError) {
       return Response.json(
-        { error: error.message },
+        { error: error.message, ...(error.ofrecePlanes ? { servicios: SERVICES_PATH } : {}) },
         {
           status: error.status,
           headers: error.reintentarEn ? { 'Retry-After': String(error.reintentarEn) } : {},

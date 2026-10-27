@@ -344,6 +344,29 @@ export interface ExportReport extends Paged<{
   readonly measures: readonly string[];
 }
 
+export type InquiryStatus = 'NEW' | 'CONTACTED' | 'WON' | 'LOST';
+
+/** Un pedido del formulario de Servicios, tal como lo guarda el núcleo. */
+export interface ServiceInquiry {
+  readonly serviceInquiryId: string;
+  readonly fullName: string;
+  readonly email: string;
+  readonly organization: string | null;
+  readonly phone: string | null;
+  readonly planCode: string;
+  readonly message: string;
+  readonly sourceRoute: string;
+  readonly status: InquiryStatus;
+  readonly operatorNote: string | null;
+  readonly createdAt: string;
+  readonly updatedAt: string | null;
+  readonly updatedBy: string | null;
+}
+
+export interface InquiryReport extends Paged<ServiceInquiry> {
+  readonly summary: ReadonlyArray<{ status: InquiryStatus; count: number }>;
+}
+
 export interface AuditEvent {
   readonly auditLogId: string;
   readonly actorSubject: string;

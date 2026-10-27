@@ -12,6 +12,7 @@ import {
   type Tipo,
 } from './alcance';
 import { hrefDe } from '../enlace-tablero';
+import { FREE_CHAT_PER_DAY } from '../plans';
 import { GUIA_VERSION, enlacesPara, guiaBreve, pestanasPara, type Enlace, type Pestana } from './guia';
 import type { Tabla } from './tabla';
 import { fechaDeHoy, leerPaquetes } from './paquetes';
@@ -70,6 +71,8 @@ export class AsistenteError extends Error {
     message: string,
     readonly status: number,
     readonly reintentarEn?: number,
+    /** El límite que se alcanzó es el del plan gratuito: la respuesta ofrece los planes. */
+    readonly ofrecePlanes = false,
   ) {
     super(message);
   }
@@ -87,6 +90,8 @@ const porIp = new Map<string, number[]>();
 let presupuesto = { dia: '', tokens: 0 };
 
 const VENTANA_IP_MS = 10 * 60 * 1000;
+const DIA_MS = 24 * 60 * 60 * 1000;
+const porIpDia = new Map<string, number[]>();
 
 /** Cuántas preguntas por IP cada diez minutos. Público y sin sesión: es lo que frena el abuso. */
 function admitirIp(ip: string): void {
@@ -101,6 +106,35 @@ function admitirIp(ip: string): void {
   porIp.set(ip, recientes);
   if (porIp.size > 5_000) {
     for (const [clave, tiempos] of porIp) if (tiempos.every((t) => ahora - t >= VENTANA_IP_MS)) porIp.delete(clave);
+  }
+}
+
+/**
+ * Cuántas preguntas por IP en veinticuatro horas, sin un plan.
+ *
+ * El límite de diez minutos frena una ráfaga; este pone precio al uso intenso.
+ * Cada pregunta cuesta saldo de OpenRouter, y diez al día alcanzan para probar
+ * el asistente en serio. Los saludos y las preguntas fuera de tema no cuentan:
+ * se contestan antes de llegar aquí y no gastan nada.
+ */
+function admitirDia(ip: string): void {
+  const ahora = Date.now();
+  const limite = entero('ASISTENTE_POR_IP_DIA', FREE_CHAT_PER_DAY);
+  const recientes = (porIpDia.get(ip) ?? []).filter((t) => ahora - t < DIA_MS);
+  if (recientes.length >= limite) {
+    const espera = Math.ceil((DIA_MS - (ahora - (recientes[0] ?? ahora))) / 1000);
+    porIpDia.set(ip, recientes);
+    throw new AsistenteError(
+      `Se alcanzaron las ${limite} preguntas gratuitas de hoy desde esta conexión. Con un plan de DatosBolivia.com el asistente contesta 100 o más por día.`,
+      429,
+      espera,
+      true,
+    );
+  }
+  recientes.push(ahora);
+  porIpDia.set(ip, recientes);
+  if (porIpDia.size > 20_000) {
+    for (const [clave, tiempos] of porIpDia) if (tiempos.every((t) => ahora - t >= DIA_MS)) porIpDia.delete(clave);
   }
 }
 
@@ -241,6 +275,7 @@ export async function responder(pregunta: string, historial: readonly Turno[], i
   if (previo.tipo === 'FUERA') return fija(RESPUESTA_FUERA, inicio);
 
   admitirIp(ip);
+  admitirDia(ip);
   // Sin modelo disponible no se deja de contestar: se contesta sin IA.
   let sinIa: Motivo | null = !configurado() ? 'sin-proveedor' : !quedaPresupuesto() ? 'presupuesto' : null;
   if (enCurso >= entero('ASISTENTE_SIMULTANEAS', 4)) {

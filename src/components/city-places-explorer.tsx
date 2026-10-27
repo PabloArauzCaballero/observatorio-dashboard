@@ -28,6 +28,7 @@ import {
   isLowConfidence,
 } from '@/lib/place-confidence';
 import { tallySectors } from '@/lib/place-sectors';
+import { FREE_ROW_CAP, SERVICES_PATH } from '@/lib/plans';
 import type { SectorTally } from '@/lib/place-sectors';
 
 /*
@@ -677,15 +678,12 @@ export function CityPlacesExplorer({ families }: { families: PlaceFamily[] }) {
                   {failed ? null : truncated ? (
                     <>
                       El mapa dibuja los {NUMBER.format(places.length)} de mayor confianza de un
-                      total de {NUMBER.format(total)}: con todos, los puntos se superponen. Una
-                      familia sola se dibuja completa, y el CSV trae los {NUMBER.format(total)}.{' '}
-                      <button
-                        type="button"
-                        className="callout-link"
-                        onClick={() => setShowAll(true)}
-                      >
-                        Dibujar los {NUMBER.format(total)}
-                      </button>
+                      total de {NUMBER.format(total)}: con todos, los puntos se superponen. Al elegir
+                      una familia se acota la vista. Dibujar y descargar los{' '}
+                      {NUMBER.format(total)} es parte de los{' '}
+                      <a className="callout-link" href={SERVICES_PATH}>
+                        planes de DatosBolivia.com
+                      </a>
                       .
                     </>
                   ) : (
@@ -700,12 +698,18 @@ export function CityPlacesExplorer({ families }: { families: PlaceFamily[] }) {
               source={PLACES_SOURCE}
               extraDownloads={[
                 {
-                  etiqueta: `Todos los lugares de la selección (${NUMBER.format(total)})`,
+                  etiqueta:
+                    total > FREE_ROW_CAP
+                      ? `${NUMBER.format(FREE_ROW_CAP)} lugares de ${NUMBER.format(total)} (completo con un plan)`
+                      : `Los lugares de la selección (${NUMBER.format(total)})`,
                   nota: 'CSV',
                   href: `/api/export?${fileQuery.toString()}&format=csv`,
                 },
                 {
-                  etiqueta: 'Todos los lugares de la selección',
+                  etiqueta:
+                    total > FREE_ROW_CAP
+                      ? `${NUMBER.format(FREE_ROW_CAP)} lugares de ${NUMBER.format(total)}`
+                      : 'Los lugares de la selección',
                   nota: 'JSON',
                   href: `/api/export?${fileQuery.toString()}&format=json`,
                 },

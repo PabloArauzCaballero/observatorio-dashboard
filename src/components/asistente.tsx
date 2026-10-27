@@ -32,6 +32,8 @@ interface Turno {
   tablas?: Tabla[];
   fecha?: string;
   error?: boolean;
+  /** El error es el tope del plan gratuito: se ofrece la página de planes. */
+  servicios?: string;
 }
 
 interface RespuestaApi {
@@ -41,6 +43,7 @@ interface RespuestaApi {
   tablas?: Tabla[];
   fecha?: string;
   error?: string;
+  servicios?: string;
 }
 
 const CLAVE = 'observatorio-asistente-v1';
@@ -289,7 +292,12 @@ export function Asistente() {
                 ...(datos.tablas?.length ? { tablas: datos.tablas } : {}),
                 ...(datos.fecha ? { fecha: datos.fecha } : {}),
               }
-            : { rol: 'asistente', texto: datos.error ?? 'No se pudo generar la respuesta. Intentar de nuevo.', error: true };
+            : {
+                rol: 'asistente',
+                texto: datos.error ?? 'No se pudo generar la respuesta. Intentar de nuevo.',
+                error: true,
+                ...(datos.servicios ? { servicios: datos.servicios } : {}),
+              };
       } catch {
         nuevo = { rol: 'asistente', texto: 'No hay conexión con el servidor. Comprobar la red e intentar de nuevo.', error: true };
       }
@@ -428,7 +436,11 @@ export function Asistente() {
                     </button>
                   </div>
                 ) : null}
-                {t.error && i === turnos.length - 1 && ultimaPregunta ? (
+                {t.error && t.servicios ? (
+                  <a className="chip" href={t.servicios}>
+                    Ver los planes
+                  </a>
+                ) : t.error && i === turnos.length - 1 && ultimaPregunta ? (
                   <button type="button" className="chip" onClick={() => void preguntar(ultimaPregunta)}>
                     Reintentar
                   </button>
