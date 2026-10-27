@@ -1,0 +1,424 @@
+/*
+ * Planes y servicios, con la línea editorial del sitio: papel, filetes en vez
+ * de tarjetas, Gelasio para la voz y Libre Franklin para todo lo que es dato o
+ * control. Solo tokens de `globals.css`; ningún tamaño ni color literal.
+ */
+
+.pagina {
+  width: min(72rem, 100%);
+  margin: 0 auto;
+  padding: var(--s4, 2rem) 1rem var(--s5, 3rem);
+  color: var(--ink);
+}
+
+.cabecera {
+  max-width: 46rem;
+  margin-bottom: 2.5rem;
+}
+
+.antetitulo {
+  margin: 0 0 0.5rem;
+  font-family: var(--sans);
+  font-size: var(--kicker-size);
+  letter-spacing: var(--kicker-track);
+  text-transform: uppercase;
+  color: var(--accent);
+}
+
+.titulo {
+  margin: 0 0 0.75rem;
+  font-family: var(--serif);
+  font-size: var(--text-2xl, 2.125rem);
+  font-weight: 700;
+  line-height: 1.15;
+}
+
+.entradilla {
+  margin: 0;
+  font-family: var(--serif);
+  font-size: var(--text-lede);
+  line-height: 1.5;
+  color: var(--ink-soft);
+}
+
+/* Los cuatro planes: columnas con filete de tinta arriba, sin caja. */
+.planes {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr));
+  gap: 2rem 1.75rem;
+  margin-bottom: 3rem;
+}
+
+.plan {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  padding-top: 1rem;
+  border-top: 2px solid var(--ink);
+}
+
+.plan[data-destacado] {
+  border-top-color: var(--accent);
+}
+
+.nombre {
+  margin: 0;
+  font-family: var(--serif);
+  font-size: var(--text-lg);
+  font-weight: 700;
+}
+
+.precio {
+  margin: 0;
+  font-family: var(--sans);
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  column-gap: 0.25rem;
+}
+
+.desde,
+.periodo {
+  font-size: var(--text-sm);
+  color: var(--ink-soft);
+}
+
+.monto {
+  font-size: var(--text-xl);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.anual {
+  flex-basis: 100%;
+  font-size: var(--text-xs);
+  color: var(--ink-faint);
+}
+
+.resumen {
+  margin: 0;
+  font-family: var(--sans);
+  font-size: var(--text-sm);
+  color: var(--ink-soft);
+}
+
+.incluye {
+  margin: 0;
+  padding: 0.75rem 0 0;
+  list-style: none;
+  border-top: 1px solid var(--rule);
+  font-family: var(--sans);
+  font-size: var(--text-sm);
+  line-height: 1.45;
+  flex: 1;
+}
+
+.incluye li {
+  position: relative;
+  padding-left: 1rem;
+  margin-bottom: 0.4rem;
+}
+
+.incluye li::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0.55em;
+  width: 0.4rem;
+  height: 1px;
+  background: var(--gold);
+}
+
+.primario,
+.secundario,
+.enviar {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: var(--control-h-md);
+  padding: 0 1rem;
+  border-radius: var(--radius-sm);
+  font-family: var(--sans);
+  font-size: var(--text-sm);
+  font-weight: 600;
+  text-decoration: none;
+  cursor: pointer;
+  transition:
+    background var(--fast) var(--ease),
+    border-color var(--fast) var(--ease),
+    color var(--fast) var(--ease);
+}
+
+.primario,
+.enviar {
+  border: 1px solid var(--ink);
+  background: var(--ink);
+  color: var(--paper);
+}
+
+.primario:hover,
+.enviar:hover:not(:disabled) {
+  background: var(--accent-strong);
+  border-color: var(--accent-strong);
+}
+
+.secundario {
+  border: 1px solid var(--rule-strong);
+  background: transparent;
+  color: var(--ink);
+}
+
+.secundario:hover {
+  border-color: var(--ink);
+}
+
+.primario:focus-visible,
+.secundario:focus-visible,
+.enviar:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.enviar:disabled {
+  opacity: 0.6;
+  cursor: progress;
+}
+
+.bloque {
+  margin-bottom: 3rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--rule);
+}
+
+.subtitulo {
+  margin: 0 0 1rem;
+  font-family: var(--serif);
+  font-size: var(--text-xl);
+  font-weight: 700;
+}
+
+/* La comparación: tabla sin marco, cifras a la derecha, primera columna fija al desplazar. */
+.tablaScroll {
+  overflow-x: auto;
+}
+
+.tabla {
+  width: 100%;
+  min-width: 40rem;
+  border-collapse: collapse;
+  font-family: var(--sans);
+  font-size: var(--text-sm);
+  font-variant-numeric: tabular-nums;
+}
+
+.tabla th,
+.tabla td {
+  padding: 0.6rem 0.75rem;
+  border-bottom: 1px solid var(--rule);
+  text-align: right;
+}
+
+.tabla thead th {
+  border-bottom: 2px solid var(--ink);
+  font-weight: 700;
+}
+
+.tabla th[scope='row'],
+.tabla thead th:first-child {
+  position: sticky;
+  left: 0;
+  z-index: var(--z-sticky);
+  background: var(--paper);
+  text-align: left;
+  font-weight: 400;
+  color: var(--ink-soft);
+}
+
+.pasos {
+  margin: 0;
+  padding-left: 1.25rem;
+  max-width: 46rem;
+  font-family: var(--sans);
+  font-size: var(--text-base);
+  line-height: 1.55;
+}
+
+.pasos li {
+  margin-bottom: 0.5rem;
+}
+
+.contacto {
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) minmax(0, 1fr);
+  gap: 2rem;
+  align-items: start;
+}
+
+@media (max-width: 760px) {
+  .contacto {
+    grid-template-columns: 1fr;
+  }
+}
+
+.form {
+  display: grid;
+  gap: 1rem;
+}
+
+.fila {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr));
+  gap: 1rem;
+}
+
+.campo {
+  display: grid;
+  gap: 0.35rem;
+  font-family: var(--sans);
+  font-size: var(--text-sm);
+}
+
+.campo em {
+  font-style: normal;
+  color: var(--ink-faint);
+}
+
+.campo input,
+.campo select,
+.campo textarea {
+  width: 100%;
+  min-height: var(--control-h-md);
+  padding: 0.5rem 0.65rem;
+  border: 1px solid var(--rule-strong);
+  border-radius: var(--radius-sm);
+  background: var(--field);
+  color: var(--ink);
+  font: inherit;
+  font-size: var(--text-base);
+}
+
+.campo textarea {
+  resize: vertical;
+}
+
+.campo input:focus-visible,
+.campo select:focus-visible,
+.campo textarea:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
+.campo [aria-invalid='true'] {
+  border-color: var(--critical);
+}
+
+/* Fuera de la vista y del lector de pantalla, pero en el formulario. */
+.trampa {
+  position: absolute;
+  left: -10000px;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+}
+
+.acciones {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem 1rem;
+}
+
+.nota {
+  font-family: var(--sans);
+  font-size: var(--text-xs);
+  color: var(--ink-faint);
+}
+
+.error {
+  margin: 0;
+  font-family: var(--sans);
+  font-size: var(--text-sm);
+  color: var(--critical);
+}
+
+.enviado {
+  margin: 0;
+  padding: 1rem;
+  background: var(--panel-tint);
+  border-top: 2px solid var(--good);
+  font-family: var(--sans);
+  font-size: var(--text-base);
+}
+
+.directo {
+  display: grid;
+  gap: 0.75rem;
+  padding-top: 0.75rem;
+  border-top: 2px solid var(--ink);
+}
+
+.directo h3 {
+  margin: 0;
+  font-family: var(--sans);
+  font-size: var(--text-sm);
+  font-weight: 700;
+}
+
+.preguntas {
+  max-width: 46rem;
+  font-family: var(--sans);
+}
+
+.preguntas details {
+  border-bottom: 1px solid var(--rule);
+}
+
+.preguntas summary {
+  padding: 0.75rem 0;
+  cursor: pointer;
+  font-size: var(--text-base);
+  font-weight: 600;
+}
+
+.preguntas summary:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.preguntas p {
+  margin: 0 0 0.9rem;
+  font-size: var(--text-base);
+  line-height: 1.55;
+  color: var(--ink-soft);
+}
+
+.legal {
+  margin: 1.25rem 0 0;
+  font-family: var(--sans);
+  font-size: var(--text-sm);
+  color: var(--ink-soft);
+}
+
+.legal a {
+  color: var(--accent);
+}
+
+/* La página legal comparte la columna de lectura. */
+.prosa {
+  max-width: 46rem;
+  font-family: var(--serif);
+  font-size: var(--text-md);
+  line-height: 1.6;
+}
+
+.prosa h3 {
+  margin: 2rem 0 0.5rem;
+  font-family: var(--sans);
+  font-size: var(--text-base);
+  font-weight: 700;
+}
+
+.prosa p,
+.prosa li {
+  color: var(--ink-soft);
+}

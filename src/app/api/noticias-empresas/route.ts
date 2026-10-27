@@ -1,5 +1,6 @@
 import { readAbiNews } from '@/lib/abi-news';
 import { abiCsv, abiSelection } from '@/lib/abi-news-query';
+import { FREE_ROW_CAP, freeCut, freeCutNote } from '@/lib/plans';
 import { jsonResponse } from '@/lib/respond';
 
 export const dynamic = 'force-dynamic';
@@ -12,11 +13,16 @@ export async function GET(request: Request): Promise<Response> {
   if (format && !['csv', 'json'].includes(format)) return Response.json({ error: 'Formato inválido.' }, { status: 400 });
   try {
     const page = await readAbiNews(selection, Boolean(format));
-    if (format === 'csv') return new Response(abiCsv(page.articles), { headers: {
+    // Las descargas, sin un plan, llevan quinientas noticias; la vista de la página no cambia.
+    const cut = format ? freeCut(page.articles) : null;
+    const note = cut?.recortado ? freeCutNote(cut.total) : null;
+    if (format === 'csv') return new Response(abiCsv(cut?.filas ?? page.articles), { headers: {
       'Content-Type': 'text/csv; charset=utf-8', 'Content-Disposition': 'attachment; filename="noticias-abi.csv"',
       'Cache-Control': 'no-store', 'X-Total-Count': String(page.total),
+      ...(note ? { 'X-Plan-Limit': String(FREE_ROW_CAP) } : {}),
     } });
-    return jsonResponse(request, page, { headers: { 'Cache-Control': 'private, max-age=60',
+    const body = format === 'json' && cut ? { ...page, articles: cut.filas, ...(note ? { plan_gratuito: { tope: FREE_ROW_CAP, aviso: note } } : {}) } : page;
+    return jsonResponse(request, body, { headers: { 'Cache-Control': 'private, max-age=60',
       ...(format === 'json' ? { 'Content-Disposition': 'attachment; filename="noticias-abi.json"' } : {}) } });
   } catch (error) {
     if (error instanceof Error && error.message === 'ABI_EXPORT_TOO_LARGE')

@@ -1,4 +1,5 @@
 import { readAutomotiveStudy } from '@/lib/automotive-study';
+import { freeCut, freeCutNote } from '@/lib/plans';
 
 export async function GET(request: Request) {
   const payload = await readAutomotiveStudy();
@@ -10,8 +11,12 @@ export async function GET(request: Request) {
     fleet: payload.study.fleet.departments,
   };
   if (params.get('formato') === 'csv') {
-    const rows = datasets[name] as Record<string, unknown>[] | undefined;
-    if (!rows) return Response.json({ error: 'Conjunto desconocido' }, { status: 400 });
+    const all = datasets[name] as Record<string, unknown>[] | undefined;
+    if (!all) return Response.json({ error: 'Conjunto desconocido' }, { status: 400 });
+    // Sin un plan, quinientas filas, y una columna `aviso` que lo dice.
+    const cut = freeCut(all);
+    const note = cut.recortado ? freeCutNote(cut.total) : null;
+    const rows = note ? cut.filas.map(row => ({ ...row, aviso: note })) : cut.filas;
     const columns = [...new Set(rows.flatMap(row => Object.keys(row)))];
     const cell = (v: unknown) => {
       const value = typeof v === 'object' && v !== null ? JSON.stringify(v) : String(v ?? '');

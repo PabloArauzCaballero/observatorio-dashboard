@@ -13,7 +13,7 @@ interface Section {
 }
 
 /**
- * Las nueve secciones, agrupadas por lo que se hace en ellas y no por orden de
+ * Las diez secciones, agrupadas por lo que se hace en ellas y no por orden de
  * construcción: leer cómo se usa el sitio, vigilar que el observatorio se
  * alimente y se publique, y mantener lo que lo configura.
  */
@@ -24,6 +24,7 @@ const GROUPS: ReadonlyArray<{ readonly title: string; readonly items: readonly S
       { href: '/admin', label: 'Resumen', icon: 'cajas' },
       { href: '/admin/traffic', label: 'Tráfico', icon: 'tendencia' },
       { href: '/admin/downloads', label: 'Descargas', icon: 'descarga' },
+      { href: '/admin/pedidos', label: 'Pedidos', icon: 'maletin' },
     ],
   },
   {

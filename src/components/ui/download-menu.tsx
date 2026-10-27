@@ -18,6 +18,7 @@ import { aCsv, nombreDeArchivo, type Dataset } from '@/lib/export/datos';
 import { entregar, fechaLarga, hoyEnLaPaz, TIPO } from '@/lib/export/entrega';
 import { leerTablas } from '@/lib/export/tablas';
 import { aXlsx } from '@/lib/export/xlsx';
+import { cutOrder, freeCut, freeCutNote } from '@/lib/plans';
 
 /** Lo que un panel pone a disposición de quien baja sus datos. */
 export type DatosDePanel = DatosDeFigura;
@@ -185,16 +186,24 @@ export function DownloadMenu({
     items[siguiente]?.focus();
   };
 
-  const comoDataset = (figura: DatosDeFigura): Dataset => ({
-    id,
-    titulo: figura.etiqueta ? `${titulo} · ${figura.etiqueta}` : titulo,
-    fuente,
-    columnas: figura.columnas,
-    filas: figura.filas,
-    unidad: figura.unidad,
-    nota: figura.nota,
-    hoja: figura.etiqueta,
-  });
+  /*
+   * Sin un plan, quinientas filas por figura. El aviso viaja en la columna de
+   * la fuente del CSV y en la nota del Excel: el archivo se explica solo.
+   */
+  const comoDataset = (figura: DatosDeFigura): Dataset => {
+    const corte = freeCut(figura.filas, cutOrder(figura.filas));
+    const aviso = corte.recortado ? freeCutNote(corte.total) : null;
+    return {
+      id,
+      titulo: figura.etiqueta ? `${titulo} · ${figura.etiqueta}` : titulo,
+      fuente: aviso ? `${fuente}. ${aviso}` : fuente,
+      columnas: figura.columnas,
+      filas: corte.filas,
+      unidad: figura.unidad,
+      nota: aviso ? [aviso, figura.nota].filter(Boolean).join(' ') : figura.nota,
+      hoja: figura.etiqueta,
+    };
+  };
 
   const ejecutar = async (accion: Accion) => {
     const hoy = hoyEnLaPaz();

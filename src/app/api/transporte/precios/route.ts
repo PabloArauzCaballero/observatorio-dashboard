@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import fuels from '@/data/fuel-prices.json';
 import fares from '@/data/passenger-fares.json';
+import { freeCut, freeCutNote } from '@/lib/plans';
 import { readVehiclePrices } from '@/lib/vehicle-prices';
 
 /** Public, versioned snapshots behind the three price views. Source URLs stay in each row. */
@@ -13,7 +14,10 @@ export async function GET(request: NextRequest) {
     ? vehicleRead?.rows.reduce((latest, row) => row.observedAt > latest ? row.observedAt : latest, '') ?? ''
     : '2026-10-03';
   if (request.nextUrl.searchParams.get('formato') === 'csv') {
-    const records = rows as Record<string, unknown>[];
+    // Sin un plan, quinientas filas, y una columna `aviso` que lo dice.
+    const cut = freeCut(rows as Record<string, unknown>[]);
+    const note = cut.recortado ? freeCutNote(cut.total) : null;
+    const records = note ? cut.filas.map(row => ({ ...row, aviso: note })) : cut.filas;
     const columns = Object.keys(records[0] ?? {});
     const safe = (value: unknown) => {
       const text = value == null ? '' : String(value);
