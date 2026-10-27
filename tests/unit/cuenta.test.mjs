@@ -49,8 +49,10 @@ const cuenta = {
   createdAt: '2026-10-27T12:00:00Z',
 };
 
-test('la cookie firmada se lee de vuelta y dura doce horas', () => {
+test('la cookie firmada se lee de vuelta y dura ocho horas', () => {
+  assert.equal(CUENTA_TTL_SECONDS, 8 * 60 * 60);
   const sesion = sessionFromAccount(cuenta, AHORA);
+  assert.equal(sesion.iat, AHORA / 1000);
   assert.equal(sesion.exp, AHORA / 1000 + CUENTA_TTL_SECONDS);
   const valor = encodeCustomerCookie(sesion, SECRETO);
   assert.deepEqual(verifyCustomerCookie(valor, SECRETO, AHORA), sesion);

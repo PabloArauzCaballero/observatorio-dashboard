@@ -1,5 +1,13 @@
 import { passwordProblem } from '@/lib/cuenta/puro';
-import { changePassword, currentCustomer, refuse, requestIsSameOrigin } from '@/lib/cuenta/servidor';
+import {
+  changePassword,
+  currentCustomer,
+  forgetAccount,
+  freshAccount,
+  refuse,
+  requestIsSameOrigin,
+  startCustomerSession,
+} from '@/lib/cuenta/servidor';
 import { admit, clientIp } from '@/lib/ip-limit';
 
 export const runtime = 'nodejs';
@@ -30,5 +38,10 @@ export async function POST(request: Request): Promise<Response> {
     if (result.status === 401) return refuse(401, 'WRONG_PASSWORD', 'La contraseña actual no es correcta.');
     return refuse(503, 'CORE_REFUSED', 'No se pudo cambiar la contraseña. Intentar de nuevo en unos minutos.');
   }
+  // Esta sesión recibe una cookie nueva (otro `iat`) con la cuenta releída del núcleo.
+  // Cerrar las sesiones abiertas en otros equipos exige un campo en el núcleo que todavía no existe.
+  forgetAccount(customer.accountId);
+  const cuenta = await freshAccount(customer.accountId);
+  if (cuenta.ok) await startCustomerSession(request, cuenta.body.data.account);
   return new Response(null, { status: 204, headers: { 'cache-control': 'no-store' } });
 }

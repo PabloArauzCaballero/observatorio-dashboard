@@ -25,7 +25,7 @@ import {
  *
  * El sitio no guarda cuentas ni contraseñas: las tiene el núcleo. Lo único que
  * queda aquí es una cookie firmada con lo justo para decidir cupos —quién es,
- * qué plan tiene y si está vigente— durante doce horas.
+ * qué plan tiene y si estaba vigente al entrar— durante ocho horas.
  */
 
 const SITE_BASE = '/api/v1/site/subscriptions';
@@ -105,11 +105,49 @@ export async function currentCustomer(request?: Request): Promise<CustomerSessio
   return verifyCustomerCookie(value, secret);
 }
 
-/** El plan de un cliente con la cuenta vigente; `null` para todos los demás. */
+const FRESH_MS = 60_000;
+const fresh = new Map<string, { at: number; result: CoreResult<AccountDetail> }>();
+
+/**
+ * La cuenta tal como la ve el núcleo ahora, guardada sesenta segundos.
+ *
+ * La cookie dice quién es; si tiene plan y si está vigente lo dice esto. Una
+ * cookie firmada hace horas no sabe que la cuenta se suspendió o que el plan
+ * cambió, así que ningún permiso sale de ella. Solo se guardan las respuestas
+ * buenas: un núcleo caído se vuelve a preguntar en el pedido siguiente, y
+ * mientras tanto rigen los topes del plan gratuito.
+ */
+export async function freshAccount(accountId: string): Promise<CoreResult<AccountDetail>> {
+  const now = Date.now();
+  const kept = fresh.get(accountId);
+  if (kept && now - kept.at < FRESH_MS) return kept.result;
+  const result = await readAccount(accountId);
+  if (result.ok) {
+    fresh.set(accountId, { at: now, result });
+    if (fresh.size > 5_000) {
+      for (const [key, entry] of fresh) if (now - entry.at >= FRESH_MS) fresh.delete(key);
+    }
+  } else {
+    fresh.delete(accountId);
+  }
+  return result;
+}
+
+/** Olvida la cuenta guardada: después de un cambio, la lectura siguiente va al núcleo. */
+export function forgetAccount(accountId: string): void {
+  fresh.delete(accountId);
+}
+
+/**
+ * El plan de un cliente con la cuenta vigente según el núcleo; `null` para
+ * todos los demás, incluida una cuenta que el núcleo no pudo confirmar.
+ */
 export async function entitledPlan(request: Request): Promise<{ customer: CustomerSession; plan: Plan } | null> {
   const customer = await currentCustomer(request);
-  if (!customer?.entitled) return null;
-  const plan = planFor(PLANS, customer.planCode);
+  if (!customer) return null;
+  const result = await freshAccount(customer.accountId);
+  if (!result.ok || !result.body.data.account.entitled) return null;
+  const plan = planFor(PLANS, result.body.data.account.planCode);
   return plan ? { customer, plan } : null;
 }
 

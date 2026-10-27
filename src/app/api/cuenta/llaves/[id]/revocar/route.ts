@@ -1,5 +1,5 @@
 import { isUuid } from '@/lib/cuenta/puro';
-import { currentCustomer, refuse, requestIsSameOrigin, revokeApiKey } from '@/lib/cuenta/servidor';
+import { currentCustomer, forgetAccount, refuse, requestIsSameOrigin, revokeApiKey } from '@/lib/cuenta/servidor';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -16,6 +16,7 @@ export async function POST(
   if (!isUuid(id)) return refuse(400, 'VALIDATION_ERROR', 'La llave no es válida.');
 
   const result = await revokeApiKey(customer.accountId, id);
+  forgetAccount(customer.accountId);
   if (!result.ok) {
     if (result.status === 404) return refuse(404, 'NOT_FOUND', 'La llave no existe en esta cuenta.');
     return refuse(503, 'CORE_REFUSED', 'No se pudo revocar la llave. Intentar de nuevo en unos minutos.');

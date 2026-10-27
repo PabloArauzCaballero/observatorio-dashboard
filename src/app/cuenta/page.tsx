@@ -13,7 +13,7 @@ import {
   usageLines,
   usedShare,
 } from '@/lib/cuenta/puro';
-import { currentCustomer, readAccount } from '@/lib/cuenta/servidor';
+import { currentCustomer, freshAccount } from '@/lib/cuenta/servidor';
 import { THEME_BOOT } from '@/lib/theme';
 import styles from './cuenta.module.css';
 
@@ -35,7 +35,7 @@ export default async function CuentaPage() {
   const customer = await currentCustomer();
   if (!customer) redirect(INGRESAR);
 
-  const result = await readAccount(customer.accountId);
+  const result = await freshAccount(customer.accountId);
   // Una cuenta que el núcleo ya no reconoce no tiene nada que mostrar: al ingreso.
   if (!result.ok && (result.status === 401 || result.status === 403 || result.status === 404)) {
     redirect(INGRESAR);

@@ -1,4 +1,4 @@
-import { admit, clientIp } from '@/lib/ip-limit';
+import { admit, clientIp, remaining, reserve } from '@/lib/ip-limit';
 import { normalizeEmail, safeReturnPath } from '@/lib/cuenta/puro';
 import {
   accountsAreConfigured,
@@ -41,9 +41,21 @@ export async function POST(request: Request): Promise<Response> {
     return refuse(400, 'VALIDATION_ERROR', 'Escribir el correo y la contraseña.');
   }
 
+  /*
+   * Un segundo freno por correo, que cuenta solo los intentos fallidos: cinco
+   * cada quince minutos. Rotar direcciones no sirve para probar contraseñas
+   * contra una misma cuenta. El mensaje es el mismo que el del freno por IP.
+   */
+  if (remaining('cuenta-ingresar-correo', email, 5, QUINCE_MINUTOS) === 0) {
+    return refuse(429, 'RATE_LIMITED', 'Demasiados intentos. Intentar de nuevo en unos minutos.', {
+      'Retry-After': '900',
+    });
+  }
+
   const result = await signIn(email, password);
   if (!result.ok) {
     if (result.status >= 400 && result.status < 500) {
+      reserve('cuenta-ingresar-correo', email, 1, QUINCE_MINUTOS);
       return refuse(401, 'UNAUTHORIZED', 'El correo o la contraseña no son correctos.');
     }
     return refuse(503, 'CORE_UNAVAILABLE', 'No se pudo verificar el ingreso. Intentar de nuevo en unos minutos.');

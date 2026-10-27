@@ -12,8 +12,12 @@ import type { Plan, PlanCode } from '../plans';
 
 export const CUENTA_COOKIE = 'obs_cuenta';
 
-/** Doce horas: una jornada de trabajo sin volver a escribir la contraseña. */
-export const CUENTA_TTL_SECONDS = 12 * 60 * 60;
+/**
+ * Ocho horas: una jornada de trabajo sin volver a escribir la contraseña. Los
+ * permisos no salen de aquí sino del núcleo (ver `freshAccount`), así que una
+ * cookie vieja no alarga un plan vencido.
+ */
+export const CUENTA_TTL_SECONDS = 8 * 60 * 60;
 
 /** La versión de `/terminos` que se acepta al activar la cuenta. */
 export const TERMS_VERSION = '2026-10-27';
@@ -79,6 +83,8 @@ export interface CustomerSession {
   email: string;
   planCode: PaidPlanCode;
   entitled: boolean;
+  /** Segundos desde la época: cuándo se emitió. */
+  iat?: number;
   /** Segundos desde la época. */
   exp: number;
 }
@@ -146,19 +152,28 @@ export function verifyCustomerCookie(
     ) {
       return null;
     }
-    return { accountId: s.accountId, email: s.email, planCode: s.planCode, entitled: s.entitled, exp: s.exp };
+    return {
+      accountId: s.accountId,
+      email: s.email,
+      planCode: s.planCode,
+      entitled: s.entitled,
+      ...(typeof s.iat === 'number' ? { iat: s.iat } : {}),
+      exp: s.exp,
+    };
   } catch {
     return null;
   }
 }
 
 export function sessionFromAccount(account: AccountSummary, nowMs: number = Date.now()): CustomerSession {
+  const iat = Math.floor(nowMs / 1000);
   return {
     accountId: account.subscriberAccountId,
     email: account.email,
     planCode: account.planCode,
     entitled: account.entitled,
-    exp: Math.floor(nowMs / 1000) + CUENTA_TTL_SECONDS,
+    iat,
+    exp: iat + CUENTA_TTL_SECONDS,
   };
 }
 
