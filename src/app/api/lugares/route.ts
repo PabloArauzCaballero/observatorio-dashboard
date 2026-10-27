@@ -1,6 +1,6 @@
-import { HOUR_MS, admit, clientIp } from '@/lib/ip-limit';
+import { HOUR_MS, admit, clientIp, remaining, spend } from '@/lib/ip-limit';
 import { readPlaces } from '@/lib/places';
-import { FREE_MAP_PER_HOUR, MAP_VIEW_CAP, SERVICES_PATH } from '@/lib/plans';
+import { FREE_MAP_PER_HOUR, FREE_MAP_PLACES_PER_HOUR, MAP_VIEW_CAP, SERVICES_PATH } from '@/lib/plans';
 import { jsonResponse } from '@/lib/respond';
 
 /**
@@ -45,14 +45,21 @@ export async function GET(request: Request): Promise<Response> {
    * ciudad y de familia, y muchas menos de las que hacen falta para recorrer
    * las setenta y dos mil fichas.
    */
-  const admission = admit('lugares', clientIp(request), FREE_MAP_PER_HOUR, HOUR_MS);
-  if (!admission.ok) {
+  const ip = clientIp(request);
+  const admission = admit('lugares', ip, FREE_MAP_PER_HOUR, HOUR_MS);
+  /*
+   * Contar pedidos no alcanza: cuatro mil por pedido, el tope de pedidos
+   * dejaba llevarse la base varias veces por hora. Se cuentan también los
+   * lugares servidos.
+   */
+  const presupuesto = remaining('lugares-filas', ip, FREE_MAP_PLACES_PER_HOUR, HOUR_MS);
+  if (!admission.ok || presupuesto === 0) {
     return Response.json(
       {
         error: 'Se alcanzó el límite de consultas al mapa por hora. Con un plan de DatosBolivia.com el mapa no tiene ese límite.',
         servicios: SERVICES_PATH,
       },
-      { status: 429, headers: { 'Retry-After': String(admission.retryAfter) } },
+      { status: 429, headers: { 'Retry-After': String(admission.ok ? 900 : admission.retryAfter) } },
     );
   }
 
@@ -77,7 +84,8 @@ export async function GET(request: Request): Promise<Response> {
      * El mapa pide cuatro mil: son varios megas en cada cambio de ciudad, y
      * este tablero comparte servidor.
      */
-    const { places, total } = await readPlaces(cities, families, MAP_VIEW_CAP);
+    const { places, total } = await readPlaces(cities, families, Math.min(MAP_VIEW_CAP, presupuesto));
+    spend('lugares-filas', ip, places.length, HOUR_MS);
     /*
      * Comprimido aquí y sostenido diez minutos en el navegador, como las demás
      * rutas de pestaña. Una ciudad grande son 1,5 MB de JSON: en pablo-h310
