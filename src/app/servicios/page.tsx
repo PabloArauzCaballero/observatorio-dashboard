@@ -257,6 +257,10 @@ export default async function ServiciosPage({
             ))}
           </div>
           <p className={styles.legal}>
+            Cómo se consulta la API, con ejemplos en curl, Python y Excel:{' '}
+            <Link href="/servicios/api">documentación de la API</Link>.
+          </p>
+          <p className={styles.legal}>
             El uso de los datos y de la API se rige por los <Link href="/terminos">términos de uso</Link>.
           </p>
         </section>
