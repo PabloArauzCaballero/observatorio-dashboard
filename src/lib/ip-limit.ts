@@ -78,23 +78,33 @@ export function remaining(nombre: string, ip: string, maximo: number, ventanaMs:
 }
 
 /**
- * Anota que `ip` gastó `cantidad` unidades del presupuesto `nombre`. Una
- * cantidad negativa devuelve lo reservado y no usado: quien reserva antes de
- * esperar la base y devuelve después impide que pedidos simultáneos vean todos
- * el presupuesto entero.
+ * Reserva `cantidad` unidades del presupuesto `nombre` para `ip` y devuelve
+ * cómo saldarla. Se reserva antes de esperar la base, en el mismo paso que se
+ * consulta el saldo, para que pedidos simultáneos no vean todos el presupuesto
+ * entero; al terminar, `saldar(usadas)` deja anotado solo lo servido.
  */
-export function spend(nombre: string, ip: string, cantidad: number, ventanaMs: number): void {
-  if (cantidad === 0) return;
+export function reserve(
+  nombre: string,
+  ip: string,
+  cantidad: number,
+  ventanaMs: number,
+): { saldar: (usadas: number) => void } {
   const ahora = Date.now();
   let cupo = gastos.get(nombre);
   if (!cupo) {
     cupo = new Map();
     gastos.set(nombre, cupo);
   }
-  cupo.set(ip, [...(cupo.get(ip) ?? []), { t: ahora, n: cantidad }]);
+  const gasto = { t: ahora, n: Math.max(0, cantidad) };
+  cupo.set(ip, [...(cupo.get(ip) ?? []), gasto]);
   if (cupo.size > 10_000) {
     for (const [clave, lista] of cupo) if (lista.every((g) => ahora - g.t >= ventanaMs)) cupo.delete(clave);
   }
+  return {
+    saldar: (usadas) => {
+      gasto.n = Math.min(gasto.n, Math.max(0, usadas));
+    },
+  };
 }
 
 export const HOUR_MS = 60 * 60 * 1000;
