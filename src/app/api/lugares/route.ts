@@ -84,8 +84,14 @@ export async function GET(request: Request): Promise<Response> {
      * El mapa pide cuatro mil: son varios megas en cada cambio de ciudad, y
      * este tablero comparte servidor.
      */
-    const { places, total } = await readPlaces(cities, families, Math.min(MAP_VIEW_CAP, presupuesto));
-    spend('lugares-filas', ip, places.length, HOUR_MS);
+    // Reservado antes de esperar la base, en el mismo paso que la consulta del saldo.
+    const reserva = Math.min(MAP_VIEW_CAP, presupuesto);
+    spend('lugares-filas', ip, reserva, HOUR_MS);
+    let servidos = 0;
+    const { places, total } = await readPlaces(cities, families, reserva).finally(() => {
+      spend('lugares-filas', ip, servidos - reserva, HOUR_MS);
+    });
+    servidos = places.length;
     /*
      * Comprimido aquí y sostenido diez minutos en el navegador, como las demás
      * rutas de pestaña. Una ciudad grande son 1,5 MB de JSON: en pablo-h310

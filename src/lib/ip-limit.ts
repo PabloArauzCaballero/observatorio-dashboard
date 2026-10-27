@@ -77,9 +77,14 @@ export function remaining(nombre: string, ip: string, maximo: number, ventanaMs:
   return Math.max(0, maximo - recientes.reduce((suma, g) => suma + g.n, 0));
 }
 
-/** Anota que `ip` gastó `cantidad` unidades del presupuesto `nombre`. */
+/**
+ * Anota que `ip` gastó `cantidad` unidades del presupuesto `nombre`. Una
+ * cantidad negativa devuelve lo reservado y no usado: quien reserva antes de
+ * esperar la base y devuelve después impide que pedidos simultáneos vean todos
+ * el presupuesto entero.
+ */
 export function spend(nombre: string, ip: string, cantidad: number, ventanaMs: number): void {
-  if (cantidad <= 0) return;
+  if (cantidad === 0) return;
   const ahora = Date.now();
   let cupo = gastos.get(nombre);
   if (!cupo) {
