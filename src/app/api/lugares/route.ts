@@ -1,4 +1,4 @@
-import { HOUR_MS, admit, clientIp, remaining, spend } from '@/lib/ip-limit';
+import { HOUR_MS, admit, clientIp, remaining, reserve } from '@/lib/ip-limit';
 import { readPlaces } from '@/lib/places';
 import { FREE_MAP_PER_HOUR, FREE_MAP_PLACES_PER_HOUR, MAP_VIEW_CAP, SERVICES_PATH } from '@/lib/plans';
 import { jsonResponse } from '@/lib/respond';
@@ -85,13 +85,17 @@ export async function GET(request: Request): Promise<Response> {
      * este tablero comparte servidor.
      */
     // Reservado antes de esperar la base, en el mismo paso que la consulta del saldo.
-    const reserva = Math.min(MAP_VIEW_CAP, presupuesto);
-    spend('lugares-filas', ip, reserva, HOUR_MS);
+    const tope = Math.min(MAP_VIEW_CAP, presupuesto);
+    const reserva = reserve('lugares-filas', ip, tope, HOUR_MS);
     let servidos = 0;
-    const { places, total } = await readPlaces(cities, families, reserva).finally(() => {
-      spend('lugares-filas', ip, servidos - reserva, HOUR_MS);
-    });
-    servidos = places.length;
+    let lectura: Awaited<ReturnType<typeof readPlaces>>;
+    try {
+      lectura = await readPlaces(cities, families, tope);
+      servidos = lectura.places.length;
+    } finally {
+      reserva.saldar(servidos);
+    }
+    const { places, total } = lectura;
     /*
      * Comprimido aquí y sostenido diez minutos en el navegador, como las demás
      * rutas de pestaña. Una ciudad grande son 1,5 MB de JSON: en pablo-h310
