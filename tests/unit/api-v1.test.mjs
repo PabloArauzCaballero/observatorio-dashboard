@@ -316,6 +316,15 @@ test('la cuenta de fallos no crece sin fin', () => {
   assert.equal(ledger.addresses, 1, 'lo vencido se descarta al pasar el máximo');
 });
 
+test('con todas las direcciones vivas, el registro igual respeta su tope', () => {
+  const ledger = new FailureLedger(20, 60_000, 10);
+  for (let i = 0; i < 50; i += 1) ledger.admit(`ip-${i}`, i).ticket.confirm();
+  assert.ok(ledger.addresses <= 10, `quedaron ${ledger.addresses}`);
+  // La dirección que acaba de pedir no se descarta en el mismo paso.
+  const ultima = ledger.admit('ip-49', 100);
+  assert.equal(ultima.ok, true);
+});
+
 /* --------------------------------------------------------- cupo y encabezados */
 
 test('X-Cupo-Restante descuenta la consulta actual y nunca baja de cero', () => {

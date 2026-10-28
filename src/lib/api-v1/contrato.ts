@@ -199,9 +199,21 @@ export class FailureLedger {
     }
     const entry = { at: now, pending: true };
     kept.push(entry);
+    // Reinsertada al final: el orden del Map es el de la última actividad.
+    this.entries.delete(address);
     this.entries.set(address, kept);
     if (this.entries.size > this.maxAddresses) {
+      /*
+       * Un tope duro: primero caen las direcciones sin fallos vivos y, si con
+       * eso no alcanza, las de actividad más vieja. Se baja hasta el 90 % para
+       * que el barrido, que recorre todo el Map, no corra en cada pedido.
+       */
       for (const key of [...this.entries.keys()]) this.live(key, now);
+      const piso = Math.floor(this.maxAddresses * 0.9);
+      for (const key of this.entries.keys()) {
+        if (this.entries.size <= piso) break;
+        if (key !== address) this.entries.delete(key);
+      }
     }
     let settled = false;
     return {
