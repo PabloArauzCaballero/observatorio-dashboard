@@ -1,23 +1,28 @@
-import { paginate } from '@/lib/api-v1/contrato';
-import { OPTIONS, serve } from '@/lib/api-v1/responder';
+import { paginate, parseTextParam, toIsoInstant } from '@/lib/api-v1/contrato';
+import { OPTIONS, accept, serve } from '@/lib/api-v1/responder';
 import { readBusinessDirectoryForExport } from '@/lib/business-directory';
 
 /**
  * El directorio de empresas (subconjunto público del SEPREC), con los mismos
  * filtros que la tabla de Empresas y su descarga: departamento, municipio y
- * texto en el nombre. Ordenado por departamento, municipio y nombre.
+ * texto en el nombre. Ordenado por departamento, municipio, nombre y registro.
  */
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 export { OPTIONS };
 
+/** El largo que la tabla de Empresas admite en cada filtro. */
+const MAX_FILTER_LENGTH = 100;
+
 export function GET(request: Request): Promise<Response> {
   return serve(request, 'empresas', async ({ params, offset, pageSize }) => {
+    const text = (name: string) =>
+      accept(parseTextParam(name, params.get(name), MAX_FILTER_LENGTH));
     const { rows, meta } = await readBusinessDirectoryForExport({
-      department: params.get('departamento') ?? '',
-      municipality: params.get('municipio') ?? '',
-      search: params.get('buscar') ?? '',
+      department: text('departamento'),
+      municipality: text('municipio'),
+      search: text('buscar'),
     });
     const all = rows.map((row) => ({
       registro: row.registrationId,
@@ -27,12 +32,14 @@ export function GET(request: Request): Promise<Response> {
       direccion: row.address,
       actividad: row.activity,
       licencia: row.licence,
-      fecha_de_corte: row.cutDate,
+      fecha_de_corte: toIsoInstant(row.cutDate),
     }));
+    const { data, siguiente } = paginate(all, offset, pageSize);
     return {
-      ...paginate(all, offset, pageSize),
+      data,
+      siguiente,
       fuente: `${meta.publisher} (${meta.sourceUrl}). ${meta.note}`,
-      actualizado: meta.cutDate,
+      actualizado: toIsoInstant(meta.cutDate),
     };
   });
 }
