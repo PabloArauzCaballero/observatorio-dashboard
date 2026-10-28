@@ -208,15 +208,22 @@ export class FailureLedger {
   admit(direccion: string, now: number): FailureAdmission {
     let address = ledgerKey(direccion);
     /*
-     * Con el registro lleno no se descarta a nadie: borrar una dirección con
-     * fallos vivos le devolvería su cupo. Se barre lo vencido (a lo sumo una vez
-     * por segundo) y, si sigue lleno, la dirección nueva cuenta en un cupo
-     * común: falla cerrado para quien inunde, sin crecer la memoria.
+     * Con el registro lleno, a lo sumo una vez por segundo se barre lo vencido
+     * y se descartan, de la más vieja a la más nueva, las direcciones que no
+     * llegaron al tope: perder unos fallos por debajo del tope no le abre nada
+     * a nadie. Las bloqueadas conservan su cuenta. Solo si todo el registro
+     * está bloqueado (diez mil direcciones con veinte fallos cada una) la
+     * dirección nueva cuenta en un cupo común, para no crecer la memoria.
      */
     if (!this.entries.has(address) && this.entries.size >= this.maxAddresses) {
       if (now - this.lastSweep >= 1_000) {
         this.lastSweep = now;
         for (const key of [...this.entries.keys()]) this.live(key, now);
+        const piso = Math.floor(this.maxAddresses * 0.9);
+        for (const key of [...this.entries.keys()]) {
+          if (this.entries.size <= piso) break;
+          if (key !== LEDGER_OVERFLOW && this.live(key, now).length < this.limit) this.entries.delete(key);
+        }
       }
       if (this.entries.size >= this.maxAddresses) address = LEDGER_OVERFLOW;
     }

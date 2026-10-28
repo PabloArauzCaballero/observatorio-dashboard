@@ -317,16 +317,24 @@ test('la cuenta de fallos no crece sin fin', () => {
   assert.equal(ledger.addresses, 1, 'lo vencido se descarta al pasar el máximo');
 });
 
-test('con el registro lleno, nadie pierde sus fallos y lo nuevo cuenta junto', () => {
+test('con el registro lleno, la bloqueada conserva su cuenta y las demás siguen entrando', () => {
   const ledger = new FailureLedger(3, 60_000, 4);
   for (let i = 0; i < 3; i += 1) ledger.admit('bloqueada', i).ticket.confirm();
-  for (let i = 0; i < 3; i += 1) ledger.admit(`ip-${i}`, 10).ticket.confirm();
-  // Una inundación de direcciones nuevas no le devuelve el cupo a la bloqueada.
-  for (let i = 0; i < 50; i += 1) ledger.admit(`nueva-${i}`, 20).ticket?.confirm();
-  assert.equal(ledger.admit('bloqueada', 30).ok, false);
-  assert.ok(ledger.addresses <= 5, `quedaron ${ledger.addresses}`);
-  // Las nuevas comparten un cupo: el cuarto fallo de cualquiera de ellas se rechaza.
-  assert.equal(ledger.admit('otra-nueva', 40).ok, false);
+  // Una inundación de direcciones nuevas, cada una pidiendo más de un segundo después.
+  for (let i = 0; i < 50; i += 1) ledger.admit(`nueva-${i}`, 10 + i * 1_001).ticket?.confirm();
+  assert.equal(ledger.admit('bloqueada', 49_100).ok, false, 'la bloqueada no recupera su cupo');
+  assert.ok(ledger.addresses <= 4, `quedaron ${ledger.addresses}`);
+  // Una dirección limpia que llega después no queda castigada por la inundación.
+  assert.equal(ledger.admit('limpia', 49_200).ok, true);
+});
+
+test('solo con todo el registro bloqueado lo nuevo cuenta en un cupo común', () => {
+  const ledger = new FailureLedger(2, 60_000, 2);
+  for (const ip of ['a', 'b']) for (let i = 0; i < 2; i += 1) ledger.admit(ip, i).ticket.confirm();
+  ledger.admit('nueva-1', 5_000).ticket.confirm();
+  ledger.admit('nueva-2', 5_001).ticket.confirm();
+  assert.equal(ledger.admit('nueva-3', 5_002).ok, false);
+  assert.ok(ledger.addresses <= 3);
 });
 
 test('una IPv6 cuenta por su /64', () => {
