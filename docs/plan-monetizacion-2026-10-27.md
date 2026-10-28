@@ -156,3 +156,26 @@ Verificación: un script de prueba recorre cada ruta con una llave de test, agot
 - **Los topes por IP viven en memoria**: se reinician con cada despliegue, y varias personas detrás de una misma IP (una oficina, una universidad) comparten el cupo del chat.
 - **Cada servidor tiene su base**: una cuenta creada en test no existe en producción.
 - **Las cifras no cambian por pagar.** Los planes compran acceso y volumen, no cobertura ni otra versión de los datos; lo dirá la página de Servicios.
+
+## 7. Avisos por correo: la tarea programada
+
+Tres avisos salen solos, cada uno una vez por periodo: **consumo al 80 %** del cupo mensual de la API (una vez por mes UTC), **vencimiento en 5 días** y **periodo de gracia** (una vez por cada fecha de vigencia). La decisión vive en `src/lib/cuenta/avisos-puro.ts` (probada en `tests/unit/avisos.test.mjs`); el núcleo guarda qué aviso ya salió (`POST /notices/claim`), así que correr la tarea de más no repite correos. Solo hay cupo mensual para la API: el asistente se cuenta por día y las descargas por tamaño de archivo.
+
+**Coolify → aplicación del sitio público → Scheduled Tasks**, cada hora (`0 * * * *`):
+
+```sh
+curl -fsS -X POST -H "Authorization: Bearer $AVISOS_SECRET" http://localhost:3000/api/servicios/avisos
+```
+
+La tarea va en la aplicación del sitio, no en la del portal `/admin`. Responde con cifras por tipo de aviso (`due`, `sent`, `alreadySent`, `mailFailed`, `claimFailed`), sin correos ni identificadores.
+
+| Variable | Para qué |
+|---|---|
+| `AVISOS_SECRET` | El portador de la tarea; se compara en tiempo constante. Sin ella la ruta responde 503. Generar con `openssl rand -base64 32`. |
+| `RESEND_API_KEY` | La llave de Resend. Sin ella (o sin remitente) la ruta responde 503 y no reclama ningún aviso, para que no se pierdan. |
+| `SERVICIOS_CORREO_REMITENTE` | El remitente verificado en Resend, p. ej. `DatosBolivia.com <avisos@datosbolivia.com>`. |
+| `AVISOS_SITIO_URL` | La dirección pública para los enlaces del correo (`/cuenta`, `/servicios`), p. ej. `https://test.datosbolivia.com`; la tarea llega por `localhost`. Se lee al correr. Sin ella se usa `NEXT_PUBLIC_SITE_URL` (fijada al construir la imagen) y, si tampoco está, `https://datosbolivia.com`: en test hay que fijarla. |
+
+Las mismas `RESEND_API_KEY` y `SERVICIOS_CORREO_REMITENTE` mandan el enlace de activación al crear una cuenta en `/admin/clientes`; sin ellas, el enlace se muestra para copiarlo.
+
+El aviso se reclama antes de mandarlo: dos corridas a la vez nunca duplican un correo, pero si Resend falla después del reclamo ese aviso no se reintenta (cuenta en `mailFailed`).

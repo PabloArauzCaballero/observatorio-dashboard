@@ -1,5 +1,15 @@
-import { isUuid, normalizeEmail } from '@/lib/cuenta/puro';
-import { adminError, adminOk, issueToken, linkFor, mailIsConfigured, mailLink, operatorFor } from '@/lib/cuenta/admin';
+import { isUuid } from '@/lib/cuenta/puro';
+import { readAccount } from '@/lib/cuenta/servidor';
+import {
+  adminError,
+  adminOk,
+  coreRefusal,
+  issueToken,
+  linkFor,
+  mailIsConfigured,
+  mailLink,
+  operatorFor,
+} from '@/lib/cuenta/admin';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -7,6 +17,10 @@ export const dynamic = 'force-dynamic';
 /**
  * Emite un enlace de un solo uso: activar (si el primero venció) o recuperar
  * la contraseña. Se muestra para copiarlo y, con Resend configurado, se manda.
+ *
+ * El destinatario sale de la cuenta guardada en el núcleo, nunca del cuerpo de
+ * la petición: si no, el enlace para fijar la contraseña de una cuenta podría
+ * mandarse a cualquier dirección.
  */
 export async function POST(request: Request, { params }: { params: Promise<{ id: string }> }): Promise<Response> {
   const session = await operatorFor(request);
@@ -19,12 +33,17 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
   if (!purpose) return adminError(400, 'VALIDATION_ERROR', 'El tipo de enlace no es válido.');
 
   const result = await issueToken(session, id, purpose);
-  if (!result.ok) return adminError(result.status, result.code, result.message);
+  if (!result.ok) return coreRefusal('emitir enlace', result);
 
   const link = linkFor(request, result.body.data.token);
-  // El correo y el nombre los manda la pantalla, que ya los tiene; si faltan, solo se muestra el enlace.
-  const email = normalizeEmail(body?.['email']);
-  const fullName = typeof body?.['fullName'] === 'string' ? body['fullName'].slice(0, 160) : '';
-  const emailed = mailIsConfigured() && email ? await mailLink(email, fullName || email, link, purpose) : false;
-  return adminOk({ link, expiresAt: result.body.data.expiresAt, emailed, mailConfigured: mailIsConfigured() }, 201);
+  const mailConfigured = mailIsConfigured();
+  let emailed = false;
+  if (mailConfigured) {
+    const stored = await readAccount(id);
+    if (stored.ok) {
+      const { email, fullName } = stored.body.data.account;
+      emailed = await mailLink(email, fullName, link, purpose);
+    }
+  }
+  return adminOk({ link, expiresAt: result.body.data.expiresAt, emailed, mailConfigured }, 201);
 }
