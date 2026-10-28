@@ -55,6 +55,40 @@ export interface AccountSummary {
   entitled: boolean;
   paidUntil: string | null;
   createdAt: string;
+  /**
+   * Sube cada vez que el núcleo cierra las sesiones de la cuenta: un cambio de
+   * contraseña, un enlace usado o un cierre pedido. Una cookie con otra versión
+   * ya no vale.
+   */
+  sessionVersion: number;
+  /** Hasta cuándo el ingreso está bloqueado por intentos fallidos. */
+  lockedUntil: string | null;
+}
+
+export type MemberStatus = 'ACTIVE' | 'REMOVED';
+
+/** Una persona que la titular sumó a su cuenta, tal como la lista el núcleo. */
+export interface MemberSummary {
+  memberId: string;
+  email: string;
+  fullName: string;
+  status: MemberStatus;
+  createdAt: string;
+  /** Si ya fijó su contraseña con el enlace. */
+  activated: boolean;
+}
+
+/** Un miembro leído uno por uno: trae su propia versión de sesión. */
+export interface MemberRecord extends MemberSummary {
+  sessionVersion: number;
+}
+
+/** El miembro que acaba de ingresar, como lo devuelve `POST /sessions`. */
+export interface SignedInMember {
+  memberId: string;
+  email: string;
+  fullName: string;
+  sessionVersion: number;
 }
 
 export interface UsageRow {
@@ -77,17 +111,36 @@ export interface AccountDetail {
   apiKeys: ApiKeySummary[];
 }
 
-/** Lo que guarda la cookie: lo justo para decidir cupos sin preguntarle al núcleo. */
+/**
+ * Lo que guarda la cookie: quién es y con qué versión de sesión entró.
+ *
+ * La titular lleva solo `sv`; un miembro lleva además `mid` y `msv`. Ningún
+ * permiso sale de aquí: `freshAccount` compara las versiones con las del
+ * núcleo y lee el plan y la vigencia de él.
+ */
 export interface CustomerSession {
   accountId: string;
+  /** El correo de quien ingresó: el de la titular o el del miembro. */
   email: string;
   planCode: PaidPlanCode;
   entitled: boolean;
+  /** La versión de sesión de la cuenta al ingresar. */
+  sv: number;
+  /** El miembro que ingresó; ausente para la titular. */
+  mid?: string;
+  /** La versión de sesión del miembro al ingresar. */
+  msv?: number;
   /** Segundos desde la época: cuándo se emitió. */
   iat?: number;
   /** Segundos desde la época. */
   exp: number;
 }
+
+/** Si quien ingresó es la persona titular, la única que administra llaves, equipo y facturación. */
+export const isOwnerSession = (session: Pick<CustomerSession, 'mid'>): boolean => session.mid === undefined;
+
+const isVersion = (value: unknown): value is number =>
+  typeof value === 'number' && Number.isSafeInteger(value) && value >= 1;
 
 const firmar = (payload: string, secret: string | Buffer): string =>
   createHmac('sha256', secret).update(payload).digest('base64url');
@@ -147,16 +200,22 @@ export function verifyCustomerCookie(
       typeof s.email !== 'string' ||
       !isPaidPlan(s.planCode) ||
       typeof s.entitled !== 'boolean' ||
+      !isVersion(s.sv) ||
       typeof s.exp !== 'number' ||
       s.exp * 1000 <= nowMs
     ) {
       return null;
     }
+    // Un miembro lleva las dos marcas o ninguna: una sola es una cookie que no salió de aquí.
+    const esMiembro = s.mid !== undefined || s.msv !== undefined;
+    if (esMiembro && (!isUuid(s.mid) || !isVersion(s.msv))) return null;
     return {
       accountId: s.accountId,
       email: s.email,
       planCode: s.planCode,
       entitled: s.entitled,
+      sv: s.sv,
+      ...(esMiembro ? { mid: s.mid, msv: s.msv } : {}),
       ...(typeof s.iat === 'number' ? { iat: s.iat } : {}),
       exp: s.exp,
     };
@@ -165,16 +224,57 @@ export function verifyCustomerCookie(
   }
 }
 
-export function sessionFromAccount(account: AccountSummary, nowMs: number = Date.now()): CustomerSession {
+/** El miembro de una sesión, con lo justo que pide la cookie. */
+export type SessionMember = Pick<SignedInMember, 'memberId' | 'email' | 'sessionVersion'>;
+
+/**
+ * La sesión que abre una cuenta, o la de uno de sus miembros.
+ *
+ * `null` cuando el núcleo no mandó una versión de sesión válida: una cookie sin
+ * versión no se podría cerrar nunca desde el núcleo, así que no se emite.
+ */
+export function sessionFromAccount(
+  account: AccountSummary,
+  member: SessionMember | null = null,
+  nowMs: number = Date.now(),
+): CustomerSession | null {
+  if (!isVersion(account.sessionVersion)) return null;
+  if (member && (!isUuid(member.memberId) || !isVersion(member.sessionVersion))) return null;
   const iat = Math.floor(nowMs / 1000);
   return {
     accountId: account.subscriberAccountId,
-    email: account.email,
+    email: member ? member.email : account.email,
     planCode: account.planCode,
     entitled: account.entitled,
+    sv: account.sessionVersion,
+    ...(member ? { mid: member.memberId, msv: member.sessionVersion } : {}),
     iat,
     exp: iat + CUENTA_TTL_SECONDS,
   };
+}
+
+/**
+ * Si la sesión de una cookie sigue en pie frente a lo que dice el núcleo.
+ *
+ * La versión de la cuenta se compara siempre, también en la cookie de un
+ * miembro: un cierre de sesiones de la cuenta alcanza a todo el equipo. Un
+ * miembro además tiene que seguir activo y con su propia versión.
+ */
+export function sessionIsCurrent(
+  session: Pick<CustomerSession, 'accountId' | 'sv' | 'mid' | 'msv'>,
+  account: Pick<AccountSummary, 'subscriberAccountId' | 'sessionVersion'>,
+  member: Pick<MemberRecord, 'memberId' | 'status' | 'sessionVersion'> | null,
+): boolean {
+  if (account.subscriberAccountId !== session.accountId) return false;
+  if (!isVersion(account.sessionVersion) || account.sessionVersion !== session.sv) return false;
+  if (session.mid === undefined) return true;
+  return (
+    member !== null &&
+    member.memberId === session.mid &&
+    member.status === 'ACTIVE' &&
+    isVersion(member.sessionVersion) &&
+    member.sessionVersion === session.msv
+  );
 }
 
 /** Lee una cookie de un encabezado `Cookie` crudo. */
@@ -237,8 +337,94 @@ export const isActivationToken = (value: unknown): value is string =>
 export function safeReturnPath(value: unknown): string {
   if (typeof value !== 'string') return '/cuenta';
   if (!/^\/cuenta(\/[A-Za-z0-9/_-]*)?(\?[A-Za-z0-9=&_%-]*)?$/u.test(value)) return '/cuenta';
-  if (value.startsWith('/cuenta/ingresar') || value.startsWith('/cuenta/activar')) return '/cuenta';
+  if (/^\/cuenta\/(ingresar|activar|recuperar)/u.test(value)) return '/cuenta';
   return value;
+}
+
+/** Un texto corto de una línea: sin caracteres de control ni espacios de más. */
+function oneLine(value: string): string {
+  return value.replace(/[\u0000-\u001f\u007f]/gu, ' ').replace(/\s+/gu, ' ').trim();
+}
+
+export type Validated<T> = { ok: true; value: T } | { ok: false; field: string; message: string };
+
+/** El nombre de una persona: de 2 a 120 caracteres. */
+export function cleanPersonName(value: unknown): string | null {
+  if (typeof value !== 'string') return null;
+  const limpio = oneLine(value);
+  return limpio.length >= 2 && limpio.length <= 120 ? limpio : null;
+}
+
+/** Lo que la titular escribe para sumar a alguien a su cuenta. */
+export function memberInvite(body: unknown): Validated<{ email: string; fullName: string }> {
+  const datos = (body ?? {}) as { email?: unknown; fullName?: unknown };
+  const fullName = cleanPersonName(datos.fullName);
+  if (!fullName) return { ok: false, field: 'fullName', message: 'Escribir el nombre de la persona, de 2 a 120 caracteres.' };
+  const email = normalizeEmail(datos.email);
+  if (!email) return { ok: false, field: 'email', message: 'Escribir un correo válido.' };
+  return { ok: true, value: { email, fullName } };
+}
+
+export interface BillingChanges {
+  organization: string | null;
+  legalName: string | null;
+  taxId: string | null;
+}
+
+export const BILLING_LIMITS = { organization: 120, legalName: 200, taxId: 20 } as const;
+
+/** El NIT: cifras, letras o guiones, sin espacios; algunos llevan complemento. */
+export const TAX_ID_PATTERN = /^[0-9A-Za-z-]{3,20}$/u;
+
+/**
+ * Los datos de facturación del formulario, listos para el núcleo.
+ *
+ * El formulario manda los tres campos siempre; uno en blanco se borra (`null`),
+ * que es como el núcleo entiende «quitar este dato». El NIT admite cifras,
+ * letras y guiones, porque algunos llevan complemento.
+ */
+export function billingChanges(body: unknown): Validated<BillingChanges> {
+  const datos = (body ?? {}) as Record<string, unknown>;
+  const texto = (campo: keyof BillingChanges): string | null | undefined => {
+    const valor = datos[campo];
+    if (valor === undefined || valor === null) return null;
+    if (typeof valor !== 'string') return undefined;
+    const limpio = oneLine(valor);
+    return limpio === '' ? null : limpio;
+  };
+  const organization = texto('organization');
+  if (organization === undefined || (organization && organization.length > BILLING_LIMITS.organization)) {
+    return { ok: false, field: 'organization', message: `La organización puede tener hasta ${BILLING_LIMITS.organization} caracteres.` };
+  }
+  const legalName = texto('legalName');
+  if (legalName === undefined || (legalName && legalName.length > BILLING_LIMITS.legalName)) {
+    return { ok: false, field: 'legalName', message: `La razón social puede tener hasta ${BILLING_LIMITS.legalName} caracteres.` };
+  }
+  const taxId = texto('taxId');
+  if (taxId === undefined || (taxId !== null && !TAX_ID_PATTERN.test(taxId))) {
+    return { ok: false, field: 'taxId', message: 'El NIT lleva de 3 a 20 cifras, letras o guiones, sin espacios.' };
+  }
+  return { ok: true, value: { organization, legalName, taxId } };
+}
+
+/**
+ * La dirección pública del sitio, para los enlaces que viajan por correo.
+ *
+ * Sale de la configuración y nunca de la petición: un `Host` alterado haría que
+ * el enlace de recuperación de otra persona apuntara a un sitio ajeno y le
+ * entregara el token.
+ */
+export function siteOrigin(configured: string | undefined): string {
+  const valor = configured?.trim();
+  if (valor) {
+    try {
+      const url = new URL(valor);
+      if (url.protocol === 'https:' || url.protocol === 'http:') return url.origin;
+    } catch {
+      // Una variable mal escrita cae en el dominio de producción.
+    }
+  }
+  return 'https://datosbolivia.com';
 }
 
 /**
@@ -357,9 +543,72 @@ export function usedShare(used: number, quota: number | null): number | null {
 /** Cuántas llaves activas tiene una cuenta, para saber si puede crear otra. */
 export const activeKeys = (keys: readonly ApiKeySummary[]): number => keys.filter((key) => !key.revokedAt).length;
 
+/** Cuántos miembros siguen en la cuenta, para saber si se puede sumar otro. */
+export const activeMembers = (members: readonly Pick<MemberSummary, 'status'>[]): number =>
+  members.filter((member) => member.status === 'ACTIVE').length;
+
 /** El enlace de activación que el operador copia o que viaja por correo. */
 export function activationLink(origin: string, token: string): string {
   return `${origin.replace(/\/+$/u, '')}/cuenta/activar?token=${encodeURIComponent(token)}`;
+}
+
+/**
+ * «27 de octubre de 2026, 18:30 (hora de Bolivia)». Bolivia está en UTC−4 todo
+ * el año, así que no hace falta una tabla de zonas.
+ */
+export function longDateTime(value: string | null | undefined): string {
+  if (!value) return '—';
+  const fecha = new Date(value);
+  if (Number.isNaN(fecha.getTime())) return '—';
+  const local = new Date(fecha.getTime() - 4 * 60 * 60 * 1000);
+  const hora = `${String(local.getUTCHours()).padStart(2, '0')}:${String(local.getUTCMinutes()).padStart(2, '0')}`;
+  return `${longDate(local.toISOString())}, ${hora} (hora de Bolivia)`;
+}
+
+export type LinkPurpose = 'RESET' | 'INVITE';
+
+export interface LinkEmail {
+  subject: string;
+  text: string;
+  html: string;
+}
+
+const escapeHtml = (valor: string): string =>
+  valor.replace(/&/gu, '&amp;').replace(/</gu, '&lt;').replace(/>/gu, '&gt;').replace(/"/gu, '&quot;').replace(/'/gu, '&#39;');
+
+/**
+ * El correo con un enlace para fijar la contraseña: el de recuperación que pide
+ * la persona y el de bienvenida que manda la titular al sumar a alguien.
+ */
+export function accountLinkEmail(input: {
+  purpose: LinkPurpose;
+  fullName: string;
+  link: string;
+  expiresAt?: string | null;
+  /** Para la invitación: el nombre de la organización o de la titular. */
+  accountName?: string | null;
+}): LinkEmail {
+  const subject =
+    input.purpose === 'RESET' ? 'Nueva contraseña para DatosBolivia.com' : 'Acceso a la cuenta de DatosBolivia.com';
+  const intro =
+    input.purpose === 'RESET'
+      ? 'Se pidió una contraseña nueva para la cuenta de DatosBolivia.com. Para fijarla, abrir este enlace:'
+      : `Se abrió un acceso a la cuenta de DatosBolivia.com${input.accountName ? ` de ${oneLine(input.accountName)}` : ''}. Para entrar hace falta fijar una contraseña en este enlace:`;
+  const vence = input.expiresAt && longDateTime(input.expiresAt) !== '—' ? ` y vence el ${longDateTime(input.expiresAt)}` : '';
+  const cierre =
+    input.purpose === 'RESET'
+      ? `El enlace sirve una sola vez${vence}. Si no se pidió, se puede ignorar este correo: la contraseña actual sigue igual.`
+      : `El enlace sirve una sola vez${vence}. Si no se esperaba este correo, se puede ignorar.`;
+  const nombre = oneLine(input.fullName);
+  const text = `${nombre}:\n\n${intro}\n\n${input.link}\n\n${cierre}\n\nDatosBolivia.com`;
+  const html = [
+    `<p>${escapeHtml(nombre)}:</p>`,
+    `<p>${escapeHtml(intro)}</p>`,
+    `<p><a href="${escapeHtml(input.link)}">${escapeHtml(input.link)}</a></p>`,
+    `<p>${escapeHtml(cierre)}</p>`,
+    '<p>DatosBolivia.com</p>',
+  ].join('');
+  return { subject, text, html };
 }
 
 /** Una fecha `YYYY-MM-DD` que existe. */

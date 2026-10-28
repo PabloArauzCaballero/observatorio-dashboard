@@ -6,169 +6,214 @@ import { useState } from 'react';
 import type { FormEvent } from 'react';
 import styles from '@/app/cuenta/cuenta.module.css';
 import type { ApiKeySummary } from '@/lib/cuenta/puro';
+import { Aviso, enviar, errorDe, fechaCorta, useFormulario } from './formulario';
+import { PASSWORD_MAX, PASSWORD_MIN } from './limites';
 
 /**
  * Los formularios de la cuenta del cliente. Todos hablan con `/api/cuenta/*`,
  * que es quien convierte la cookie en una llamada al núcleo; el navegador nunca
- * ve una credencial del núcleo.
+ * ve una credencial del núcleo. Lo que aquí se esconde o se muestra es solo
+ * presentación: cada ruta vuelve a decidir quién puede hacer qué.
  */
 
-type Estado = { tipo: 'listo' } | { tipo: 'enviando' } | { tipo: 'error'; mensaje: string } | { tipo: 'hecho'; mensaje: string };
+const RECUPERAR = '/cuenta/recuperar';
 
-async function enviar(url: string, cuerpo?: unknown): Promise<{ ok: true; datos: unknown } | { ok: false; mensaje: string }> {
-  try {
-    const respuesta = await fetch(url, {
-      method: 'POST',
-      headers: { 'content-type': 'application/json' },
-      ...(cuerpo === undefined ? {} : { body: JSON.stringify(cuerpo) }),
-    });
-    const datos = respuesta.status === 204 ? null : await respuesta.json().catch(() => null);
-    if (!respuesta.ok) {
-      const mensaje = (datos as { error?: { message?: string } } | null)?.error?.message;
-      return { ok: false, mensaje: mensaje ?? 'No se pudo completar. Intentar de nuevo.' };
-    }
-    return { ok: true, datos };
-  } catch {
-    return { ok: false, mensaje: 'Sin conexión con el servidor. Intentar de nuevo.' };
-  }
-}
+const texto = (datos: FormData, nombre: string): string => String(datos.get(nombre) ?? '');
 
-function Aviso({ estado }: { estado: Estado }) {
-  if (estado.tipo === 'error') {
-    return (
-      <p className={styles.error} role="alert">
-        {estado.mensaje}
-      </p>
-    );
-  }
-  if (estado.tipo === 'hecho') {
-    return (
-      <p className={styles.hecho} role="status">
-        {estado.mensaje}
-      </p>
-    );
-  }
-  return null;
+/** Después de un cambio que cerró esta sesión, de vuelta al ingreso. */
+function pideReingreso(datos: unknown): boolean {
+  return Boolean((datos as { reingresar?: unknown } | null)?.reingresar);
 }
 
 export function IngresarForm({ volver }: { volver: string }) {
   const router = useRouter();
-  const [estado, setEstado] = useState<Estado>({ tipo: 'listo' });
+  const { formRef, estado, setEstado, enviando, campo, aviso } = useFormulario();
 
   const alEnviar = async (evento: FormEvent<HTMLFormElement>) => {
     evento.preventDefault();
     const datos = new FormData(evento.currentTarget);
+    const email = texto(datos, 'email').trim();
+    const password = texto(datos, 'password');
+    if (!email) return setEstado({ tipo: 'error', mensaje: 'Escribir el correo de la cuenta.', campo: 'email' });
+    if (!password) return setEstado({ tipo: 'error', mensaje: 'Escribir la contraseña.', campo: 'password' });
     setEstado({ tipo: 'enviando' });
-    const r = await enviar('/api/cuenta/ingresar', {
-      email: String(datos.get('email') ?? ''),
-      password: String(datos.get('password') ?? ''),
-      volver,
-    });
-    if (!r.ok) {
-      setEstado({ tipo: 'error', mensaje: r.mensaje });
-      return;
-    }
+    const r = await enviar('/api/cuenta/ingresar', { email, password, volver });
+    if (!r.ok) return setEstado(errorDe(r));
     router.replace((r.datos as { volver?: string } | null)?.volver ?? '/cuenta');
     router.refresh();
   };
 
+  const bloqueada = estado.tipo === 'error' && estado.codigo === 'ACCOUNT_LOCKED';
+
   return (
-    <form className={styles.form} onSubmit={(e) => void alEnviar(e)} noValidate>
+    <form ref={formRef} className={styles.form} onSubmit={(e) => void alEnviar(e)} noValidate aria-busy={enviando}>
       <label className={styles.campo}>
         Correo
-        <input name="email" type="email" autoComplete="email" required maxLength={254} />
+        <input name="email" type="email" autoComplete="email" required maxLength={254} {...campo('email')} />
       </label>
       <label className={styles.campo}>
         Contraseña
-        <input name="password" type="password" autoComplete="current-password" required maxLength={200} />
+        <input
+          name="password"
+          type="password"
+          autoComplete="current-password"
+          required
+          maxLength={PASSWORD_MAX}
+          {...campo('password')}
+        />
       </label>
       <div className={styles.acciones}>
-        <button className={styles.primario} type="submit" disabled={estado.tipo === 'enviando'}>
-          {estado.tipo === 'enviando' ? 'Ingresando…' : 'Ingresar'}
+        <button className={styles.primario} type="submit" disabled={enviando}>
+          {enviando ? 'Ingresando…' : 'Ingresar'}
+        </button>
+        <Link className={styles.enlace} href={RECUPERAR}>
+          Recuperar la clave
+        </Link>
+      </div>
+      <Aviso {...aviso}>
+        {bloqueada ? (
+          <Link className={styles.enlace} href={RECUPERAR}>
+            Recuperar la clave
+          </Link>
+        ) : null}
+      </Aviso>
+    </form>
+  );
+}
+
+export function RecuperarForm() {
+  const { formRef, setEstado, estado, enviando, campo, aviso } = useFormulario();
+
+  const alEnviar = async (evento: FormEvent<HTMLFormElement>) => {
+    evento.preventDefault();
+    const email = texto(new FormData(evento.currentTarget), 'email').trim();
+    if (!email) return setEstado({ tipo: 'error', mensaje: 'Escribir el correo de la cuenta.', campo: 'email' });
+    setEstado({ tipo: 'enviando' });
+    const r = await enviar('/api/cuenta/recuperar', { email });
+    if (!r.ok) return setEstado(errorDe(r));
+    setEstado({
+      tipo: 'hecho',
+      mensaje:
+        'Si el correo corresponde a una cuenta de DatosBolivia.com, en unos minutos llega un enlace para fijar una contraseña nueva. El enlace sirve una sola vez.',
+    });
+  };
+
+  return (
+    <form ref={formRef} className={styles.form} onSubmit={(e) => void alEnviar(e)} noValidate aria-busy={enviando}>
+      <label className={styles.campo}>
+        Correo de la cuenta
+        <input name="email" type="email" autoComplete="email" required maxLength={254} {...campo('email')} />
+      </label>
+      <div className={styles.acciones}>
+        <button className={styles.primario} type="submit" disabled={enviando || estado.tipo === 'hecho'}>
+          {enviando ? 'Enviando…' : 'Enviar el enlace'}
         </button>
       </div>
-      <Aviso estado={estado} />
+      <Aviso {...aviso} />
     </form>
   );
 }
 
 export function ActivarForm({ token, version }: { token: string; version: string }) {
   const router = useRouter();
-  const [estado, setEstado] = useState<Estado>({ tipo: 'listo' });
+  const { formRef, estado, setEstado, enviando, campo, aviso } = useFormulario();
+  const enlaceVencido = estado.tipo === 'error' && estado.codigo === 'INVALID_TOKEN';
 
   const alEnviar = async (evento: FormEvent<HTMLFormElement>) => {
     evento.preventDefault();
     const datos = new FormData(evento.currentTarget);
-    const password = String(datos.get('password') ?? '');
-    if (password !== String(datos.get('repetida') ?? '')) {
-      setEstado({ tipo: 'error', mensaje: 'Las dos contraseñas no coinciden.' });
-      return;
+    const password = texto(datos, 'password');
+    if (password.length < PASSWORD_MIN) {
+      return setEstado({
+        tipo: 'error',
+        mensaje: `La contraseña debe tener al menos ${PASSWORD_MIN} caracteres.`,
+        campo: 'password',
+      });
+    }
+    if (password !== texto(datos, 'repetida')) {
+      return setEstado({ tipo: 'error', mensaje: 'Las dos contraseñas no coinciden.', campo: 'repetida' });
     }
     if (datos.get('terminos') !== 'si') {
-      setEstado({ tipo: 'error', mensaje: 'Hace falta aceptar los términos de uso.' });
-      return;
+      return setEstado({ tipo: 'error', mensaje: 'Hace falta aceptar los términos de uso.', campo: 'terminos' });
     }
     setEstado({ tipo: 'enviando' });
     const r = await enviar('/api/cuenta/activar', { token, password, terminos: true });
-    if (!r.ok) {
-      setEstado({ tipo: 'error', mensaje: r.mensaje });
-      return;
-    }
-    router.replace('/cuenta');
+    if (!r.ok) return setEstado(errorDe(r));
+    router.replace((r.datos as { volver?: string } | null)?.volver ?? '/cuenta');
     router.refresh();
   };
 
   return (
-    <form className={styles.form} onSubmit={(e) => void alEnviar(e)} noValidate>
+    <form ref={formRef} className={styles.form} onSubmit={(e) => void alEnviar(e)} noValidate aria-busy={enviando}>
       <label className={styles.campo}>
-        Contraseña nueva (10 caracteres o más)
-        <input name="password" type="password" autoComplete="new-password" required minLength={10} maxLength={200} />
+        Contraseña nueva ({PASSWORD_MIN} caracteres o más)
+        <input
+          name="password"
+          type="password"
+          autoComplete="new-password"
+          required
+          minLength={PASSWORD_MIN}
+          maxLength={PASSWORD_MAX}
+          {...campo('password')}
+        />
       </label>
       <label className={styles.campo}>
         Repetir la contraseña
-        <input name="repetida" type="password" autoComplete="new-password" required minLength={10} maxLength={200} />
+        <input
+          name="repetida"
+          type="password"
+          autoComplete="new-password"
+          required
+          minLength={PASSWORD_MIN}
+          maxLength={PASSWORD_MAX}
+          {...campo('repetida')}
+        />
       </label>
       <label className={styles.casilla}>
-        <input name="terminos" type="checkbox" value="si" required />
+        <input name="terminos" type="checkbox" value="si" required {...campo('terminos')} />
         <span>
           Aceptar los{' '}
-          <Link href="/terminos" target="_blank">
+          <Link href="/terminos" target="_blank" rel="noopener">
             términos de uso
           </Link>{' '}
           de DatosBolivia.com (versión del {version}).
         </span>
       </label>
       <div className={styles.acciones}>
-        <button className={styles.primario} type="submit" disabled={estado.tipo === 'enviando'}>
-          {estado.tipo === 'enviando' ? 'Guardando…' : 'Guardar la contraseña'}
+        <button className={styles.primario} type="submit" disabled={enviando}>
+          {enviando ? 'Guardando…' : 'Guardar la contraseña'}
         </button>
       </div>
-      <Aviso estado={estado} />
+      <Aviso {...aviso}>
+        {enlaceVencido ? (
+          <Link className={styles.enlace} href={RECUPERAR}>
+            Pedir un enlace nuevo
+          </Link>
+        ) : null}
+      </Aviso>
     </form>
   );
 }
 
-const fechaCorta = (valor: string | null): string => {
-  if (!valor) return '—';
-  const fecha = new Date(valor);
-  if (Number.isNaN(fecha.getTime())) return '—';
-  const meses = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
-  return `${String(fecha.getDate()).padStart(2, '0')}-${meses[fecha.getMonth()]}-${fecha.getFullYear()}`;
-};
-
+/**
+ * Las llaves de la cuenta. La titular las crea y revoca; un miembro las ve
+ * (`soloLectura`), porque usa las mismas para consultar la API.
+ */
 export function LlavesPanel({
   llaves,
   maximo,
   puedeCrear,
+  soloLectura = false,
 }: {
   llaves: readonly ApiKeySummary[];
   maximo: number;
   puedeCrear: boolean;
+  soloLectura?: boolean;
 }) {
   const router = useRouter();
-  const [estado, setEstado] = useState<Estado>({ tipo: 'listo' });
+  const { formRef, setEstado, enviando, campo, aviso } = useFormulario();
   const [nueva, setNueva] = useState<{ key: string; prefix: string } | null>(null);
-  const [copiada, setCopiada] = useState(false);
+  const [copiada, setCopiada] = useState<'si' | 'no' | null>(null);
   const [revocando, setRevocando] = useState<string | null>(null);
 
   const activas = llaves.filter((llave) => !llave.revokedAt).length;
@@ -176,14 +221,12 @@ export function LlavesPanel({
   const crear = async (evento: FormEvent<HTMLFormElement>) => {
     evento.preventDefault();
     const formulario = evento.currentTarget;
-    const label = String(new FormData(formulario).get('label') ?? '');
+    const label = texto(new FormData(formulario), 'label').trim();
+    if (!label) return setEstado({ tipo: 'error', mensaje: 'Escribir un nombre para la llave.', campo: 'label' });
     setEstado({ tipo: 'enviando' });
-    setCopiada(false);
+    setCopiada(null);
     const r = await enviar('/api/cuenta/llaves', { label });
-    if (!r.ok) {
-      setEstado({ tipo: 'error', mensaje: r.mensaje });
-      return;
-    }
+    if (!r.ok) return setEstado(errorDe(r));
     const datos = r.datos as { key: string; prefix: string };
     setNueva({ key: datos.key, prefix: datos.prefix });
     setEstado({ tipo: 'listo' });
@@ -195,9 +238,9 @@ export function LlavesPanel({
     if (!nueva) return;
     try {
       await navigator.clipboard.writeText(nueva.key);
-      setCopiada(true);
+      setCopiada('si');
     } catch {
-      setCopiada(false);
+      setCopiada('no');
     }
   };
 
@@ -206,10 +249,8 @@ export function LlavesPanel({
     setRevocando(id);
     const r = await enviar(`/api/cuenta/llaves/${encodeURIComponent(id)}/revocar`);
     setRevocando(null);
-    if (!r.ok) {
-      setEstado({ tipo: 'error', mensaje: r.mensaje });
-      return;
-    }
+    if (!r.ok) return setEstado(errorDe(r));
+    setEstado({ tipo: 'listo' });
     router.refresh();
   };
 
@@ -221,12 +262,15 @@ export function LlavesPanel({
           <code>{nueva.key}</code>
           <div className={styles.acciones}>
             <button className={styles.secundario} type="button" onClick={() => void copiar()}>
-              {copiada ? 'Copiada' : 'Copiar la llave'}
+              {copiada === 'si' ? 'Copiada' : 'Copiar la llave'}
             </button>
             <button className={styles.discreto} type="button" onClick={() => setNueva(null)}>
               Ocultar
             </button>
           </div>
+          {copiada === 'no' ? (
+            <p className={styles.nota}>El navegador no dejó copiarla. Seleccionar el texto y copiarlo a mano.</p>
+          ) : null}
           <p className={styles.nota}>
             DatosBolivia.com guarda solo el prefijo ({nueva.prefix}) para reconocerla. Si se pierde, revocarla y crear
             otra.
@@ -239,16 +283,14 @@ export function LlavesPanel({
       ) : (
         <div className={styles.tablaScroll}>
           <table className={styles.tabla}>
-            <caption className="sr-only">Llaves de API de la cuenta</caption>
+            <caption className={styles.srOnly}>Llaves de API de la cuenta</caption>
             <thead>
               <tr>
                 <th scope="col">Prefijo</th>
                 <th scope="col">Nombre</th>
                 <th scope="col">Creada</th>
                 <th scope="col">Último uso</th>
-                <th scope="col">
-                  <span className="sr-only">Acción</span>
-                </th>
+                <th scope="col">{soloLectura ? 'Estado' : <span className={styles.srOnly}>Acción</span>}</th>
               </tr>
             </thead>
             <tbody>
@@ -263,11 +305,14 @@ export function LlavesPanel({
                   <td>
                     {llave.revokedAt ? (
                       `Revocada el ${fechaCorta(llave.revokedAt)}`
+                    ) : soloLectura ? (
+                      'Activa'
                     ) : (
                       <button
                         className={styles.discreto}
                         type="button"
-                        disabled={revocando === llave.apiKeyId}
+                        disabled={revocando !== null}
+                        aria-label={`Revocar la llave ${llave.prefix}${llave.label ? ` (${llave.label})` : ''}`}
                         onClick={() => void revocar(llave.apiKeyId)}
                       >
                         {revocando === llave.apiKeyId ? 'Revocando…' : 'Revocar'}
@@ -281,88 +326,177 @@ export function LlavesPanel({
         </div>
       )}
 
-      {puedeCrear ? (
+      {soloLectura ? (
+        <p className={`${styles.nota} ${styles.separadaArriba}`}>
+          Las llaves las crea y revoca la persona titular de la cuenta.
+        </p>
+      ) : puedeCrear ? (
         activas < maximo ? (
-          <form className={styles.formLinea} onSubmit={(e) => void crear(e)}>
+          <form
+            ref={formRef}
+            className={styles.formLinea}
+            onSubmit={(e) => void crear(e)}
+            noValidate
+            aria-busy={enviando}
+          >
             <label className={styles.campo}>
               Nombre de la llave nueva
-              <input name="label" type="text" required maxLength={60} placeholder="Por ejemplo: informe mensual" />
+              <input
+                name="label"
+                type="text"
+                required
+                maxLength={60}
+                placeholder="Por ejemplo: informe mensual"
+                {...campo('label')}
+              />
             </label>
-            <button className={styles.primario} type="submit" disabled={estado.tipo === 'enviando'}>
-              {estado.tipo === 'enviando' ? 'Creando…' : 'Crear llave'}
+            <button className={styles.primario} type="submit" disabled={enviando}>
+              {enviando ? 'Creando…' : 'Crear llave'}
             </button>
           </form>
         ) : (
-          <p className={styles.nota}>
+          <p className={`${styles.nota} ${styles.separadaArriba}`}>
             El plan permite {maximo} {maximo === 1 ? 'llave activa' : 'llaves activas'}. Para crear otra, revocar una.
           </p>
         )
       ) : (
-        <p className={styles.nota}>Las llaves se pueden crear mientras la cuenta está vigente.</p>
+        <p className={`${styles.nota} ${styles.separadaArriba}`}>
+          Las llaves se pueden crear mientras la cuenta está vigente.
+        </p>
       )}
-      <Aviso estado={estado} />
+      <Aviso {...aviso} />
     </>
   );
 }
 
 export function ClaveForm() {
-  const [estado, setEstado] = useState<Estado>({ tipo: 'listo' });
+  const router = useRouter();
+  const { formRef, setEstado, enviando, campo, aviso } = useFormulario();
 
   const alEnviar = async (evento: FormEvent<HTMLFormElement>) => {
     evento.preventDefault();
     const formulario = evento.currentTarget;
     const datos = new FormData(formulario);
-    const nueva = String(datos.get('nueva') ?? '');
-    if (nueva !== String(datos.get('repetida') ?? '')) {
-      setEstado({ tipo: 'error', mensaje: 'Las dos contraseñas nuevas no coinciden.' });
-      return;
+    const actual = texto(datos, 'actual');
+    const nueva = texto(datos, 'nueva');
+    if (!actual) return setEstado({ tipo: 'error', mensaje: 'Escribir la contraseña actual.', campo: 'actual' });
+    if (nueva.length < PASSWORD_MIN) {
+      return setEstado({
+        tipo: 'error',
+        mensaje: `La contraseña nueva debe tener al menos ${PASSWORD_MIN} caracteres.`,
+        campo: 'nueva',
+      });
+    }
+    if (nueva !== texto(datos, 'repetida')) {
+      return setEstado({ tipo: 'error', mensaje: 'Las dos contraseñas nuevas no coinciden.', campo: 'repetida' });
     }
     setEstado({ tipo: 'enviando' });
-    const r = await enviar('/api/cuenta/clave', { actual: String(datos.get('actual') ?? ''), nueva });
-    if (!r.ok) {
-      setEstado({ tipo: 'error', mensaje: r.mensaje });
+    const r = await enviar('/api/cuenta/clave', { actual, nueva });
+    if (!r.ok) return setEstado(errorDe(r));
+    formulario.reset();
+    if (pideReingreso(r.datos)) {
+      router.replace('/cuenta/ingresar?listo=1');
+      router.refresh();
       return;
     }
-    formulario.reset();
-    setEstado({ tipo: 'hecho', mensaje: 'La contraseña se cambió.' });
+    setEstado({ tipo: 'hecho', mensaje: 'La contraseña se cambió. Las sesiones abiertas en otros equipos se cerraron.' });
   };
 
   return (
-    <form className={styles.form} onSubmit={(e) => void alEnviar(e)} noValidate>
+    <form ref={formRef} className={styles.form} onSubmit={(e) => void alEnviar(e)} noValidate aria-busy={enviando}>
       <label className={styles.campo}>
         Contraseña actual
-        <input name="actual" type="password" autoComplete="current-password" required maxLength={200} />
+        <input
+          name="actual"
+          type="password"
+          autoComplete="current-password"
+          required
+          maxLength={PASSWORD_MAX}
+          {...campo('actual')}
+        />
       </label>
       <label className={styles.campo}>
-        Contraseña nueva (10 caracteres o más)
-        <input name="nueva" type="password" autoComplete="new-password" required minLength={10} maxLength={200} />
+        Contraseña nueva ({PASSWORD_MIN} caracteres o más)
+        <input
+          name="nueva"
+          type="password"
+          autoComplete="new-password"
+          required
+          minLength={PASSWORD_MIN}
+          maxLength={PASSWORD_MAX}
+          {...campo('nueva')}
+        />
       </label>
       <label className={styles.campo}>
         Repetir la contraseña nueva
-        <input name="repetida" type="password" autoComplete="new-password" required minLength={10} maxLength={200} />
+        <input
+          name="repetida"
+          type="password"
+          autoComplete="new-password"
+          required
+          minLength={PASSWORD_MIN}
+          maxLength={PASSWORD_MAX}
+          {...campo('repetida')}
+        />
       </label>
       <div className={styles.acciones}>
-        <button className={styles.secundario} type="submit" disabled={estado.tipo === 'enviando'}>
-          {estado.tipo === 'enviando' ? 'Guardando…' : 'Cambiar la contraseña'}
+        <button className={styles.secundario} type="submit" disabled={enviando}>
+          {enviando ? 'Guardando…' : 'Cambiar la contraseña'}
         </button>
       </div>
-      <Aviso estado={estado} />
+      <Aviso {...aviso} />
     </form>
+  );
+}
+
+/** Cierra las sesiones de la cuenta en los demás equipos; esta sigue abierta. Solo para la titular. */
+export function CerrarSesionesBoton() {
+  const router = useRouter();
+  const { setEstado, enviando, aviso } = useFormulario();
+
+  const cerrar = async () => {
+    if (!window.confirm('Se cerrarán las sesiones de la cuenta en todos los demás equipos, también las de los miembros. ¿Seguir?')) {
+      return;
+    }
+    setEstado({ tipo: 'enviando' });
+    const r = await enviar('/api/cuenta/sesiones/cerrar');
+    if (!r.ok) return setEstado(errorDe(r));
+    if (pideReingreso(r.datos)) {
+      router.replace('/cuenta/ingresar?motivo=sesion');
+      router.refresh();
+      return;
+    }
+    setEstado({ tipo: 'hecho', mensaje: 'Las demás sesiones se cerraron. Esta sigue abierta.' });
+  };
+
+  return (
+    <div className={styles.grupo}>
+      <div className={styles.acciones}>
+        <button className={styles.secundario} type="button" disabled={enviando} onClick={() => void cerrar()}>
+          {enviando ? 'Cerrando…' : 'Cerrar las demás sesiones'}
+        </button>
+      </div>
+      <Aviso {...aviso} />
+    </div>
   );
 }
 
 export function SalirBoton() {
   const router = useRouter();
-  const [ocupado, setOcupado] = useState(false);
+  const { setEstado, enviando, aviso } = useFormulario();
   const salir = async () => {
-    setOcupado(true);
-    await enviar('/api/cuenta/salir');
+    setEstado({ tipo: 'enviando' });
+    const r = await enviar('/api/cuenta/salir');
+    if (!r.ok) return setEstado(errorDe(r));
     router.replace('/cuenta/ingresar');
     router.refresh();
   };
   return (
-    <button className={styles.secundario} type="button" disabled={ocupado} onClick={() => void salir()}>
-      {ocupado ? 'Cerrando…' : 'Cerrar sesión'}
-    </button>
+    <div className={styles.grupo}>
+      <button className={styles.secundario} type="button" disabled={enviando} onClick={() => void salir()}>
+        {enviando ? 'Cerrando…' : 'Cerrar sesión'}
+      </button>
+      <Aviso {...aviso} />
+    </div>
   );
 }

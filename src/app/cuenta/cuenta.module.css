@@ -251,6 +251,16 @@
   outline-offset: 1px;
 }
 
+/* Un campo con error lleva el filete en rojo; el mensaje está enlazado por `aria-describedby`. */
+.campo input[aria-invalid='true'] {
+  border-color: var(--critical);
+}
+
+.casilla input[aria-invalid='true'] {
+  outline: 2px solid var(--critical);
+  outline-offset: 1px;
+}
+
 .casilla {
   display: flex;
   align-items: flex-start;
@@ -351,6 +361,30 @@
   margin-bottom: 1.25rem;
 }
 
+.separadaArriba {
+  margin-top: 1.25rem;
+}
+
+/* Un botón suelto con su mensaje debajo. */
+.grupo {
+  display: grid;
+  gap: 0.5rem;
+  justify-items: start;
+}
+
+/* Para quien lee con lector de pantalla: el texto está, pero no se ve. */
+.srOnly {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
 .error {
   margin: 0;
   font-family: var(--sans);
@@ -363,6 +397,27 @@
   font-family: var(--sans);
   font-size: var(--text-sm);
   color: var(--good);
+}
+
+/* El mensaje recibe el foco cuando el error no es de un campo. */
+.error:focus-visible,
+.hecho:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+/* El enlace que acompaña a un error, como «Recuperar la clave». */
+.error a {
+  color: var(--accent);
+  font-weight: 600;
+}
+
+/* Quién entra a la cuenta: la titular o un miembro, debajo de la entradilla. */
+.rol {
+  margin: 0.5rem 0 0;
+  font-family: var(--sans);
+  font-size: var(--text-sm);
+  color: var(--ink-faint);
 }
 
 .pie {
