@@ -385,7 +385,7 @@ export const revokeSessions = (accountId: string) =>
  * en los dos casos.
  */
 export const requestPasswordReset = (email: string) =>
-  site<Partial<{ token: string; expiresAt: string; fullName: string; memberId: string | null }> | undefined>(
+  site<Partial<{ token: string; expiresAt: string; email: string; fullName: string; memberId: string | null }> | undefined>(
     '/password-resets',
     { method: 'POST', body: { email } },
   );

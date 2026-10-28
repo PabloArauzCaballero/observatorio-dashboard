@@ -63,11 +63,13 @@ export async function POST(request: Request): Promise<Response> {
   const result = await requestPasswordReset(email);
   const datos = result.ok ? result.body?.data : undefined;
   const token = datos?.token;
-  if (isActivationToken(token)) {
+  // El enlace va al correo tal como lo guarda el núcleo, nunca al escrito en el formulario.
+  const guardado = typeof datos?.email === 'string' && datos.email.includes('@') ? datos.email : null;
+  if (isActivationToken(token) && guardado) {
     const mensaje = {
-      to: email,
+      to: guardado,
       purpose: 'RESET' as const,
-      fullName: typeof datos?.fullName === 'string' && datos.fullName.trim() ? datos.fullName : email,
+      fullName: typeof datos?.fullName === 'string' && datos.fullName.trim() ? datos.fullName : guardado,
       link: activationLink(publicSiteOrigin(), token),
       expiresAt: datos?.expiresAt ?? null,
     };
