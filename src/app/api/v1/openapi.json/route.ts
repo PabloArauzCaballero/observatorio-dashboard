@@ -2,10 +2,12 @@ import { CORS_HEADERS } from '@/lib/api-v1/auth';
 import {
   DEFAULT_BURST_PER_MINUTE,
   DEFAULT_PAGE_SIZE,
+  FAILED_KEYS_PER_WINDOW,
   MAX_PAGE_SIZE,
   MAX_TEXT_LENGTH,
   SERIES_SOURCES,
 } from '@/lib/api-v1/contrato';
+import { EXPORT_PLACE_LIMIT } from '@/lib/places';
 import { PLANS, miles } from '@/lib/plans';
 import { DIMENSIONS } from '@/lib/trade-records-query';
 
@@ -80,7 +82,7 @@ const errors = {
     content: errorContent,
   },
   '429': {
-    description: `Dos causas, distinguibles por el campo \`error\`. Ritmo: más consultas por minuto de las que admite el plan (${porMinuto}); una llave que el sitio todavía no verificó en el último minuto va con ${DEFAULT_BURST_PER_MINUTE}. Un pedido frenado por ritmo no llega al núcleo ni descuenta cupo. Cupo: se agotó el cupo mensual; \`Retry-After\` cuenta hasta el reinicio y el campo \`planes\` lleva a Servicios.`,
+    description: `Tres causas, distinguibles por el campo \`error\`. Llaves rechazadas: más de ${FAILED_KEYS_PER_WINDOW} llaves mal escritas, desconocidas o revocadas desde una misma dirección en diez minutos; no se pregunta al núcleo hasta que pase \`Retry-After\` (una llave aceptada en el último minuto no se frena por esto). Ritmo: más consultas por minuto de las que admite el plan (${porMinuto}); una llave que el sitio todavía no verificó en el último minuto va con ${DEFAULT_BURST_PER_MINUTE}. Un pedido frenado por ritmo no llega al núcleo ni descuenta cupo. Cupo: se agotó el cupo mensual; \`Retry-After\` cuenta hasta el reinicio y el campo \`planes\` lleva a Servicios.`,
     headers: { ...quotaHeaders, ...retryAfter },
     content: errorContent,
   },
@@ -300,7 +302,7 @@ const DOCUMENT = {
     '/api/v1/lugares': {
       get: {
         summary: 'Lugares por ciudad y familia',
-        description: `Ordenados por ciudad, familia y nombre. El plan fija cuántos lugares da una misma consulta, también recorrida por cursor (${topes}). La página que llega a ese tope trae \`siguiente\` en null, y toda página de una consulta recortada lleva el encabezado \`X-Tope-Lugares\`.`,
+        description: `Ordenados por ciudad, familia y nombre. El plan fija cuántos lugares da una misma consulta, también recorrida por cursor (${topes}). La página que llega a ese tope trae \`siguiente\` en null, y toda página de una consulta recortada lleva el encabezado \`X-Tope-Lugares\`. Una consulta lee como máximo ${miles(EXPORT_PLACE_LIMIT)} lugares; si pasa de ahí y el plan no la recortó antes, toda página lleva \`X-Lectura-Truncada\` y conviene pedir menos ciudades o familias por consulta.`,
         parameters: [
           { ...list('ciudad', 'Obligatorio. La ciudad, como la escribe el mapa.', 12), required: true },
           list('familia', 'Las familias de lugares; sin ella, todas.', 60),
@@ -311,6 +313,10 @@ const DOCUMENT = {
             'X-Tope-Lugares': {
               description:
                 'Solo cuando el plan recortó la consulta: cuántos lugares da como máximo. Faltan lugares que el plan no entrega.',
+              schema: { type: 'integer' },
+            },
+            'X-Lectura-Truncada': {
+              description: `Solo cuando la consulta pasó de los ${miles(EXPORT_PLACE_LIMIT)} lugares que lee como máximo y el plan no la recortó antes: ese techo. Faltan lugares; pedir menos ciudades o familias por consulta.`,
               schema: { type: 'integer' },
             },
           }),

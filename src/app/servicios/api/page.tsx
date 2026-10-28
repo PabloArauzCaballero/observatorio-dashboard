@@ -2,6 +2,8 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import { Masthead } from '@/components/masthead';
 import { SiteFooter } from '@/components/site-footer';
+import { FAILED_KEYS_PER_WINDOW } from '@/lib/api-v1/contrato';
+import { EXPORT_PLACE_LIMIT } from '@/lib/places';
 import { PLANS, SERVICES_PATH, miles } from '@/lib/plans';
 import { THEME_BOOT } from '@/lib/theme';
 import styles from '../servicios.module.css';
@@ -170,7 +172,7 @@ const ERRORES: ReadonlyArray<{ codigo: string; cuando: string; que: string }> = 
   },
   {
     codigo: '429',
-    cuando: 'Se agotó el cupo del mes, o la llave pasó de las consultas por minuto de su plan. Una consulta frenada por ritmo no descuenta cupo.',
+    cuando: `Se agotó el cupo del mes, la llave pasó de las consultas por minuto de su plan, o la misma dirección presentó más de ${FAILED_KEYS_PER_WINDOW} llaves rechazadas en diez minutos. Una consulta frenada así no descuenta cupo.`,
     que: 'Esperar los segundos que indica Retry-After.',
   },
   {
@@ -232,6 +234,10 @@ const ENCABEZADOS: ReadonlyArray<[string, string]> = [
   ['Retry-After', 'En 429 y 503: segundos de espera antes de reintentar.'],
   ['X-Siguiente', 'Solo en CSV: el cursor de la página siguiente; falta en la última.'],
   ['X-Tope-Lugares', 'Solo en /api/v1/lugares, cuando el plan recortó la consulta: cuántos lugares da como máximo.'],
+  [
+    'X-Lectura-Truncada',
+    `Solo en /api/v1/lugares, cuando la consulta pasó de los ${miles(EXPORT_PLACE_LIMIT)} lugares que lee como máximo: ese techo.`,
+  ],
 ];
 
 const PAGINA: ReadonlyArray<[string, string]> = [
@@ -461,7 +467,9 @@ export default function ApiPage() {
                 El plan fija cuántos lugares da una misma consulta, también recorrida por cursor (la
                 columna «Lugares por consulta» de la tabla de cupo). La página que llega a ese tope
                 trae <code>siguiente</code> en <code>null</code>, y toda página de una consulta
-                recortada lleva el encabezado <code>X-Tope-Lugares</code>.
+                recortada lleva el encabezado <code>X-Tope-Lugares</code>. Una consulta lee como
+                máximo {miles(EXPORT_PLACE_LIMIT)} lugares: si pasa de ahí y el plan no la recortó antes, toda página lleva{' '}
+                <code>X-Lectura-Truncada</code>, y conviene pedir menos ciudades o familias por consulta.
               </p>
             </div>
             <Parametros

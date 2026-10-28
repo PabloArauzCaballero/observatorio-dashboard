@@ -525,7 +525,22 @@ export async function readPlacesForExport(
   cities: readonly string[],
   families: readonly string[],
 ): Promise<Place[]> {
-  if (cities.length === 0) return [];
+  return (await readPlacesForExportChecked(cities, families)).places;
+}
+
+/** Lugares que da como máximo una lectura para archivo. */
+export const EXPORT_PLACE_LIMIT = 60_000;
+
+/**
+ * Lo mismo que `readPlacesForExport`, diciendo además si la lectura llegó a su
+ * techo de `EXPORT_PLACE_LIMIT` filas y dejó lugares fuera. Se pide una fila de
+ * más para saberlo sin contar la selección entera.
+ */
+export async function readPlacesForExportChecked(
+  cities: readonly string[],
+  families: readonly string[],
+): Promise<{ places: Place[]; truncated: boolean }> {
+  if (cities.length === 0) return { places: [], truncated: false };
   const plan = planFamilies(families);
   const { where, values } = placeScope(cities, plan.queryFamilies);
   try {
@@ -554,11 +569,12 @@ export async function readPlacesForExport(
        FROM ${PLACE_UNION}
        ${where}
        ORDER BY city, entity_family, name
-       LIMIT 60000`,
+       LIMIT ${EXPORT_PLACE_LIMIT + 1}`,
       values,
     );
 
-    const places = rows.map((row) => ({
+    const truncated = rows.length > EXPORT_PLACE_LIMIT;
+    const places = rows.slice(0, EXPORT_PLACE_LIMIT).map((row) => ({
       placeId: row.place_id,
       name: row.name,
       city: row.city,
@@ -576,9 +592,9 @@ export async function readPlacesForExport(
       positionMethod: row.position_method,
       dataLevel: row.data_level,
     }));
-    return filterByCuisine(places, plan);
+    return { places: filterByCuisine(places, plan), truncated };
   } catch (error) {
-    return unreadable<Place>('read_models.city_place', error);
+    return { places: unreadable<Place>('read_models.city_place', error), truncated: false };
   }
 }
 

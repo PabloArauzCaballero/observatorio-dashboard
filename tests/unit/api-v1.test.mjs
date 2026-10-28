@@ -14,6 +14,9 @@ import {
   DAILY_SERIES_NAMES,
   DEFAULT_BURST_PER_MINUTE,
   DEFAULT_PAGE_SIZE,
+  FAILED_KEYS_PER_WINDOW,
+  FAILED_KEYS_WINDOW_MS,
+  FailureLedger,
   MAX_PAGE_SIZE,
   PLAN_MEMORY_MS,
   PlanMemory,
@@ -268,6 +271,49 @@ test('la memoria de planes no crece sin fin', () => {
   assert.equal(memory.size, 3, 'con todo vigente, se va el más viejo');
   assert.equal(memory.recall('a', 70_001), undefined);
   assert.deepEqual(memory.recall('d', 70_001), { planCode: 'analista', used: 9 });
+});
+
+/* ---------------------------------------------- llaves rechazadas por dirección */
+
+test('veinte llaves rechazadas por dirección en diez minutos; la 21 es 429 sin núcleo', () => {
+  assert.equal(FAILED_KEYS_PER_WINDOW, 20);
+  assert.equal(FAILED_KEYS_WINDOW_MS, 600_000);
+  const ledger = new FailureLedger();
+  for (let i = 0; i < 20; i += 1) {
+    const admission = ledger.admit('1.2.3.4', 1_000 + i);
+    assert.equal(admission.ok, true, `intento ${i + 1}`);
+    admission.ticket.confirm();
+  }
+  const refused = ledger.admit('1.2.3.4', 2_000);
+  assert.equal(refused.ok, false);
+  // El primer rechazo fue en t=1000: se libera a los 600 s de él.
+  assert.equal(refused.retryAfter, Math.ceil((600_000 - 1_000) / 1000));
+  assert.equal(ledger.count('1.2.3.4', 2_000), 20, 'un pedido rechazado no cuenta');
+  assert.equal(ledger.admit('5.6.7.8', 2_000).ok, true, 'otra dirección no se ve afectada');
+  assert.equal(ledger.admit('1.2.3.4', 1_000 + 600_000).ok, true, 'pasada la ventana, vuelve a admitir');
+});
+
+test('la reserva se toma antes de esperar y se libera si la llave era buena', () => {
+  const ledger = new FailureLedger(3, 60_000);
+  const tickets = [0, 1, 2].map(() => ledger.admit('ip', 0));
+  assert.ok(tickets.every((one) => one.ok));
+  // Tres pedidos simultáneos aún sin respuesta ocupan los tres lugares.
+  const fourth = ledger.admit('ip', 10);
+  assert.deepEqual(fourth, { ok: false, retryAfter: 1 }, 'cerrada por reservas: se reintenta en un segundo');
+  tickets[0].ticket.release();
+  tickets[1].ticket.release();
+  tickets[1].ticket.confirm();
+  assert.equal(ledger.count('ip', 20), 1, 'liberar dos veces o confirmar después no cambia nada');
+  tickets[2].ticket.confirm();
+  assert.equal(ledger.admit('ip', 30).ok, true);
+});
+
+test('la cuenta de fallos no crece sin fin', () => {
+  const ledger = new FailureLedger(20, 1_000, 2);
+  ledger.admit('a', 0).ticket.confirm();
+  ledger.admit('b', 0).ticket.confirm();
+  ledger.admit('c', 5_000).ticket.confirm();
+  assert.equal(ledger.addresses, 1, 'lo vencido se descarta al pasar el máximo');
 });
 
 /* --------------------------------------------------------- cupo y encabezados */

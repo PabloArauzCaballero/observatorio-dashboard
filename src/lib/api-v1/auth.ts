@@ -2,14 +2,17 @@ import 'server-only';
 import { createHash } from 'node:crypto';
 import { callCore } from '@/lib/admin/core-client';
 import type { AdminSession } from '@/lib/admin/session';
-import { admit } from '@/lib/ip-limit';
+import { admit, clientIp } from '@/lib/ip-limit';
 import { PLANS, SERVICES_PATH, type Plan } from '@/lib/plans';
 import {
+  FAILED_KEYS_PER_WINDOW,
+  FailureLedger,
   PlanMemory,
   burstPerMinute,
   decideAccess,
   quotaHeaders,
   readBearer,
+  type FailureTicket,
   type VerifiedAccount,
 } from './contrato';
 
@@ -39,6 +42,18 @@ const MINUTE_MS = 60_000;
 /** El plan de cada llave que el núcleo aceptó en el último minuto. */
 const plans = new PlanMemory();
 
+/** Las llaves rechazadas de cada dirección en los últimos diez minutos. */
+const failures = new FailureLedger();
+
+/** El 429 de una dirección que ya probó demasiadas llaves: no se pregunta al núcleo. */
+function tooManyFailures(retryAfter: number, headers: Record<string, string>): Response {
+  return apiError(
+    429,
+    `Más de ${FAILED_KEYS_PER_WINDOW} llaves rechazadas desde esta dirección en diez minutos. Conviene revisar la llave y esperar.`,
+    { ...headers, 'Retry-After': String(retryAfter) },
+  );
+}
+
 /** Lo que una ruta necesita saber de quien llama. */
 export interface ApiCaller {
   account: VerifiedAccount;
@@ -56,6 +71,7 @@ export const EXPOSED_HEADERS = [
   'Retry-After',
   'X-Siguiente',
   'X-Tope-Lugares',
+  'X-Lectura-Truncada',
 ] as const;
 
 /** Permitir `GET` desde cualquier origen con la llave en `Authorization`. */
@@ -96,6 +112,12 @@ const planByCode = (code: string | undefined): Plan | undefined =>
  * los dos el mismo lugar libre. El ritmo es el del plan que el núcleo dio para
  * esa llave en el último minuto; una llave que no se recuerda va con el ritmo
  * por omisión hasta que el núcleo la verifica.
+ *
+ * Antes todavía, cada dirección tiene un cupo de llaves rechazadas (mal
+ * escritas, desconocidas o revocadas): quien inventa una llave por pedido no
+ * toca el freno por llave, y sin este cupo haría trabajar al núcleo sin fin.
+ * Una llave que el núcleo aceptó en el último minuto no pasa por él: una
+ * oficina con un programa mal configurado no deja sin servicio a la llave buena.
  */
 export async function authorize(
   request: Request,
@@ -103,6 +125,12 @@ export async function authorize(
   const now = new Date();
   const anonymous = quotaHeaders(0, 0, now);
   const bearer = readBearer(request.headers.get('authorization'));
+  const address = clientIp(request);
+  if (bearer.kind === 'malformed') {
+    const admission = failures.admit(address, now.getTime());
+    if (!admission.ok) return { ok: false, response: tooManyFailures(admission.retryAfter, anonymous) };
+    admission.ticket.confirm();
+  }
   if (bearer.kind !== 'key') {
     return {
       ok: false,
@@ -125,9 +153,16 @@ export async function authorize(
 
   // Sincrónico de punta a punta: la reserva queda anotada antes del primer `await`.
   const remembered = plans.recall(keyHash, now.getTime());
+  let ticket: FailureTicket | null = null;
+  if (!remembered) {
+    const admission = failures.admit(address, now.getTime());
+    if (!admission.ok) return { ok: false, response: tooManyFailures(admission.retryAfter, anonymous) };
+    ticket = admission.ticket;
+  }
   const perMinute = burstPerMinute(remembered?.planCode, PLANS);
   const burst = admit('api-v1', keyHash, perMinute, MINUTE_MS);
   if (!burst.ok) {
+    ticket?.release();
     const known = planByCode(remembered?.planCode);
     return {
       ok: false,
@@ -171,6 +206,9 @@ export async function authorize(
   const headers = verify.account ? quotaHeaders(limit, used, now) : anonymous;
 
   const decision = decideAccess(verify, plan ? limit : null, now);
+  // Solo una llave que el núcleo no conoce es un rechazo; un núcleo caído no lo es.
+  if (decision.ok || decision.status !== 401) ticket?.release();
+  else ticket?.confirm();
   if (!decision.ok) {
     const extra = decision.status === 402 || decision.status === 429 ? { planes: SERVICES_PATH } : {};
     return {

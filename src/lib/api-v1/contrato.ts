@@ -138,6 +138,102 @@ export class PlanMemory {
   }
 }
 
+/* ------------------------------------------------ llaves fallidas por dirección */
+
+/** Llaves rechazadas (mal escritas, desconocidas o revocadas) que admite una dirección… */
+export const FAILED_KEYS_PER_WINDOW = 20;
+/** …en esta ventana. */
+export const FAILED_KEYS_WINDOW_MS = 10 * 60_000;
+
+/** Un lugar reservado en la cuenta de fallos: se confirma si la llave falló, se libera si no. */
+export interface FailureTicket {
+  confirm(): void;
+  release(): void;
+}
+
+export type FailureAdmission = { ok: true; ticket: FailureTicket } | { ok: false; retryAfter: number };
+
+/**
+ * Cuántas llaves rechazadas lleva cada dirección, para que nadie pruebe llaves
+ * al azar contra el núcleo.
+ *
+ * El freno por minuto va por llave, y quien inventa una llave nueva en cada
+ * pedido no lo toca nunca. Este va por dirección y cuenta solo los rechazos.
+ * Como la respuesta del núcleo llega después de esperar, el lugar se reserva
+ * antes (`admit`, sincrónico) y se confirma o se libera al saber: así veinte
+ * pedidos simultáneos no ven todos la cuenta en cero.
+ *
+ * Un pedido rechazado aquí no cuenta. Si la puerta está cerrada solo por
+ * reservas aún sin resolver, la espera es de un segundo: se resuelven en lo que
+ * tarda el núcleo.
+ */
+export class FailureLedger {
+  private readonly entries = new Map<string, Array<{ at: number; pending: boolean }>>();
+  private readonly limit: number;
+  private readonly windowMs: number;
+  private readonly maxAddresses: number;
+
+  constructor(limit = FAILED_KEYS_PER_WINDOW, windowMs = FAILED_KEYS_WINDOW_MS, maxAddresses = 10_000) {
+    this.limit = limit;
+    this.windowMs = windowMs;
+    this.maxAddresses = maxAddresses;
+  }
+
+  private live(address: string, now: number): Array<{ at: number; pending: boolean }> {
+    const kept = (this.entries.get(address) ?? []).filter((entry) => now - entry.at < this.windowMs);
+    if (kept.length) this.entries.set(address, kept);
+    else this.entries.delete(address);
+    return kept;
+  }
+
+  admit(address: string, now: number): FailureAdmission {
+    const kept = this.live(address, now);
+    if (kept.length >= this.limit) {
+      const confirmed = kept.filter((entry) => !entry.pending);
+      const oldest = confirmed[0];
+      const retryAfter =
+        confirmed.length >= this.limit && oldest
+          ? Math.max(1, Math.ceil((this.windowMs - (now - oldest.at)) / 1000))
+          : 1;
+      return { ok: false, retryAfter };
+    }
+    const entry = { at: now, pending: true };
+    kept.push(entry);
+    this.entries.set(address, kept);
+    if (this.entries.size > this.maxAddresses) {
+      for (const key of [...this.entries.keys()]) this.live(key, now);
+    }
+    let settled = false;
+    return {
+      ok: true,
+      ticket: {
+        confirm: () => {
+          if (settled) return;
+          settled = true;
+          entry.pending = false;
+        },
+        release: () => {
+          if (settled) return;
+          settled = true;
+          const list = this.entries.get(address);
+          const at = list ? list.indexOf(entry) : -1;
+          if (list && at >= 0) list.splice(at, 1);
+          if (list && list.length === 0) this.entries.delete(address);
+        },
+      },
+    };
+  }
+
+  /** Fallos confirmados y reservas vigentes de una dirección. */
+  count(address: string, now: number): number {
+    return this.live(address, now).length;
+  }
+
+  get addresses(): number {
+    return this.entries.size;
+  }
+}
+
 /* --------------------------------------------------------------------- cupo */
 
 /** El primer día del mes siguiente, a medianoche UTC: cuando el cupo vuelve a cero. */

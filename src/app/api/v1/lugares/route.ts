@@ -1,6 +1,6 @@
 import { breakTies, paginate, parseListParam } from '@/lib/api-v1/contrato';
 import { BadParam, OPTIONS, accept, serve } from '@/lib/api-v1/responder';
-import { readPlacesForExport } from '@/lib/places';
+import { EXPORT_PLACE_LIMIT, readPlacesForExportChecked } from '@/lib/places';
 
 /**
  * Los lugares de una o varias ciudades, con la misma lectura que la descarga
@@ -11,6 +11,12 @@ import { readPlacesForExport } from '@/lib/places';
  * Institucional). La página que llega al tope trae `siguiente` en `null`, y
  * toda página de una consulta recortada lleva `X-Tope-Lugares` con el tope,
  * para que quien llama sepa que hay más lugares de los que su plan entrega.
+ *
+ * La lectura misma tiene un techo (`EXPORT_PLACE_LIMIT`, sesenta mil lugares).
+ * Si una consulta lo pasa y el plan no la recortó antes, toda página lleva
+ * `X-Lectura-Truncada` con ese techo: un plan sin tope no puede recibir una
+ * respuesta incompleta que parezca entera. Se arregla pidiendo menos ciudades
+ * o familias por consulta.
  */
 
 export const runtime = 'nodejs';
@@ -33,8 +39,9 @@ export function GET(request: Request): Promise<Response> {
     );
     // La base ordena por ciudad, familia y nombre, que pueden repetirse; el
     // identificador desempata para que el cursor no repita ni salte lugares.
+    const read = await readPlacesForExportChecked(cities, families);
     const places = breakTies(
-      await readPlacesForExport(cities, families),
+      read.places,
       (left, right) =>
         left.city === right.city && left.entityFamily === right.entityFamily && left.name === right.name,
       (place) => place.placeId,
@@ -63,7 +70,11 @@ export function GET(request: Request): Promise<Response> {
       fuente: 'DatosBolivia.com: catálogo de lugares (la confianza y el método van en cada fila)',
       // El catálogo de lugares no registra cuándo se cargó cada lugar.
       actualizado: null,
-      ...(capped && cap !== null ? { headers: { 'X-Tope-Lugares': String(cap) } } : {}),
+      headers: {
+        ...(capped && cap !== null ? { 'X-Tope-Lugares': String(cap) } : {}),
+        // El tope del plan, cuando corta, ya explica que faltan lugares.
+        ...(read.truncated && !capped ? { 'X-Lectura-Truncada': String(EXPORT_PLACE_LIMIT) } : {}),
+      },
     };
   });
 }
