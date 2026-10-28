@@ -158,6 +158,14 @@ export const INQUIRY_PLANS: readonly { code: InquiryPlan; nombre: string }[] = [
   { code: 'a-medida', nombre: 'Un informe o un estudio a medida' },
 ];
 
+/**
+ * Cuántas personas puede sumar la persona titular a su cuenta: los usuarios
+ * del plan menos uno, porque la titular ya es uno de ellos.
+ */
+export function membersAllowed(plan: Pick<Plan, 'usuarios'>): number {
+  return Math.max(0, plan.usuarios - 1);
+}
+
 export function isInquiryPlan(value: unknown): value is InquiryPlan {
   return INQUIRY_PLANS.some((plan) => plan.code === value);
 }

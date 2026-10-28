@@ -16,7 +16,11 @@ export const metadata: Metadata = {
   robots: { index: false, follow: false },
 };
 
-/** El ingreso de los clientes. Con la sesión ya abierta, no se pide la contraseña otra vez. */
+/**
+ * El ingreso de titulares y miembros. Con la sesión ya abierta no se pide la
+ * contraseña otra vez; una sesión cerrada en el núcleo llega aquí sin cookie,
+ * porque `/api/cuenta/vencida` la borra antes.
+ */
 export default async function IngresarPage({
   searchParams,
 }: {
@@ -25,6 +29,12 @@ export default async function IngresarPage({
   const parametros = await searchParams;
   const volver = safeReturnPath(parametros['volver']);
   if (await currentCustomer()) redirect(volver);
+  const aviso =
+    parametros['motivo'] === 'sesion'
+      ? 'La sesión se cerró: la contraseña cambió, se cerraron las sesiones de la cuenta o el acceso fue quitado. Volver a ingresar.'
+      : parametros['listo'] === '1'
+        ? 'La contraseña quedó guardada. Ingresar con ella.'
+        : null;
 
   return (
     <main>
@@ -38,16 +48,32 @@ export default async function IngresarPage({
         <header className={styles.cabecera}>
           <p className={styles.antetitulo}>Servicios · Cuenta</p>
           <h2 className={styles.titulo}>Ingresar</h2>
-          <p className={styles.entradilla}>Con el correo y la contraseña de la cuenta de DatosBolivia.com.</p>
+          <p className={styles.entradilla}>
+            Con el correo y la contraseña de la cuenta de DatosBolivia.com. Titulares y miembros de un equipo entran
+            por aquí.
+          </p>
         </header>
+
+        {aviso ? (
+          <p className={`${styles.nota} ${styles.separada}`} role="status">
+            {aviso}
+          </p>
+        ) : null}
 
         <section className={`${styles.bloque} ${styles.bloquePrincipal}`} aria-label="Ingreso">
           <IngresarForm volver={volver} />
         </section>
 
         <p className={styles.nota}>
-          Las cuentas se abren con un plan. Para pedir uno, o un enlace nuevo si se olvidó la contraseña, escribir
-          desde <Link className={styles.enlace} href="/servicios#contacto">Planes y servicios</Link>.
+          Si se olvidó la contraseña:{' '}
+          <Link className={styles.enlace} href="/cuenta/recuperar">
+            Recuperar la clave
+          </Link>
+          . Las cuentas se abren con un plan; para pedir uno, escribir desde{' '}
+          <Link className={styles.enlace} href="/servicios#contacto">
+            Planes y servicios
+          </Link>
+          .
         </p>
       </div>
 

@@ -2,9 +2,11 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { Masthead } from '@/components/masthead';
-import { ClaveForm, LlavesPanel, SalirBoton } from '@/components/cuenta/cuenta-forms';
+import { CerrarSesionesBoton, ClaveForm, LlavesPanel, SalirBoton } from '@/components/cuenta/cuenta-forms';
+import { EquipoPanel } from '@/components/cuenta/equipo-panel';
+import { FacturacionForm } from '@/components/cuenta/facturacion-form';
 import { SiteFooter } from '@/components/site-footer';
-import { PLANS, miles } from '@/lib/plans';
+import { PLANS, membersAllowed, miles } from '@/lib/plans';
 import {
   PERIOD_WORDS,
   STATUS_WORDS,
@@ -12,8 +14,9 @@ import {
   planFor,
   usageLines,
   usedShare,
+  type MemberSummary,
 } from '@/lib/cuenta/puro';
-import { currentCustomer, freshAccount } from '@/lib/cuenta/servidor';
+import { currentCustomer, freshAccount, listMembers } from '@/lib/cuenta/servidor';
 import { THEME_BOOT } from '@/lib/theme';
 import styles from './cuenta.module.css';
 
@@ -25,27 +28,38 @@ export const metadata: Metadata = {
 };
 
 const INGRESAR = '/cuenta/ingresar?volver=/cuenta';
+/** Una página no puede borrar la cookie de una sesión cerrada; esta ruta sí. */
+const SESION_CERRADA = '/api/cuenta/vencida?volver=/cuenta';
 
 /**
- * La cuenta del cliente: plan, vigencia, consumo del mes, llaves de API y
- * contraseña. Sin una cookie válida se va al ingreso. Lo que se muestra sale
- * del núcleo en cada visita, no de la cookie: la cookie solo dice quién es.
+ * La cuenta del cliente: plan, vigencia, consumo del mes, llaves de API,
+ * equipo, facturación y contraseña. Sin una cookie válida se va al ingreso.
+ *
+ * Lo que se muestra sale del núcleo en cada visita, no de la cookie: la cookie
+ * solo dice quién es. La titular administra llaves, equipo y facturación; un
+ * miembro ve el plan, el consumo y las llaves, y cambia su propia contraseña.
+ * Esconder aquí un control es solo presentación: cada ruta de `/api/cuenta`
+ * vuelve a comprobar quién la llama.
  */
 export default async function CuentaPage() {
   const customer = await currentCustomer();
   if (!customer) redirect(INGRESAR);
 
-  const result = await freshAccount(customer.accountId);
-  // Una cuenta que el núcleo ya no reconoce no tiene nada que mostrar: al ingreso.
-  if (!result.ok && (result.status === 401 || result.status === 403 || result.status === 404)) {
-    redirect(INGRESAR);
-  }
+  const fresh = await freshAccount(customer);
+  if (!fresh.ok && fresh.revoked) redirect(SESION_CERRADA);
 
-  const detalle = result.ok ? result.body.data : null;
+  const detalle = fresh.ok ? fresh.detail : null;
+  const miembro = fresh.ok ? fresh.member : null;
   const cuenta = detalle?.account;
+  const titular = customer.mid === undefined;
   const plan = planFor(PLANS, cuenta?.planCode ?? customer.planCode);
   const lineas = usageLines(detalle?.usage ?? [], plan);
   const vigente = cuenta?.entitled ?? false;
+  const cupoEquipo = plan ? membersAllowed(plan) : 0;
+
+  const equipo = titular && cuenta ? await listMembers(cuenta.subscriberAccountId) : null;
+  const miembros: MemberSummary[] | null = equipo?.ok ? (equipo.body?.data?.items ?? []) : null;
+  const muestraEquipo = titular && (cupoEquipo > 0 || (miembros?.some((m) => m.status === 'ACTIVE') ?? false));
 
   return (
     <main>
@@ -60,7 +74,11 @@ export default async function CuentaPage() {
           <p className={styles.antetitulo}>Servicios · Cuenta</p>
           <h2 className={styles.titulo}>Mi cuenta</h2>
           <p className={styles.entradilla}>
-            {cuenta ? (
+            {miembro ? (
+              <>
+                {miembro.fullName} · {miembro.email}
+              </>
+            ) : cuenta ? (
               <>
                 {cuenta.fullName}
                 {cuenta.organization ? <>, {cuenta.organization}</> : null} · {cuenta.email}
@@ -69,6 +87,13 @@ export default async function CuentaPage() {
               customer.email
             )}
           </p>
+          {cuenta ? (
+            <p className={styles.rol}>
+              {titular
+                ? 'Titular de la cuenta.'
+                : `Miembro de la cuenta de ${cuenta.organization ?? cuenta.fullName}.`}
+            </p>
+          ) : null}
         </header>
 
         {!detalle || !cuenta ? (
@@ -142,6 +167,11 @@ export default async function CuentaPage() {
                   );
                 })}
               </ul>
+              {titular ? null : (
+                <p className={`${styles.nota} ${styles.separadaArriba}`}>
+                  El consumo es de toda la cuenta, sumado entre todas las personas que entran a ella.
+                </p>
+              )}
             </section>
 
             <section className={styles.bloque} aria-labelledby="llaves-titulo">
@@ -155,15 +185,70 @@ export default async function CuentaPage() {
                 </Link>
                 .
               </p>
-              <LlavesPanel llaves={detalle.apiKeys} maximo={plan?.llaves ?? 0} puedeCrear={vigente && (plan?.llaves ?? 0) > 0} />
+              <LlavesPanel
+                llaves={detalle.apiKeys ?? []}
+                maximo={plan?.llaves ?? 0}
+                puedeCrear={vigente && (plan?.llaves ?? 0) > 0}
+                soloLectura={!titular}
+              />
             </section>
+
+            {muestraEquipo ? (
+              <section className={styles.bloque} aria-labelledby="equipo-titulo">
+                <h2 id="equipo-titulo" className={styles.subtitulo}>
+                  Equipo
+                </h2>
+                <p className={`${styles.nota} ${styles.separada}`}>
+                  El plan {plan?.nombre ?? ''} incluye {plan ? miles(plan.usuarios) : '—'}{' '}
+                  {plan?.usuarios === 1 ? 'usuario' : 'usuarios'}, la titular incluida. Cada persona entra con su
+                  correo y su contraseña, ve el plan, el consumo y las llaves, y no puede cambiar nada de la cuenta.
+                </p>
+                {miembros ? (
+                  <EquipoPanel miembros={miembros} maximo={cupoEquipo} puedeSumar={vigente} />
+                ) : (
+                  <p className={styles.error} role="alert">
+                    No se pudo leer el equipo en este momento. Recargar la página o volver en unos minutos.
+                  </p>
+                )}
+              </section>
+            ) : null}
+
+            {titular ? (
+              <section className={styles.bloque} aria-labelledby="facturacion-titulo">
+                <h2 id="facturacion-titulo" className={styles.subtitulo}>
+                  Datos de facturación
+                </h2>
+                <FacturacionForm
+                  datos={{ organization: cuenta.organization, legalName: cuenta.legalName, taxId: cuenta.taxId }}
+                />
+              </section>
+            ) : null}
 
             <section className={styles.bloque} aria-labelledby="clave-titulo">
               <h2 id="clave-titulo" className={styles.subtitulo}>
                 Contraseña
               </h2>
+              <p className={`${styles.nota} ${styles.separada}`}>
+                {titular
+                  ? 'Al cambiarla se cierran las sesiones abiertas en otros equipos, también las de los miembros del equipo; esta sigue abierta.'
+                  : 'Al cambiarla se cierran las sesiones abiertas en otros equipos; esta sigue abierta.'}
+              </p>
               <ClaveForm />
             </section>
+
+            {titular ? (
+              <section className={styles.bloque} aria-labelledby="sesiones-titulo">
+                <h2 id="sesiones-titulo" className={styles.subtitulo}>
+                  Sesiones
+                </h2>
+                <p className={`${styles.nota} ${styles.separada}`}>
+                  Si la cuenta quedó abierta en un equipo ajeno, o se sospecha que alguien más entró, se pueden cerrar
+                  todas las sesiones salvo esta. También se cierran las de los miembros del equipo, que deberán volver
+                  a ingresar.
+                </p>
+                <CerrarSesionesBoton />
+              </section>
+            ) : null}
           </>
         )}
 
