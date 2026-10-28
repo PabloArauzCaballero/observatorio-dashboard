@@ -29,7 +29,9 @@ const QUINCE_MINUTOS = 15 * 60 * 1000;
  *   dirección para que nadie pueda bloquear a un cliente fallando con su correo
  *   desde otra parte.
  * - El bloqueo por cuenta, sin importar la dirección, lo lleva el núcleo: diez
- *   fallos seguidos cierran el ingreso quince minutos y contesta 423.
+ *   fallos seguidos cierran el ingreso quince minutos. Mientras dura contesta
+ *   el mismo 401 con la clave correcta o sin ella: un aviso distinto para la
+ *   correcta permitiría probar claves sin límite durante el bloqueo.
  *
  * Los dos primeros se anotan antes de esperar al núcleo, para que intentos
  * simultáneos no pasen todos; el segundo se devuelve si el ingreso salió bien o
@@ -59,15 +61,12 @@ export async function POST(request: Request): Promise<Response> {
 
   const result = await signIn(email, password);
   if (!result.ok) {
-    if (result.status === 423) {
-      return refuse(
-        423,
-        'ACCOUNT_LOCKED',
-        'El ingreso a esta cuenta quedó bloqueado por unos minutos después de varios intentos fallidos. Volver a intentar más tarde o recuperar la clave.',
-      );
-    }
     if (result.status >= 400 && result.status < 500) {
-      return refuse(401, 'UNAUTHORIZED', 'El correo o la contraseña no son correctos.');
+      return refuse(
+        401,
+        'UNAUTHORIZED',
+        'No se pudo ingresar con ese correo y esa contraseña. Después de varios intentos fallidos el ingreso se cierra quince minutos; el enlace para recuperar la clave lo reabre.',
+      );
     }
     intento.saldar(0);
     return refuse(503, 'CORE_UNAVAILABLE', 'No se pudo verificar el ingreso. Intentar de nuevo en unos minutos.');

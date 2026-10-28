@@ -17,6 +17,7 @@ import {
   FAILED_KEYS_PER_WINDOW,
   FAILED_KEYS_WINDOW_MS,
   FailureLedger,
+  ledgerKey,
   MAX_PAGE_SIZE,
   PLAN_MEMORY_MS,
   PlanMemory,
@@ -316,13 +317,28 @@ test('la cuenta de fallos no crece sin fin', () => {
   assert.equal(ledger.addresses, 1, 'lo vencido se descarta al pasar el máximo');
 });
 
-test('con todas las direcciones vivas, el registro igual respeta su tope', () => {
-  const ledger = new FailureLedger(20, 60_000, 10);
-  for (let i = 0; i < 50; i += 1) ledger.admit(`ip-${i}`, i).ticket.confirm();
-  assert.ok(ledger.addresses <= 10, `quedaron ${ledger.addresses}`);
-  // La dirección que acaba de pedir no se descarta en el mismo paso.
-  const ultima = ledger.admit('ip-49', 100);
-  assert.equal(ultima.ok, true);
+test('con el registro lleno, nadie pierde sus fallos y lo nuevo cuenta junto', () => {
+  const ledger = new FailureLedger(3, 60_000, 4);
+  for (let i = 0; i < 3; i += 1) ledger.admit('bloqueada', i).ticket.confirm();
+  for (let i = 0; i < 3; i += 1) ledger.admit(`ip-${i}`, 10).ticket.confirm();
+  // Una inundación de direcciones nuevas no le devuelve el cupo a la bloqueada.
+  for (let i = 0; i < 50; i += 1) ledger.admit(`nueva-${i}`, 20).ticket?.confirm();
+  assert.equal(ledger.admit('bloqueada', 30).ok, false);
+  assert.ok(ledger.addresses <= 5, `quedaron ${ledger.addresses}`);
+  // Las nuevas comparten un cupo: el cuarto fallo de cualquiera de ellas se rechaza.
+  assert.equal(ledger.admit('otra-nueva', 40).ok, false);
+});
+
+test('una IPv6 cuenta por su /64', () => {
+  assert.equal(ledgerKey('2001:db8:aa:bb:1:2:3:4'), '2001:db8:aa:bb::/64');
+  assert.equal(ledgerKey('2001:db8:aa:bb::9'), '2001:db8:aa:bb::/64');
+  assert.equal(ledgerKey('2001:0db8::1'), '2001:db8:0:0::/64');
+  assert.equal(ledgerKey('190.129.10.4'), '190.129.10.4');
+  assert.equal(ledgerKey('::ffff:190.129.10.4'), '::ffff:190.129.10.4');
+  const ledger = new FailureLedger(2, 60_000);
+  ledger.admit('2001:db8:aa:bb::1', 0).ticket.confirm();
+  ledger.admit('2001:db8:aa:bb::2', 0).ticket.confirm();
+  assert.equal(ledger.admit('2001:db8:aa:bb::3', 1).ok, false);
 });
 
 /* --------------------------------------------------------- cupo y encabezados */

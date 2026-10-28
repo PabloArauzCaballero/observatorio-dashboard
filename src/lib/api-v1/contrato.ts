@@ -167,11 +167,30 @@ export type FailureAdmission = { ok: true; ticket: FailureTicket } | { ok: false
  * reservas aún sin resolver, la espera es de un segundo: se resuelven en lo que
  * tarda el núcleo.
  */
+/**
+ * La clave con que se cuenta una dirección. Una IPv6 se agrupa por su /64,
+ * que es lo que recibe una sola conexión: contar cada dirección dejaría a una
+ * persona inventar miles.
+ */
+export function ledgerKey(address: string): string {
+  if (!address.includes(':') || address.includes('.')) return address;
+  const [cabeza = '', cola = ''] = address.toLowerCase().split('::');
+  const izquierda = cabeza ? cabeza.split(':') : [];
+  const derecha = address.includes('::') && cola ? cola.split(':') : [];
+  const relleno = address.includes('::') ? Array(Math.max(0, 8 - izquierda.length - derecha.length)).fill('0') : [];
+  const grupos = [...izquierda, ...relleno, ...derecha];
+  return `${grupos.slice(0, 4).map((g) => g.replace(/^0+(?=.)/u, '')).join(':')}::/64`;
+}
+
+/** Donde cuentan juntas las direcciones nuevas cuando el registro está lleno. */
+export const LEDGER_OVERFLOW = '*desborde*';
+
 export class FailureLedger {
   private readonly entries = new Map<string, Array<{ at: number; pending: boolean }>>();
   private readonly limit: number;
   private readonly windowMs: number;
   private readonly maxAddresses: number;
+  private lastSweep = Number.NEGATIVE_INFINITY;
 
   constructor(limit = FAILED_KEYS_PER_WINDOW, windowMs = FAILED_KEYS_WINDOW_MS, maxAddresses = 10_000) {
     this.limit = limit;
@@ -186,7 +205,21 @@ export class FailureLedger {
     return kept;
   }
 
-  admit(address: string, now: number): FailureAdmission {
+  admit(direccion: string, now: number): FailureAdmission {
+    let address = ledgerKey(direccion);
+    /*
+     * Con el registro lleno no se descarta a nadie: borrar una dirección con
+     * fallos vivos le devolvería su cupo. Se barre lo vencido (a lo sumo una vez
+     * por segundo) y, si sigue lleno, la dirección nueva cuenta en un cupo
+     * común: falla cerrado para quien inunde, sin crecer la memoria.
+     */
+    if (!this.entries.has(address) && this.entries.size >= this.maxAddresses) {
+      if (now - this.lastSweep >= 1_000) {
+        this.lastSweep = now;
+        for (const key of [...this.entries.keys()]) this.live(key, now);
+      }
+      if (this.entries.size >= this.maxAddresses) address = LEDGER_OVERFLOW;
+    }
     const kept = this.live(address, now);
     if (kept.length >= this.limit) {
       const confirmed = kept.filter((entry) => !entry.pending);
@@ -199,22 +232,7 @@ export class FailureLedger {
     }
     const entry = { at: now, pending: true };
     kept.push(entry);
-    // Reinsertada al final: el orden del Map es el de la última actividad.
-    this.entries.delete(address);
     this.entries.set(address, kept);
-    if (this.entries.size > this.maxAddresses) {
-      /*
-       * Un tope duro: primero caen las direcciones sin fallos vivos y, si con
-       * eso no alcanza, las de actividad más vieja. Se baja hasta el 90 % para
-       * que el barrido, que recorre todo el Map, no corra en cada pedido.
-       */
-      for (const key of [...this.entries.keys()]) this.live(key, now);
-      const piso = Math.floor(this.maxAddresses * 0.9);
-      for (const key of this.entries.keys()) {
-        if (this.entries.size <= piso) break;
-        if (key !== address) this.entries.delete(key);
-      }
-    }
     let settled = false;
     return {
       ok: true,
@@ -238,7 +256,7 @@ export class FailureLedger {
 
   /** Fallos confirmados y reservas vigentes de una dirección. */
   count(address: string, now: number): number {
-    return this.live(address, now).length;
+    return this.live(ledgerKey(address), now).length;
   }
 
   get addresses(): number {

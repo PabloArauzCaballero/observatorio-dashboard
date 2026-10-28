@@ -104,14 +104,12 @@ export async function runNotices(now: Date = new Date()): Promise<NoticesSummary
   for (const candidate of candidates) {
     for (const decision of decideNotices(candidate, PLANS, now)) {
       summary.due[decision.kind] += 1;
-      const claim = await site<{ claimed: boolean }>('/notices/claim', {
-        method: 'POST',
-        body: {
-          subscriberAccountId: candidate.account.subscriberAccountId,
-          kind: decision.kind,
-          periodKey: decision.periodKey,
-        },
-      });
+      const notice = {
+        subscriberAccountId: candidate.account.subscriberAccountId,
+        kind: decision.kind,
+        periodKey: decision.periodKey,
+      };
+      const claim = await site<{ claimed: boolean }>('/notices/claim', { method: 'POST', body: notice });
       if (!claim.ok) {
         summary.claimFailed[decision.kind] += 1;
         continue;
@@ -128,6 +126,8 @@ export async function runNotices(now: Date = new Date()): Promise<NoticesSummary
       });
       lastSend = Date.now();
       summary[sent ? 'sent' : 'mailFailed'][decision.kind] += 1;
+      // Un correo que no salió devuelve su anotación: la próxima corrida lo reintenta.
+      if (!sent) await site<unknown>('/notices/release', { method: 'POST', body: notice });
     }
   }
   return summary;

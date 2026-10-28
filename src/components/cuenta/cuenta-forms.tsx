@@ -43,7 +43,7 @@ export function IngresarForm({ volver }: { volver: string }) {
     router.refresh();
   };
 
-  const bloqueada = estado.tipo === 'error' && estado.codigo === 'ACCOUNT_LOCKED';
+  const rechazado = estado.tipo === 'error' && estado.codigo === 'UNAUTHORIZED';
 
   return (
     <form ref={formRef} className={styles.form} onSubmit={(e) => void alEnviar(e)} noValidate aria-busy={enviando}>
@@ -71,7 +71,7 @@ export function IngresarForm({ volver }: { volver: string }) {
         </Link>
       </div>
       <Aviso {...aviso}>
-        {bloqueada ? (
+        {rechazado ? (
           <Link className={styles.enlace} href={RECUPERAR}>
             Recuperar la clave
           </Link>
