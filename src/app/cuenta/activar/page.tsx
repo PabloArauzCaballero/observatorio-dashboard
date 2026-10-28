@@ -10,7 +10,7 @@ import styles from '../cuenta.module.css';
 export const dynamic = 'force-dynamic';
 
 export const metadata: Metadata = {
-  title: 'Activar la cuenta',
+  title: 'Fijar la contraseña',
   robots: { index: false, follow: false },
   // El token viaja en la dirección: que no salga hacia otro sitio en el `Referer`.
   referrer: 'no-referrer',
@@ -18,8 +18,9 @@ export const metadata: Metadata = {
 
 /**
  * Fijar la contraseña con el enlace de un solo uso que manda DatosBolivia.com.
- * Sirve para la activación y para recuperar la contraseña; en los dos casos se
- * aceptan los términos en su versión vigente.
+ * Sirve para activar la cuenta, para el acceso de un miembro del equipo y para
+ * recuperar la clave; en todos los casos se aceptan los términos en su versión
+ * vigente.
  */
 export default async function ActivarPage({
   searchParams,
@@ -41,9 +42,9 @@ export default async function ActivarPage({
       <div className={`${styles.pagina} ${styles.estrecha}`} id="contenido">
         <header className={styles.cabecera}>
           <p className={styles.antetitulo}>Servicios · Cuenta</p>
-          <h2 className={styles.titulo}>Activar la cuenta</h2>
+          <h2 className={styles.titulo}>Fijar la contraseña</h2>
           <p className={styles.entradilla}>
-            Una contraseña para entrar a la cuenta de DatosBolivia.com. El enlace sirve una sola vez.
+            Para activar la cuenta de DatosBolivia.com o recuperar la clave. El enlace sirve una sola vez.
           </p>
         </header>
 
@@ -52,9 +53,9 @@ export default async function ActivarPage({
             <ActivarForm token={token} version={TERMS_VERSION} />
           ) : (
             <p className={styles.error} role="alert">
-              El enlace no es válido o está incompleto. Pedir uno nuevo desde{' '}
-              <Link className={styles.enlace} href="/servicios#contacto">
-                Planes y servicios
+              El enlace no es válido o está incompleto.{' '}
+              <Link className={styles.enlace} href="/cuenta/recuperar">
+                Pedir un enlace nuevo
               </Link>
               .
             </p>

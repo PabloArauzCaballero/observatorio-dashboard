@@ -1,6 +1,6 @@
 import { parseDateParam } from '@/lib/api-v1/contrato';
 import { seriesObservations } from '@/lib/api-v1/series';
-import { BadParam, OPTIONS, serve } from '@/lib/api-v1/responder';
+import { BadParam, OPTIONS, accept, serve } from '@/lib/api-v1/responder';
 
 /**
  * Las observaciones de una serie del catálogo, de la más vieja a la más nueva,
@@ -25,20 +25,15 @@ export async function GET(
   { params }: { params: Promise<{ codigo: string }> },
 ): Promise<Response> {
   const codigo = decoded((await params).codigo);
-  return serve(request, `series/${codigo}`, async ({ params: query, offset, pageSize }) => {
-    const desde = parseDateParam('desde', query.get('desde'));
-    const hasta = parseDateParam('hasta', query.get('hasta'));
-    if (!desde.ok) throw new BadParam(desde.error);
-    if (!hasta.ok) throw new BadParam(hasta.error);
-    const page = await seriesObservations(
-      codigo,
-      { desde: desde.value, hasta: hasta.value },
-      offset,
-      pageSize,
-    );
+  // En el registro y en el nombre del CSV va el código recortado: viene de quien llama.
+  return serve(request, `series/${codigo.slice(0, 120)}`, async ({ params: query, offset, pageSize }) => {
+    const desde = accept(parseDateParam('desde', query.get('desde')));
+    const hasta = accept(parseDateParam('hasta', query.get('hasta')));
+    const page = await seriesObservations(codigo, { desde, hasta }, offset, pageSize);
     if (!page) {
-      throw new BadParam(
-        `No hay una serie con el código «${codigo.slice(0, 120)}». El catálogo está en /api/v1/series.`,
+      throw BadParam.invalid(
+        'codigo',
+        `no hay una serie «${codigo.slice(0, 120)}»; los códigos están en /api/v1/series`,
       );
     }
     return page;

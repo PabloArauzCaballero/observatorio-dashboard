@@ -1,30 +1,37 @@
 import Link from 'next/link';
-import { count, day } from '@/components/admin/format';
+import { count, day, instant } from '@/components/admin/format';
 import { DataTable } from '@/components/admin/data-table';
 import { ClientActions, NewClientForm } from '@/components/admin/clientes';
 import { PageHeader } from '@/components/admin/page-header';
 import { EmptyNote, ProblemNote } from '@/components/admin/panel';
 import { SegmentedLinks } from '@/components/admin/segmented';
+import { StatStrip } from '@/components/admin/stat';
+import { StateBadge } from '@/components/admin/state-badge';
 import type { InquiryReport } from '@/lib/admin/contracts';
 import { callCore } from '@/lib/admin/core-client';
 import { currentSession } from '@/lib/admin/session';
-import { listAccounts, type AdminAccount } from '@/lib/cuenta/admin';
-import { STATUS_WORDS, USAGE_KINDS, USAGE_WORDS, isUuid, type UsageRow } from '@/lib/cuenta/puro';
+import { ADMIN_STATUS_WORDS, isLocked, listAccounts, statusTone, type AdminAccount } from '@/lib/cuenta/admin';
+import { USAGE_KINDS, USAGE_WORDS, isUuid, type UsageRow } from '@/lib/cuenta/puro';
 import { readAccount } from '@/lib/cuenta/servidor';
 import { PLANS } from '@/lib/plans';
 
 export const dynamic = 'force-dynamic';
 
+/**
+ * Los filtros son los estados guardados, que son los que el núcleo sabe
+ * filtrar. «En gracia» y «Vencida» se calculan con la vigencia al leer, así
+ * que no se filtran: se cuentan en la banda de cifras y se ven en la tabla.
+ */
 const FILTERS = [
   { value: '', label: 'Todas' },
+  { value: 'PENDING', label: 'Pendientes' },
   { value: 'TRIAL', label: 'En prueba' },
-  { value: 'ACTIVE', label: 'Vigentes' },
-  { value: 'GRACE', label: 'En gracia' },
+  { value: 'ACTIVE', label: 'Activas' },
   { value: 'SUSPENDED', label: 'Suspendidas' },
   { value: 'CANCELLED', label: 'Canceladas' },
 ] as const;
 
-const planName = (code: string): string => PLANS.find((plan) => plan.code === code)?.nombre ?? code;
+const planOf = (code: string) => PLANS.find((plan) => plan.code === code);
 
 /**
  * El pedido del que sale una cuenta nueva. Se busca en la bandeja de pedidos
@@ -62,10 +69,24 @@ async function usageOf(items: readonly AdminAccount[]): Promise<Map<string, Usag
   return map;
 }
 
+/** El consumo de la API frente al cupo del mes; los demás contadores, solo cuánto se usó. */
+function usageText(rows: readonly UsageRow[] | undefined, planCode: string): string {
+  if (!rows) return 'sin medición';
+  const quota = planOf(planCode)?.apiPorMes ?? 0;
+  return USAGE_KINDS.map((kind) => {
+    const used = rows.filter((entry) => entry.usageKind === kind).reduce((sum, entry) => sum + (Number(entry.used) || 0), 0);
+    if (kind === 'API' && quota > 0) {
+      return `${USAGE_WORDS[kind]}: ${count(used)} de ${count(quota)} (${Math.floor((used / quota) * 100)} %)`;
+    }
+    return `${USAGE_WORDS[kind]}: ${count(used)}`;
+  }).join(' · ');
+}
+
 /**
  * Las cuentas de cliente: quién tiene un plan, hasta cuándo y cuánto lo usa.
  * Aquí se abre una cuenta (o se convierte un pedido en cuenta), se registran
- * los pagos y se genera el enlace para fijar o recuperar la contraseña.
+ * los pagos, se desbloquea el ingreso, se cierran sesiones y se genera el
+ * enlace para fijar o recuperar la contraseña.
  */
 export default async function ClientsPage({
   searchParams,
@@ -89,6 +110,7 @@ export default async function ClientsPage({
     isUuid(inquiryId) ? findInquiry(session, inquiryId) : Promise.resolve(null),
   ]);
   const usage = result.ok ? await usageOf(result.body.data.items) : new Map<string, UsageRow[]>();
+  const now = Date.now();
 
   const href = (value: string, next?: string): string => {
     const query = new URLSearchParams();
@@ -98,11 +120,17 @@ export default async function ClientsPage({
     return `/admin/clientes${text ? `?${text}` : ''}`;
   };
 
+  const items = result.ok ? result.body.data.items : [];
+  const scope = result.ok && result.body.data.nextCursor ? 'en esta página' : 'en el listado';
+  const entitled = items.filter((item) => item.entitled).length;
+  const lapsing = items.filter((item) => item.effectiveStatus === 'GRACE' || item.effectiveStatus === 'EXPIRED').length;
+  const locked = items.filter((item) => isLocked(item, now)).length;
+
   return (
     <>
       <PageHeader
         title="Clientes"
-        lead="Las cuentas con plan: estado, vigencia y consumo del mes. Aquí se abren, se cobran y se recupera la contraseña."
+        lead="Las cuentas con plan: estado, vigencia y consumo del mes. Aquí se abren, se cobran, se desbloquean y se recupera la contraseña."
         {...(result.ok && result.body.meta
           ? { observedAt: result.body.meta.observedAt, requestId: result.body.meta.requestId }
           : {})}
@@ -149,74 +177,111 @@ export default async function ClientsPage({
           <ProblemNote problem={result} />
         </section>
       ) : (
-        <section className="admin-panel">
-          {result.body.data.items.length === 0 ? (
-            <EmptyNote
-              title="Sin cuentas"
-              detail={status ? 'No hay cuentas en este estado.' : 'Todavía no se abrió ninguna cuenta de cliente.'}
-            />
-          ) : (
-            <DataTable<AdminAccount>
-              caption="Cuentas de cliente"
-              rows={result.body.data.items}
-              rowKey={(row) => row.subscriberAccountId}
-              columns={[
+        <>
+          {items.length > 0 ? (
+            <StatStrip
+              label="Cifras de las cuentas"
+              stats={[
+                { label: 'Cuentas', value: count(items.length), detail: scope },
                 {
-                  header: 'Cliente',
-                  wrap: true,
-                  cell: (row) => (
-                    <>
-                      <strong>{row.fullName}</strong>
-                      {row.organization ? <> · {row.organization}</> : null}
-                      <br />
-                      <a href={`mailto:${row.email}`}>{row.email}</a>
-                    </>
-                  ),
+                  label: 'Con acceso al plan',
+                  value: count(entitled),
+                  detail: 'en prueba, activas o en gracia',
+                  state: { tone: entitled > 0 ? 'ok' : 'unknown', label: entitled > 0 ? 'Con clientes' : 'Ninguna' },
                 },
                 {
-                  header: 'Plan',
-                  cell: (row) => `${planName(row.planCode)} · ${row.billingPeriod === 'ANNUAL' ? 'anual' : 'mensual'}`,
+                  label: 'En gracia o vencidas',
+                  value: count(lapsing),
+                  detail: 'pago pendiente de registrar',
+                  state: { tone: lapsing > 0 ? 'warn' : 'ok', label: lapsing > 0 ? 'Por cobrar' : 'Al día' },
                 },
                 {
-                  header: 'Estado',
-                  cell: (row) => STATUS_WORDS[row.effectiveStatus] ?? row.effectiveStatus,
-                },
-                { header: 'Vigente hasta', cell: (row) => day(row.paidUntil) },
-                {
-                  header: 'Consumo del mes',
-                  wrap: true,
-                  cell: (row) => {
-                    const rows = usage.get(row.subscriberAccountId);
-                    if (!rows) return '—';
-                    return USAGE_KINDS.map((kind) => {
-                      const used = rows.filter((entry) => entry.usageKind === kind).reduce((sum, entry) => sum + entry.used, 0);
-                      return `${USAGE_WORDS[kind]}: ${count(used)}`;
-                    }).join(' · ');
-                  },
-                },
-                {
-                  header: 'Acciones',
-                  wrap: true,
-                  cell: (row) => (
-                    <ClientActions
-                      csrf={session.csrf}
-                      id={row.subscriberAccountId}
-                      email={row.email}
-                      fullName={row.fullName}
-                      planCode={row.planCode}
-                      status={row.status}
-                    />
-                  ),
+                  label: 'Ingreso bloqueado',
+                  value: count(locked),
+                  detail: 'por intentos fallidos, ahora',
+                  state: { tone: locked > 0 ? 'warn' : 'ok', label: locked > 0 ? 'Revisar' : 'Ninguna' },
                 },
               ]}
             />
-          )}
-          {result.body.data.nextCursor ? (
-            <p className="admin-more">
-              <Link href={href(status, result.body.data.nextCursor)}>Cuentas anteriores</Link>
-            </p>
           ) : null}
-        </section>
+          <section className="admin-panel">
+            {items.length === 0 ? (
+              <EmptyNote
+                title="Sin cuentas"
+                detail={status ? 'No hay cuentas en este estado.' : 'Todavía no se abrió ninguna cuenta de cliente.'}
+              />
+            ) : (
+              <DataTable<AdminAccount>
+                caption="Cuentas de cliente"
+                rows={items}
+                rowKey={(row) => row.subscriberAccountId}
+                columns={[
+                  {
+                    header: 'Cliente',
+                    wrap: true,
+                    cell: (row) => (
+                      <>
+                        <strong>{row.fullName}</strong>
+                        {row.organization ? <> · {row.organization}</> : null}
+                        <br />
+                        <a href={`mailto:${row.email}`}>{row.email}</a>
+                      </>
+                    ),
+                  },
+                  {
+                    header: 'Plan',
+                    cell: (row) =>
+                      `${planOf(row.planCode)?.nombre ?? row.planCode} · ${row.billingPeriod === 'ANNUAL' ? 'anual' : 'mensual'}`,
+                  },
+                  {
+                    header: 'Estado',
+                    wrap: true,
+                    cell: (row) => (
+                      <>
+                        <StateBadge
+                          tone={statusTone(row.effectiveStatus)}
+                          label={ADMIN_STATUS_WORDS[row.effectiveStatus] ?? row.effectiveStatus}
+                        />
+                        {isLocked(row, now) ? (
+                          <>
+                            <br />
+                            <small>Ingreso bloqueado hasta {instant(row.lockedUntil)}</small>
+                          </>
+                        ) : null}
+                      </>
+                    ),
+                  },
+                  { header: 'Vigente hasta', cell: (row) => day(row.paidUntil) },
+                  {
+                    header: 'Consumo del mes',
+                    wrap: true,
+                    cell: (row) => usageText(usage.get(row.subscriberAccountId), row.planCode),
+                  },
+                  {
+                    header: 'Acciones',
+                    wrap: true,
+                    cell: (row) => (
+                      <ClientActions
+                        csrf={session.csrf}
+                        id={row.subscriberAccountId}
+                        fullName={row.fullName}
+                        planCode={row.planCode}
+                        status={row.status}
+                        lockedUntilText={isLocked(row, now) ? instant(row.lockedUntil) : null}
+                        maxMembers={Math.max(0, (planOf(row.planCode)?.usuarios ?? 1) - 1)}
+                      />
+                    ),
+                  },
+                ]}
+              />
+            )}
+            {result.body.data.nextCursor ? (
+              <p className="admin-more">
+                <Link href={href(status, result.body.data.nextCursor)}>Cuentas anteriores</Link>
+              </p>
+            ) : null}
+          </section>
+        </>
       )}
     </>
   );

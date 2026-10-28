@@ -2,12 +2,16 @@ import 'server-only';
 import { jsonResponse } from '@/lib/respond';
 import { CORS_HEADERS, apiError, authorize, type ApiCaller } from './auth';
 import {
+  csvFileName,
+  missingParam,
+  paramError,
   parseCursorParam,
   parseFormat,
   parsePageSize,
   toCsv,
   usageLogLine,
   type CsvValue,
+  type Parsed,
 } from './contrato';
 
 /**
@@ -33,14 +37,52 @@ export interface ApiPage {
   data: ApiRow[];
   siguiente: string | null;
   fuente: string;
+  /**
+   * Hasta cuándo está al día la fuente que respondió: el instante en que llegó
+   * su último dato (ISO 8601) o la fecha o el periodo de ese dato; `null`
+   * cuando la fuente no lo registra.
+   */
   actualizado: string | null;
+  /** Encabezados propios de la ruta (p. ej. `X-Tope-Lugares`). */
+  headers?: Record<string, string>;
 }
 
-/** Un parámetro que la ruta no acepta: se contesta 400 con la frase. */
-export class BadParam extends Error {}
+/**
+ * Un parámetro que la ruta no acepta: se contesta 400 con el nombre del
+ * parámetro y la frase, escrita siempre con `paramError` o `missingParam`.
+ */
+export class BadParam extends Error {
+  readonly param: string;
+
+  constructor(param: string, message: string) {
+    super(message);
+    this.name = 'BadParam';
+    this.param = param;
+  }
+
+  /** «El parámetro «x» no es válido: …». */
+  static invalid(param: string, rule: string): BadParam {
+    return new BadParam(param, paramError(param, rule));
+  }
+
+  /** «Falta el parámetro «x»: …». */
+  static missing(param: string, rule: string): BadParam {
+    return new BadParam(param, missingParam(param, rule));
+  }
+}
+
+/** El valor de un parámetro ya leído, o el 400 que corresponde. */
+export function accept<T>(parsed: Parsed<T>): T {
+  if (!parsed.ok) throw new BadParam(parsed.param, parsed.error);
+  return parsed.value;
+}
 
 export function OPTIONS(): Response {
   return new Response(null, { status: 204, headers: CORS_HEADERS });
+}
+
+function badRequest(error: BadParam, headers: Record<string, string>): Response {
+  return apiError(400, error.message, headers, { parametro: error.param });
 }
 
 export async function serve(
@@ -52,20 +94,16 @@ export async function serve(
   if (!auth.ok) return auth.response;
   const { caller } = auth;
 
-  const params = new URL(request.url).searchParams;
-  const format = parseFormat(params.get('formato'));
-  const pageSize = parsePageSize(params.get('pageSize'));
-  const offset = parseCursorParam(params.get('cursor'));
-  for (const parsed of [format, pageSize, offset]) {
-    if (!parsed.ok) return apiError(400, parsed.error, caller.headers);
-  }
-  if (!format.ok || !pageSize.ok || !offset.ok) return apiError(400, 'Parámetros inválidos.', caller.headers);
-
   let page: ApiPage;
+  let format: 'json' | 'csv';
   try {
-    page = await produce({ caller, params, offset: offset.value, pageSize: pageSize.value });
+    const params = new URL(request.url).searchParams;
+    format = accept(parseFormat(params.get('formato')));
+    const pageSize = accept(parsePageSize(params.get('pageSize')));
+    const offset = accept(parseCursorParam(params.get('cursor')));
+    page = await produce({ caller, params, offset, pageSize });
   } catch (error) {
-    if (error instanceof BadParam) return apiError(400, error.message, caller.headers);
+    if (error instanceof BadParam) return badRequest(error, caller.headers);
     // El detalle va al registro: un mensaje de conexión puede llevar el host.
     console.error(`[observatorio] api-v1 ${route}: lectura fallida`, error);
     return apiError(503, 'No fue posible leer los datos. Conviene reintentar en unos minutos.', {
@@ -76,18 +114,19 @@ export async function serve(
 
   console.info(usageLogLine(route, caller.account.subscriberAccountId, page.data.length));
 
-  const headers = { ...CORS_HEADERS, ...caller.headers, 'Cache-Control': 'no-store' };
-  if (format.value === 'csv') {
-    return new Response(toCsv(page.data), {
+  const { headers: own = {}, ...body } = page;
+  const headers = { ...CORS_HEADERS, ...caller.headers, ...own, 'Cache-Control': 'no-store' };
+  if (format === 'csv') {
+    return new Response(toCsv(body.data), {
       headers: {
         ...headers,
         'Content-Type': 'text/csv; charset=utf-8',
-        'Content-Disposition': `attachment; filename="datosbolivia-${route.replace(/[^a-z0-9]+/giu, '-').replace(/^-|-$/gu, '')}.csv"`,
-        ...(page.siguiente ? { 'X-Siguiente': page.siguiente } : {}),
+        'Content-Disposition': `attachment; filename="${csvFileName(route)}"`,
+        ...(body.siguiente ? { 'X-Siguiente': body.siguiente } : {}),
       },
     });
   }
-  return jsonResponse(request, page, { headers });
+  return jsonResponse(request, body, { headers });
 }
 
 /** Una respuesta de un solo objeto (`/uso`): sin página ni CSV. */
